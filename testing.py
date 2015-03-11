@@ -25,7 +25,7 @@ z = 0.05
 
 # Mapping variables
 theta = np.pi/2
-scale = .10
+scale = 10
 offset = np.array([100, 200])
 
 #--------------------------------------------------------------------------------
@@ -159,8 +159,8 @@ print samp_points.shape
 # Fingerprint ref and samp
 #--------------------------------------------------------------------------------
 
+print 'samp_tree...'
 samp_tree = scipy.spatial.KDTree(samp_points)
-#ref_samp_tree = scipy.spatial.KDTree(ref_samp_points)
 
 def find_fingerprint(point, source):
     """find_fingerprint(point, source)
@@ -182,57 +182,36 @@ def find_fingerprint(point, source):
     angle = np.dot(nbrs[1]-point, nbrs[2]-point) / (dists[1] * dists[2])
     return ratio, angle
 
-def vec_find_fingerprint(points, source):
-    fings = np.zeros(points.shape)
-    for i, point in enumerate(points):
-        fings[i] = find_fingerprint(point, source)
-    return fings
-
-def ref_func(x):
+def ref_find_fingerprint(x):
     return find_fingerprint(x, 'ref')
 
-def samp_func(x):
+def samp_find_fingerprint(x):
     return find_fingerprint(x, 'samp')
 
 pool = mp.Pool(processes = 14)
 print 'ref_fing...'
-start_time = time.time()
-ref_fing = np.array(pool.map(ref_func, ref_points, chunksize=1000))
-ref_fing2 = vec_find_fingerprint(ref_points, 'ref')
-print 'Time:', time.time() - start_time
-print ref_fing
-print ref_fing2
-assert ref_fing == ref_fing2
-sys.exit()
+ref_fing = np.array(pool.map(ref_find_fingerprint, ref_points, chunksize=1000))
 
 print 'samp_fing...'
-#samp_fing = vec_find_fingerprint(samp_points, 'samp')
-samp_fing = np.array(pool.map(samp_func, samp_points, chunksize=1000))
-
-#print 'ref_samp_fing...'
-#ref_samp_fing = vec_find_fingerprint(ref_samp_points, 'ref_samp')
-
-#print 'sorting...'
-#sorted_samp_fing = samp_fing[np.argsort(samp_fing[:,0])]
-#sorted_ref_samp_fing = ref_samp_fing[np.argsort(ref_samp_fing[:,0])]
-#print
-#print ref_fing
-#print
-#print sorted_samp_fing
-#print
-#print sorted_ref_samp_fing
+samp_fing = np.array(pool.map(samp_find_fingerprint, samp_points, chunksize=1000))
 
 #--------------------------------------------------------------------------------
 # KD Tree of fingerprints
 #--------------------------------------------------------------------------------
 
+print 'ref_fing_tree...'
 ref_fing_tree = scipy.spatial.KDTree(ref_fing)
 
-fing_dist_idxs = np.zeros((samp_fing.shape[0], 3))
-
-for samp_idx, fing in enumerate(samp_fing):
+def fing_dist_and_idxs(args):
+    samp_idx, fing = args
     dist, ref_idx = ref_fing_tree.query(fing)
-    fing_dist_idxs[samp_idx] = [dist, ref_idx, samp_idx]
+    return dist, ref_idx, samp_idx
+
+print 'fing_dist_idxs...'
+pool = mp.Pool(processes = 14)
+fing_dist_idxs = np.array(pool.map(fing_dist_and_idxs, enumerate(samp_fing), chunksize=1000))
+
+
 sorted_fing_dist_idxs = fing_dist_idxs[np.argsort(fing_dist_idxs[:,0])]
 
 print sorted_fing_dist_idxs
@@ -271,7 +250,7 @@ def mapping_given_idxs(ref_idx, samp_idx):
         x = [ a aa b bb x_offset y_offset ]^T
 
     where
-        a = aa = lambda cos(theta),
+        a = aa = lambda cos(theta), and
         b = bb = lambda sin(theta)
 
     This system of equations is then finally solved for lambda and theta.
