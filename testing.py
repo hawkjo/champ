@@ -4,6 +4,7 @@ import random
 import time
 import scipy.io
 import scipy.spatial
+from sklearn import mixture
 import multiprocessing as mp
 import matplotlib.pyplot as plt
 import numpy as np
@@ -255,8 +256,10 @@ def mapping_given_idxs(ref_idx, samp_idx):
 
     This system of equations is then finally solved for lambda and theta.
     """
-    if abs(ref_fing[ref_idx][1]) > 0.99 or abs(samp_fing[samp_idx][1]) > 0.99:
-        return -1
+#    if (ref_fing[ref_idx][0] > 0.99
+#            or abs(ref_fing[ref_idx][1]) > 0.97
+#            or abs(samp_fing[samp_idx][1]) > 0.97):
+#        return -1
     ref_dists, ref_nbr_idxs = ref_tree.query(ref_points[ref_idx], 3)
     samp_dists, samp_nbr_idxs = samp_tree.query(samp_points[samp_idx], 3)
     x0r, y0r = ref_points[ref_nbr_idxs[0]]
@@ -278,7 +281,7 @@ def mapping_given_idxs(ref_idx, samp_idx):
     x = np.linalg.solve(A, b)
     a, aa, b, bb, x_offset, y_offset = x
 
-    tol = 0.01 * max([a, aa, b, bb])
+    tol = 0.01 * max(map(abs, [a, aa, b, bb]))
 
     if not (approx_eq(a, aa, tol=tol) and approx_eq(b, bb, tol=tol)):
         return -1
@@ -291,7 +294,7 @@ def mapping_given_idxs(ref_idx, samp_idx):
 
     return lbda, theta, x_offset, y_offset
 
-num_best_fings = 1000
+num_best_fings = 10000
 ans = np.zeros((num_best_fings, 4))
 j = 0
 for i, (dist, ref_idx, samp_idx) in enumerate(fing_dist_idxs):
@@ -304,20 +307,36 @@ for i, (dist, ref_idx, samp_idx) in enumerate(fing_dist_idxs):
         break
 print '%d tries for %d hits' % (i, num_best_fings)
 
+g = mixture.GMM(n_components=2)
+g.fit(ans)
+print g.means_
+print g.covars_
+
+from matplotlib.patches import Ellipse
+esr1 = Ellipse(xy=g.means_[0][:2], width=g.covars_[0][0], height=g.covars_[0][1], facecolor='none')
+esr2 = Ellipse(xy=g.means_[1][:2], width=g.covars_[1][0], height=g.covars_[1][1], facecolor='none')
+eoff1 = Ellipse(xy=g.means_[0][2:], width=g.covars_[0][2], height=g.covars_[0][3], facecolor='none')
+eoff2 = Ellipse(xy=g.means_[1][2:], width=g.covars_[1][2], height=g.covars_[1][3], facecolor='none')
+alpha = 0.01
+
 fig = plt.figure()
 ax = fig.add_subplot(221)
-ax.plot(ans[:,0], ans[:,1], 'o', alpha=0.05)
+ax.plot(ans[:,0], ans[:,1], 'o', alpha=alpha)
+ax.add_artist(esr1)
+ax.add_artist(esr2)
 
 ax = fig.add_subplot(222)
-ax.plot(ans[:,2], ans[:,3], 'o', alpha=0.05)
+ax.plot(ans[:,2], ans[:,3], 'o', alpha=alpha)
+ax.add_artist(eoff1)
+ax.add_artist(eoff2)
 
 ax = fig.add_subplot(223)
-ax.plot(ans[:,0], ans[:,1], 'o', alpha=0.05)
+ax.plot(ans[:,0], ans[:,1], 'o', alpha=alpha)
 ax.set_xlim((.09, .11))
 ax.set_ylim((1.55, 1.6))
 
 ax = fig.add_subplot(224)
-ax.plot(ans[:,2], ans[:,3], 'o', alpha=0.05)
+ax.plot(ans[:,2], ans[:,3], 'o', alpha=alpha)
 ax.set_xlim((0, 200))
 ax.set_ylim((100, 300))
 plt.show()
