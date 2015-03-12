@@ -307,28 +307,17 @@ for i, (dist, ref_idx, samp_idx) in enumerate(fing_dist_idxs):
         break
 print '%d tries for %d hits' % (i, num_best_fings)
 
-g = mixture.GMM(n_components=2)
-g.fit(ans)
-print g.means_
-print g.covars_
-
-from matplotlib.patches import Ellipse
-esr1 = Ellipse(xy=g.means_[0][:2], width=g.covars_[0][0], height=g.covars_[0][1], facecolor='none')
-esr2 = Ellipse(xy=g.means_[1][:2], width=g.covars_[1][0], height=g.covars_[1][1], facecolor='none')
-eoff1 = Ellipse(xy=g.means_[0][2:], width=g.covars_[0][2], height=g.covars_[0][3], facecolor='none')
-eoff2 = Ellipse(xy=g.means_[1][2:], width=g.covars_[1][2], height=g.covars_[1][3], facecolor='none')
+#from matplotlib.patches import Ellipse
+#esr1 = Ellipse(xy=g.means_[0][:2], width=g.covars_[0][0], height=g.covars_[0][1], facecolor='none')
 alpha = 0.01
 
 fig = plt.figure()
 ax = fig.add_subplot(221)
 ax.plot(ans[:,0], ans[:,1], 'o', alpha=alpha)
-ax.add_artist(esr1)
-ax.add_artist(esr2)
+#ax.add_artist(esr1)
 
 ax = fig.add_subplot(222)
 ax.plot(ans[:,2], ans[:,3], 'o', alpha=alpha)
-ax.add_artist(eoff1)
-ax.add_artist(eoff2)
 
 ax = fig.add_subplot(223)
 ax.plot(ans[:,0], ans[:,1], 'o', alpha=alpha)
