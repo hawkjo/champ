@@ -21,7 +21,7 @@ from Sequencing import Visualize
 #--------------------------------------------------------------------------------
 
 # The fraction of the subsample not to delete
-frac_samp_seen = 0.90
+frac_samp_seen = 0.95
 
 # z = sigma / (2 sqrt(rho))
 # sigma*eye(2) is the covariance matrix of the measurement noise
@@ -31,7 +31,7 @@ z = 0.1
 
 # Mapping variables
 # s is the x-parity: 1=no flip, -1=lrflip
-s = 1
+s = -1
 scale = 10
 theta = 2
 offset = np.array([10000, 20000])
@@ -242,7 +242,7 @@ print sorted_fing_dist_idxs
 def approx_eq(a, b, tol=1e-3):
     return bool(abs(a-b)<tol)
 
-def ls_mapping_given_all_ref_samp_mappings(ref_samp_mappings, x_parity):
+def ls_mapping_given_all_ref_samp_mappings(ref_samp_mappings):
     """mapping_given_idxs(ref_samp_mappings)
 
     Input: set of tuples of (ref_idx, samp_idx) mappings.
