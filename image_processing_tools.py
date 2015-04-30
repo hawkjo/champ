@@ -168,23 +168,29 @@ class ImageData(object):
     def D4_images_and_ffts(self, padding=(0, 0), force=False):
         """Makes images and ffts of all flips and 90 degree rotations (i.e. the 4th dihedral
         symmetry group."""
-        if hasattr(self, 'padded_ims') and hasattr(self, 'all_ffts')) \
+        if hasattr(self, 'padded_ims') and hasattr(self, 'all_ffts') \
                 and self.padded_ims and self.all_ffts and not force:
             return
         self.padded_ims = {}
         self.all_ffts = {}
         for flip in [True, False]:
             if flip:
-                flip_im = np.pad(np.fliplr(im_605_shr_filt_norm_pad),
-                                 ((0, padding[0]), (0, padding[1])))
+                flip_im = np.fliplr(im_605_shr_filt_norm_pad)
             else:
-                flip_im = np.pad(im_605_shr_filt_norm_pad,
-                                 ((0, padding[0]), (0, padding[1])))
+                flip_im = im_605_shr_filt_norm_pad
             for rot in [0, 90, 180, 270]:
                 idx = (flip, rot)
                 rot_im = np.rot90(flip_im, k=(rot%90))
-                self.padded_ims[idx] = rot_im
-                self.all_ffts[idx] = np.fft.fft2(rot_im)
+
+                totalx, totaly = np.array(padding)+np.array(rot_im.shape)
+                w = image_processing_tools.next_power_of_2(totalx)
+                h = image_processing_tools.next_power_of_2(totaly)
+                padded_im = np.pad(rot_im,
+                                   ((padding[0], w-totalx), (padding[1], h-totaly)),
+                                   mode='constant')
+
+                self.padded_ims[idx] = padded_im
+                self.all_ffts[idx] = np.fft.fft2(padded_im)
 
 
 class FastqImageCorrelator(object):
@@ -229,19 +235,14 @@ class FastqImageCorrelator(object):
             tile.make_image(self.fq_im_offset, self.fq_im_scale, self.fq_im_scaled_dims)
 
     def imreg_align(self):
-        for key, tile in sorted(self.fastq_tiles.items(), key=lambda tup: tup[0][-2:], reverse=True):
-            tile.imreg_align_with_im(self.image_data.im)
-
-    def imreg_align(self):
-        for key, tile in sorted(self.fastq_tiles.items(), key=lambda tup: tup[0][-2:], reverse=True):
+        for key, tile in sorted(self.fastq_tiles.items()):
             tile.imreg_align_with_im(self.image_data.im)
 
     def fft_align(self):
         print 'Image D4 ffts'
         self.image_data.D4_images_and_ffts(padding=[max(self.fq_im_scaled_dims)]*2)
         print 'Fastq images and ffts'
-        for key, tile in sorted(self.fastq_tiles.items()):
-            tile.make_image(self.fq_im_offset, self.fq_im_scale, self.fq_im_scaled_dims)
+        self.make_fastq_images()
         print 'Aligning'
-        for key, tile in sorted(self.fastq_tiles.items(), key=lambda tup: tup[0][-2:], reverse=True):
+        for key, tile in sorted(self.fastq_tiles.items()):
             tile.fft_align_with_im(self.image_data.im)
