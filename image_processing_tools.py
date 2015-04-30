@@ -79,44 +79,22 @@ class FastqTileXYs(object):
         self.key = key
         self.xys = tile
 
-    def make_image(self, offset, scale, scaled_dims, force=False):
-        if hasattr(self, 'image') and self.image and not force:
-            return
+    def set_fastq_image_data(self, offset, scale, scaled_dims, force=False, verbose=True):
         self.offset = offset
         self.scale = scale
-
+        self.image_shape = scaled_dims
         self.mapped_xys = scale * (self.xys + np.tile(offset, (self.xys.shape[0], 1)))
 
-        # We create a square stamp pixel-width stamp_size for each data point
-        stamp_size = 7
-        stamp = np.ones((stamp_size, stamp_size))
-        m = int(stamp_size / 2)
-        p = stamp_size - m
+    def image(self):
+        image = np.zeros(self.image_shape)
+        image[self.mapped_xys.astype(np.int)[:,0], self.mapped_xys.astype(np.int)[:,1]] += 1
+        image[image > 1] = 1
+        return image
 
-        self.image = np.zeros(scaled_dims)
-        if stamp_size == 1:
-            self.image[self.mapped_xys.astype(np.int)[:,0], self.mapped_xys.astype(np.int)[:,1]] += 1
-        else:
-            for point in self.mapped_xys:
-                r, c = map(int, point)
-                r_m_adj = max(0, m-r)
-                r_p_adj = min(0, self.image.shape[0]-(r+p))
-                c_m_adj = max(0, m-c)
-                c_p_adj = min(0, self.image.shape[1]-(c+p))
-                self.image[(r - m + r_m_adj):(r + p + r_p_adj),
-                           (c - m + c_m_adj):(c + p + c_p_adj)] \
-                            += stamp[r_m_adj:(stamp_size + r_p_adj), c_m_adj:(stamp_size + c_p_adj)]
-        self.image[self.image > 1] = 1
-
-    def make_fft(self, force=False):
-        if hasattr(self, 'fft') and self.fft and not force:
-            return
-        assert hasattr(self, image) and self.image, 'Must have image to fft.'
-        self.fft = np.fft.fft2(self.image)
-        
     def imreg_align_with_im(self, im):
-        edge_len = next_power_of_2(np.r_[self.image.shape, im.shape].max())
-        sq_fq_im = pad_to_size(self.image, (edge_len, edge_len))
+        fq_image = self.image()
+        edge_len = next_power_of_2(np.r_[fq_image.shape, im.shape].max())
+        sq_fq_im = pad_to_size(fq_image, (edge_len, edge_len))
 
         self.max_score = float('-inf')
         for flip in [False, True]:
@@ -127,33 +105,40 @@ class FastqTileXYs(object):
             score = (sq_im * fq_match_im).sum()
 
             if score > self.max_score:
-                print self.key, score, scale, rot, tr
                 self.max_score = score
                 self.best_match_im = fq_match_im
                 self.align_scale = scale
                 self.align_rot = rot
                 self.align_tr = tr
+        print self.key, score, scale, rot, tr
 
-    def fft_align_with_im(self, image_data):
-        n_rows = next_power_of_2(self.image.shape[0] + im.shape[0])
-        n_cols = next_power_of_2(self.image.shape[1] + im.shape[1])
-        padded_fq_im = pad_to_size(self.image, (n_rows, n_cols))
+    def fft_align_with_im(self, image_data, verbose=True):
+        im_data_im_shapes = set(a.shape for a in image_data.all_ffts.values())
+        assert len(im_data_im_shapes) <= 2, im_data_im_shapes
 
-        self.max_score = float('-inf')
-        for flip in [False, True]:
-            if flip:
-                im = np.fliplr(im)
-            sq_im = pad_to_size(im, (n_rows, n_cols))
-            fq_match_im, scale, rot, tr = imreg.similarity(sq_im, sq_fq_im)
-            score = (sq_im * fq_match_im).sum()
+        # Make the ffts
+        if verbose:
+            print 'Making ffts for', self.key
+        fq_image = self.image()
+        fq_im_fft_given_shape = {}
+        for shape in im_data_im_shapes:
+            padded_fq_im = pad_to_size(fq_image, shape)
+            fq_im_fft_given_shape[shape] = np.fft.fft2(padded_fq_im)
 
-            if score > self.max_score:
-                print self.key, score, scale, rot, tr
-                self.max_score = score
-                self.best_match_im = fq_match_im
-                self.align_scale = scale
-                self.align_rot = rot
-                self.align_tr = tr
+        # Align
+        self.best_max_corr = float('-inf')
+        for im_key, im_data_fft in image_data.all_ffts.items():
+            fq_im_fft = fq_im_fft_given_shape[im_data_fft.shape]
+            cross_corr = abs(np.fft.ifft2(np.conj(fq_im_fft) * im_data_fft))
+            max_corr = cross_corr.max()
+            max_idx = max_2d_idx(cross_corr)
+
+            if max_corr > self.best_max_corr:
+                self.best_im_key = im_key
+                self.best_max_corr = max_corr
+                self.align_tr = np.array(max_idx) - fq_image.shape
+        if verbose:
+            print 'Result:', self.key, self.best_im_key, self.best_max_corr, self.align_tr
 
 class ImageData(object):
     def __init__(self, im, objective):
@@ -165,31 +150,30 @@ class ImageData(object):
         self.um_per_pixel = 16.0 / self.objective
         self.um_dims = self.um_per_pixel * np.array(self.im.shape)
 
-    def D4_images_and_ffts(self, padding=(0, 0), force=False):
+    def D4_ffts(self, padding=(0, 0), force=False, verbose=True):
         """Makes images and ffts of all flips and 90 degree rotations (i.e. the 4th dihedral
         symmetry group."""
-        if hasattr(self, 'padded_ims') and hasattr(self, 'all_ffts') \
-                and self.padded_ims and self.all_ffts and not force:
+        if hasattr(self, 'all_ffts') and self.all_ffts and not force:
             return
-        self.padded_ims = {}
         self.all_ffts = {}
         for flip in [True, False]:
             if flip:
-                flip_im = np.fliplr(im_605_shr_filt_norm_pad)
+                flip_im = np.fliplr(self.im)
             else:
-                flip_im = im_605_shr_filt_norm_pad
+                flip_im = self.im
             for rot in [0, 90, 180, 270]:
                 idx = (flip, rot)
+                if verbose:
+                    print idx
                 rot_im = np.rot90(flip_im, k=(rot%90))
 
                 totalx, totaly = np.array(padding)+np.array(rot_im.shape)
-                w = image_processing_tools.next_power_of_2(totalx)
-                h = image_processing_tools.next_power_of_2(totaly)
+                w = next_power_of_2(totalx)
+                h = next_power_of_2(totaly)
                 padded_im = np.pad(rot_im,
                                    ((padding[0], w-totalx), (padding[1], h-totaly)),
                                    mode='constant')
 
-                self.padded_ims[idx] = padded_im
                 self.all_ffts[idx] = np.fft.fft2(padded_im)
 
 
@@ -230,19 +214,22 @@ class FastqImageCorrelator(object):
         self.fq_im_scaled_maxes = self.fq_im_scale * np.array([x_max-x_min, y_max-y_min])
         self.fq_im_scaled_dims = (self.fq_im_scaled_maxes + [1, 1]).astype(np.int)
 
-    def make_fastq_images(self):
+    def set_all_fastq_image_data(self, verbose=True):
         for key, tile in self.fastq_tiles.items():
-            tile.make_image(self.fq_im_offset, self.fq_im_scale, self.fq_im_scaled_dims)
+            tile.set_fastq_image_data(self.fq_im_offset,
+                                      self.fq_im_scale,
+                                      self.fq_im_scaled_dims,
+                                      verbose=verbose)
 
     def imreg_align(self):
         for key, tile in sorted(self.fastq_tiles.items()):
             tile.imreg_align_with_im(self.image_data.im)
 
-    def fft_align(self):
+    def fft_align(self, verbose=True):
         print 'Image D4 ffts'
-        self.image_data.D4_images_and_ffts(padding=[max(self.fq_im_scaled_dims)]*2)
+        self.image_data.D4_ffts(padding=self.fq_im_scaled_dims, verbose=verbose)
         print 'Fastq images and ffts'
-        self.make_fastq_images()
+        self.set_all_fastq_image_data(verbose=True)
         print 'Aligning'
         for key, tile in sorted(self.fastq_tiles.items()):
-            tile.fft_align_with_im(self.image_data.im)
+            tile.fft_align_with_im(self.image_data, verbose=verbose)
