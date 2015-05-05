@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from scipy.signal import convolve2d
 from scipy.spatial import ConvexHull
+from scipy.optimize import minimize
 from scipy import ndimage
 from pathos.multiprocessing import ProcessingPool
 from multiprocessing import Pool
@@ -162,12 +163,13 @@ class FastqTileXYs(object):
 
     def aligned_xys(self, new_fq_w=None, new_degree_rot=0, new_tr=(0, 0)):
         """Returns aligned xys. Only works when image need not be flipped or rotated."""
+        if new_fq_w is None:
+            new_fq_w = self.w
         aligned_xys = deepcopy(self.mapped_xys)
-        if new_fq_w:
-            aligned_xys *= float(new_fq_w) / self.w
-        aligned_xys += np.tile(self.align_tr + new_tr, (aligned_xys.shape[0], 1))
         aligned_xys = np.dot(aligned_xys, right_rotation_matrix(new_degree_rot, degrees=True))
-        # Fix rotation and flip offsets and align:
+        aligned_xys -= np.tile(aligned_xys.min(axis=0), (aligned_xys.shape[0], 1))
+        aligned_xys *= float(new_fq_w) / self.w
+        aligned_xys += np.tile(self.align_tr + new_tr, (aligned_xys.shape[0], 1))
         return aligned_xys
 
     def correlation(self, im, new_fq_w=None, new_degree_rot=0, new_tr=(0, 0)):
@@ -175,22 +177,47 @@ class FastqTileXYs(object):
         return sum(im[pt[0], pt[1]] for pt in self.aligned_xys(new_fq_w, new_degree_rot, new_tr)
                    if 0 <= pt[0] < im.shape[0] and 0 <= pt[1] < im.shape[1])
 
+    def optimize_alignment(self, im):
+        def neg_corr(v):
+            return - self.correlation(im, v[0], v[1], v[2:3])
+        v0 = [self.w, 0, 0, 0]
+        methods = ['Nelder-Mead',
+                   'Powell',
+                   'CG',
+                   'BFGS',
+                   'Newton-CG',
+                   'Anneal',
+                   'L-BFGS-B',
+                   'TNC',
+                   'COBYLA',
+                   'SLSQP',
+                   'dogleg',
+                   'trust-ncg']
+        res = minimize(neg_corr, v0, method=methods[0])
+        return res
+
     def plot_convex_hull(self, xys=None, ax=None):
         if ax is None:
             fig, ax = plt.subplots()
         if xys is None:
             xys = self.mapped_xys
         hull = ConvexHull(xys)
-        ax.plot(xys[hull.vertices, 1], xys[hull.vertices, 0])
+        ax.plot(xys[hull.vertices, 1], xys[hull.vertices, 0], label=self.key)
 
 
 class ImageData(object):
-    def __init__(self, im, objective):
-        assert isinstance(im, np.ndarray), 'Image must be numpy ndarray'
-        assert objective in set([40, 60]), 'Accepted objectives are 40 and 60'
+    def __init__(self, im, objective, im_type='np'):
+        if im_type in ['np', 'numpy']:
+            assert isinstance(im, np.ndarray), 'Image not numpy ndarray'
+            self.im = im
+        elif im_type == 'tif':
+            self.im = np.array(Image.open(im))
+        else:
+            raise ValueError('Image type not accepted: %s' % im_type)
 
-        self.im = im
+        assert objective in set([40, 60]), 'Accepted objectives are 40 and 60'
         self.objective = objective
+
         self.um_per_pixel = 16.0 / self.objective
         self.um_dims = self.um_per_pixel * np.array(self.im.shape)
 
