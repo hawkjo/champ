@@ -274,7 +274,7 @@ class FastqImageCorrelator(object):
         ax.hist(self.hit_dists(self.good_mutual_hits), 40, label='Good mutual hits', normed=True, histtype='step')
         ax.hist(self.hit_dists(self.exclusive_hits), 40, label='Exclusive hits', normed=True, histtype='step')
         ax.legend()
-        ax.set_title('Nearest Neighbor Distance Distributions')
+        ax.set_title('%s Nearest Neighbor Distance Distributions' % self.image_data.bname)
         return ax
 
     def plot_threshold_gmm(self, axs=None, force=False):
@@ -292,7 +292,7 @@ class FastqImageCorrelator(object):
         ylim = axs[0].get_ylim()
         axs[0].plot([self.good_mutual_hit_thresh, self.good_mutual_hit_thresh], ylim,
                 'g--', label='Threshold')
-        axs[0].set_title('GMM PDF of Non-mutual hits')
+        axs[0].set_title('%s GMM PDF of Non-mutual hits' % self.image_data.bname)
         axs[0].legend()
         axs[0].set_ylim(ylim)
 
@@ -300,7 +300,7 @@ class FastqImageCorrelator(object):
         axs[1].plot(xs, posteriors, label='Posterior')
         axs[1].plot([self.good_mutual_hit_thresh, self.good_mutual_hit_thresh], [0, 1],
                 'g--', label='Threshold')
-        axs[1].set_title('GMM Posterior Probabilities')
+        axs[1].set_title('%s GMM Posterior Probabilities' % self.image_data.bname)
         axs[1].legend()
         return axs
 
