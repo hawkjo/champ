@@ -17,7 +17,7 @@ class FastqImageCorrelator(object):
         self.fastq_tiles = {}
         self.fastq_tiles_list = []
         self.fastq_tiles_keys = []
-        self.image_data = None
+        self.image_data = ImageData()
         self.w_fq_tile_min = 895  # um
         self.w_fq_tile_max = 937  # um
         self.w_fq_tile = 937  # um
@@ -28,15 +28,11 @@ class FastqImageCorrelator(object):
         self.fastq_tiles_keys = [key for key, tile in sorted(self.fastq_tiles.items())]
         self.fastq_tiles_list = [tile for key, tile in sorted(self.fastq_tiles.items())]
 
-    def set_image_data(self, im):
-        assert isinstance(im, ImageData), 'Object passed to set_image_data must be ImageData object.'
-        self.image_data = im
-
-    def set_image_data_from_ndarray(self, im, objective):
-        self.image_data = ImageData(im, objective)
-
-    def load_image_data_from_fpath(self, fpath, objective):
-        self.data_im = ImageData(np.load(fpath), objective)
+    def set_image_data(self, *args, **kwargs):
+        if len(args) == 1 and isinstance(args[0], ImageData):
+            self.image_data = args[0]
+        else:
+            self.image_data = ImageData(*args, **kwargs)
 
     def set_fastq_tile_mappings(self):
         """Calculate parameters for mapping fastq tiles for ffts."""
@@ -218,5 +214,6 @@ class FastqImageCorrelator(object):
                 coord_tup = tuple(map(int, str(record.id).split(':')[-3:]))  # tile:r:c
                 if coord_tup in rcs_coord_tups:
                     flux, flux_err = flux_info_given_rcs_coord_tup(coord_tup)
+                    #out.write('\t'.join([record.id, self.image_data.fname,
                     record.description += ' Flux:%f Flux_err:%f' % (flux, flux_err)
                     SeqIO.write(record, out, 'fastq')
