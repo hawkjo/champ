@@ -1,9 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from scipy import ndimage
 import local_config
 import sextraction
+import scipy.optimize
 from scipy.spatial import KDTree
+from sklearn.mixture import GMM
 from Bio import SeqIO
 from imagedata import ImageData
 from fastqtilercs import FastqTileRCs
@@ -148,18 +151,45 @@ class FastqImageCorrelator(object):
     def set_sexcat_from_file(self, fpath):
         self.sexcat = sextraction.Sextraction(fpath)
 
-    def find_hits(self, tile_key):
-        # First, restrict to points in the frame, keeping rcs along for backtracking
+    def find_hitting_tiles(self, possible_tile_keys, snr_thresh=2):
+        possible_tiles = [self.fastq_tiles[key] for key in possible_tile_keys]
+        for tile in self.fastq_tiles_list:
+            if tile not in possible_tiles:
+                control_tile = tile
+                break
+
+        self.hitting_tiles = []
+        self.image_data.set_single_fft((0, 0), padding=self.fq_im_scaled_dims)
+        _, _, control_corr, _ = self.fft_align_tile(control_tile)
+        for tile in possible_tiles:
+            tile_key, _, max_corr, align_tr = self.fft_align_tile(tile)
+            if max_corr > snr_thresh * control_corr:
+                tile.set_aligned_rcs()
+                self.hitting_tiles.append(tile)
+
+    def find_points_in_frame(self):
         self.aligned_rcs_in_frame = []
         self.rcs_in_frame = []
-        rcs = self.fastq_tiles[tile_key].rcs.astype(np.int)
         im_shape = self.image_data.im.shape
-        for i, pt in enumerate(self.fastq_tiles[tile_key].aligned_rcs):
-            if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
-                self.aligned_rcs_in_frame.append(pt)
-                self.rcs_in_frame.append(rcs[i])
+        for tile in self.hitting_tiles:
+            rcs = tile.rcs.astype(np.int)
+            for i, pt in enumerate(tile.aligned_rcs):
+                if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
+                    self.aligned_rcs_in_frame.append(pt)
+                    self.rcs_in_frame.append((tile.key, rcs[i]))
+        self.aligned_rcs_in_frame = np.array(self.aligned_rcs_in_frame)
 
-        # Next find nearest neighbors
+    def hit_dists(self, hits):
+        dists = []
+        for i, j in hits:
+            dists.append(np.linalg.norm(self.sexcat.point_rcs[i] - self.aligned_rcs_in_frame[j]))
+        return dists
+
+    def find_hits(self, good_posterior_thresh_pct=0.99, good_mutual_hit_thresh=None):
+        #--------------------------------------------------------------------------------
+        # Find nearest neighbors
+        #--------------------------------------------------------------------------------
+        self.find_points_in_frame()
         sexcat_tree = KDTree(self.sexcat.point_rcs)
         aligned_tree = KDTree(self.aligned_rcs_in_frame)
 
@@ -174,46 +204,170 @@ class FastqImageCorrelator(object):
             dist, idx = sexcat_tree.query(pt)
             aligned_to_sexcat_idxs_rev.add((idx, i))
 
+        #--------------------------------------------------------------------------------
         # Find categories of hits
+        #--------------------------------------------------------------------------------
         mutual_hits = sexcat_to_aligned_idxs & aligned_to_sexcat_idxs_rev
         non_mutual_hits = sexcat_to_aligned_idxs ^ aligned_to_sexcat_idxs_rev
-        assert mutual_hits | non_mutual_hits == sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev
 
         sexcat_in_non_mutual = set(i for i, j in non_mutual_hits)
         aligned_in_non_mutual = set(j for i, j in non_mutual_hits)
         exclusive_hits = set((i, j) for i, j in mutual_hits if i not in
                              sexcat_in_non_mutual and j not in aligned_in_non_mutual)
 
-        print 'Non-mutual hits:', len(non_mutual_hits)
-        print 'Mutual hits:', len(mutual_hits)
-        print 'Exclusive hits:', len(exclusive_hits)
+        #--------------------------------------------------------------------------------
+        # Recover good non-exclusive mutual hits. 
+        #--------------------------------------------------------------------------------
+        # If the distance to second neighbor is too close, that suggests a bad peak call combining
+        # two peaks into one. Filter those out with a gaussian-mixture-model-determined threshold.
+        if good_mutual_hit_thresh is not None:
+            assert good_mutual_hit_thresh > 0
+            self.good_mutual_hit_thresh = good_mutual_hit_thresh
+        else:
+            self.good_mutual_hit_thresh = self.gmm_thresh(self.hit_dists(non_mutual_hits))
 
+        good_mutual_hits = set()
+        for i, j in (mutual_hits - exclusive_hits):
+            third_wheels = [tup for tup in non_mutual_hits if i == tup[0] or j == tup[1]]
+            if min(self.hit_dists(third_wheels)) > self.good_mutual_hit_thresh:
+                good_mutual_hits.add((i, j))
+        bad_mutual_hits = mutual_hits - exclusive_hits - good_mutual_hits
+
+        #--------------------------------------------------------------------------------
+        # Test that the four groups form a partition of all hits and finalize
+        #--------------------------------------------------------------------------------
+        assert (non_mutual_hits | bad_mutual_hits | good_mutual_hits | exclusive_hits
+                == sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev
+                and  len(non_mutual_hits) + len(bad_mutual_hits)
+                + len(good_mutual_hits) + len(exclusive_hits)
+                == len(sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev))
+                                
         self.non_mutual_hits = non_mutual_hits
         self.mutual_hits = mutual_hits
+        self.bad_mutual_hits = bad_mutual_hits
+        self.good_mutual_hits = good_mutual_hits
         self.exclusive_hits = exclusive_hits
 
-    def extract_intensity_and_sequence_from_fastq(self,
-                                                  fastq_fpath,
-                                                  tile_key,
-                                                  tile_num,
-                                                  out_fpath,
-                                                  hit_type='exclusive'):
-        hit_list = list(getattr(self, hit_type + '_hits'))
-        hit_aligned_idxs = [j for _, j in hit_list]
-        rcs_coord_tups = set((tile_num, pt[0], pt[1]) for pt in self.rcs_in_frame)
-        hit_given_rcs_coord_tup = \
-                {(tile_num, pt[0], pt[1]): hit_list[i] for i, pt in enumerate(self.rcs_in_frame)}
+        print 'Non-mutual hits:', len(non_mutual_hits)
+        print 'Mutual hits:', len(mutual_hits)
+        print 'Bad mutual hits:', len(bad_mutual_hits)
+        print 'Good mutual hits:', len(good_mutual_hits)
+        print 'Exclusive hits:', len(exclusive_hits)
+
+    def gmm_thresh(self, dists):
+        self.gmm = GMM(2)
+        self.gmm.fit(dists)
+        
+        lower_idx = self.gmm.means_.argmin()
+        higher_idx = 1 - lower_idx
+
+        lower_mean = self.gmm.means_[lower_idx]
+        good_posterior_thresh_pct = 0.99
+        f = lambda x: self.gmm.predict_proba([x])[0][higher_idx] - good_posterior_thresh_pct
+        return scipy.optimize.brentq(f, lower_mean, max(dists))
+
+    def plot_hit_hists(self, ax=None):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(8, 8))
+        ax.hist(self.hit_dists(self.non_mutual_hits), 40, label='Non-mutual hits', normed=True, histtype='step')
+        ax.hist(self.hit_dists(self.bad_mutual_hits), 40, label='Bad mutual hits', normed=True, histtype='step')
+        ax.hist(self.hit_dists(self.good_mutual_hits), 40, label='Good mutual hits', normed=True, histtype='step')
+        ax.hist(self.hit_dists(self.exclusive_hits), 40, label='Exclusive hits', normed=True, histtype='step')
+        ax.legend()
+        ax.set_title('Nearest Neighbor Distance Distributions')
+        return ax
+
+    def plot_threshold_gmm(self, axs=None):
+        if axs is None:
+            fig, axs = plt.subplots(1, 2, figsize=(15, 6))
+        xs = np.linspace(0, max(non_mut_dists), 200)
+        posteriors = gmm.predict_proba(xs)
+        pdf = np.exp(gmm.score_samples(xs)[0])
+
+        axs[0].hist(non_mut_dists, 40, histtype='step', normed=True, label='Data')
+        axs[0].plot(xs, pdf, label='PDF')
+        ylim = axs[0].get_ylim()
+        axs[0].plot([thresh, thresh], ylim, 'g--', label='Threshold')
+        axs[0].set_title('GMM PDF of Non-mutual hits')
+        axs[0].legend()
+        axs[0].set_ylim(ylim)
+
+        axs[1].hist(non_mut_dists, 40, histtype='step', normed=True, label='Data')
+        axs[1].plot(xs, posteriors, label='Posterior')
+        axs[1].plot([thresh, thresh], [0, 1], 'g--', label='Threshold')
+        axs[1].set_title('GMM Posterior Probabilities')
+        axs[1].legend()
+        return axs
+
+    def extract_intensity_and_sequence_from_fastq(self, fastq_fpath, out_fpath):
+        hit_given_aligned_idx = {}
+        for hit_type in ['non_mutual', 'bad_mutual', 'good_mutual', 'exclusive']:
+            for i, j in getattr(self, hit_type + '_hits'):
+                hit_given_aligned_idx[j] = (hit_type, (i, j))
+
+        hit_given_rcs_coord_tup = {(int(tile_key[-4]), pt[0], pt[1]): hit_given_aligned_idx[i]
+                                   for i, (tile_key, pt) in enumerate(self.rcs_in_frame)}
+        rcs_coord_tups = set(hit_given_rcs_coord_tup.keys())
 
         def flux_info_given_rcs_coord_tup(coord_tup):
-            i, _ = hit_given_rcs_coord_tup[coord_tup]
-            sexcat_pt = self.sexcat.points[i]
-            return sexcat_pt.flux, sexcat_pt.flux_err
+            hit_type, (i, _) = hit_given_rcs_coord_tup[coord_tup]
+            if hit_type == 'non_mutual':
+                return 'none', 0, 0
+            else:
+                sexcat_pt = self.sexcat.points[i]
+                return hit_type, sexcat_pt.flux, sexcat_pt.flux_err
+
+        lines = set()  # set rather than list due to read pairs
+        for record in SeqIO.parse(open(fastq_fpath), 'fastq'):
+            coord_tup = tuple(map(int, str(record.id).split(':')[-3:]))  # tile:r:c
+            if coord_tup in rcs_coord_tups:
+                hit_type, flux, flux_err = flux_info_given_rcs_coord_tup(coord_tup)
+                lines.add('\t'.join([record.id,
+                                     self.image_data.fname,
+                                     hit_type,
+                                     str(flux),
+                                     str(flux_err)]))
 
         with open(out_fpath, 'w') as out:
-            for record in SeqIO.parse(open(fastq_fpath), 'fastq'):
-                coord_tup = tuple(map(int, str(record.id).split(':')[-3:]))  # tile:r:c
-                if coord_tup in rcs_coord_tups:
-                    flux, flux_err = flux_info_given_rcs_coord_tup(coord_tup)
-                    #out.write('\t'.join([record.id, self.image_data.fname,
-                    record.description += ' Flux:%f Flux_err:%f' % (flux, flux_err)
-                    SeqIO.write(record, out, 'fastq')
+            fields = ['read_name', 'image_name', 'hit_type', 'flux', 'flux_err']
+            out.write('# Fields: ' + '\t'.join(fields) + '\n')
+            out.write('\n'.join(lines))
+
+    def plot_hits(self, hits, color, ax):
+        for i, j in hits:
+            ax.plot([self.sexcat.point_rcs[i, 1], self.aligned_rcs_in_frame[j, 1]],
+                    [self.sexcat.point_rcs[i, 0], self.aligned_rcs_in_frame[j, 0]],
+                    color=color)
+
+    def plot_all_hits(self, ax=None):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(15, 15))
+        ax.imshow(self.image_data.im, cmap=plt.get_cmap('Blues'))
+        ax.plot(self.aligned_rcs_in_frame[:, 1], self.aligned_rcs_in_frame[:, 0],
+                'ko', alpha=0.3, linewidth=0, markersize=3)
+        self.sexcat.plot_ellipses(ax=ax, alpha=0.6, color='darkgoldenrod')
+        self.plot_hits(self.non_mutual_hits, 'grey', ax)
+        self.plot_hits(self.bad_mutual_hits, 'b', ax)
+        self.plot_hits(self.good_mutual_hits, 'magenta', ax)
+        self.plot_hits(self.exclusive_hits, 'r', ax)
+        ax.set_title('All Hits: %s vs. %s'
+                % (self.image_data.bname, ','.join(tile.key for tile in self.hitting_tiles)))
+        ax.set_xlim([0, self.image_data.im.shape[1]])
+        ax.set_ylim([self.image_data.im.shape[0], 0])
+        
+        grey_line = Line2D([], [], color='grey',
+                label='Non-mutual hits: %d' % (len(self.non_mutual_hits)))
+        blue_line = Line2D([], [], color='blue',
+                label='Bad mutual hits: %d' % (len(self.bad_mutual_hits)))
+        magenta_line = Line2D([], [], color='magenta',
+                label='Good mutual hits: %d' % (len(self.good_mutual_hits)))
+        red_line = Line2D([], [], color='red',
+                label='Exclusive hits: %d' % (len(self.exclusive_hits)))
+        sexcat_line = Line2D([], [], color='darkgoldenrod', alpha=0.6, marker='o', markersize=10,
+                label='Sextractor Ellipses: %d' % (len(self.sexcat.point_rcs)))
+        fastq_line = Line2D([], [], color='k', alpha=0.3, marker='o', markersize=10,
+                label='Fastq Points: %d' % (len(self.aligned_rcs_in_frame)))
+        handles = [grey_line, blue_line, magenta_line, red_line, sexcat_line, fastq_line]
+        legend = ax.legend(handles=handles)
+        legend.get_frame().set_color('white')
+        return ax

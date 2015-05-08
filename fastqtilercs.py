@@ -103,18 +103,8 @@ class FastqTileRCs(object):
         def neg_corr(v):
             return - self.correlation(im, v[0], v[1], v[2:3])
         v0 = [self.w, 0, 0, 0]
-        methods = ['Nelder-Mead',
-                   'Powell',
-                   'CG',
-                   'BFGS',
-                   'Newton-CG',
-                   'Anneal',
-                   'L-BFGS-B',
-                   'TNC',
-                   'COBYLA',
-                   'SLSQP',
-                   'dogleg',
-                   'trust-ncg']
+        methods = ['Nelder-Mead', 'Powell', 'CG', 'BFGS', 'Newton-CG', 'Anneal',
+                   'L-BFGS-B', 'TNC', 'COBYLA', 'SLSQP', 'dogleg', 'trust-ncg']
         res = minimize(neg_corr, v0, method=methods[0])
         return res
 
