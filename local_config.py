@@ -21,7 +21,7 @@ dname_given_project_name = {
         'SA15070': '150410_NS500358_0053_AH773VBGXX',
         }
 
-def phiX_xys_given_project_name(pname):
+def phiX_rcs_given_project_name(pname):
     fpath = os.path.join(jah_base_dir,
                          dname_given_project_name[pname],
                          'phiX_mappings/xys.npz')

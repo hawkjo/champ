@@ -14,6 +14,9 @@ from pathos.multiprocessing import ProcessingPool
 from multiprocessing import Pool
 import imreg
 import local_config
+import sextraction
+from scipy.spatial import KDTree
+from Bio import SeqIO
 
 
 def signal_hist_and_func(pyplot_hist, plot_title='', plot_curves=True):
@@ -89,29 +92,29 @@ def right_rotation_matrix(angle, degrees=True):
                      [-sina, cosa]])
 
 
-class FastqTileXYs(object):
+class FastqTileRCs(object):
     def __init__(self, key, tile):
         self.key = key
-        self.xys = tile
+        self.rcs = tile
 
     def set_fastq_image_data(self, offset, scale, scaled_dims, w, force=False, verbose=True):
         self.offset = offset
         self.scale = scale
         self.image_shape = scaled_dims
         self.w = w  # width in um
-        self.mapped_xys = scale * (self.xys + np.tile(offset, (self.xys.shape[0], 1)))
+        self.mapped_rcs = scale * (self.rcs + np.tile(offset, (self.rcs.shape[0], 1)))
         self.rotation = 0
 
     def rotate_data(self, degrees):
         self.rotation += degrees
-        self.mapped_xys = np.dot(self.mapped_xys, right_rotation_matrix(degrees, degrees=True))
-        self.mapped_xys -= np.tile(self.mapped_xys.min(axis=0), (self.mapped_xys.shape[0], 1))
-        self.image_shape = self.mapped_xys.max(axis=0) + 1
+        self.mapped_rcs = np.dot(self.mapped_rcs, right_rotation_matrix(degrees, degrees=True))
+        self.mapped_rcs -= np.tile(self.mapped_rcs.min(axis=0), (self.mapped_rcs.shape[0], 1))
+        self.image_shape = self.mapped_rcs.max(axis=0) + 1
         return self.image_shape
 
     def image(self):
         image = np.zeros(self.image_shape)
-        image[self.mapped_xys.astype(np.int)[:,0], self.mapped_xys.astype(np.int)[:,1]] = 1
+        image[self.mapped_rcs.astype(np.int)[:,0], self.mapped_rcs.astype(np.int)[:,1]] = 1
         return image
 
     def imreg_align_with_im(self, im):
@@ -161,20 +164,23 @@ class FastqTileXYs(object):
         #print 'Result:', self.key, self.best_im_key, self.best_max_corr, self.align_tr
         return self.key, self.best_im_key, self.best_max_corr, self.align_tr
 
-    def aligned_xys(self, new_fq_w=None, new_degree_rot=0, new_tr=(0, 0)):
-        """Returns aligned xys. Only works when image need not be flipped or rotated."""
+    def get_new_aligned_rcs(self, new_fq_w=None, new_degree_rot=0, new_tr=(0, 0)):
+        """Returns aligned rcs. Only works when image need not be flipped or rotated."""
         if new_fq_w is None:
             new_fq_w = self.w
-        aligned_xys = deepcopy(self.mapped_xys)
-        aligned_xys = np.dot(aligned_xys, right_rotation_matrix(new_degree_rot, degrees=True))
-        aligned_xys -= np.tile(aligned_xys.min(axis=0), (aligned_xys.shape[0], 1))
-        aligned_xys *= float(new_fq_w) / self.w
-        aligned_xys += np.tile(self.align_tr + new_tr, (aligned_xys.shape[0], 1))
-        return aligned_xys
+        aligned_rcs = deepcopy(self.mapped_rcs)
+        aligned_rcs = np.dot(aligned_rcs, right_rotation_matrix(new_degree_rot, degrees=True))
+        aligned_rcs -= np.tile(aligned_rcs.min(axis=0), (aligned_rcs.shape[0], 1))
+        aligned_rcs *= float(new_fq_w) / self.w
+        aligned_rcs += np.tile(self.align_tr + new_tr, (aligned_rcs.shape[0], 1))
+        return aligned_rcs
+
+    def set_aligned_rcs(self):
+        self.aligned_rcs = self.get_new_aligned_rcs()
 
     def correlation(self, im, new_fq_w=None, new_degree_rot=0, new_tr=(0, 0)):
         """Returns alignment correlation. Only works when image need not be flipped or rotated."""
-        return sum(im[pt[0], pt[1]] for pt in self.aligned_xys(new_fq_w, new_degree_rot, new_tr)
+        return sum(im[pt[0], pt[1]] for pt in self.get_new_aligned_rcs(new_fq_w, new_degree_rot, new_tr)
                    if 0 <= pt[0] < im.shape[0] and 0 <= pt[1] < im.shape[1])
 
     def optimize_alignment(self, im):
@@ -196,13 +202,13 @@ class FastqTileXYs(object):
         res = minimize(neg_corr, v0, method=methods[0])
         return res
 
-    def plot_convex_hull(self, xys=None, ax=None):
+    def plot_convex_hull(self, rcs=None, ax=None):
         if ax is None:
             fig, ax = plt.subplots()
-        if xys is None:
-            xys = self.mapped_xys
-        hull = ConvexHull(xys)
-        ax.plot(xys[hull.vertices, 1], xys[hull.vertices, 0], label=self.key)
+        if rcs is None:
+            rcs = self.mapped_rcs
+        hull = ConvexHull(rcs)
+        ax.plot(rcs[hull.vertices, 1], rcs[hull.vertices, 0], label=self.key)
 
 
 class ImageData(object):
@@ -275,8 +281,8 @@ class FastqImageCorrelator(object):
         self.w_fq_tile = 937  # um
 
     def load_phiX(self):
-        for key, tile in local_config.phiX_xys_given_project_name(self.project_name).items():
-            self.fastq_tiles[key] = FastqTileXYs(key, tile)
+        for key, tile in local_config.phiX_rcs_given_project_name(self.project_name).items():
+            self.fastq_tiles[key] = FastqTileRCs(key, tile)
         self.fastq_tiles_keys = [key for key, tile in sorted(self.fastq_tiles.items())]
         self.fastq_tiles_list = [tile for key, tile in sorted(self.fastq_tiles.items())]
 
@@ -295,7 +301,7 @@ class FastqImageCorrelator(object):
         assert self.image_data is not None, 'No image data loaded.'
         assert self.fastq_tiles != {}, 'No fastq data loaded.'
 
-        self.all_data = np.concatenate([tile.xys for key, tile in self.fastq_tiles.items()])
+        self.all_data = np.concatenate([tile.rcs for key, tile in self.fastq_tiles.items()])
     
         x_min, y_min = self.all_data.min(axis=0)
         x_max, y_max = self.all_data.max(axis=0)
@@ -393,6 +399,82 @@ class FastqImageCorrelator(object):
         fq_im = ndimage.filters.gaussian_filter(fq_im, 3)
         fq_im[fq_im < 0.01] = None
         plt.imshow(fq_im, cmap=plt.get_cmap('Reds'), alpha=0.5, label='Fastq')
-        #aligned_xys = self.fastq_tiles[fq_key].aligned_xys()
-        #ax.plot(aligned_xys[:, 0], aligned_xys[:, 1], 'r.', alpha=0.5)
+        #aligned_rcs = self.fastq_tiles[fq_key].aligned_rcs()
+        #ax.plot(aligned_rcs[:, 0], aligned_rcs[:, 1], 'r.', alpha=0.5)
         plt.axis(v)
+
+    def set_sexcat(self, sexcat):
+        assert isinstance(sexcat, sextraction.Sextraction)
+        self.sexcat = sexcat
+
+    def set_sexcat_from_file(self, fpath):
+        self.sexcat = sextraction.Sextraction(fpath)
+
+    def find_hits(self, tile_key):
+        # First, restrict to points in the frame, keeping rcs along for backtracking
+        self.aligned_rcs_in_frame = []
+        self.rcs_in_frame = []
+        rcs = self.fastq_tiles[tile_key].rcs.astype(np.int)
+        im_shape = self.image_data.im.shape
+        for i, pt in enumerate(self.fastq_tiles[tile_key].aligned_rcs):
+            if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
+                self.aligned_rcs_in_frame.append(pt)
+                self.rcs_in_frame.append(rcs[i])
+
+        # Next find nearest neighbors
+        sexcat_tree = KDTree(self.sexcat.point_rcs)
+        aligned_tree = KDTree(self.aligned_rcs_in_frame)
+
+        # All indices are in the order (sexcat_idx, aligned_in_frame_idx)
+        sexcat_to_aligned_idxs = set()
+        for i, pt in enumerate(self.sexcat.point_rcs):
+            dist, idx = aligned_tree.query(pt)
+            sexcat_to_aligned_idxs.add((i, idx))
+
+        aligned_to_sexcat_idxs_rev = set()
+        for i, pt in enumerate(self.aligned_rcs_in_frame):
+            dist, idx = sexcat_tree.query(pt)
+            aligned_to_sexcat_idxs_rev.add((idx, i))
+
+        # Find categories of hits
+        mutual_hits = sexcat_to_aligned_idxs & aligned_to_sexcat_idxs_rev
+        non_mutual_hits = sexcat_to_aligned_idxs ^ aligned_to_sexcat_idxs_rev
+        assert mutual_hits | non_mutual_hits == sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev
+
+        sexcat_in_non_mutual = set(i for i, j in non_mutual_hits)
+        aligned_in_non_mutual = set(j for i, j in non_mutual_hits)
+        exclusive_hits = set((i, j) for i, j in mutual_hits if i not in
+                             sexcat_in_non_mutual and j not in aligned_in_non_mutual)
+
+        print 'Non-mutual hits:', len(non_mutual_hits)
+        print 'Mutual hits:', len(mutual_hits)
+        print 'Exclusive hits:', len(exclusive_hits)
+
+        self.non_mutual_hits = non_mutual_hits
+        self.mutual_hits = mutual_hits
+        self.exclusive_hits = exclusive_hits
+
+    def extract_intensity_and_sequence_from_fastq(self,
+                                                  fastq_fpath,
+                                                  tile_key,
+                                                  tile_num,
+                                                  out_fpath,
+                                                  hit_type='exclusive'):
+        hit_list = list(getattr(self, hit_type + '_hits'))
+        hit_aligned_idxs = [j for _, j in hit_list]
+        rcs_coord_tups = set((tile_num, pt[0], pt[1]) for pt in self.rcs_in_frame)
+        hit_given_rcs_coord_tup = \
+                {(tile_num, pt[0], pt[1]): hit_list[i] for i, pt in enumerate(self.rcs_in_frame)}
+
+        def flux_info_given_rcs_coord_tup(coord_tup):
+            i, _ = hit_given_rcs_coord_tup[coord_tup]
+            sexcat_pt = self.sexcat.points[i]
+            return sexcat_pt.flux, sexcat_pt.flux_err
+
+        with open(out_fpath, 'w') as out:
+            for record in SeqIO.parse(open(fastq_fpath), 'fastq'):
+                coord_tup = tuple(map(int, str(record.id).split(':')[-3:]))  # tile:r:c
+                if coord_tup in rcs_coord_tups:
+                    flux, flux_err = flux_info_given_rcs_coord_tup(coord_tup)
+                    record.description += ' Flux:%f Flux_err:%f' % (flux, flux_err)
+                    SeqIO.write(record, out, 'fastq')
