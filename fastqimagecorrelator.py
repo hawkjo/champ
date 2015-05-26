@@ -43,10 +43,10 @@ class FastqImageCorrelator(object):
         assert self.fastq_tiles != {}, 'No fastq data loaded.'
 
         self.all_data = np.concatenate([tile.rcs for key, tile in self.fastq_tiles.items()])
-    
+
         x_min, y_min = self.all_data.min(axis=0)
         x_max, y_max = self.all_data.max(axis=0)
-    
+
         self.fq_im_offset = np.array([-x_min, -y_min])
         self.fq_im_scale = (float(self.w_fq_tile) / (x_max-x_min)) / self.image_data.um_per_pixel
         self.fq_im_scaled_maxes = self.fq_im_scale * np.array([x_max-x_min, y_max-y_min])
@@ -167,11 +167,34 @@ class FastqImageCorrelator(object):
                 tile.set_aligned_rcs()
                 self.hitting_tiles.append(tile)
 
-    def find_points_in_frame(self):
+    def find_points_in_frame(self, consider_tiles='all'):
         self.aligned_rcs_in_frame = []
         self.rcs_in_frame = []
         im_shape = self.image_data.im.shape
-        for tile in self.hitting_tiles:
+
+        if consider_tiles == 'all':
+            considered_tiles = self.hitting_tiles
+        elif consider_tiles == 'best':
+            best_corr = 0
+            for tile in self.hitting_tiles:
+                if tile.best_max_corr > best_corr:
+                    considered_tiles = [tile]
+                    best_corr = tile.best_max_corr
+        elif isinstance(consider_tiles, FastqTileRCs):
+            considered_tiles = [consider_tiles]
+        elif isinstance(consider_tiles, int):
+            considered_tiles = [self.hitting_tiles[consider_tiles]]
+        elif isinstance(consider_tiles, list):
+            if np.all([isinstance(el, FastqTileRCs) for el in consider_tiles]):
+                considered_tiles = consider_tiles
+            elif np.all([isinstance(el, int) for el in consider_tiles]):
+                considered_tiles = [self.hitting_tiles[i] for i in consider_tiles]
+            else:
+                raise ValueError('A consider_tiles list must either be all tiles or all indices')
+        else:
+            raise ValueError('Invalid consider_tiles parameter.')
+
+        for tile in considered_tiles:
             rcs = tile.rcs.astype(np.int)
             for i, pt in enumerate(tile.aligned_rcs):
                 if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
@@ -185,11 +208,14 @@ class FastqImageCorrelator(object):
             dists.append(np.linalg.norm(self.sexcat.point_rcs[i] - self.aligned_rcs_in_frame[j]))
         return dists
 
-    def find_hits(self, good_posterior_thresh_pct=0.99, good_mutual_hit_thresh=None):
+    def find_hits(self,
+            good_posterior_thresh_pct=0.99,
+            second_neighbor_thresh=None,
+            consider_tiles='all'):
         #--------------------------------------------------------------------------------
         # Find nearest neighbors
         #--------------------------------------------------------------------------------
-        self.find_points_in_frame()
+        self.find_points_in_frame(consider_tiles)
         sexcat_tree = KDTree(self.sexcat.point_rcs)
         aligned_tree = KDTree(self.aligned_rcs_in_frame)
 
@@ -220,16 +246,21 @@ class FastqImageCorrelator(object):
         #--------------------------------------------------------------------------------
         # If the distance to second neighbor is too close, that suggests a bad peak call combining
         # two peaks into one. Filter those out with a gaussian-mixture-model-determined threshold.
-        if good_mutual_hit_thresh is not None:
-            assert good_mutual_hit_thresh > 0
-            self.good_mutual_hit_thresh = good_mutual_hit_thresh
+        self.exclusive_hit_98_pct = np.percentile(self.hit_dists(exclusive_hits), 98)
+
+        if second_neighbor_thresh is not None:
+            assert second_neighbor_thresh > 0
+            self.second_neighbor_thresh = second_neighbor_thresh
         else:
-            self.gmm_thresh(self.hit_dists(non_mutual_hits))
+            self.second_neighbor_thresh = 2 * self.exclusive_hit_98_pct
+            #self.gmm_thresh(self.hit_dists(non_mutual_hits))
 
         good_mutual_hits = set()
         for i, j in (mutual_hits - exclusive_hits):
+            if self.hit_dists([(i, j)])[0] > self.exclusive_hit_98_pct:
+                continue
             third_wheels = [tup for tup in non_mutual_hits if i == tup[0] or j == tup[1]]
-            if min(self.hit_dists(third_wheels)) > self.good_mutual_hit_thresh:
+            if min(self.hit_dists(third_wheels)) > self.second_neighbor_thresh:
                 good_mutual_hits.add((i, j))
         bad_mutual_hits = mutual_hits - exclusive_hits - good_mutual_hits
 
@@ -241,7 +272,7 @@ class FastqImageCorrelator(object):
                 and  len(non_mutual_hits) + len(bad_mutual_hits)
                 + len(good_mutual_hits) + len(exclusive_hits)
                 == len(sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev))
-                                
+
         self.non_mutual_hits = non_mutual_hits
         self.mutual_hits = mutual_hits
         self.bad_mutual_hits = bad_mutual_hits
@@ -254,17 +285,85 @@ class FastqImageCorrelator(object):
         print 'Good mutual hits:', len(good_mutual_hits)
         print 'Exclusive hits:', len(exclusive_hits)
 
+    def least_squares_mapping(self, hit_type='exclusive'):
+        """least_squares_mapping(self, hit_type='exclusive')
+
+        "Input": set of tuples of (sexcat_idx, in_frame_idx) mappings.
+
+        "Output": scaling lambda, rotation theta, x_offset, y_offset, and aligned_rcs
+
+        We here solve the matrix least squares equation Ax = b, where
+
+                [ x0r -y0r 1 0 ]
+                [ y0r  x0r 0 1 ]
+            A = [ x1r -y1r 1 0 ]
+                [ y1r  x1r 0 1 ]
+                      . . .
+                [ xnr -ynr 1 0 ]
+                [ ynr  xnr 0 1 ]
+
+        and
+
+            b = [ x0s y0s x1s y1s . . . xns yns ]^T
+
+        The r and s subscripts indicate rcs and sexcat coords.
+
+        The interpretation of x is then given by
+
+            x = [ alpha beta x_offset y_offset ]^T
+
+        where
+            alpha = lambda cos(theta), and
+            beta = lambda sin(theta)
+
+        This system of equations is then finally solved for lambda and theta.
+        """
+        for tile in self.hitting_tiles:
+            self.find_hits(consider_tiles=tile)
+
+            # Reminder: All indices are in the order (sexcat_idx, in_frame_idx)
+            hits = getattr(self, hit_type + '_hits')
+            assert len(hits) > 50, 'Too few hits for least squares mapping.'
+            A = np.zeros((2*len(hits), 4))
+            b = np.zeros((2*len(hits),))
+            for i, (sexcat_idx, in_frame_idx) in enumerate(hits):
+                tile_key, (xir, yir) = self.rcs_in_frame[in_frame_idx]
+                A[2*i, :]   = [xir, -yir, 1, 0]
+                A[2*i+1, :] = [yir,  xir, 0, 1]
+
+                xis, yis = self.sexcat.point_rcs[sexcat_idx]
+                b[2*i]   = xis
+                b[2*i+1] = yis
+
+            x = np.linalg.lstsq(A, b)[0]
+            alpha, beta, x_offset, y_offset = x
+
+            offset = np.array([x_offset, y_offset])
+            theta = np.arctan2(beta, alpha)
+            lbda = alpha / np.cos(theta)
+
+            tile.set_aligned_rcs_given_transform(lbda, theta, offset)
+
+    def align(self, possible_tile_keys, rotation_est, fq_w_est=927, snr_thresh=2, hit_type='exclusive'):
+        self.set_fastq_tile_mappings()
+        self.set_all_fastq_image_data()
+        self.rotate_all_fastq_data(rotation_est)
+        self.find_hitting_tiles(possible_tile_keys, snr_thresh)
+        self.least_squares_mapping(hit_type)
+        self.find_hits()
+        
+
     def gmm_thresh(self, dists):
         self.gmm = GMM(2)
         self.gmm.fit(dists)
-        
+
         lower_idx = self.gmm.means_.argmin()
         higher_idx = 1 - lower_idx
 
         lower_mean = self.gmm.means_[lower_idx]
         good_posterior_thresh_pct = 0.99
         f = lambda x: self.gmm.predict_proba([x])[0][higher_idx] - good_posterior_thresh_pct
-        self.good_mutual_hit_thresh = scipy.optimize.brentq(f, lower_mean, max(dists))
+        self.second_neighbor_thresh = scipy.optimize.brentq(f, lower_mean, max(dists))
 
     def plot_hit_hists(self, ax=None):
         if ax is None:
@@ -290,7 +389,7 @@ class FastqImageCorrelator(object):
         axs[0].hist(non_mut_dists, 40, histtype='step', normed=True, label='Data')
         axs[0].plot(xs, pdf, label='PDF')
         ylim = axs[0].get_ylim()
-        axs[0].plot([self.good_mutual_hit_thresh, self.good_mutual_hit_thresh], ylim,
+        axs[0].plot([self.second_neighbor_thresh, self.second_neighbor_thresh], ylim,
                 'g--', label='Threshold')
         axs[0].set_title('%s GMM PDF of Non-mutual hits' % self.image_data.bname)
         axs[0].legend()
@@ -298,13 +397,13 @@ class FastqImageCorrelator(object):
 
         axs[1].hist(non_mut_dists, 40, histtype='step', normed=True, label='Data')
         axs[1].plot(xs, posteriors, label='Posterior')
-        axs[1].plot([self.good_mutual_hit_thresh, self.good_mutual_hit_thresh], [0, 1],
+        axs[1].plot([self.second_neighbor_thresh, self.second_neighbor_thresh], [0, 1],
                 'g--', label='Threshold')
         axs[1].set_title('%s GMM Posterior Probabilities' % self.image_data.bname)
         axs[1].legend()
         return axs
 
-    def extract_intensity_and_sequence_from_name_list(self, name_list_fpath, out_fpath):
+    def extract_intensity_from_name_list(self, name_list_fpath, out_fpath):
         hit_given_aligned_idx = {}
         for hit_type in ['non_mutual', 'bad_mutual', 'good_mutual', 'exclusive']:
             for i, j in getattr(self, hit_type + '_hits'):
@@ -317,24 +416,26 @@ class FastqImageCorrelator(object):
         def flux_info_given_rcs_coord_tup(coord_tup):
             hit_type, (i, _) = hit_given_rcs_coord_tup[coord_tup]
             if hit_type == 'non_mutual':
-                return 'none', 0, 0
+                return 'none', 0, 0, 0, 0
             else:
                 sexcat_pt = self.sexcat.points[i]
-                return hit_type, sexcat_pt.flux, sexcat_pt.flux_err
+                return hit_type, sexcat_pt.r, sexcat_pt.c, sexcat_pt.flux, sexcat_pt.flux_err
 
         lines = set()  # set rather than list due to read pairs
         for line in open(name_list_fpath):
             coord_tup = tuple(map(int, line.strip().split(':')[-3:]))  # tile:r:c
             if coord_tup in rcs_coord_tups:
-                hit_type, flux, flux_err = flux_info_given_rcs_coord_tup(coord_tup)
+                hit_type, rr, cc, flux, flux_err = flux_info_given_rcs_coord_tup(coord_tup)
                 lines.add('\t'.join([line.strip(),
                                      self.image_data.fname,
                                      hit_type,
+                                     str(rr),
+                                     str(cc),
                                      str(flux),
                                      str(flux_err)]))
 
         with open(out_fpath, 'w') as out:
-            fields = ['read_name', 'image_name', 'hit_type', 'flux', 'flux_err']
+            fields = ['read_name', 'image_name', 'hit_type', 'r', 'c', 'flux', 'flux_err']
             out.write('# Fields: ' + '\t'.join(fields) + '\n')
             out.write('\n'.join(lines))
 
@@ -355,11 +456,17 @@ class FastqImageCorrelator(object):
         self.plot_hits(self.bad_mutual_hits, 'b', ax)
         self.plot_hits(self.good_mutual_hits, 'magenta', ax)
         self.plot_hits(self.exclusive_hits, 'r', ax)
-        ax.set_title('All Hits: %s vs. %s'
-                % (self.image_data.bname, ','.join(tile.key for tile in self.hitting_tiles)))
+        ax.set_title('All Hits: %s vs. %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s'
+                % (self.image_data.bname,
+                   ','.join(tile.key for tile in self.hitting_tiles),
+                   ','.join(tile.rotation_degrees for tile in self.hitting_tiles),
+                   ','.join(tile.w for tile in self.hitting_tiles),
+                   ','.join(tile.scale for tile in self.hitting_tiles),
+                   ','.join(tile.best_max_corr for tile in self.hitting_tiles),
+                   ))
         ax.set_xlim([0, self.image_data.im.shape[1]])
         ax.set_ylim([self.image_data.im.shape[0], 0])
-        
+
         grey_line = Line2D([], [], color='grey',
                 label='Non-mutual hits: %d' % (len(self.non_mutual_hits)))
         blue_line = Line2D([], [], color='blue',

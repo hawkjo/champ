@@ -19,10 +19,10 @@ class FastqTileRCs(object):
         self.image_shape = scaled_dims
         self.w = w  # width in um
         self.mapped_rcs = scale * (self.rcs + np.tile(offset, (self.rcs.shape[0], 1)))
-        self.rotation = 0
+        self.rotation_degrees = 0
 
     def rotate_data(self, degrees):
-        self.rotation += degrees
+        self.rotation_degrees += degrees
         self.mapped_rcs = np.dot(self.mapped_rcs, misc.right_rotation_matrix(degrees, degrees=True))
         self.mapped_rcs -= np.tile(self.mapped_rcs.min(axis=0), (self.mapped_rcs.shape[0], 1))
         self.image_shape = self.mapped_rcs.max(axis=0) + 1
@@ -94,6 +94,29 @@ class FastqTileRCs(object):
     def set_aligned_rcs(self):
         self.aligned_rcs = self.get_new_aligned_rcs()
 
+    def set_aligned_rcs_given_transform(self, lbda, theta, offset):
+        """Performs transform calculated in FastqImageCorrelator.least_squares_mapping."""
+        A = np.zeros((2*len(self.rcs), 4))
+        for i, pt in enumerate(self.rcs):
+            xir, yir = pt
+            A[2*i, :]   = [xir, -yir, 1, 0]
+            A[2*i+1, :] = [yir,  xir, 0, 1]
+
+        x = np.array([lbda * np.cos(theta),
+                      lbda * np.sin(theta),
+                      offset[0],
+                      offset[1]])
+
+        # First update w since it depends on previous scale setting
+        self.w = lbda * float(self.w) / self.scale
+
+        self.scale = lbda
+        self.rotation = theta
+        self.rotation_degrees = theta * 180.0 / np.pi
+        self.offset = offset
+
+        self.aligned_rcs = np.dot(A, x).reshape((len(self.rcs), 2))
+
     def correlation(self, im, new_fq_w=None, new_degree_rot=0, new_tr=(0, 0)):
         """Returns alignment correlation. Only works when image need not be flipped or rotated."""
         return sum(im[pt[0], pt[1]] for pt in self.get_new_aligned_rcs(new_fq_w, new_degree_rot, new_tr)
@@ -112,6 +135,6 @@ class FastqTileRCs(object):
         if ax is None:
             fig, ax = plt.subplots()
         if rcs is None:
-            rcs = self.mapped_rcs
+            rcs = self.aligned_rcs
         hull = ConvexHull(rcs)
         ax.plot(rcs[hull.vertices, 1], rcs[hull.vertices, 0], label=self.key)
