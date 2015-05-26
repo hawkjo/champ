@@ -8,6 +8,9 @@ class SextractorPoint(object):
         self.c, self.r, self.flux, self.flux_err, self.flags, \
                 self.width, self.height, self.theta \
                 = map(float, line.strip().split())
+        # Sextractor coordinates are 1-based
+        self.r -= 1
+        self.c -= 1
 
 
 class Sextraction(object):
