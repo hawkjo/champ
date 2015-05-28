@@ -9,9 +9,10 @@ import misc
 
 class FastqTileRCs(object):
     """A class for fastq tile coordinates."""
-    def __init__(self, key, tile):
+    def __init__(self, key, read_names):
         self.key = key
-        self.rcs = tile
+        self.read_names = read_names
+        self.rcs = np.array([map(int, name.split(':')[-2:]) for name in self.read_names])
 
     def set_fastq_image_data(self, offset, scale, scaled_dims, w, force=False, verbose=True):
         self.offset = offset
@@ -117,19 +118,10 @@ class FastqTileRCs(object):
 
         self.aligned_rcs = np.dot(A, x).reshape((len(self.rcs), 2))
 
-    def correlation(self, im, new_fq_w=None, new_degree_rot=0, new_tr=(0, 0)):
-        """Returns alignment correlation. Only works when image need not be flipped or rotated."""
-        return sum(im[pt[0], pt[1]] for pt in self.get_new_aligned_rcs(new_fq_w, new_degree_rot, new_tr)
-                   if 0 <= pt[0] < im.shape[0] and 0 <= pt[1] < im.shape[1])
-
-    def optimize_alignment(self, im):
-        def neg_corr(v):
-            return - self.correlation(im, v[0], v[1], v[2:3])
-        v0 = [self.w, 0, 0, 0]
-        methods = ['Nelder-Mead', 'Powell', 'CG', 'BFGS', 'Newton-CG', 'Anneal',
-                   'L-BFGS-B', 'TNC', 'COBYLA', 'SLSQP', 'dogleg', 'trust-ncg']
-        res = minimize(neg_corr, v0, method=methods[0])
-        return res
+    def set_correlation(self, im):
+        """Sets alignment correlation. Only works when image need not be flipped or rotated."""
+        self.best_max_corr =  sum(im[pt[0], pt[1]] for pt in self.aligned_rcs
+                                  if 0 <= pt[0] < im.shape[0] and 0 <= pt[1] < im.shape[1])
 
     def plot_convex_hull(self, rcs=None, ax=None):
         if ax is None:

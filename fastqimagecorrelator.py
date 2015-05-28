@@ -26,10 +26,10 @@ class FastqImageCorrelator(object):
         self.w_fq_tile = 937  # um
 
     def load_phiX(self):
-        for key, tile in local_config.phiX_rcs_given_project_name(self.project_name).items():
-            self.fastq_tiles[key] = FastqTileRCs(key, tile)
-        self.fastq_tiles_keys = [key for key, tile in sorted(self.fastq_tiles.items())]
-        self.fastq_tiles_list = [tile for key, tile in sorted(self.fastq_tiles.items())]
+        for tile_key, read_names in local_config.phiX_read_names_given_project_name(self.project_name).items():
+            self.fastq_tiles[tile_key] = FastqTileRCs(tile_key, read_names)
+        self.fastq_tiles_keys = [tile_key for tile_key, tile in sorted(self.fastq_tiles.items())]
+        self.fastq_tiles_list = [tile for tile_key, tile in sorted(self.fastq_tiles.items())]
 
     def set_image_data(self, *args, **kwargs):
         if len(args) == 1 and isinstance(args[0], ImageData):
@@ -343,6 +343,7 @@ class FastqImageCorrelator(object):
             lbda = alpha / np.cos(theta)
 
             tile.set_aligned_rcs_given_transform(lbda, theta, offset)
+            tile.set_correlation(self.image_data.im)
 
     def align(self, possible_tile_keys, rotation_est, fq_w_est=927, snr_thresh=2, hit_type='exclusive'):
         self.set_fastq_tile_mappings()
@@ -403,6 +404,51 @@ class FastqImageCorrelator(object):
         axs[1].legend()
         return axs
 
+    def plot_hits(self, hits, color, ax):
+        for i, j in hits:
+            ax.plot([self.sexcat.point_rcs[i, 1], self.aligned_rcs_in_frame[j, 1]],
+                    [self.sexcat.point_rcs[i, 0], self.aligned_rcs_in_frame[j, 0]],
+                    color=color)
+
+    def plot_all_hits(self, ax=None):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(15, 15))
+        ax.imshow(self.image_data.im, cmap=plt.get_cmap('Blues'))
+        ax.plot(self.aligned_rcs_in_frame[:, 1], self.aligned_rcs_in_frame[:, 0],
+                'ko', alpha=0.3, linewidth=0, markersize=3)
+        self.sexcat.plot_ellipses(ax=ax, alpha=0.6, color='darkgoldenrod')
+        self.plot_hits(self.non_mutual_hits, 'grey', ax)
+        self.plot_hits(self.bad_mutual_hits, 'b', ax)
+        self.plot_hits(self.good_mutual_hits, 'magenta', ax)
+        self.plot_hits(self.exclusive_hits, 'r', ax)
+        ax.set_title('All Hits: %s vs. %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s'
+                % (self.image_data.bname,
+                   ','.join(tile.key for tile in self.hitting_tiles),
+                   ','.join('%.2f' % tile.rotation_degrees for tile in self.hitting_tiles),
+                   ','.join('%.2f' % tile.w for tile in self.hitting_tiles),
+                   ','.join('%.5f' % tile.scale for tile in self.hitting_tiles),
+                   ','.join('%.1f' % tile.best_max_corr for tile in self.hitting_tiles),
+                   ))
+        ax.set_xlim([0, self.image_data.im.shape[1]])
+        ax.set_ylim([self.image_data.im.shape[0], 0])
+
+        grey_line = Line2D([], [], color='grey',
+                label='Non-mutual hits: %d' % (len(self.non_mutual_hits)))
+        blue_line = Line2D([], [], color='blue',
+                label='Bad mutual hits: %d' % (len(self.bad_mutual_hits)))
+        magenta_line = Line2D([], [], color='magenta',
+                label='Good mutual hits: %d' % (len(self.good_mutual_hits)))
+        red_line = Line2D([], [], color='red',
+                label='Exclusive hits: %d' % (len(self.exclusive_hits)))
+        sexcat_line = Line2D([], [], color='darkgoldenrod', alpha=0.6, marker='o', markersize=10,
+                label='Sextractor Ellipses: %d' % (len(self.sexcat.point_rcs)))
+        fastq_line = Line2D([], [], color='k', alpha=0.3, marker='o', markersize=10,
+                label='Fastq Points: %d' % (len(self.aligned_rcs_in_frame)))
+        handles = [grey_line, blue_line, magenta_line, red_line, sexcat_line, fastq_line]
+        legend = ax.legend(handles=handles)
+        legend.get_frame().set_color('white')
+        return ax
+
     def extract_intensity_from_name_list(self, name_list_fpath, out_fpath):
         hit_given_aligned_idx = {}
         for hit_type in ['non_mutual', 'bad_mutual', 'good_mutual', 'exclusive']:
@@ -439,47 +485,16 @@ class FastqImageCorrelator(object):
             out.write('# Fields: ' + '\t'.join(fields) + '\n')
             out.write('\n'.join(lines))
 
-    def plot_hits(self, hits, color, ax):
-        for i, j in hits:
-            ax.plot([self.sexcat.point_rcs[i, 1], self.aligned_rcs_in_frame[j, 1]],
-                    [self.sexcat.point_rcs[i, 0], self.aligned_rcs_in_frame[j, 0]],
-                    color=color)
-
-    def plot_all_hits(self, ax=None):
-        if ax is None:
-            fig, ax = plt.subplots(figsize=(15, 15))
-        ax.imshow(self.image_data.im, cmap=plt.get_cmap('Blues'))
-        ax.plot(self.aligned_rcs_in_frame[:, 1], self.aligned_rcs_in_frame[:, 0],
-                'ko', alpha=0.3, linewidth=0, markersize=3)
-        self.sexcat.plot_ellipses(ax=ax, alpha=0.6, color='darkgoldenrod')
-        self.plot_hits(self.non_mutual_hits, 'grey', ax)
-        self.plot_hits(self.bad_mutual_hits, 'b', ax)
-        self.plot_hits(self.good_mutual_hits, 'magenta', ax)
-        self.plot_hits(self.exclusive_hits, 'r', ax)
-        ax.set_title('All Hits: %s vs. %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s'
-                % (self.image_data.bname,
-                   ','.join(tile.key for tile in self.hitting_tiles),
-                   ','.join(tile.rotation_degrees for tile in self.hitting_tiles),
-                   ','.join(tile.w for tile in self.hitting_tiles),
-                   ','.join(tile.scale for tile in self.hitting_tiles),
-                   ','.join(tile.best_max_corr for tile in self.hitting_tiles),
-                   ))
-        ax.set_xlim([0, self.image_data.im.shape[1]])
-        ax.set_ylim([self.image_data.im.shape[0], 0])
-
-        grey_line = Line2D([], [], color='grey',
-                label='Non-mutual hits: %d' % (len(self.non_mutual_hits)))
-        blue_line = Line2D([], [], color='blue',
-                label='Bad mutual hits: %d' % (len(self.bad_mutual_hits)))
-        magenta_line = Line2D([], [], color='magenta',
-                label='Good mutual hits: %d' % (len(self.good_mutual_hits)))
-        red_line = Line2D([], [], color='red',
-                label='Exclusive hits: %d' % (len(self.exclusive_hits)))
-        sexcat_line = Line2D([], [], color='darkgoldenrod', alpha=0.6, marker='o', markersize=10,
-                label='Sextractor Ellipses: %d' % (len(self.sexcat.point_rcs)))
-        fastq_line = Line2D([], [], color='k', alpha=0.3, marker='o', markersize=10,
-                label='Fastq Points: %d' % (len(self.aligned_rcs_in_frame)))
-        handles = [grey_line, blue_line, magenta_line, red_line, sexcat_line, fastq_line]
-        legend = ax.legend(handles=handles)
-        legend.get_frame().set_color('white')
-        return ax
+    def write_alignment_stats(self, out_fname):
+        stats = [
+            'Image:            %s' % self.image_data.fname,
+            'Objective:        %d' % self.image_data.objective,
+            'Project Name:     %s' % self.project_name,
+            'Tile:             %s' % ','.join(tile.key for tile in self.hitting_tiles),
+            'Rotation (deg):   %s' % ','.join('%.4f' % tile.rotation_degrees for tile in self.hitting_tiles),
+            'Tile width (um):  %s' % ','.join('%.4f' % tile.w for tile in self.hitting_tiles),
+            'Scaling (px/fqu): %s' % ','.join('%.7f' % tile.scale for tile in self.hitting_tiles),
+            'Correlation:      %s' % ','.join('%.2f' % tile.best_max_corr for tile in self.hitting_tiles),
+            ]
+        with open(out_fname, 'w') as out:
+            out.write('\n'.join(stats))
