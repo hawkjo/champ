@@ -23,13 +23,18 @@ class FastqImageCorrelator(object):
         self.image_data = ImageData()
         self.w_fq_tile_min = 895  # um
         self.w_fq_tile_max = 937  # um
-        self.w_fq_tile = 937  # um
+        self.w_fq_tile = 927  # um
 
     def load_phiX(self):
         for tile_key, read_names in local_config.phiX_read_names_given_project_name(self.project_name).items():
             self.fastq_tiles[tile_key] = FastqTileRCs(tile_key, read_names)
         self.fastq_tiles_keys = [tile_key for tile_key, tile in sorted(self.fastq_tiles.items())]
         self.fastq_tiles_list = [tile for tile_key, tile in sorted(self.fastq_tiles.items())]
+
+    def load_all_reads(self):
+        self.fastq_tiles_all_reads = {}
+        for tile_key, read_names in local_config.all_read_names_given_project_name(self.project_name).items():
+            self.fastq_tiles_all_reads[tile_key] = FastqTileRCs(tile_key, read_names)
 
     def set_image_data(self, *args, **kwargs):
         if len(args) == 1 and isinstance(args[0], ImageData):
@@ -151,7 +156,7 @@ class FastqImageCorrelator(object):
     def set_sexcat_from_file(self, fpath):
         self.sexcat = sextraction.Sextraction(fpath)
 
-    def find_hitting_tiles(self, possible_tile_keys, snr_thresh=2):
+    def find_hitting_tiles(self, possible_tile_keys, snr_thresh=1.2):
         possible_tiles = [self.fastq_tiles[key] for key in possible_tile_keys]
         for tile in self.fastq_tiles_list:
             if tile not in possible_tiles:
@@ -203,10 +208,16 @@ class FastqImageCorrelator(object):
         self.aligned_rcs_in_frame = np.array(self.aligned_rcs_in_frame)
 
     def hit_dists(self, hits):
-        dists = []
-        for i, j in hits:
-            dists.append(np.linalg.norm(self.sexcat.point_rcs[i] - self.aligned_rcs_in_frame[j]))
-        return dists
+        return [self.single_hit_dist(hit) for hit in hits]
+
+    def single_hit_dist(self, hit):
+        i, j = hit
+        return np.linalg.norm(self.sexcat.point_rcs[i] - self.aligned_rcs_in_frame[j])
+
+    def remove_longest_hits(self, hits, pct_thresh):
+        dists = self.hit_dists(hits)
+        thresh = np.percentile(dists, pct_thresh * 100)
+        return [hit for hit in hits if self.single_hit_dist(hit) <= thresh]
 
     def find_hits(self,
             good_posterior_thresh_pct=0.99,
@@ -246,18 +257,18 @@ class FastqImageCorrelator(object):
         #--------------------------------------------------------------------------------
         # If the distance to second neighbor is too close, that suggests a bad peak call combining
         # two peaks into one. Filter those out with a gaussian-mixture-model-determined threshold.
-        self.exclusive_hit_98_pct = np.percentile(self.hit_dists(exclusive_hits), 98)
+        self.exclusive_hit_95_pct = np.percentile(self.hit_dists(exclusive_hits), 95)
 
         if second_neighbor_thresh is not None:
             assert second_neighbor_thresh > 0
             self.second_neighbor_thresh = second_neighbor_thresh
         else:
-            self.second_neighbor_thresh = 2 * self.exclusive_hit_98_pct
+            self.second_neighbor_thresh = 2 * self.exclusive_hit_95_pct
             #self.gmm_thresh(self.hit_dists(non_mutual_hits))
 
         good_mutual_hits = set()
         for i, j in (mutual_hits - exclusive_hits):
-            if self.hit_dists([(i, j)])[0] > self.exclusive_hit_98_pct:
+            if self.hit_dists([(i, j)])[0] > self.exclusive_hit_95_pct:
                 continue
             third_wheels = [tup for tup in non_mutual_hits if i == tup[0] or j == tup[1]]
             if min(self.hit_dists(third_wheels)) > self.second_neighbor_thresh:
@@ -285,7 +296,7 @@ class FastqImageCorrelator(object):
         print 'Good mutual hits:', len(good_mutual_hits)
         print 'Exclusive hits:', len(exclusive_hits)
 
-    def least_squares_mapping(self, hit_type='exclusive'):
+    def least_squares_mapping(self, hit_type='exclusive', pct_thresh=0.9):
         """least_squares_mapping(self, hit_type='exclusive')
 
         "Input": set of tuples of (sexcat_idx, in_frame_idx) mappings.
@@ -322,8 +333,8 @@ class FastqImageCorrelator(object):
             self.find_hits(consider_tiles=tile)
 
             # Reminder: All indices are in the order (sexcat_idx, in_frame_idx)
-            hits = getattr(self, hit_type + '_hits')
-            assert len(hits) > 50, 'Too few hits for least squares mapping.'
+            hits = self.remove_longest_hits(getattr(self, hit_type + '_hits'), pct_thresh)
+            assert len(hits) > 50, 'Too few hits for least squares mapping: {0}'.format(len(hits))
             A = np.zeros((2*len(hits), 4))
             b = np.zeros((2*len(hits),))
             for i, (sexcat_idx, in_frame_idx) in enumerate(hits):
@@ -346,6 +357,7 @@ class FastqImageCorrelator(object):
             tile.set_correlation(self.image_data.im)
 
     def align(self, possible_tile_keys, rotation_est, fq_w_est=927, snr_thresh=2, hit_type='exclusive'):
+        self.w_fq_tile = fq_w_est
         self.set_fastq_tile_mappings()
         self.set_all_fastq_image_data()
         self.rotate_all_fastq_data(rotation_est)
@@ -369,10 +381,13 @@ class FastqImageCorrelator(object):
     def plot_hit_hists(self, ax=None):
         if ax is None:
             fig, ax = plt.subplots(figsize=(8, 8))
-        ax.hist(self.hit_dists(self.non_mutual_hits), 40, label='Non-mutual hits', normed=True, histtype='step')
-        ax.hist(self.hit_dists(self.bad_mutual_hits), 40, label='Bad mutual hits', normed=True, histtype='step')
-        ax.hist(self.hit_dists(self.good_mutual_hits), 40, label='Good mutual hits', normed=True, histtype='step')
-        ax.hist(self.hit_dists(self.exclusive_hits), 40, label='Exclusive hits', normed=True, histtype='step')
+        non_mut_dists = self.hit_dists(self.non_mutual_hits)
+        bins = np.linspace(0, max(non_mut_dists), 50)
+
+        ax.hist(non_mut_dists, bins, label='Non-mutual hits', normed=True, histtype='step')
+        ax.hist(self.hit_dists(self.bad_mutual_hits), bins, label='Bad mutual hits', normed=True, histtype='step')
+        ax.hist(self.hit_dists(self.good_mutual_hits), bins, label='Good mutual hits', normed=True, histtype='step')
+        ax.hist(self.hit_dists(self.exclusive_hits), bins, label='Exclusive hits', normed=True, histtype='step')
         ax.legend()
         ax.set_title('%s Nearest Neighbor Distance Distributions' % self.image_data.bname)
         return ax
@@ -409,6 +424,7 @@ class FastqImageCorrelator(object):
             ax.plot([self.sexcat.point_rcs[i, 1], self.aligned_rcs_in_frame[j, 1]],
                     [self.sexcat.point_rcs[i, 0], self.aligned_rcs_in_frame[j, 0]],
                     color=color)
+        return ax
 
     def plot_all_hits(self, ax=None):
         if ax is None:
@@ -421,8 +437,9 @@ class FastqImageCorrelator(object):
         self.plot_hits(self.bad_mutual_hits, 'b', ax)
         self.plot_hits(self.good_mutual_hits, 'magenta', ax)
         self.plot_hits(self.exclusive_hits, 'r', ax)
-        ax.set_title('All Hits: %s vs. %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s'
+        ax.set_title('All Hits: %s vs. %s %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s'
                 % (self.image_data.bname,
+                   self.project_name,
                    ','.join(tile.key for tile in self.hitting_tiles),
                    ','.join('%.2f' % tile.rotation_degrees for tile in self.hitting_tiles),
                    ','.join('%.2f' % tile.w for tile in self.hitting_tiles),
@@ -449,7 +466,27 @@ class FastqImageCorrelator(object):
         legend.get_frame().set_color('white')
         return ax
 
-    def extract_intensity_from_name_list(self, name_list_fpath, out_fpath):
+    def plot_hit_vectors(self, hit_types=['exclusive'], ax=None):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(15, 15))
+        colors = {'exclusive': 'r',
+                  'good_mutual': 'magenta',
+                  'bad_mutual': 'b',
+                  'non_mutual': 'grey'}
+        for hit_type in hit_types:
+            hits = getattr(self, hit_type + '_hits')
+            pts = np.array([self.sexcat.point_rcs[i] - self.aligned_rcs_in_frame[j] for i, j in hits])
+            ax.plot(pts[:, 1], pts[:, 0], '.', color=colors[hit_type])
+        ax.plot([0], [0], 'k*')
+        ax.set_aspect(1)
+        ylim = ax.get_ylim()
+        ax.set_ylim((ylim[1], ylim[0]))
+        ax.set_title('{0} {1} Hit Diffs'.format(self.image_data.bname, hit_type.capitalize()))
+        ax.set_xlabel('c')
+        ax.set_ylabel('r')
+        return ax
+
+    def output_intensity_results(self, out_fpath):
         hit_given_aligned_idx = {}
         for hit_type in ['non_mutual', 'bad_mutual', 'good_mutual', 'exclusive']:
             for i, j in getattr(self, hit_type + '_hits'):
@@ -468,33 +505,41 @@ class FastqImageCorrelator(object):
                 return hit_type, sexcat_pt.r, sexcat_pt.c, sexcat_pt.flux, sexcat_pt.flux_err
 
         lines = set()  # set rather than list due to read pairs
-        for line in open(name_list_fpath):
-            coord_tup = tuple(map(int, line.strip().split(':')[-3:]))  # tile:r:c
-            if coord_tup in rcs_coord_tups:
-                hit_type, rr, cc, flux, flux_err = flux_info_given_rcs_coord_tup(coord_tup)
-                lines.add('\t'.join([line.strip(),
-                                     self.image_data.fname,
-                                     hit_type,
-                                     str(rr),
-                                     str(cc),
-                                     str(flux),
-                                     str(flux_err)]))
+        for tile in self.fastq_tiles_list:
+            for read_name in tile.read_names:
+                coord_tup = tuple(map(int, read_name.split(':')[-3:]))  # tile:r:c
+                if coord_tup in rcs_coord_tups:
+                    hit_type, rr, cc, flux, flux_err = flux_info_given_rcs_coord_tup(coord_tup)
+                    lines.add('\t'.join([read_name,
+                                         self.image_data.fname,
+                                         hit_type,
+                                         str(rr),
+                                         str(cc),
+                                         str(flux),
+                                         str(flux_err)]))
 
         with open(out_fpath, 'w') as out:
             fields = ['read_name', 'image_name', 'hit_type', 'r', 'c', 'flux', 'flux_err']
             out.write('# Fields: ' + '\t'.join(fields) + '\n')
-            out.write('\n'.join(lines))
+            out.write('\n'.join(sorted(lines, key=lambda s: float(s.split()[3]), reverse=True)))
 
-    def write_alignment_stats(self, out_fname):
+    def write_alignment_stats(self, out_fpath):
         stats = [
-            'Image:            %s' % self.image_data.fname,
-            'Objective:        %d' % self.image_data.objective,
-            'Project Name:     %s' % self.project_name,
-            'Tile:             %s' % ','.join(tile.key for tile in self.hitting_tiles),
-            'Rotation (deg):   %s' % ','.join('%.4f' % tile.rotation_degrees for tile in self.hitting_tiles),
-            'Tile width (um):  %s' % ','.join('%.4f' % tile.w for tile in self.hitting_tiles),
-            'Scaling (px/fqu): %s' % ','.join('%.7f' % tile.scale for tile in self.hitting_tiles),
-            'Correlation:      %s' % ','.join('%.2f' % tile.best_max_corr for tile in self.hitting_tiles),
+            'Image:                 %s' % self.image_data.fname,
+            'Objective:             %d' % self.image_data.objective,
+            'Project Name:          %s' % self.project_name,
+            'Tile:                  %s' % ','.join(tile.key for tile in self.hitting_tiles),
+            'Rotation (deg):        %s' % ','.join('%.4f' % tile.rotation_degrees for tile in self.hitting_tiles),
+            'Tile width (um):       %s' % ','.join('%.4f' % tile.w for tile in self.hitting_tiles),
+            'Scaling (px/fqu):      %s' % ','.join('%.7f' % tile.scale for tile in self.hitting_tiles),
+            'RC Offset (px):        %s' % ','.join('(%.4f,%.4f)' % tuple(tile.offset) for tile in self.hitting_tiles),
+            'Correlation:           %s' % ','.join('%.2f' % tile.best_max_corr for tile in self.hitting_tiles),
+            'Non-mutual hits:       %d' % (len(self.non_mutual_hits)),
+            'Bad mutual hits:       %d' % (len(self.bad_mutual_hits)),
+            'Good mutual hits:      %d' % (len(self.good_mutual_hits)),
+            'Exclusive hits:        %d' % (len(self.exclusive_hits)),
+            'Sextractor Ellipses:   %d' % (len(self.sexcat.point_rcs)),
+            'Fastq Points:          %d' % (len(self.aligned_rcs_in_frame)),
             ]
-        with open(out_fname, 'w') as out:
+        with open(out_fpath, 'w') as out:
             out.write('\n'.join(stats))
