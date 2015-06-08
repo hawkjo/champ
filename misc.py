@@ -25,3 +25,6 @@ def right_rotation_matrix(angle, degrees=True):
     cosa = np.cos(angle)
     return np.array([[cosa, sina],
                      [-sina, cosa]])
+
+def rcs_given_read_names(read_names):
+    return np.array([map(int, name.split(':')[-2:]) for name in read_names])
