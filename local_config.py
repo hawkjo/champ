@@ -11,14 +11,27 @@ fig_dir = os.path.join(base_dir, 'figs')
 data_dir = os.path.join(base_dir, 'data')
 jah_base_dir = '/home/jah/projects/ilya/experiments'
 
-def phiX_read_names_given_project_name(pname):
+def phiX_read_names_given_project_name(project_name):
     fpath = os.path.join(
             data_dir,
             'from_fourierseq',
-            pname,
+            project_name,
             'phiX_mappings',
             'phiX_read_names.txt')
+    return fastq_tiles_given_read_name_fpath(fpath)
 
+
+def all_read_names_given_project_name(project_name):
+    fpath = os.path.join(
+            data_dir,
+            'from_fourierseq',
+            project_name,
+            'all_fastqs',
+            'all_read_names.txt')
+    return fastq_tiles_given_read_name_fpath(fpath)
+
+
+def fastq_tiles_given_read_name_fpath(fpath):
     fastq_tile_builder = defaultdict(set)
     for line in open(fpath):
         _, lane, tile, _, _ = line.strip().rsplit(':', 4)
