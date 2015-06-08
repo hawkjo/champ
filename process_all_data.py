@@ -5,60 +5,59 @@ from pathos.multiprocessing import ProcessingPool
 import local_config
 
 
-project_name = 'SA15066'
-objective = 40
+def get_align_params(align_param_fpath):
+    #d = {name: value for line in open(align_param_fpath) for name, value in line.strip().split()}
+    d = {}
+    for line in open(align_param_fpath):
+        name, value = line.strip().split()
+        d[name] = value
 
-def process_fig(i):
-    bname = 'xy%03dc1' % i
-    print bname
-    data_dir = os.path.join(local_config.base_dir, 'data/2015_04_26_imaging_data/%dX' % objective)
-    tif_fpath = os.path.join(data_dir, 'raw', bname + '.tif')
-    sexcat_fpath = os.path.join(data_dir, 'sextractor_raw', bname + '.cat')
+    possible_tile_keys = ['lane1tile{0}'.format(tile_num) 
+                          for tile_num in map(int, d['possible_tiles'].split(','))]
+
+    return (d['project_name'],
+            int(d['objective']),
+            float(d['rotation_est']),
+            float(d['fq_w_est']),
+            possible_tile_keys,
+           )
+
+
+def process_fig(align_run_name, align_param_fpath, im_fpath):
+    project_name, objective, rotation_est, fq_w_est, possible_tile_keys \
+            = get_align_params(align_param_fpath)
+    bname = os.path.splitext(os.path.basename(im_fpath))[0]
+    sexcat_fpath = im_fpath.replace('.tif', '.cat')
     
     fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
-    if objective == 40:
-        fic.w_fq_tile = 917
     fic.load_phiX()
-    fic.set_image_data(tif_fpath, objective, median_normalize=True)
-    fic.set_fastq_tile_mappings()
-    fic.set_all_fastq_image_data()
-    fic.rotate_all_fastq_data(-2.25-180)
-    fic.find_hitting_tiles(['lane1tile%d' % i for i in range(2106, 2114)])
-    print [tile.key for tile in fic.hitting_tiles]
+    fic.set_image_data(im_fpath, objective, median_normalize=True)
     fic.set_sexcat_from_file(sexcat_fpath)
-    fic.find_hits(good_mutual_hit_thresh=5)
+    fic.align(possible_tile_keys, rotation_est, fq_w_est)
+    print project_name, bname, ','.join(tile.key for tile in fic.hitting_tiles)
     
-    fic.plot_all_hits()
-    plt.savefig(os.path.join(local_config.fig_dir,
-                             '04_26',
-                             '%dX' % objective,
-                             '%s_all_hits.pdf' % bname))
-    plt.close()
-    fic.plot_hit_hists()
-    plt.savefig(os.path.join(local_config.fig_dir,
-                             '04_26',
-                             '%dX' % objective,
-                             '%s_hit_hists.pdf' % bname))
-    plt.close()
-    fic.plot_threshold_gmm(force=True)
-    plt.savefig(os.path.join(local_config.fig_dir,
-                             '04_26',
-                             '%dX' % objective,
-                             '%s_gmm_thresh.pdf' % bname))
-    plt.close()
-    
-    name_list_fpath = os.path.join(local_config.base_dir,
-            'data',
-            '04_26_valid_names_%dX.txt' % objective)
-    out_fpath = os.path.join(local_config.base_dir,
-                             'results',
-                             '04_26',
-                             '%dX' % objective,
-                             '%s_intensities.txt' % bname)
-    fic.extract_intensity_from_name_list(name_list_fpath, out_fpath)
+    fig_dir = os.path.join(local_config.fig_dir, align_run_name)
+    if not os.path.exists(fig_dir):
+        os.makedirs(fig_dir)
+
+    ax = fic.plot_all_hits()
+    ax.figure.savefig(os.path.join(fig_dir, '{0}_all_hits.pdf'.format(bname)))
+
+    ax = fic.plot_hit_hists()
+    ax.figure.savefig(os.path.join(fig_dir, '{0}_hit_hists.pdf'.format(bname)))
+
+    results_dir = os.path.join(local_config.base_dir, 'results', align_run_name)
+    if not os.path.exists(results_dir):
+        os.makedirs(results_dir)
+
+    intensity_fpath = os.path.join(results_dir, '{0}_intensities.txt'.format(bname))
+    stats_fpath = os.path.join(results_dir, '{0}_stats.txt'.format(bname))
+    fic.output_intensity_results(intensity_fpath)
+    fic.write_alignment_stats(stats_fpath)
 
 
 if __name__ == '__main__':
     import sys
-    i = int(sys.argv[1])
-    process_fig(i)
+    if len(sys.argv) != 4:
+        sys.exit('Usage: {0} <align_run_name> <align_param_file> <image_file>'.format(sys.argv[0]))
+    process_fig(*sys.argv[1:])
