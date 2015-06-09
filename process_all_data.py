@@ -1,3 +1,4 @@
+import sys
 import os
 import fastqimagecorrelator
 import matplotlib.pyplot as plt
@@ -55,9 +56,12 @@ def process_fig(align_run_name, align_param_fpath, im_fpath):
     fic.output_intensity_results(intensity_fpath)
     fic.write_alignment_stats(stats_fpath)
 
+    all_fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
+    all_fic.all_reads_fic_from_aligned_fic(fic)
+    all_read_rcs_fpath = os.path.join(results_dir, '{0}_all_read_rcs.txt'.format(bname))
+    all_fic.write_read_names_rcs(all_read_rcs_fpath)
 
 if __name__ == '__main__':
-    import sys
     if len(sys.argv) != 4:
         sys.exit('Usage: {0} <align_run_name> <align_param_file> <image_file>'.format(sys.argv[0]))
     process_fig(*sys.argv[1:])

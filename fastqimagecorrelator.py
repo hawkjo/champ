@@ -2,12 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from scipy import ndimage
+from copy import deepcopy
+from itertools import izip
 import local_config
 import sextraction
 import scipy.optimize
 from scipy.spatial import KDTree
 from sklearn.mixture import GMM
-from Bio import SeqIO
 from imagedata import ImageData
 from fastqtilercs import FastqTileRCs
 from misc import pad_to_size, max_2d_idx
@@ -23,18 +24,39 @@ class FastqImageCorrelator(object):
         self.image_data = ImageData()
         self.w_fq_tile_min = 895  # um
         self.w_fq_tile_max = 937  # um
-        self.w_fq_tile = 927  # um
+        self.fq_w = 927  # um
 
     def load_phiX(self):
-        for tile_key, read_names in local_config.phiX_read_names_given_project_name(self.project_name).items():
+        self.load_reads(tile_data=local_config.phiX_read_names_given_project_name(self.project_name))
+
+    def load_all_reads(self, tile_keys=None):
+        tile_data=local_config.all_read_names_given_project_name(self.project_name)
+        if tile_keys is None:
+            self.load_reads(tile_data)
+        else:
+            self.load_reads({tile_key: read_names for tile_key, read_names in tile_data.items()
+                             if tile_key in tile_keys})
+
+    def load_reads(self, tile_data):
+        for tile_key, read_names in tile_data.items():
             self.fastq_tiles[tile_key] = FastqTileRCs(tile_key, read_names)
         self.fastq_tiles_keys = [tile_key for tile_key, tile in sorted(self.fastq_tiles.items())]
         self.fastq_tiles_list = [tile for tile_key, tile in sorted(self.fastq_tiles.items())]
 
-    def load_all_reads(self):
-        self.fastq_tiles_all_reads = {}
-        for tile_key, read_names in local_config.all_read_names_given_project_name(self.project_name).items():
-            self.fastq_tiles_all_reads[tile_key] = FastqTileRCs(tile_key, read_names)
+    def all_reads_fic_from_aligned_fic(self, other_fic):
+        self.load_all_reads(tile_keys=[tile.key for tile in other_fic.hitting_tiles])
+        self.image_data = deepcopy(other_fic.image_data)
+
+        self.fq_w = other_fic.fq_w
+        self.set_fastq_tile_mappings()
+        self.set_all_fastq_image_data()
+        self.hitting_tiles = [self.fastq_tiles[tile.key] for tile in other_fic.hitting_tiles]
+
+        for other_tile in other_fic.hitting_tiles:
+            tile = self.fastq_tiles[other_tile.key]
+            tile.set_aligned_rcs_given_transform(other_tile.scale,
+                                                 other_tile.rotation,
+                                                 other_tile.offset)
 
     def set_image_data(self, *args, **kwargs):
         if len(args) == 1 and isinstance(args[0], ImageData):
@@ -53,7 +75,7 @@ class FastqImageCorrelator(object):
         x_max, y_max = self.all_data.max(axis=0)
 
         self.fq_im_offset = np.array([-x_min, -y_min])
-        self.fq_im_scale = (float(self.w_fq_tile) / (x_max-x_min)) / self.image_data.um_per_pixel
+        self.fq_im_scale = (float(self.fq_w) / (x_max-x_min)) / self.image_data.um_per_pixel
         self.fq_im_scaled_maxes = self.fq_im_scale * np.array([x_max-x_min, y_max-y_min])
         self.fq_im_scaled_dims = (self.fq_im_scaled_maxes + [1, 1]).astype(np.int)
 
@@ -62,7 +84,7 @@ class FastqImageCorrelator(object):
             tile.set_fastq_image_data(self.fq_im_offset,
                                       self.fq_im_scale,
                                       self.fq_im_scaled_dims,
-                                      self.w_fq_tile,
+                                      self.fq_w,
                                       verbose=verbose)
 
     def rotate_all_fastq_data(self, degrees):
@@ -357,7 +379,7 @@ class FastqImageCorrelator(object):
             tile.set_correlation(self.image_data.im)
 
     def align(self, possible_tile_keys, rotation_est, fq_w_est=927, snr_thresh=2, hit_type='exclusive'):
-        self.w_fq_tile = fq_w_est
+        self.fq_w = fq_w_est
         self.set_fastq_tile_mappings()
         self.set_all_fastq_image_data()
         self.rotate_all_fastq_data(rotation_est)
@@ -543,3 +565,12 @@ class FastqImageCorrelator(object):
             ]
         with open(out_fpath, 'w') as out:
             out.write('\n'.join(stats))
+
+    def write_read_names_rcs(self, out_fpath):
+        im_shape = self.image_data.im.shape
+        with open(out_fpath, 'w') as out:
+            for tile in self.hitting_tiles:
+                for read_name, pt in izip(tile.read_names, tile.aligned_rcs):
+                    if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
+                        out.write('%s\t%f\t%f\n' % (read_name, pt[0], pt[1]))
+

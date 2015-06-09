@@ -109,7 +109,8 @@ class FastqTileRCs(object):
                       offset[1]])
 
         # First update w since it depends on previous scale setting
-        self.w = lbda * float(self.w) / self.scale
+        #self.w = lbda * float(self.w) / self.scale
+        self.w = (self.rcs[:, 0].max() - self.rcs[:, 0].min()) * lbda
 
         self.scale = lbda
         self.rotation = theta
