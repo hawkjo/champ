@@ -6,11 +6,11 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
 
-def signal_hist_and_func(pyplot_hist, plot_title='', plot_curves=True):
+def signal_hist_and_func(im, plot_title='', verbose=True, plot_curves=True):
     """Determines empirical background noise curve and returns (good signal)/(all signal)
     interpolation function."""
 
-    hy, bin_edges, _ = pyplot_hist
+    hy, bin_edges = np.histogram(im, 1000, normed=True)
     hx = (bin_edges[:-1] + bin_edges[1:])/2
 
     mode_y = max(hy[:-1])
@@ -31,13 +31,15 @@ def signal_hist_and_func(pyplot_hist, plot_title='', plot_curves=True):
     ratio[first_one_ind:] = 1.0
     l_bnd = hx[last_zero_ind]
     u_bnd = hx[first_one_ind]
-    print 'Non-trivial cdf range: %f - %f' % (l_bnd, u_bnd)
+    if verbose:
+        print 'Non-trivial cdf range: %f - %f' % (l_bnd, u_bnd)
 
     delta_x = np.mean(hx[1:]-hx[:-1])
-    print 'delta_x:', delta_x
+    if verbose:
+        print 'delta_x:', delta_x
 
     num_ext_points = 10
-    extended_x = np.r_[[0], hx, 1.1*hx[-1]]
+    extended_x = np.r_[[min(0, 1.1*hx[0])], hx, 1.1*hx[-1]]
     extended_ratio = np.r_[[0], ratio, [1]]
 
     ratio_f_interp = interp1d(extended_x, extended_ratio, kind='cubic')
