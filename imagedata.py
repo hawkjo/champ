@@ -40,7 +40,7 @@ class ImageData(object):
             self.median_normalize()
 
     def set_objective(self, objective):
-        assert objective in [40, 60], 'Accepted objectives are 40 and 60'
+        assert objective in [20, 40, 60], 'Accepted objectives are 20, 40, and 60'
         self.objective = objective
         self.um_per_pixel = 16.0 / self.objective
         self.um_dims = self.um_per_pixel * np.array(self.im.shape)
