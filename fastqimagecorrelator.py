@@ -187,11 +187,12 @@ class FastqImageCorrelator(object):
 
         self.hitting_tiles = []
         self.image_data.set_single_fft((0, 0), padding=self.fq_im_scaled_dims)
-        _, _, control_corr, _ = self.fft_align_tile(control_tile)
+        _, _, self.control_corr, _ = self.fft_align_tile(control_tile)
         for tile in possible_tiles:
             tile_key, _, max_corr, align_tr = self.fft_align_tile(tile)
-            if max_corr > snr_thresh * control_corr:
+            if max_corr > snr_thresh * self.control_corr:
                 tile.set_aligned_rcs()
+                tile.set_snr(max_corr / self.control_corr)
                 self.hitting_tiles.append(tile)
 
     def find_points_in_frame(self, consider_tiles='all'):
@@ -377,6 +378,7 @@ class FastqImageCorrelator(object):
 
             tile.set_aligned_rcs_given_transform(lbda, theta, offset)
             tile.set_correlation(self.image_data.im)
+            tile.set_snr_with_control_corr(self.control_corr)
 
     def align(self, possible_tile_keys, rotation_est, fq_w_est=927, snr_thresh=2, hit_type='exclusive'):
         self.fq_w = fq_w_est
@@ -459,7 +461,7 @@ class FastqImageCorrelator(object):
         self.plot_hits(self.bad_mutual_hits, 'b', ax)
         self.plot_hits(self.good_mutual_hits, 'magenta', ax)
         self.plot_hits(self.exclusive_hits, 'r', ax)
-        ax.set_title('All Hits: %s vs. %s %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s'
+        ax.set_title('All Hits: %s vs. %s %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s, SNR: %s'
                 % (self.image_data.bname,
                    self.project_name,
                    ','.join(tile.key for tile in self.hitting_tiles),
@@ -467,6 +469,7 @@ class FastqImageCorrelator(object):
                    ','.join('%.2f' % tile.w for tile in self.hitting_tiles),
                    ','.join('%.5f' % tile.scale for tile in self.hitting_tiles),
                    ','.join('%.1f' % tile.best_max_corr for tile in self.hitting_tiles),
+                   ','.join('%.2f' % tile.snr for tile in self.hitting_tiles),
                    ))
         ax.set_xlim([0, self.image_data.im.shape[1]])
         ax.set_ylim([self.image_data.im.shape[0], 0])

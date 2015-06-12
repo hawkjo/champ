@@ -109,8 +109,8 @@ class FastqTileRCs(object):
                       offset[1]])
 
         # First update w since it depends on previous scale setting
-        #self.w = lbda * float(self.w) / self.scale
-        self.w = (self.rcs[:, 0].max() - self.rcs[:, 0].min()) * lbda
+        self.w = lbda * float(self.w) / self.scale
+        #self.w = (self.rcs[:, 0].max() - self.rcs[:, 0].min()) * lbda
 
         self.scale = lbda
         self.rotation = theta
@@ -123,6 +123,12 @@ class FastqTileRCs(object):
         """Sets alignment correlation. Only works when image need not be flipped or rotated."""
         self.best_max_corr =  sum(im[pt[0], pt[1]] for pt in self.aligned_rcs
                                   if 0 <= pt[0] < im.shape[0] and 0 <= pt[1] < im.shape[1])
+
+    def set_snr(self, snr):
+        self.snr = snr
+
+    def set_snr_with_control_corr(self, control_corr):
+        self.snr = self.best_max_corr / control_corr
 
     def plot_convex_hull(self, rcs=None, ax=None):
         if ax is None:
