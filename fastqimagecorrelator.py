@@ -160,13 +160,13 @@ class FastqImageCorrelator(object):
         if ax is None:
             fig, ax = plt.subplots()
         im = self.image_data.D4_im_given_idx(im_key)
-        ax.imshow(im, cmap=plt.get_cmap('Blues'), label='Ilya')
+        ax.matshow(im, cmap=plt.get_cmap('Blues'), label='Ilya')
         v = plt.axis()
         fq_tile = self.fastq_tiles[fq_key]
         fq_im = fq_tile.image()[-fq_tile.align_tr[0]:, -fq_tile.align_tr[1]:]
         fq_im = ndimage.filters.gaussian_filter(fq_im, 3)
         fq_im[fq_im < 0.01] = None
-        plt.imshow(fq_im, cmap=plt.get_cmap('Reds'), alpha=0.5, label='Fastq')
+        plt.matshow(fq_im, cmap=plt.get_cmap('Reds'), alpha=0.5, label='Fastq')
         #aligned_rcs = self.fastq_tiles[fq_key].aligned_rcs()
         #ax.plot(aligned_rcs[:, 0], aligned_rcs[:, 1], 'r.', alpha=0.5)
         plt.axis(v)
@@ -443,24 +443,34 @@ class FastqImageCorrelator(object):
         axs[1].legend()
         return axs
 
-    def plot_hits(self, hits, color, ax):
+    def plot_hits(self, hits, color, ax, kwargs={}):
         for i, j in hits:
             ax.plot([self.sexcat.point_rcs[i, 1], self.aligned_rcs_in_frame[j, 1]],
                     [self.sexcat.point_rcs[i, 0], self.aligned_rcs_in_frame[j, 0]],
-                    color=color)
+                    color=color, **kwargs)
         return ax
 
-    def plot_all_hits(self, ax=None):
+    def plot_all_hits(self, ax=None, im_kwargs={}, line_kwargs={}, fqpt_kwargs={}, sext_kwargs={},
+                     title_kwargs={}, legend_kwargs={}):
         if ax is None:
             fig, ax = plt.subplots(figsize=(15, 15))
-        ax.imshow(self.image_data.im, cmap=plt.get_cmap('Blues'))
-        ax.plot(self.aligned_rcs_in_frame[:, 1], self.aligned_rcs_in_frame[:, 0],
-                'ko', alpha=0.3, linewidth=0, markersize=3)
-        self.sexcat.plot_ellipses(ax=ax, alpha=0.6, color='darkgoldenrod')
-        self.plot_hits(self.non_mutual_hits, 'grey', ax)
-        self.plot_hits(self.bad_mutual_hits, 'b', ax)
-        self.plot_hits(self.good_mutual_hits, 'magenta', ax)
-        self.plot_hits(self.exclusive_hits, 'r', ax)
+
+        kwargs = {'cmap': plt.get_cmap('Blues')}
+        kwargs.update(im_kwargs)
+        ax.matshow(self.image_data.im, **kwargs)
+
+        kwargs = {'color': 'k', 'alpha': 0.3, 'linestyle': '', 'marker': 'o', 'markersize': 3}
+        kwargs.update(fqpt_kwargs)
+        ax.plot(self.aligned_rcs_in_frame[:, 1], self.aligned_rcs_in_frame[:, 0], **kwargs)
+
+        kwargs = {'alpha': 0.6, 'color': 'darkgoldenrod'}
+        kwargs.update(sext_kwargs)
+        self.sexcat.plot_ellipses(ax=ax, **kwargs)
+
+        self.plot_hits(self.non_mutual_hits, 'grey', ax, line_kwargs)
+        self.plot_hits(self.bad_mutual_hits, 'b', ax, line_kwargs)
+        self.plot_hits(self.good_mutual_hits, 'magenta', ax, line_kwargs)
+        self.plot_hits(self.exclusive_hits, 'r', ax, line_kwargs)
         ax.set_title('All Hits: %s vs. %s %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s, SNR: %s'
                 % (self.image_data.bname,
                    self.project_name,
@@ -470,7 +480,7 @@ class FastqImageCorrelator(object):
                    ','.join('%.5f' % tile.scale for tile in self.hitting_tiles),
                    ','.join('%.1f' % tile.best_max_corr for tile in self.hitting_tiles),
                    ','.join('%.2f' % tile.snr for tile in self.hitting_tiles),
-                   ))
+                   ), **title_kwargs)
         ax.set_xlim([0, self.image_data.im.shape[1]])
         ax.set_ylim([self.image_data.im.shape[0], 0])
 
@@ -487,7 +497,7 @@ class FastqImageCorrelator(object):
         fastq_line = Line2D([], [], color='k', alpha=0.3, marker='o', markersize=10,
                 label='Fastq Points: %d' % (len(self.aligned_rcs_in_frame)))
         handles = [grey_line, blue_line, magenta_line, red_line, sexcat_line, fastq_line]
-        legend = ax.legend(handles=handles)
+        legend = ax.legend(handles=handles, **legend_kwargs)
         legend.get_frame().set_color('white')
         return ax
 
