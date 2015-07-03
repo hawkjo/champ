@@ -76,19 +76,11 @@ class GibbsMotifSampler:
         for i in range(len(self.motifs[0])):
             assert approx_eq(sum(self.profile[c][i] for c in self.bases), 1), 'Non-uniform probability'
 
-    def new_motifs_score(self):
+    def motifs_score(self):
         score = 0
         for i in range(self.k):
             consensus_base = max(self.bases, key=lambda c: self.profile_counts[c][i])
             score += sum(self.profile_counts[c][i] for c in self.bases if c != consensus_base)
-        return score
-
-    def motifs_score(self):
-        score = 0
-        for i in range(self.k):
-            col = ''.join(motif[i] for motif in self.motifs)
-            consensus_base = max(self.bases, key=col.count)
-            score += len(col) - col.count(consensus_base)
         return score
 
     def pattern_prob(self, pattern):
