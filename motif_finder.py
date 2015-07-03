@@ -28,7 +28,7 @@ def collapse_if_overlapped_pair(seq_list, min_overlap=10, frac_error=0.1):
     return tuple(seq_list)  # If none of the above
 
 
-class GibbsMotifSampler:
+class MotifFinder:
     def __init__(self):
         self.bases = 'ACGT'
 
@@ -102,6 +102,12 @@ class GibbsMotifSampler:
             # Using all_kmers incorporates the robustness found there
             return random.choice(self.all_kmers(s))
 
+    def print_motifs(self):
+        print 'Motif score:', self.motifs_score()
+        print '\n'.join(self.motifs)
+
+
+class GibbsMotifSampler(MotifFinder):
     def profile_random_motif(self, i):
         substrings = self.all_kmers(self.seqs[i])
         probs = [self.pattern_prob(motif) for motif in substrings]
@@ -130,14 +136,14 @@ class GibbsMotifSampler:
 
         self.motifs[idx] = new_motif
 
-    def gibbs_sample(self):
+    def gibbs_sample(self, num_reps=10):
         start_time = time.time()
         self.motifs = [self.random_kmer(seq) for seq in self.seqs]
         self.make_profile_counts()
         absolute_best_motifs = self.motifs[:]
         absolute_best_score = self.motifs_score()
         
-        for i in range(20):
+        for i in range(num_reps):
             print
             print i
             self.motifs = [self.random_kmer(seq) for seq in self.seqs]
@@ -164,9 +170,50 @@ class GibbsMotifSampler:
         print
         print 'Gibbs Sampler Time:', time.time() - start_time
 
-    def print_motifs(self):
-        print 'Motif score:', self.motifs_score()
-        print '\n'.join(self.motifs)
+
+class CommonKmerFinder(MotifFinder):
+    def count_and_sort_kmers(self):
+        self.kmer_counter = Counter()
+        for seq in self.seqs:
+            self.kmer_counter.update(set(self.all_kmers(seq)))  # set to count unique seqs
+        self.kmers_and_counts = self.kmer_counter.items()
+        self.kmers_and_counts.sort(key=lambda tup: tup[1], reverse=True)
+
+    def print_n_most_common_kmers(self, n=30):
+        print '\n'.join('%s:  %d' % (kmer, count) for kmer, count in self.kmers_and_counts[:n])
+
+
+class EnrichedKmerFinder:
+    def __init__(self, k, active_fpath, inactive_fpath):
+        self.active_ckm = CommonKmerFinder()
+        self.active_ckm.parse_fastq_file(active_fpath)
+        self.active_ckm.set_params(k=k)
+        self.active_ckm.count_and_sort_kmers()
+
+        self.inactive_ckm = CommonKmerFinder()
+        self.inactive_ckm.parse_fastq_file(inactive_fpath)
+        self.inactive_ckm.set_params(k=k)
+        self.inactive_ckm.count_and_sort_kmers()
+
+        self.kmers_not_in_inactive = set()
+        self.fold_enrichment = {}
+        norm_factor = float(len(self.inactive_ckm.seqs)) / len(self.active_ckm.seqs)
+        for kmer, count in self.active_ckm.kmer_counter.items():
+            if kmer in self.inactive_ckm.kmer_counter:
+                self.fold_enrichment[kmer] = norm_factor * float(count) / self.inactive_ckm.kmer_counter[kmer]
+            else:
+                self.kmers_not_in_inactive.add(kmer)
+
+    def print_n_most_common_kmers(self, n=20):
+        print 'Top Fold Enrichments:'
+        print '\n'.join('%s: %.3f' % (kmer, fe) for kmer, fe in
+                        list(sorted(self.fold_enrichment.items(), key=lambda tup: -tup[1]))[:n])
+        if self.kmers_not_in_inactive:
+            print
+            print 'Common kmers not in inactive sequences and counts:'
+            print '\n'.join('%s: %d' % (kmer, count) for kmer, count in self.active_ckm.kmers_and_counts
+                            if kmer in self.kmers_not_in_inactive and count > 10)
+
 
 if __name__ == '__main__':
     gms = GibbsMotifSampler()
