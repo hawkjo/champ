@@ -12,7 +12,7 @@ from pathos.multiprocessing import ProcessingPool
 def load_and_cap_stch_im(project_name, norm=True, nones=False):
     # Loading, Capping, and Shifting Image Data
     if project_name == 'SA15066':
-        im_dir = os.path.join(local_config.jah_04_26_dir, '60X')
+        im_dir = os.path.join(local_config.jah_base_dir, '2015_04_26_imaging_data', '60X')
     elif project_name == 'SA15097':
         im_dir = os.path.join(local_config.data_dir, '20150528/stitched_images/SA15097_before')
     else:
