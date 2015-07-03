@@ -20,6 +20,9 @@ class Sextraction(object):
             if line.startswith('#'):
                 continue
             self.points.append(SextractorPoint(line))
+        self.build_point_rcs()
+
+    def build_point_rcs(self):
         self.point_rcs = np.array([(pt.r, pt.c) for pt in self.points])
 
     def rs(self):
