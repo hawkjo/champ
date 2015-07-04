@@ -7,6 +7,8 @@ from itertools import izip
 from Bio import SeqIO
 from general_sequence_tools import dna_rev_comp
 from adapters_cython import simple_hamming_distance
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def approx_eq(a, b, tol=0.001):
@@ -95,12 +97,7 @@ class MotifFinder:
             return [ss[i:i+self.k] for ss in s for i in range(len(ss) - self.k + 1)]
 
     def random_kmer(self, s):
-        if isinstance(s, str):
-            i = random.randrange(0, len(s) - self.k + 1)
-            return s[i:i+self.k]
-        else:
-            # Using all_kmers incorporates the robustness found there
-            return random.choice(self.all_kmers(s))
+        return random.choice(self.all_kmers(s))
 
     def print_motifs(self):
         print 'Motif score:', self.motifs_score()
@@ -185,6 +182,8 @@ class CommonKmerFinder(MotifFinder):
 
 class EnrichedKmerFinder:
     def __init__(self, k, active_fpath, inactive_fpath):
+        self.k = k
+
         self.active_ckm = CommonKmerFinder()
         self.active_ckm.parse_fastq_file(active_fpath)
         self.active_ckm.set_params(k=k)
@@ -213,6 +212,20 @@ class EnrichedKmerFinder:
             print 'Common kmers not in inactive sequences and counts:'
             print '\n'.join('%s: %d' % (kmer, count) for kmer, count in self.active_ckm.kmers_and_counts
                             if kmer in self.kmers_not_in_inactive and count > 10)
+
+    def plot_n_most_common_kmers(self, n=20, ax=None):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(10, 7))
+        kmers = []; fes = []
+        for kmer, fe in list(sorted(self.fold_enrichment.items(), key=lambda tup: -tup[1]))[:n]:
+            kmers.append(kmer)
+            fes.append(fe)
+        pos = range(len(fes))[::-1]
+        ax.barh(pos, fes, align='center')
+        plt.yticks(pos, kmers)
+        ax.set_ylim((min(pos)-1, max(pos)+1))
+        ax.set_xlabel('Fold Enrichment')
+        ax.set_title('Most Enriched %d-mers' % self.k)
 
 
 if __name__ == '__main__':
