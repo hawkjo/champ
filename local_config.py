@@ -6,9 +6,11 @@ import os
 import numpy as np
 from collections import defaultdict
 
-base_dir = '/home/hawkjo/BillProjects/constellation'
+base_dir = '/home/hawkjo/IlyaProjects/miseq_alignment'
 fig_dir = os.path.join(base_dir, 'figs')
 data_dir = os.path.join(base_dir, 'data')
+fourier_data_dir = os.path.join(data_dir, 'from_fourierseq')
+results_dir = os.path.join(base_dir, 'results')
 jah_base_dir = '/home/jah/projects/ilya/experiments'
 
 def phiX_read_names_given_project_name(project_name):
