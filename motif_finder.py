@@ -2,37 +2,24 @@ import sys
 import math
 import random
 import time
+from copy import deepcopy
 from collections import Counter, defaultdict
 from itertools import izip
 from Bio import SeqIO
 from general_sequence_tools import dna_rev_comp
-from adapters_cython import simple_hamming_distance
 import matplotlib.pyplot as plt
 import numpy as np
+from fastqtools import collapse_if_overlapped_pair
 
 
 def approx_eq(a, b, tol=0.001):
     return abs(a - b) < tol
 
 
-def collapse_if_overlapped_pair(seq_list, min_overlap=10, frac_error=0.1):
-    if len(seq_list) == 1:
-        return seq_list[0]
-    elif len(seq_list) == 2:
-        R1 = seq_list[0]
-        R2_rc = dna_rev_comp(seq_list[1])
-        max_overlap = min(map(len, [R1, R2_rc]))
-        for i in range(min_overlap, max_overlap):
-            if simple_hamming_distance(R2_rc[:i], R1[-i:]) < frac_error * i:
-                return R1 + R2_rc[i:]
-            elif simple_hamming_distance(R1[:i], R2_rc[-i:]) < frac_error * i:
-                return R2_rc + R1[i:]
-    return tuple(seq_list)  # If none of the above
-
-
 class MotifFinder:
     def __init__(self):
         self.bases = 'ACGT'
+        self.ignore_kmers = set()
 
     def parse_rosalind_file(self, fpath):
         with open(fpath) as f:
@@ -48,11 +35,20 @@ class MotifFinder:
             assert self.num_seqs == len(self.seqs)
 
     def parse_fastq_file(self, fpath):
+        self.input_biopython_records(SeqIO.parse(open(fpath), 'fastq'))
+
+    def input_biopython_records(self, records):
         tmp_seqs = defaultdict(list)
-        for rec in SeqIO.parse(open(fpath), 'fastq'):
+        for rec in records:
             tmp_seqs[rec.id].append(str(rec.seq))
-        self.seqs = [collapse_if_overlapped_pair(seq_list) for seq_list in tmp_seqs.values()]
+        self.set_seqs(tmp_seqs.values())
+
+    def set_seqs(self, seqs):
+        self.seqs = [collapse_if_overlapped_pair(seq_list) for seq_list in seqs]
         self.num_seqs = len(self.seqs)
+
+    def set_ignore_kmers(self, ignore_strings):
+        self.ignore_kmers = set([kmer for s in ignore_strings for kmer in self.all_kmers(s)])
 
     def set_params(self, **kwargs):
         for k, v in kwargs.items():
@@ -91,10 +87,18 @@ class MotifFinder:
     def all_kmers(self, s):
         """All substrings of a given string of given length."""
         if isinstance(s, str):
-            return [s[i:i+self.k] for i in range(len(s) - self.k + 1)]
+            return [ss[i:i+self.k]
+                    for ss in [s, dna_rev_comp(s)]
+                    for i in range(len(ss) - self.k + 1)
+                    if ss[i:i+self.k] not in self.ignore_kmers]
         else:
             # Other option is to introduce iterable of strings
-            return [ss[i:i+self.k] for ss in s for i in range(len(ss) - self.k + 1)]
+            it = deepcopy(s)
+            return [ss[i:i+self.k]
+                    for s in it
+                    for ss in [s, dna_rev_comp(s)]
+                    for i in range(len(ss) - self.k + 1)
+                    if ss[i:i+self.k] not in self.ignore_kmers]
 
     def random_kmer(self, s):
         return random.choice(self.all_kmers(s))
@@ -179,6 +183,19 @@ class CommonKmerFinder(MotifFinder):
     def print_n_most_common_kmers(self, n=30):
         print '\n'.join('%s:  %d' % (kmer, count) for kmer, count in self.kmers_and_counts[:n])
 
+    def plot_n_most_common_kmers(self, n=20, ax=None):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(10, 7))
+        kmers = [kmer for kmer, count in self.kmers_and_counts[:n]]
+        counts = [count for kmer, count in self.kmers_and_counts[:n]]
+        pos = range(n)[::-1]
+        ax.barh(pos, counts, align='center')
+        plt.yticks(pos, kmers)
+        ax.set_ylim((min(pos)-1, max(pos)+1))
+        ax.set_xlabel('Counts')
+        ax.set_title('Most Common %d-mers' % self.k)
+        return ax
+
 
 class EnrichedKmerFinder:
     def __init__(self, k, active_fpath, inactive_fpath):
@@ -196,10 +213,9 @@ class EnrichedKmerFinder:
 
         self.kmers_not_in_inactive = set()
         self.fold_enrichment = {}
-        norm_factor = float(len(self.inactive_ckm.seqs)) / len(self.active_ckm.seqs)
         for kmer, count in self.active_ckm.kmer_counter.items():
             if kmer in self.inactive_ckm.kmer_counter:
-                self.fold_enrichment[kmer] = norm_factor * float(count) / self.inactive_ckm.kmer_counter[kmer]
+                self.fold_enrichment[kmer] = float(count) / self.inactive_ckm.kmer_counter[kmer]
             else:
                 self.kmers_not_in_inactive.add(kmer)
 
@@ -226,6 +242,7 @@ class EnrichedKmerFinder:
         ax.set_ylim((min(pos)-1, max(pos)+1))
         ax.set_xlabel('Fold Enrichment')
         ax.set_title('Most Enriched %d-mers' % self.k)
+        return ax
 
 
 if __name__ == '__main__':
