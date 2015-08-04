@@ -43,14 +43,18 @@ class FastqImageCorrelator(object):
         self.fastq_tiles_keys = [tile_key for tile_key, tile in sorted(self.fastq_tiles.items())]
         self.fastq_tiles_list = [tile for tile_key, tile in sorted(self.fastq_tiles.items())]
 
-    def all_reads_fic_from_aligned_fic(self, other_fic):
-        self.load_all_reads(tile_keys=[tile.key for tile in other_fic.hitting_tiles])
+    def all_reads_fic_from_aligned_fic(self, other_fic, tile_data=None):
+        if tile_data is None:
+            self.load_all_reads(tile_keys=[tile.key for tile in other_fic.hitting_tiles])
+        else:
+            self.load_reads(tile_data)
         self.image_data = deepcopy(other_fic.image_data)
 
         self.fq_w = other_fic.fq_w
         self.set_fastq_tile_mappings()
         self.set_all_fastq_image_data()
         self.hitting_tiles = [self.fastq_tiles[tile.key] for tile in other_fic.hitting_tiles]
+        self.sexcat = other_fic.sexcat
 
         for other_tile in other_fic.hitting_tiles:
             tile = self.fastq_tiles[other_tile.key]
@@ -319,7 +323,7 @@ class FastqImageCorrelator(object):
         print 'Good mutual hits:', len(good_mutual_hits)
         print 'Exclusive hits:', len(exclusive_hits)
 
-    def least_squares_mapping(self, hit_type='exclusive', pct_thresh=0.9):
+    def least_squares_mapping(self, hit_type='exclusive', pct_thresh=0.9, min_hits=50):
         """least_squares_mapping(self, hit_type='exclusive')
 
         "Input": set of tuples of (sexcat_idx, in_frame_idx) mappings.
@@ -352,12 +356,20 @@ class FastqImageCorrelator(object):
 
         This system of equations is then finally solved for lambda and theta.
         """
+        def get_hits(hit_type):
+            if isinstance(hit_type, str):
+                hit_type = [hit_type]
+            hits = []
+            for ht in hit_type:
+                hits.extend(getattr(self, ht + '_hits'))
+            return hits 
+
         for tile in self.hitting_tiles:
             self.find_hits(consider_tiles=tile)
 
             # Reminder: All indices are in the order (sexcat_idx, in_frame_idx)
-            hits = self.remove_longest_hits(getattr(self, hit_type + '_hits'), pct_thresh)
-            assert len(hits) > 50, 'Too few hits for least squares mapping: {0}'.format(len(hits))
+            hits = self.remove_longest_hits(get_hits(hit_type), pct_thresh)
+            assert len(hits) > min_hits, 'Too few hits for least squares mapping: {0}'.format(len(hits))
             A = np.zeros((2*len(hits), 4))
             b = np.zeros((2*len(hits),))
             for i, (sexcat_idx, in_frame_idx) in enumerate(hits):
@@ -380,13 +392,19 @@ class FastqImageCorrelator(object):
             tile.set_correlation(self.image_data.im)
             tile.set_snr_with_control_corr(self.control_corr)
 
-    def align(self, possible_tile_keys, rotation_est, fq_w_est=927, snr_thresh=2, hit_type='exclusive'):
+    def align(self,
+              possible_tile_keys,
+              rotation_est,
+              fq_w_est=927,
+              snr_thresh=2,
+              hit_type='exclusive',
+              min_hits=50):
         self.fq_w = fq_w_est
         self.set_fastq_tile_mappings()
         self.set_all_fastq_image_data()
         self.rotate_all_fastq_data(rotation_est)
         self.find_hitting_tiles(possible_tile_keys, snr_thresh)
-        self.least_squares_mapping(hit_type)
+        self.least_squares_mapping(hit_type, min_hits=min_hits)
         self.find_hits()
         
 
