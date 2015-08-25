@@ -404,6 +404,8 @@ class FastqImageCorrelator(object):
         self.set_all_fastq_image_data()
         self.rotate_all_fastq_data(rotation_est)
         self.find_hitting_tiles(possible_tile_keys, snr_thresh)
+        if not self.hitting_tiles:
+            raise RuntimeError('Alignment not found')
         self.least_squares_mapping(hit_type, min_hits=min_hits)
         self.find_hits()
         
