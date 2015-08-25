@@ -22,8 +22,8 @@ def get_align_params(align_param_fpath):
                           for tile_num in map(int, d['possible_tiles'].split(','))]
 
     return (d['project_name'],
-            d['nd2_fpath'],
             d['aligning_read_names_fpath'],
+            d['all_read_names_fpath'],
             int(d['objective']),
             float(d['rotation_est']),
             float(d['fq_w_est']),
@@ -31,9 +31,9 @@ def get_align_params(align_param_fpath):
            )
 
 
-def process_fig(align_run_name, align_param_fpath, im_idx):
+def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     im_idx = int(im_idx)
-    project_name, nd2_fpath, aligning_read_names_fpath, objective, rotation_est, fq_w_est, \
+    project_name, aligning_read_names_fpath, all_read_names_fpath, objective, rotation_est, fq_w_est, \
             possible_tile_keys = get_align_params(align_param_fpath)
     nd2 = nd2reader.Nd2(nd2_fpath)
     bname = os.path.splitext(os.path.basename(nd2_fpath))[0]
@@ -43,7 +43,7 @@ def process_fig(align_run_name, align_param_fpath, im_idx):
     fic.load_phiX()
     fic.set_image_data(im=nd2[im_idx].data, objective=objective, fpath=str(im_idx), median_normalize=True)
     fic.set_sexcat_from_file(sexcat_fpath)
-    fic.align(possible_tile_keys, rotation_est, fq_w_est)
+    fic.align(possible_tile_keys, rotation_est, fq_w_est, hit_type=['exclusive', 'good_mutual'])
     print project_name, bname, im_idx, ','.join(tile.key for tile in fic.hitting_tiles)
     
     fig_dir = os.path.join(local_config.fig_dir, align_run_name, bname)
@@ -66,11 +66,13 @@ def process_fig(align_run_name, align_param_fpath, im_idx):
     fic.write_alignment_stats(stats_fpath)
 
     all_fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
-    all_fic.all_reads_fic_from_aligned_fic(fic)
+    tile_data = local_config.fastq_tiles_given_read_name_fpath(all_read_names_fpath)
+    all_fic.all_reads_fic_from_aligned_fic(fic, tile_data)
     all_read_rcs_fpath = os.path.join(results_dir, '{}_all_read_rcs.txt'.format(im_idx))
     all_fic.write_read_names_rcs(all_read_rcs_fpath)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
-        sys.exit('Usage: {0} <align_run_name> <align_param_file> <im_idx>'.format(sys.argv[0]))
+    fmt = '{0} <align_run_name> <nd2_fpath> <align_param_file> <im_idx>'.format(sys.argv[0])
+    if len(sys.argv) != len(fmt.split()):
+        sys.exit('Usage: ' + fmt)
     process_fig(*sys.argv[1:])
