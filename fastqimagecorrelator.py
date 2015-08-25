@@ -396,9 +396,9 @@ class FastqImageCorrelator(object):
               possible_tile_keys,
               rotation_est,
               fq_w_est=927,
-              snr_thresh=2,
-              hit_type='exclusive',
-              min_hits=50):
+              snr_thresh=1.2,
+              hit_type=['exclusive', 'good_mutual'],
+              min_hits=15):
         self.fq_w = fq_w_est
         self.set_fastq_tile_mappings()
         self.set_all_fastq_image_data()
