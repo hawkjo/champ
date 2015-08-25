@@ -30,6 +30,8 @@ def all_read_names_given_project_name(project_name):
             project_name,
             'all_fastqs',
             'all_read_names.txt')
+    if not os.path.isdir(fpath):
+        fpath = fpath.replace('all_fastqs', 'read_names')
     return fastq_tiles_given_read_name_fpath(fpath)
 
 
