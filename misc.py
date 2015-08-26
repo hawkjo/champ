@@ -26,5 +26,13 @@ def right_rotation_matrix(angle, degrees=True):
     return np.array([[cosa, sina],
                      [-sina, cosa]])
 
+
 def rcs_given_read_names(read_names):
     return np.array([map(int, name.split(':')[-2:]) for name in read_names])
+
+
+def median_normalize(im):
+    med = np.median(im)
+    im = im / float(med)
+    im -= 1
+    return im
