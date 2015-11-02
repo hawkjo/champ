@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from pathos.multiprocessing import ProcessingPool
 import local_config
 import nd2reader
+import nd2tools
 
 
 def get_align_params(align_param_fpath):
@@ -17,9 +18,6 @@ def get_align_params(align_param_fpath):
             continue
         name, value = line.strip().split()
         d[name] = value
-
-    possible_tile_keys = ['lane1tile{0}'.format(tile_num) 
-                          for tile_num in map(int, d['possible_tiles'].split(','))]
 
     try:
         min_hits = int(d['min_hits'])
@@ -32,16 +30,28 @@ def get_align_params(align_param_fpath):
             int(d['objective']),
             float(d['rotation_est']),
             float(d['fq_w_est']),
-            possible_tile_keys,
+            int(d['min_tile_num']),
+            int(d['max_tile_num']),
             min_hits
            )
+
+
+def find_possible_tile_keys(nd2, im_idx, min_tile, max_tile):
+    coord_info, xs, ys, zs, pos_names, rows, cols = nd2tools.get_nd2_image_coord_info(nd2)
+    cols.sort()
+    pos_name = nd2tools.convert_nd2_coordinates(nd2, im_idx=im_idx, outfmt='pos_name')
+    col_idx = cols.index(pos_name[1:])
+    expected_tile = int(min_tile + col_idx * float(max_tile - min_tile)/(len(cols)-1))
+    return ['lane1tile{0}'.format(tile_num) 
+            for tile_num in range(expected_tile - 1, expected_tile + 2)]
 
 
 def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     im_idx = int(im_idx)
     project_name, aligning_read_names_fpath, all_read_names_fpath, objective, rotation_est, fq_w_est, \
-            possible_tile_keys, min_hits = get_align_params(align_param_fpath)
+            min_tile_num, max_tile_num, min_hits = get_align_params(align_param_fpath)
     nd2 = nd2reader.Nd2(nd2_fpath)
+    possible_tile_keys = find_possible_tile_keys(nd2, im_idx, min_tile_num, max_tile_num)
     bname = os.path.splitext(os.path.basename(nd2_fpath))[0]
     sexcat_fpath = os.path.join(os.path.splitext(nd2_fpath)[0], '%d.cat' % im_idx)
     
