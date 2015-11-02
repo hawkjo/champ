@@ -24,6 +24,11 @@ def get_nd2_image_coord_info(nd2):
     return coord_info, xs, ys, zs, pos_names, rows, cols
 
 
+def get_ims_in_run(nd2):
+    coord_info, xs, ys, zs, pos_names, rows, cols = get_nd2_image_coord_info(nd2)
+    return len(pos_names) * len(nd2.channels)
+
+
 def plot_nd2_grid(nd2, edge, channel, idx_start=None, idx_end=None, suptitle=''):
     assert channel < len(nd2.channels), (channel, len(nd2.channels))
     coord_info, xs, ys, zs, pos_names, rows, cols = get_nd2_image_coord_info(nd2)
@@ -218,10 +223,14 @@ def convert_nd2_coordinates(nd2, outfmt, **kwargs):
     systems = ['pos_name', 'im_idx', 'pos_idx', 'pos_coords']
     assert len(set(systems) & set(kwargs.keys())) == 1, 'Must give exactly one input in %s' % systems
     assert outfmt in systems, outfmt
+    if 'run' not in kwargs:
+        run = 0
+    ims_in_run = get_ims_in_run(nd2)
+
     coord_info, xs, ys, zs, pos_names, rows, cols = get_nd2_image_coord_info(nd2)
     if 'im_idx' in kwargs:
         im_idx = kwargs['im_idx']
-        pos_idx = int(im_idx / len(nd2.channels))
+        pos_idx = int((im_idx % ims_in_run) / len(nd2.channels))
     elif 'pos_name' in kwargs:
         pos_name = kwargs['pos_name']
         pos_idx = pos_names.index(pos_name)
@@ -236,8 +245,10 @@ def convert_nd2_coordinates(nd2, outfmt, **kwargs):
         return pos_names[pos_idx]
     elif outfmt == 'pos_coords':
         return zip(ys, xs)[pos_idx]
+    elif outfmt == 'im_idx':
+        return run * ims_in_run + pos_idx * len(nd2.channels) + kwargs['channel']
     else:
-        return pos_idx * len(nd2.channels) + kwargs['channel']
+        raise ValueError('"%s" is not a recognized outfmt.' % outfmt)
 
 
 def bname_given_nd2(nd2):
