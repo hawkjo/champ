@@ -21,6 +21,11 @@ def get_align_params(align_param_fpath):
     possible_tile_keys = ['lane1tile{0}'.format(tile_num) 
                           for tile_num in map(int, d['possible_tiles'].split(','))]
 
+    try:
+        min_hits = int(d['min_hits'])
+    except:
+        min_hits = 15
+
     return (d['project_name'],
             d['aligning_read_names_fpath'],
             d['all_read_names_fpath'],
@@ -28,37 +33,37 @@ def get_align_params(align_param_fpath):
             float(d['rotation_est']),
             float(d['fq_w_est']),
             possible_tile_keys,
+            min_hits
            )
 
 
 def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     im_idx = int(im_idx)
     project_name, aligning_read_names_fpath, all_read_names_fpath, objective, rotation_est, fq_w_est, \
-            possible_tile_keys = get_align_params(align_param_fpath)
+            possible_tile_keys, min_hits = get_align_params(align_param_fpath)
     nd2 = nd2reader.Nd2(nd2_fpath)
     bname = os.path.splitext(os.path.basename(nd2_fpath))[0]
     sexcat_fpath = os.path.join(os.path.splitext(nd2_fpath)[0], '%d.cat' % im_idx)
     
     fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
-    fic.load_phiX()
+    tile_data=local_config.fastq_tiles_given_read_name_fpath(aligning_read_names_fpath)
+    fic.load_reads(tile_data)
     fic.set_image_data(im=nd2[im_idx].data, objective=objective, fpath=str(im_idx), median_normalize=True)
     fic.set_sexcat_from_file(sexcat_fpath)
-    fic.align(possible_tile_keys, rotation_est, fq_w_est, hit_type=['exclusive', 'good_mutual'])
+    fic.align(possible_tile_keys, rotation_est, fq_w_est, min_hits=min_hits, hit_type=['exclusive', 'good_mutual'])
     print project_name, bname, im_idx, ','.join(tile.key for tile in fic.hitting_tiles)
     
     fig_dir = os.path.join(local_config.fig_dir, align_run_name, bname)
-    if not os.path.exists(fig_dir):
-        os.makedirs(fig_dir)
+    results_dir = os.path.join(local_config.base_dir, 'results', align_run_name, bname)
+    for d in [fig_dir, results_dir]:
+        if not os.path.exists(d):
+            os.makedirs(d)
 
     ax = fic.plot_all_hits()
     ax.figure.savefig(os.path.join(fig_dir, '{}_all_hits.pdf'.format(im_idx)))
 
     ax = fic.plot_hit_hists()
     ax.figure.savefig(os.path.join(fig_dir, '{}_hit_hists.pdf'.format(im_idx)))
-
-    results_dir = os.path.join(local_config.base_dir, 'results', align_run_name)
-    if not os.path.exists(results_dir):
-        os.makedirs(results_dir)
 
     intensity_fpath = os.path.join(results_dir, '{}_intensities.txt'.format(im_idx))
     stats_fpath = os.path.join(results_dir, '{}_stats.txt'.format(im_idx))
