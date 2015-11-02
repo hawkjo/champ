@@ -11,7 +11,7 @@ from scipy.spatial import KDTree
 from sklearn.mixture import GMM
 from imagedata import ImageData
 from fastqtilercs import FastqTileRCs
-from misc import pad_to_size, max_2d_idx
+from misc import pad_to_size, max_2d_idx, AlignmentStats
 
 
 class FastqImageCorrelator(object):
@@ -62,6 +62,32 @@ class FastqImageCorrelator(object):
                                                  other_tile.rotation,
                                                  other_tile.offset)
 
+    def fic_given_alignment(self, tile_data, tile_key, scale, fq_w, rotation, rc_offset):
+        self.load_reads(tile_data)
+        self.hitting_tiles = []
+        self.set_tile_alignment(tile_key, scale, fq_w, rotation, rc_offset)
+
+    def set_tile_alignment(self, tile_key, scale, fq_w, rotation, rc_offset):
+        if self.fastq_tiles[tile_key] not in self.hitting_tiles:
+            self.hitting_tiles.append(self.fastq_tiles[tile_key])
+        self.fq_w = fq_w
+        self.set_fastq_tile_mappings()
+        self.set_all_fastq_image_data()
+        tile = self.fastq_tiles[tile_key]
+        tile.set_aligned_rcs_given_transform(scale, rotation, rc_offset)
+
+    def fic_from_alignment_file(self, fpath, tile_data):
+        self.load_reads(tile_data)
+        self.hitting_tiles = []
+        astats = AlignmentStats(fpath)
+        for i in range(astats.numtiles):
+            self.set_tile_alignment(astats.tile[i],
+                                    astats.scaling[i],
+                                    astats.tile_width[i],
+                                    astats.rotation[i]*np.pi/180,
+                                    astats.rc_offset[i]
+                                   )
+        
     def set_image_data(self, *args, **kwargs):
         if len(args) == 1 and isinstance(args[0], ImageData):
             self.image_data = args[0]
