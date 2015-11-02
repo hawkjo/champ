@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image
 from pathos.multiprocessing import ProcessingPool
 from misc import next_power_of_2
+import tifffile
 
 
 class ImageData(object):
@@ -32,7 +33,7 @@ class ImageData(object):
         if ext == '.npy':
             self.im = np.load(self.fpath)
         elif ext == '.tif':
-            self.im = np.array(Image.open(self.fpath))
+            self.im = tifffile.imread(self.fpath)
         else:
             raise ValueError('Image type not accepted: %s' % self.fname)
         self.set_objective(objective)
