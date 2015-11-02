@@ -137,3 +137,8 @@ class FastqTileRCs(object):
             rcs = self.aligned_rcs
         hull = ConvexHull(rcs)
         ax.plot(rcs[hull.vertices, 1], rcs[hull.vertices, 0], label=self.key)
+
+    def plot_aligned_rcs(self, ax=None, **kwargs):
+        if ax is None:
+            fig, ax = plt.subplots()
+        ax.plot(self.aligned_rcs[:, 1], self.aligned_rcs[:, 0], '.', **kwargs)
