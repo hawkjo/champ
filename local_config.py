@@ -41,7 +41,18 @@ def fastq_tiles_given_read_name_fpath(fpath):
         _, lane, tile, _, _ = line.strip().rsplit(':', 4)
         key = 'lane{0}tile{1}'.format(lane, tile)
         fastq_tile_builder[key].add(line.strip())
+    return fastq_tiles_given_fastq_tile_builder(fastq_tile_builder)
 
+
+def fastq_tiles_given_read_names(read_names):
+    fastq_tile_builder = defaultdict(set)
+    for read_name in read_names:
+        _, lane, tile, _, _ = read_name.rsplit(':', 4)
+        key = 'lane{0}tile{1}'.format(lane, tile)
+        fastq_tile_builder[key].add(read_name)
+    return fastq_tiles_given_fastq_tile_builder(fastq_tile_builder)
+
+def fastq_tiles_given_fastq_tile_builder(fastq_tile_builder):
     fastq_tiles = {}
     for key, values in fastq_tile_builder.items():
         fastq_tiles[key] = list(values)
