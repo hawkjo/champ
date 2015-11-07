@@ -20,6 +20,12 @@ def get_align_params(align_param_fpath):
         d[name] = value
 
     try:
+        strategy = d['strategy']
+    except:
+        strategy = 'slow'
+    assert strategy in ['fast', 'slow'], strategy
+
+    try:
         min_hits = int(d['min_hits'])
     except:
         min_hits = 15
@@ -32,26 +38,33 @@ def get_align_params(align_param_fpath):
             float(d['fq_w_est']),
             int(d['min_tile_num']),
             int(d['max_tile_num']),
+            strategy,
             min_hits
            )
 
 
-def find_possible_tile_keys(nd2, im_idx, min_tile, max_tile):
+def fast_possible_tile_keys(nd2, im_idx, min_tile, max_tile):
     coord_info, xs, ys, zs, pos_names, rows, cols = nd2tools.get_nd2_image_coord_info(nd2)
     cols.sort()
     pos_name = nd2tools.convert_nd2_coordinates(nd2, im_idx=im_idx, outfmt='pos_name')
     col_idx = cols.index(pos_name[1:])
     expected_tile = int(min_tile + col_idx * float(max_tile - min_tile)/(len(cols)-1))
-    return ['lane1tile{0}'.format(tile_num) 
-            for tile_num in range(expected_tile - 1, expected_tile + 2)]
+    return tile_keys_given_nums(range(expected_tile - 1, expected_tile + 2))
+
+
+def tile_keys_given_nums(tile_nums):
+    return ['lane1tile{0}'.format(tile_num) for tile_num in tile_nums]
 
 
 def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     im_idx = int(im_idx)
     project_name, aligning_read_names_fpath, all_read_names_fpath, objective, rotation_est, fq_w_est, \
-            min_tile_num, max_tile_num, min_hits = get_align_params(align_param_fpath)
+            min_tile_num, max_tile_num, strategy, min_hits = get_align_params(align_param_fpath)
     nd2 = nd2reader.Nd2(nd2_fpath)
-    possible_tile_keys = find_possible_tile_keys(nd2, im_idx, min_tile_num, max_tile_num)
+    if strategy == 'fast':
+        possible_tile_keys = fast_possible_tile_keys(nd2, im_idx, min_tile_num, max_tile_num)
+    elif strategy == 'slow':
+        possible_tile_keys = tile_keys_given_nums(range(min_tile_num, max_tile_num+1))
     bname = os.path.splitext(os.path.basename(nd2_fpath))[0]
     sexcat_fpath = os.path.join(os.path.splitext(nd2_fpath)[0], '%d.cat' % im_idx)
     
@@ -69,16 +82,16 @@ def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
         if not os.path.exists(d):
             os.makedirs(d)
 
+    intensity_fpath = os.path.join(results_dir, '{}_intensities.txt'.format(im_idx))
+    stats_fpath = os.path.join(results_dir, '{}_stats.txt'.format(im_idx))
+    fic.output_intensity_results(intensity_fpath)
+    fic.write_alignment_stats(stats_fpath)
+
     ax = fic.plot_all_hits()
     ax.figure.savefig(os.path.join(fig_dir, '{}_all_hits.pdf'.format(im_idx)))
 
     ax = fic.plot_hit_hists()
     ax.figure.savefig(os.path.join(fig_dir, '{}_hit_hists.pdf'.format(im_idx)))
-
-    intensity_fpath = os.path.join(results_dir, '{}_intensities.txt'.format(im_idx))
-    stats_fpath = os.path.join(results_dir, '{}_stats.txt'.format(im_idx))
-    fic.output_intensity_results(intensity_fpath)
-    fic.write_alignment_stats(stats_fpath)
 
     all_fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
     tile_data = local_config.fastq_tiles_given_read_name_fpath(all_read_names_fpath)
