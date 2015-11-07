@@ -3,6 +3,8 @@ import os
 import copy
 import nd2reader
 import numpy as np
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from misc import median_normalize
 
@@ -22,6 +24,11 @@ def get_nd2_image_coord_info(nd2):
     rows = list(sorted(set(name[0] for name in pos_names)))
     cols = list(sorted(set(name[1:] for name in pos_names)))
     return coord_info, xs, ys, zs, pos_names, rows, cols
+
+
+def nrows_and_ncols(nd2):
+    coord_info, xs, ys, zs, pos_names, rows, cols = get_nd2_image_coord_info(nd2)
+    return len(rows), len(cols)
 
 
 def get_ims_in_run(nd2):
@@ -246,6 +253,7 @@ def convert_nd2_coordinates(nd2, outfmt, **kwargs):
     elif outfmt == 'pos_coords':
         return zip(ys, xs)[pos_idx]
     elif outfmt == 'im_idx':
+        assert kwargs['channel'] < len(nd2.channels), (kwargs['channel'], nd2.channels)
         return run * ims_in_run + pos_idx * len(nd2.channels) + kwargs['channel']
     else:
         raise ValueError('"%s" is not a recognized outfmt.' % outfmt)
