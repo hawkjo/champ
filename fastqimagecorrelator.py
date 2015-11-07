@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from scipy import ndimage
+import time
 from copy import deepcopy
 from itertools import izip
 import local_config
@@ -425,15 +426,32 @@ class FastqImageCorrelator(object):
               snr_thresh=1.2,
               hit_type=['exclusive', 'good_mutual'],
               min_hits=15):
+        start_time = time.time()
+
         self.fq_w = fq_w_est
         self.set_fastq_tile_mappings()
         self.set_all_fastq_image_data()
         self.rotate_all_fastq_data(rotation_est)
+
+        print 'Prep time: %.3f seconds' % (time.time() - start_time)
+        start_time = time.time()
+
         self.find_hitting_tiles(possible_tile_keys, snr_thresh)
+
+        print 'Rough alignment time: %.3f seconds' % (time.time() - start_time)
+        start_time = time.time()
+
         if not self.hitting_tiles:
             raise RuntimeError('Alignment not found')
+
         self.least_squares_mapping(hit_type, min_hits=min_hits)
+
+        print 'Precision alignment time: %.3f seconds' % (time.time() - start_time)
+        start_time = time.time()
+
         self.find_hits()
+
+        print 'Hit finding time: %.3f seconds' % (time.time() - start_time)
         
 
     def gmm_thresh(self, dists):
@@ -454,10 +472,14 @@ class FastqImageCorrelator(object):
         non_mut_dists = self.hit_dists(self.non_mutual_hits)
         bins = np.linspace(0, max(non_mut_dists), 50)
 
-        ax.hist(non_mut_dists, bins, label='Non-mutual hits', normed=True, histtype='step')
-        ax.hist(self.hit_dists(self.bad_mutual_hits), bins, label='Bad mutual hits', normed=True, histtype='step')
-        ax.hist(self.hit_dists(self.good_mutual_hits), bins, label='Good mutual hits', normed=True, histtype='step')
-        ax.hist(self.hit_dists(self.exclusive_hits), bins, label='Exclusive hits', normed=True, histtype='step')
+        if non_mut_dists:
+            ax.hist(non_mut_dists, bins, label='Non-mutual hits', normed=True, histtype='step')
+        if self.bad_mutual_hits:
+            ax.hist(self.hit_dists(self.bad_mutual_hits), bins, label='Bad mutual hits', normed=True, histtype='step')
+        if self.good_mutual_hits:
+            ax.hist(self.hit_dists(self.good_mutual_hits), bins, label='Good mutual hits', normed=True, histtype='step')
+        if self.exclusive_hits:
+            ax.hist(self.hit_dists(self.exclusive_hits), bins, label='Exclusive hits', normed=True, histtype='step')
         ax.legend()
         ax.set_title('%s Nearest Neighbor Distance Distributions' % self.image_data.bname)
         return ax
