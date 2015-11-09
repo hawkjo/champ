@@ -311,18 +311,24 @@ class FastqImageCorrelator(object):
         #--------------------------------------------------------------------------------
         # If the distance to second neighbor is too close, that suggests a bad peak call combining
         # two peaks into one. Filter those out with a gaussian-mixture-model-determined threshold.
-        self.exclusive_hit_95_pct = np.percentile(self.hit_dists(exclusive_hits), 95)
+        if self.image_data.objective == 60:
+            # Value decided by observation of our data. May vary with equipment.
+            good_hit_thresh = 5
+        else:
+            good_hit_thresh = np.percentile(self.hit_dists(exclusive_hits), 95)
 
         if second_neighbor_thresh is not None:
             assert second_neighbor_thresh > 0
             self.second_neighbor_thresh = second_neighbor_thresh
         else:
-            self.second_neighbor_thresh = 2 * self.exclusive_hit_95_pct
-            #self.gmm_thresh(self.hit_dists(non_mutual_hits))
+            self.second_neighbor_thresh = 2 * good_hit_thresh
+
+        exclusive_hits = set(hit for hit in exclusive_hits
+                             if self.single_hit_dist(hit) <= good_hit_thresh)
 
         good_mutual_hits = set()
         for i, j in (mutual_hits - exclusive_hits):
-            if self.hit_dists([(i, j)])[0] > self.exclusive_hit_95_pct:
+            if self.hit_dists([(i, j)])[0] > good_hit_thresh:
                 continue
             third_wheels = [tup for tup in non_mutual_hits if i == tup[0] or j == tup[1]]
             if min(self.hit_dists(third_wheels)) > self.second_neighbor_thresh:
