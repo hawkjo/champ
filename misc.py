@@ -103,7 +103,7 @@ class AlignmentStats:
 
 
 def pM_concentration_given_fpath(fpath):
-    m = re.search('_(\d+)([pn]M)', fpath)
+    m = re.search('(\d+)([pn]M)', fpath)
     assert m, fpath
     conc = int(m.group(1))
     if m.group(2) == 'pM':
