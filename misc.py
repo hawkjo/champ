@@ -102,10 +102,14 @@ class AlignmentStats:
         self.numtiles = len(self.tile)
 
 
-def pM_concentration_given_fpath(fpath):
-    m = re.search('(\d+)([pn]M)', fpath)
+def pM_concentration_given_fpath(fpath, convention='steve'):
+    if convention.lower() == 'steve':
+        pattern = '-([0-9_]+)([pn]M)'
+    else:
+        pattern = '(\d+)([pn]M)'
+    m = re.search(, fpath)
     assert m, fpath
-    conc = int(m.group(1))
+    conc = float(m.group(1).replace('_', '.')
     if m.group(2) == 'pM':
         return conc
     elif m.group(2) == 'nM':
