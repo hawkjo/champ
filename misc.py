@@ -109,7 +109,7 @@ def pM_concentration_given_fpath(fpath, convention='steve'):
         pattern = '(\d+)([pn]M)'
     m = re.search(pattern, fpath)
     assert m, fpath
-    conc = float(m.group(1).replace('_', '.')
+    conc = float(m.group(1).replace('_', '.'))
     if m.group(2) == 'pM':
         return conc
     elif m.group(2) == 'nM':
