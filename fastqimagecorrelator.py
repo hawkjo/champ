@@ -77,8 +77,7 @@ class FastqImageCorrelator(object):
         tile = self.fastq_tiles[tile_key]
         tile.set_aligned_rcs_given_transform(scale, rotation, rc_offset)
 
-    def fic_from_alignment_file(self, fpath, tile_data):
-        self.load_reads(tile_data)
+    def alignment_from_alignment_file(self, fpath):
         self.hitting_tiles = []
         astats = AlignmentStats(fpath)
         for i in range(astats.numtiles):
@@ -423,7 +422,8 @@ class FastqImageCorrelator(object):
 
             tile.set_aligned_rcs_given_transform(lbda, theta, offset)
             tile.set_correlation(self.image_data.im)
-            tile.set_snr_with_control_corr(self.control_corr)
+            if hasattr(self, 'control_corr'):
+                tile.set_snr_with_control_corr(self.control_corr)
 
     def align(self,
               possible_tile_keys,
@@ -445,6 +445,23 @@ class FastqImageCorrelator(object):
         self.find_hitting_tiles(possible_tile_keys, snr_thresh)
 
         print 'Rough alignment time: %.3f seconds' % (time.time() - start_time)
+        start_time = time.time()
+
+        if not self.hitting_tiles:
+            raise RuntimeError('Alignment not found')
+
+        self.least_squares_mapping(hit_type, min_hits=min_hits)
+
+        print 'Precision alignment time: %.3f seconds' % (time.time() - start_time)
+        start_time = time.time()
+
+        self.find_hits()
+
+        print 'Hit finding time: %.3f seconds' % (time.time() - start_time)
+        
+    def precision_align_only(self,
+                             hit_type=['exclusive', 'good_mutual'],
+                             min_hits=15):
         start_time = time.time()
 
         if not self.hitting_tiles:
@@ -553,7 +570,7 @@ class FastqImageCorrelator(object):
                    ','.join('%.2f' % tile.w for tile in self.hitting_tiles),
                    ','.join('%.5f' % tile.scale for tile in self.hitting_tiles),
                    ','.join('%.1f' % tile.best_max_corr for tile in self.hitting_tiles),
-                   ','.join('%.2f' % tile.snr for tile in self.hitting_tiles),
+                   ','.join('%.2f' % tile.snr if hasattr(tile, 'snr') else '-' for tile in self.hitting_tiles),
                    ), **title_kwargs)
         ax.set_xlim([0, self.image_data.im.shape[1]])
         ax.set_ylim([self.image_data.im.shape[0], 0])
