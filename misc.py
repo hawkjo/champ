@@ -103,10 +103,7 @@ class AlignmentStats:
 
 
 def pM_concentration_given_fpath(fpath, convention='steve'):
-    if convention.lower() == 'steve':
-        pattern = '-([0-9_]+)([pn]M)'
-    else:
-        pattern = '(\d+)([pn]M)'
+    pattern = '[-_]([0-9_.]+)([pn]M)'
     m = re.search(pattern, fpath)
     assert m, fpath
     conc = float(m.group(1).replace('_', '.'))

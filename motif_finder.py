@@ -145,8 +145,6 @@ class GibbsMotifSampler(MotifFinder):
         absolute_best_score = self.motifs_score()
         
         for i in range(num_reps):
-            print
-            print i
             self.motifs = [self.random_kmer(seq) for seq in self.seqs]
             best_motifs = self.motifs[:]
             best_score = self.motifs_score()
