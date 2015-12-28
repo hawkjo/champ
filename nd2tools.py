@@ -65,18 +65,24 @@ def plot_nd2_grid(nd2, edge, channel, idx_start=None, idx_end=None, suptitle='')
         pos_name = pos_names[im_pos_idx]
         r = nrows - 1 - rows.index(pos_name[0])
         c = ncols - 1 - cols.index(pos_name[1:])
+        if nrows == 1:
+            ax = axs[c]
+        elif ncols == 1:
+            ax = axs[r]
+        else:
+            ax = axs[r, c]
         mn = min(mn, im.min())
         mx = max(mx, im.max())
-        axs[r, c].matshow(im, vmin=0, vmax=2)#, cmap=plt.get_cmap('Blues'))
-        axs[r, c].set_xticks([])
-        axs[r, c].set_yticks([])
-        axs[r, c].text(im.shape[1]/2,
-                       im.shape[0]/2,
-                       pos_name,
-                       color='white',
-                       fontsize=24,
-                       ha='center',
-                       va='center')
+        ax.matshow(im, vmin=0, vmax=2)#, cmap=plt.get_cmap('Blues'))
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.text(im.shape[1]/2,
+                im.shape[0]/2,
+                pos_name,
+                color='white',
+                fontsize=24,
+                ha='center',
+                va='center')
 
     fig.suptitle(suptitle, fontsize=30)
     
