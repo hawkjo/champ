@@ -26,6 +26,11 @@ def get_align_params(align_param_fpath):
     assert strategy in ['fast', 'slow'], strategy
 
     try:
+        snr_thresh = float(d['snr_thresh'])
+    except:
+        snr_thresh = 1.2
+
+    try:
         min_hits = int(d['min_hits'])
     except:
         min_hits = 15
@@ -39,6 +44,7 @@ def get_align_params(align_param_fpath):
             int(d['min_tile_num']),
             int(d['max_tile_num']),
             strategy,
+            snr_thresh,
             min_hits
            )
 
@@ -59,7 +65,7 @@ def tile_keys_given_nums(tile_nums):
 def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     im_idx = int(im_idx)
     project_name, aligning_read_names_fpath, all_read_names_fpath, objective, rotation_est, fq_w_est, \
-            min_tile_num, max_tile_num, strategy, min_hits = get_align_params(align_param_fpath)
+            min_tile_num, max_tile_num, strategy, snr_thresh, min_hits = get_align_params(align_param_fpath)
     nd2 = nd2reader.Nd2(nd2_fpath)
     if strategy == 'fast':
         possible_tile_keys = fast_possible_tile_keys(nd2, im_idx, min_tile_num, max_tile_num)
@@ -73,7 +79,7 @@ def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     fic.load_reads(tile_data)
     fic.set_image_data(im=nd2[im_idx].data, objective=objective, fpath=str(im_idx), median_normalize=True)
     fic.set_sexcat_from_file(sexcat_fpath)
-    fic.align(possible_tile_keys, rotation_est, fq_w_est, min_hits=min_hits, hit_type=['exclusive', 'good_mutual'])
+    fic.align(possible_tile_keys, rotation_est, fq_w_est, snr_thresh=snr_thresh, min_hits=min_hits, hit_type=['exclusive', 'good_mutual'])
     print project_name, bname, im_idx, ','.join(tile.key for tile in fic.hitting_tiles)
     
     fig_dir = os.path.join(local_config.fig_dir, align_run_name, bname)

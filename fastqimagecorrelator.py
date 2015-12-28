@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from scipy import ndimage
 import time
+import random
 from copy import deepcopy
 from itertools import izip
 import local_config
@@ -210,14 +211,17 @@ class FastqImageCorrelator(object):
 
     def find_hitting_tiles(self, possible_tile_keys, snr_thresh=1.2):
         possible_tiles = [self.fastq_tiles[key] for key in possible_tile_keys]
-        for tile in self.fastq_tiles_list:
-            if tile not in possible_tiles:
-                control_tile = tile
-                break
+        impossible_tiles = [tile for tile in self.fastq_tiles.values() if tile not in possible_tiles]
+        control_tiles = random.sample(impossible_tiles, 3)
+
+        self.image_data.set_single_fft((0, 0), padding=self.fq_im_scaled_dims)
+        self.control_corr = 0
+        for control_tile in control_tiles:
+            _, _, corr, _ = self.fft_align_tile(control_tile)
+            if corr > self.control_corr:
+                self.control_corr = corr
 
         self.hitting_tiles = []
-        self.image_data.set_single_fft((0, 0), padding=self.fq_im_scaled_dims)
-        _, _, self.control_corr, _ = self.fft_align_tile(control_tile)
         for tile in possible_tiles:
             tile_key, _, max_corr, align_tr = self.fft_align_tile(tile)
             if max_corr > snr_thresh * self.control_corr:
