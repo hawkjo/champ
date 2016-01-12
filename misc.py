@@ -221,3 +221,15 @@ def unfold_radial_symmetry(folded, with_max=False):
     else:
         assert len(folded) == 0, folded
         return x
+
+
+def read_names_and_points_given_rcs_fpath(rcs_fpath):
+    """
+    Return the read names and (r, c) point locations of points in implied image.
+    """
+    read_names, points = [], []
+    for line in open(rcs_fpath):
+        var = line.strip().split()
+        read_names.append(var[0])
+        points.append(map(float, var[1:]))
+    return read_names, np.array(points)
