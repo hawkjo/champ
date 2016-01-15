@@ -2,22 +2,16 @@ import os
 
 
 class SEConfig(object):
-    def __init__(self, directory):
-        self._directory = directory.rstrip(os.path.sep)
-
     def __enter__(self):
         self._create_config_files()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._delete_config_files()
 
-    def _full_path_to(self, filename):
-        return os.path.sep.join((self._directory, filename))
-
     def _delete_config_files(self):
         for filename in ('default.sex', 'spot.param', 'default.conv'):
             try:
-                os.unlink(self._full_path_to(filename))
+                os.unlink(filename)
             except OSError:
                 pass
 
@@ -26,7 +20,7 @@ class SEConfig(object):
 DEBLEND_NTHRESH 64
 DEBLEND_MINCONT 0.00005
 """
-        with open(self._full_path_to('default.sex'), 'w+') as f:
+        with open('default.sex', 'w+') as f:
             f.write(default_text)
 
         spot_text = """X_IMAGE
@@ -38,7 +32,7 @@ A_IMAGE
 B_IMAGE
 THETA_IMAGE
 """
-        with open(self._full_path_to('spot.param'), 'w+') as f:
+        with open('spot.param', 'w+') as f:
             f.write(spot_text)
 
         convolution_text = """CONV NORM
@@ -46,5 +40,5 @@ THETA_IMAGE
 2 4 2
 1 2 1
 """
-        with open(self._full_path_to('default.conv'), 'w+') as f:
+        with open('default.conv', 'w+') as f:
             f.write(convolution_text)

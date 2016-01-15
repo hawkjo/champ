@@ -19,24 +19,33 @@ Goal:
   Be able to run a command like "chimp preprocess" in the directory with the ND2 and NGS files and it does everything.
 
 """
-from preprocess import images
-from preprocess.xyz import XYZFile
+import images
+from xyz import XYZFile
 from nd2reader import Nd2
 import os
 import subprocess
 from source_extractor import SEConfig
-
+import time
+from pathos.multiprocessing import ProcessPool
 if __name__ == "__main__":
     for nd2_filename in images.get_nd2_filenames():
-        with SEConfig(nd2_filename) as sec:
+        with SEConfig() as sec:
             nd2 = Nd2(nd2_filename + ".nd2")
             images.make_image_data_directory(nd2_filename)
             os.chdir(nd2_filename)
+            indexes = []
             for n, image in enumerate(nd2):
                 xyz_file = XYZFile(image)
                 with open("%s.xyz" % n, "w+") as f:
                     f.write(str(xyz_file))
-                subprocess.call(['fitsify', '%s.xyz' % n, '%s.fits' % n, '1', '2', '3'])
+                    indexes.append(n)
+
+            p = ProcessPool(nodes=4)
+            results = p.amap(subprocess.call, [['fitsify', '%s.xyz' % n, '%s.fits' % n, '1', '2', '3'] for n in indexes])
+            while not results.ready():
+                time.sleep(2)
+                print(time.time())
+            print("DONE")
             os.chdir('..')
 
 """
