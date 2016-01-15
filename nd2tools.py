@@ -1,4 +1,3 @@
-import sys
 import os
 import copy
 import nd2reader
@@ -11,10 +10,10 @@ from misc import median_normalize
 
 def get_nd2_image_coord_info(nd2):
     try:
-        coord_info = nd2.metadata['ImageMetadata']['SLxExperiment']['uLoopPars']['Points']['']
+        coord_info = nd2._parser.raw_metadata.image_metadata['SLxExperiment']['uLoopPars']['Points']['']
     except:
         try:
-            coord_info = nd2.metadata['ImageMetadata']['SLxExperiment']['ppNextLevelEx']['']['uLoopPars']['Points']['']
+            coord_info = nd2._parser.raw_metadata.image_metadata['SLxExperiment']['ppNextLevelEx']['']['uLoopPars']['Points']['']
         except:
             raise
     xs = [pt['dPosX'] for pt in coord_info]
@@ -60,7 +59,7 @@ def plot_nd2_grid(nd2, edge, channel, idx_start=None, idx_end=None, suptitle='')
         idx_start = int(idx_start / len(nd2.channels)) * len(nd2.channels) + channel
         
     for i in range(idx_start, idx_end, len(nd2.channels)):
-        im = median_normalize(nd2[i].data)
+        im = median_normalize(nd2[i])
         im_pos_idx = int(i / len(nd2.channels)) % (nrows * ncols)
         pos_name = pos_names[im_pos_idx]
         r = nrows - 1 - rows.index(pos_name[0])
@@ -94,7 +93,7 @@ def stitch_nd2(nd2, channel, row_start=None, row_end=None, col_start=None, col_e
     used_rows = list(sorted(set(ys)))[row_start:row_end]
     used_cols = list(sorted(set(xs)))[col_start:col_end]
 
-    im_shape = nd2[0].data.shape
+    im_shape = nd2[0].shape
 
     def im_idx_given_row_col(row, col):
         return zip(ys, xs).index((row, col)) * len(nd2.channels) + channel
@@ -102,8 +101,8 @@ def stitch_nd2(nd2, channel, row_start=None, row_end=None, col_start=None, col_e
 
     def best_alignment_offset(im1_idx, im2_idx, max_overlap=100, min_overlap=3, max_lateral=60, direction='lr'):
         assert direction in ['lr', 'ud'], direction
-        im1 = median_normalize(nd2[im1_idx].data)
-        im2 = median_normalize(nd2[im2_idx].data)
+        im1 = median_normalize(nd2[im1_idx])
+        im2 = median_normalize(nd2[im2_idx])
         assert im1.shape == im2.shape == im_shape, (im1.shape, im2.shape)
         max_score, best_overlap, best_lateral = float('-inf'), None, None
         for ovr in range(min_overlap, max_overlap+1):
@@ -137,7 +136,7 @@ def stitch_nd2(nd2, channel, row_start=None, row_end=None, col_start=None, col_e
                            direction,
                            max_overlap=100,
                            min_overlap=5):
-        im = median_normalize(nd2[im_idx].data)
+        im = median_normalize(nd2[im_idx])
         assert im.shape == im_shape, im.shape
         assert (len(direction) == 2
                 and len(set(direction) & set('lr')) == 1
@@ -223,7 +222,7 @@ def stitch_nd2(nd2, channel, row_start=None, row_end=None, col_start=None, col_e
     for i, row in enumerate(used_rows):
         for j, col in enumerate(used_cols):
             im_idx = im_idx_given_row_col(row, col)
-            im = median_normalize(nd2[im_idx].data)
+            im = median_normalize(nd2[im_idx])
             r, c = positions[(row, col)]
             stch_im[r:r+im.shape[0], c:c+im.shape[1]] = im
             sign = (-1)**(i+j)

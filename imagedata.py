@@ -1,6 +1,5 @@
 import os
 import numpy as np
-from PIL import Image
 from pathos.multiprocessing import ProcessingPool
 from misc import next_power_of_2
 import tifffile
@@ -18,6 +17,7 @@ class ImageData(object):
             self.set_im_from_file(fpath, objective, median_normalize)
 
     def set_im_from_ndarray(self, im, objective, fname='<name unknown>', median_normalize=False):
+        print(type(im))
         assert isinstance(im, np.ndarray), 'Image not numpy ndarray'
         self.im = im
         self.set_objective(objective)

@@ -1,10 +1,8 @@
+import matplotlib
+matplotlib.use('agg')
 import sys
 import os
 import fastqimagecorrelator
-import matplotlib
-matplotlib.use('agg')
-import matplotlib.pyplot as plt
-from pathos.multiprocessing import ProcessingPool
 import local_config
 
 

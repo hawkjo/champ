@@ -3,8 +3,6 @@ matplotlib.use('agg')
 import sys
 import os
 import fastqimagecorrelator
-import matplotlib.pyplot as plt
-from pathos.multiprocessing import ProcessingPool
 import local_config
 import nd2reader
 import nd2tools
@@ -89,7 +87,7 @@ def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
     tile_data=local_config.fastq_tiles_given_read_name_fpath(aligning_read_names_fpath)
     fic.load_reads(tile_data)
-    fic.set_image_data(im=nd2[im_idx].data, objective=objective, fpath=str(im_idx), median_normalize=True)
+    fic.set_image_data(im=nd2[im_idx], objective=objective, fpath=str(im_idx), median_normalize=True)
     fic.set_sexcat_from_file(sexcat_fpath)
     fic.align(possible_tile_keys, rotation_est, fq_w_est, snr_thresh=snr_thresh, min_hits=min_hits, hit_type=['exclusive', 'good_mutual'])
     print project_name, bname, im_idx, ','.join(tile.key for tile in fic.hitting_tiles)
@@ -113,3 +111,4 @@ if __name__ == '__main__':
     if len(sys.argv) != len(fmt.split()):
         sys.exit('Usage: ' + fmt)
     process_fig(*sys.argv[1:])
+    print("donezo!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")

@@ -30,6 +30,7 @@ tr '\t' '\n' < $base.txt | awk '{printf "%3d %3d %5d\n", (NR-1)%512, int((NR-1)/
 # Convert to a fits file
 fitsify $base.xyz $base.fits 1 2 3
 
+echo "****** create config files"
 # Create a sextractor default configuration file?  Nah, use specialized.
 # sextractor -d > default.sex
 # Changed my mind.
@@ -61,9 +62,11 @@ CONV NORM
 1 2 1
 EOF
 
+echo "****** running sextractor"
 # Run sextractor
 sextractor $base.fits -PARAMETERS_NAME spot.param -CATALOG_NAME $base.cat -CHECKIMAGE_TYPE OBJECTS -CHECKIMAGE_NAME $base.model
 
+echo "****** clean up"
 # Clean up
 if [[ $CLEAN -gt 0 ]] ; then
   rm $base.xyz default.conv spot.param default.sex
