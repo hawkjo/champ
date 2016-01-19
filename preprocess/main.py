@@ -27,26 +27,42 @@ import subprocess
 from source_extractor import SEConfig
 import time
 from pathos.multiprocessing import ProcessPool
-if __name__ == "__main__":
-    for nd2_filename in images.get_nd2_filenames():
-        with SEConfig() as sec:
-            nd2 = Nd2(nd2_filename + ".nd2")
-            images.make_image_data_directory(nd2_filename)
-            os.chdir(nd2_filename)
-            indexes = []
-            for n, image in enumerate(nd2):
-                xyz_file = XYZFile(image)
-                with open("%s.xyz" % n, "w+") as f:
-                    f.write(str(xyz_file))
-                    indexes.append(n)
+import logging
+import multiprocessing
 
-            p = ProcessPool(nodes=4)
-            results = p.amap(subprocess.call, [['fitsify', '%s.xyz' % n, '%s.fits' % n, '1', '2', '3'] for n in indexes])
-            while not results.ready():
-                time.sleep(2)
-                print(time.time())
-            print("DONE")
-            os.chdir('..')
+log = logging.getLogger()
+log.addHandler(logging.StreamHandler())
+log.setLevel(logging.DEBUG)
+
+
+def create_fits_files(nd2_filename):
+    log.info("Creating fits files for %s..." % nd2_filename)
+    nd2 = Nd2(nd2_filename + ".nd2")
+    images.make_image_data_directory(nd2_filename)
+    indexes = []
+    for n, image in enumerate(nd2):
+        xyz_file = XYZFile(image)
+        with open("%s%s%s.xyz" % (nd2_filename, os.path.sep, n), "w+") as f:
+            f.write(str(xyz_file))
+            indexes.append(n)
+    for n in indexes:
+        subprocess.call(['fitsify', '%s%s%s.xyz' % (nd2_filename, os.path.sep, n), '%s%s%s.fits' % (nd2_filename, os.path.sep, n), '1', '2', '3'])
+    log.info("Done creating fits files for %s" % nd2_filename)
+
+
+if __name__ == "__main__":
+    filenames = [nd2_filename for nd2_filename in images.get_nd2_filenames()]
+    filecount = len(filenames)
+    cores = multiprocessing.cpu_count()
+    p = ProcessPool(nodes=min(filecount, cores))
+    results = p.amap(create_fits_files, filenames)
+    while not results.ready():
+        time.sleep(3)
+        log.debug(time.time())
+    log.info("Done with all fits file conversions")
+    with SEConfig():
+        log.info("Starting Source Extractor...")
+    log.info("Done with Source Extractor!")
 
 """
 Now do:
