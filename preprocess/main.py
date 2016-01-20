@@ -50,39 +50,44 @@ def create_fits_files(nd2_filename):
     log.info("Done creating fits files for %s" % nd2_filename)
 
 
+def base_files(nd2_filename):
+    return ["%s%s%s" % (nd2_filename, os.path.sep, os.path.splitext(filename)[0]) for filename in os.listdir(nd2_filename) if filename.endswith(".xyz")]
+
+
+def source_extract(base_file):
+    command = 'sextractor {base_file}.fits -PARAMETERS_NAME spot.param -CATALOG_NAME {base_file}.cat -CHECKIMAGE_TYPE OBJECTS -CHECKIMAGE_NAME {base_file}.model'
+    # Don't print any output
+    with open('/dev/null', 'w') as devnull:
+        command = command.format(base_file=base_file).split(' ')
+        subprocess.call(command, stdout=devnull, stderr=devnull)
+
+
 if __name__ == "__main__":
     filenames = [nd2_filename for nd2_filename in images.get_nd2_filenames()]
-    filecount = len(filenames)
-    cores = multiprocessing.cpu_count()
-    p = ProcessPool(nodes=min(filecount, cores))
-    results = p.amap(create_fits_files, filenames)
+    # Try to use one core per file, but top out at the number of cores that the machine has. This hasn't been proven to be optimal.
+    thread_count = min(len(filenames), multiprocessing.cpu_count())
+
+    # Assign each ND2 file to a thread, which converts it to a "fits" file
+    worker_pool = ProcessPool()
+    results = worker_pool.amap(create_fits_files, filenames)
+
+    # Wait for the work to be finished and track how long it takes
+    log.info("Starting fits file conversions.")
+    start = time.time()
     while not results.ready():
-        time.sleep(3)
-        log.debug(time.time())
-    log.info("Done with all fits file conversions")
+        time.sleep(1)
+    log.info("Done with fits file conversions. Elapsed time: %s seconds" % round(time.time() - start, 0))
+
+    # Now run source extractor (astronomy software) to do...something
     with SEConfig():
         log.info("Starting Source Extractor...")
-    log.info("Done with Source Extractor!")
+        start = time.time()
 
-"""
-Now do:
+        # Set up a worker for each ND2 file like before
+        worker_pool = ProcessPool(thread_count)
+        results = worker_pool.amap(source_extract, [base_file for nd2_filename in filenames for base_file in base_files(nd2_filename)])
 
-# Run sextractor
-sextractor $base.fits -PARAMETERS_NAME spot.param -CATALOG_NAME $base.cat -CHECKIMAGE_TYPE OBJECTS -CHECKIMAGE_NAME $base.model
-
-echo "****** clean up"
-# Clean up
-if [[ $CLEAN -gt 0 ]] ; then
-  rm $base.xyz default.conv spot.param default.sex
-fi
-
-if [[ $CLEAN -gt 1 ]] ; then
-  rm $base.model
-fi
-
-if [[ $CLEAN -gt 2 ]] ; then
-  rm $base.fits
-fi
-
-exit 0
-"""
+        # Wait for the work to be done
+        while not results.ready():
+            time.sleep(3)
+    log.info("Done with Source Extractor! Took %s seconds" % round(time.time() - start, 0))
