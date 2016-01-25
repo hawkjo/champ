@@ -89,5 +89,5 @@ if __name__ == "__main__":
 
         # Wait for the work to be done
         while not results.ready():
-            time.sleep(3)
+            time.sleep(1)
     log.info("Done with Source Extractor! Took %s seconds" % round(time.time() - start, 0))
