@@ -14,4 +14,4 @@ class XYZFileTests(unittest.TestCase):
 1 1 5
 2 1 6
 """
-        self.assertEqual(str(f), expected)
+        self.assertEqual(str(f).strip(), expected.strip())
