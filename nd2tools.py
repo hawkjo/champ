@@ -275,11 +275,13 @@ def bname_given_fpath(fpath):
 
 if __name__ == '__main__':
     import sys
-    usage = """%s <func> [args]
+    usage = """Usage: %s <func> [args]
 
 func/arg options:
     plot_nd2_grid <fpath> <channel> <out_dir> [im_start] [im_end]
     """ % sys.argv[0]
+    if len(sys.argv) < 2:
+        sys.exit(usage)
     func = sys.argv[1]
     if func == 'plot_nd2_grid':
         if len(sys.argv) < 5:
@@ -295,11 +297,17 @@ func/arg options:
             im_end = None
         fname = os.path.basename(fpath)
         bname = os.path.splitext(fname)[0]
-        out_fname = bname + '.jpg'
+        out_bname = '%s_channel_%d' % (bname, channel)
+        if im_start:
+            out_bname += '_im_start_%d' % im_start
+        if im_end:
+            out_bname += '_im_end_%d' % im_end
+        out_fpath = os.path.join(out_dir, out_bname + '.jpg')
+
         nd2 = nd2reader.Nd2(fpath)
         nrows, ncols = nrows_and_ncols(nd2)
-        print fname, channel, out_dir
+        print fname, channel, out_fpath
         print '%d x %d grid' % (nrows, ncols)
         mn, mx, fig = plot_nd2_grid(nd2, 4, channel, idx_start=im_start, idx_end=im_end, suptitle=fname)
         print 'Min/Max:', mn, mx
-        fig.savefig(os.path.join(out_dir, out_fname))
+        fig.savefig(out_fpath)
