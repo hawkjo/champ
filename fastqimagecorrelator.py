@@ -210,9 +210,11 @@ class FastqImageCorrelator(object):
         self.sexcat = sextraction.Sextraction(fpath)
 
     def find_hitting_tiles(self, possible_tile_keys, snr_thresh=1.2):
-        possible_tiles = [self.fastq_tiles[key] for key in possible_tile_keys]
+        possible_tiles = [self.fastq_tiles[key] for key in possible_tile_keys
+                          if key in self.fastq_tiles]
         impossible_tiles = [tile for tile in self.fastq_tiles.values() if tile not in possible_tiles]
-        control_tiles = random.sample(impossible_tiles, 3)
+        impossible_tiles.sort(key=lambda tile: -len(tile.read_names))
+        control_tiles = impossible_tiles[:2]
 
         self.image_data.set_single_fft((0, 0), padding=self.fq_im_scaled_dims)
         self.control_corr = 0
