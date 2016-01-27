@@ -3,50 +3,60 @@ matplotlib.use('agg')
 import sys
 import os
 import fastqimagealigner
-from pathos.multiprocessing import ProcessingPool
 import local_config
 import nd2reader
 
 
+class AlignmentParameters(object):
+    def __init__(self, lines):
+        self._data = {}
+        for line in map(str.strip, lines):
+            if not line:
+                continue
+            name, value = line.split()
+            self._data[name] = value
+
+        self._min_hits = self._data.get('min_hits', 15)
+        self._strategy = self._data.get('strategy', 'slow')
+        assert self._strategy in ['fast', 'slow'], 'Invalid alignment strategy: {strategy}'.format(strategy=self._strategy)
+
+    @property
+    def project_name(self):
+        return self._data['project_name']
+
+    @property
+    def aligning_read_names_fpath(self):
+        return self._data['aligning_read_names_fpath']
+
+    @property
+    def all_read_names_fpath(self):
+        return self._data['all_read_names_fpath']
+
+    @property
+    def objective(self):
+        return int(self._data['objective'])
+
+    @property
+    def aligned_im_idx_offset(self):
+        return int(self._data['aligned_im_idx_offset'])
+
+    @property
+    def min_hits(self):
+        return int(self._min_hits)
+
+
 def get_align_params(align_param_fpath):
-    d = {}
-    for line in open(align_param_fpath):
-        if not line.strip():
-            continue
-        name, value = line.strip().split()
-        d[name] = value
+    with open(align_param_fpath) as lines:
+        return AlignmentParameters(lines)
 
-    try:
-        strategy = d['strategy']
-    except:
-        strategy = 'slow'
-    assert strategy in ['fast', 'slow'], strategy
-
-    try:
-        min_hits = int(d['min_hits'])
-    except:
-        min_hits = 15
-
-    return (d['project_name'],
-            d['aligning_read_names_fpath'],
-            d['all_read_names_fpath'],
-            int(d['objective']),
-            int(d['aligned_im_idx_offset']),
-            min_hits
-           )
-
-
-def tile_keys_given_nums(tile_nums):
-    return ['lane1tile{0}'.format(tile_num) for tile_num in tile_nums]
 
 
 def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     im_idx = int(im_idx)
-    project_name, aligning_read_names_fpath, all_read_names_fpath, objective, \
-            aligned_im_idx_offset, min_hits = get_align_params(align_param_fpath)
+    alignment_parameters = get_align_params(align_param_fpath)
     nd2 = nd2reader.Nd2(nd2_fpath)
     bname = os.path.splitext(os.path.basename(nd2_fpath))[0]
-    aligned_im_idx = im_idx + aligned_im_idx_offset
+    aligned_im_idx = im_idx + alignment_parameters.aligned_im_idx_offset
     sexcat_fpath = os.path.join(os.path.splitext(nd2_fpath)[0], '%d.cat' % im_idx)
 
     fig_dir = os.path.join(local_config.fig_dir, align_run_name, bname)
@@ -55,16 +65,16 @@ def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
         if not os.path.exists(d):
             os.makedirs(d)
 
-    fic = fastqimagealigner.FastqImageAligner(project_name, file_structure)
-    tile_data=local_config.fastq_tiles_given_read_name_fpath(aligning_read_names_fpath)
+    fic = fastqimagealigner.FastqImageAligner(alignment_parameters.project_name, file_structure)
+    tile_data=local_config.fastq_tiles_given_read_name_fpath(alignment_parameters.aligning_read_names_fpath)
     fic.load_reads(tile_data)
-    fic.set_image_data(im=nd2[im_idx].data, objective=objective, fpath=str(im_idx), median_normalize=True)
+    fic.set_image_data(im=nd2[im_idx].data, objective=alignment_parameters.objective, fpath=str(im_idx), median_normalize=True)
     fic.set_sexcat_from_file(sexcat_fpath)
 
     stats_fpath = os.path.join(results_dir, '{}_stats.txt'.format(aligned_im_idx))
     fic.alignment_from_alignment_file(stats_fpath)
-    fic.precision_align_only(min_hits=min_hits)
-    print project_name, bname, im_idx, ','.join(tile.key for tile in fic.hitting_tiles)
+    fic.precision_align_only(min_hits=alignment_parameters.min_hits)
+    print alignment_parameters.project_name, bname, im_idx, ','.join(tile.key for tile in fic.hitting_tiles)
     
     intensity_fpath = os.path.join(results_dir, '{}_intensities.txt'.format(im_idx))
     stats_fpath = os.path.join(results_dir, '{}_stats.txt'.format(im_idx))
@@ -77,8 +87,8 @@ def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     ax = fic.plot_hit_hists()
     ax.figure.savefig(os.path.join(fig_dir, '{}_hit_hists.pdf'.format(im_idx)))
 
-    all_fic = fastqimagealigner.FastqImageAligner(project_name)
-    tile_data = local_config.fastq_tiles_given_read_name_fpath(all_read_names_fpath)
+    all_fic = fastqimagealigner.FastqImageAligner(alignment_parameters.project_name, file_structure)
+    tile_data = local_config.fastq_tiles_given_read_name_fpath(alignment_parameters.all_read_names_fpath)
     all_fic.all_reads_fic_from_aligned_fic(fic, tile_data)
     all_read_rcs_fpath = os.path.join(results_dir, '{}_all_read_rcs.txt'.format(im_idx))
     all_fic.write_read_names_rcs(all_read_rcs_fpath)
