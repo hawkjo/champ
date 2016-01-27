@@ -67,13 +67,13 @@ def extract_bright_spots(im_idx):
     rotation_est = -0.5 - 180
     fq_w_est = 935
     
-    fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
+    fic = fastqimagecorrelator.FastqImageAligner(project_name)
     fic.load_phiX()
     fic.set_image_data(before_tif_fpath, 60, median_normalize=True)
     fic.set_sexcat_from_file(sexcat_fpath)
     fic.align(possible_tile_keys, rotation_est, fq_w_est=fq_w_est, snr_thresh=1.2)
     
-    all_fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
+    all_fic = fastqimagecorrelator.FastqImageAligner(project_name)
     all_fic.all_reads_fic_from_aligned_fic(fic)
     
     thresh = 1.5

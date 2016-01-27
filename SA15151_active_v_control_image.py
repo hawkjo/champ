@@ -52,7 +52,7 @@ def process_image(nd2_fpath, im_idx):
     #----------------------------------------------------------------------
     # Align
     #----------------------------------------------------------------------
-    fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
+    fic = fastqimagecorrelator.FastqImageAligner(project_name)
     fic.load_reads(tile_data=local_config.fastq_tiles_given_read_name_fpath(our_control_read_name_fpath))
     fic.set_image_data(im=nd2[im_idx].data, objective=60, median_normalize=True)
     fic.set_sexcat_from_file(sexcat_fpath)
@@ -62,29 +62,29 @@ def process_image(nd2_fpath, im_idx):
     #----------------------------------------------------------------------
     # Copy alignment to different sets of points and get aligned rcs
     #----------------------------------------------------------------------
-    all_fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
+    all_fic = fastqimagecorrelator.FastqImageAligner(project_name)
     all_tile_data = local_config.fastq_tiles_given_read_name_fpath(all_read_name_fpath)
     all_fic.all_reads_fic_from_aligned_fic(fic, tile_data=all_tile_data)
     all_aligned_rcs = all_fic.hitting_tiles[0].aligned_rcs
 
-    our_control_fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
+    our_control_fic = fastqimagecorrelator.FastqImageAligner(project_name)
     our_control_tile_data = local_config.fastq_tiles_given_read_name_fpath(our_control_read_name_fpath)
     our_control_fic.all_reads_fic_from_aligned_fic(fic, tile_data=our_control_tile_data)
     our_control_aligned_rcs = our_control_fic.hitting_tiles[0].aligned_rcs
 
-    our_active_fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
+    our_active_fic = fastqimagecorrelator.FastqImageAligner(project_name)
     our_active_tile_data = local_config.fastq_tiles_given_read_name_fpath(our_active_read_name_fpath)
     our_active_fic.all_reads_fic_from_aligned_fic(fic, tile_data=our_active_tile_data)
     our_active_aligned_rcs = our_active_fic.hitting_tiles[0].aligned_rcs
 
-    perfect_control_fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
+    perfect_control_fic = fastqimagecorrelator.FastqImageAligner(project_name)
     perfect_control_tile_data = local_config.fastq_tiles_given_read_name_fpath(
         anywhere_perfect_control_read_name_fpath
     )
     perfect_control_fic.all_reads_fic_from_aligned_fic(fic, tile_data=perfect_control_tile_data)
     perfect_control_aligned_rcs = perfect_control_fic.hitting_tiles[0].aligned_rcs
 
-    perfect_active_fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
+    perfect_active_fic = fastqimagecorrelator.FastqImageAligner(project_name)
     perfect_active_tile_data = local_config.fastq_tiles_given_read_name_fpath(perfect_active_read_name_fpath)
     perfect_active_fic.all_reads_fic_from_aligned_fic(fic, tile_data=perfect_active_tile_data)
     perfect_active_aligned_rcs = perfect_active_fic.hitting_tiles[0].aligned_rcs

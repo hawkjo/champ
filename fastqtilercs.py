@@ -2,7 +2,6 @@ from copy import deepcopy
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
-from scipy.optimize import minimize
 import imreg
 import misc 
 
@@ -53,7 +52,7 @@ class FastqTileRCs(object):
                 self.align_scale = scale
                 self.align_rot = rot
                 self.align_tr = tr
-        print self.key, score, scale, rot, tr
+        print(self.key, score, scale, rot, tr)
 
     def fft_align_with_im(self, image_data):
         im_data_im_shapes = set(a.shape for a in image_data.all_ffts.values())
@@ -78,7 +77,6 @@ class FastqTileRCs(object):
                 self.best_im_key = im_key
                 self.best_max_corr = max_corr
                 self.align_tr = np.array(max_idx) - fq_image.shape
-        #print 'Result:', self.key, self.best_im_key, self.best_max_corr, self.align_tr
         return self.key, self.best_im_key, self.best_max_corr, self.align_tr
 
     def get_new_aligned_rcs(self, new_fq_w=None, new_degree_rot=0, new_tr=(0, 0)):
@@ -110,8 +108,6 @@ class FastqTileRCs(object):
 
         # First update w since it depends on previous scale setting
         self.w = lbda * float(self.w) / self.scale
-        #self.w = (self.rcs[:, 0].max() - self.rcs[:, 0].min()) * lbda
-
         self.scale = lbda
         self.rotation = theta
         self.rotation_degrees = theta * 180.0 / np.pi

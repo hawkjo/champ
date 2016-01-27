@@ -6,6 +6,7 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from misc import median_normalize
+import sys
 
 
 def get_nd2_image_coord_info(nd2):
@@ -97,7 +98,6 @@ def stitch_nd2(nd2, channel, row_start=None, row_end=None, col_start=None, col_e
 
     def im_idx_given_row_col(row, col):
         return zip(ys, xs).index((row, col)) * len(nd2.channels) + channel
-        #return pos_names.index(row + col) * len(nd2.channels) + channel
 
     def best_alignment_offset(im1_idx, im2_idx, max_overlap=100, min_overlap=3, max_lateral=60, direction='lr'):
         assert direction in ['lr', 'ud'], direction
@@ -207,7 +207,6 @@ def stitch_nd2(nd2, channel, row_start=None, row_end=None, col_start=None, col_e
                     curr_pos = best_alignment_pos(nascent_im, im_idx, curr_pos, direction='rd')
                 r, c = curr_pos
                 positions[(row, col)] = copy.deepcopy(curr_pos)
-    
 
     minr = min(pos[0] for pos in positions.values())
     minc = min(pos[1] for pos in positions.values())
@@ -273,7 +272,6 @@ def bname_given_fpath(fpath):
 
 
 if __name__ == '__main__':
-    import sys
     usage = """%s <func> [args]
 
 func/arg options:
@@ -297,8 +295,8 @@ func/arg options:
         out_fname = bname + '.jpg'
         nd2 = nd2reader.Nd2(fpath)
         nrows, ncols = nrows_and_ncols(nd2)
-        print fname, channel, out_dir
-        print '%d x %d grid' % (nrows, ncols)
+        print(fname, channel, out_dir)
+        print('%d x %d grid' % (nrows, ncols))
         mn, mx, fig = plot_nd2_grid(nd2, 4, channel, idx_start=im_start, idx_end=im_end, suptitle=fname)
-        print 'Min/Max:', mn, mx
+        print('Min/Max:', mn, mx)
         fig.savefig(os.path.join(out_dir, out_fname))

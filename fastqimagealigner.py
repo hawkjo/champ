@@ -16,9 +16,9 @@ from fastqtilercs import FastqTileRCs
 from misc import pad_to_size, max_2d_idx, AlignmentStats
 
 
-class FastqImageCorrelator(object):
+class FastqImageAligner(object):
     """A class to find the alignment of fastq data and image data."""
-    def __init__(self, project_name):
+    def __init__(self, project_name, file_structure):
         self.project_name = project_name
         self.fastq_tiles = {}
         self.fastq_tiles_list = []
@@ -157,7 +157,6 @@ class FastqImageCorrelator(object):
                 best_im_key = im_key
                 best_max_corr = max_corr
                 align_tr = np.array(max_idx) - fq_image.shape
-        #print 'Result:', tile.key, best_im_key, best_max_corr, align_tr
         return tile.key, best_im_key, best_max_corr, align_tr
 
     def fft_align(self, processors, recalc_fft=True, verbose=True):
@@ -198,8 +197,6 @@ class FastqImageCorrelator(object):
         fq_im = ndimage.filters.gaussian_filter(fq_im, 3)
         fq_im[fq_im < 0.01] = None
         plt.matshow(fq_im, cmap=plt.get_cmap('Reds'), alpha=0.5, label='Fastq')
-        #aligned_rcs = self.fastq_tiles[fq_key].aligned_rcs()
-        #ax.plot(aligned_rcs[:, 0], aligned_rcs[:, 1], 'r.', alpha=0.5)
         plt.axis(v)
 
     def set_sexcat(self, sexcat):
@@ -681,4 +678,3 @@ class FastqImageCorrelator(object):
                 for read_name, pt in izip(tile.read_names, tile.aligned_rcs):
                     if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
                         out.write('%s\t%f\t%f\n' % (read_name, pt[0], pt[1]))
-

@@ -27,8 +27,8 @@ def make_restriction_site_position_finder(rest_site, exist_paired, assumed_gap_s
 
     def SE_restriction_sites(reads_dict):
         assert set(1) <= set(reads_dict.keys()), reads_dict.keys()
-        if 1 in read_dict:
-            return [m.start() for m in rest_re.finditer(a_pre_r1 + read_dict[1])]
+        if 1 in reads_dict:
+            return [m.start() for m in rest_re.finditer(a_pre_r1 + reads_dict[1])]
         else:
             return []
 
@@ -60,12 +60,12 @@ def make_restriction_site_position_finder(rest_site, exist_paired, assumed_gap_s
     else:
         return SE_restriction_sites
 
+
 def find_restriction_sites(project_name, rest_name, rest_site):
     fq_dir = os.path.join(local_config.fourier_data_dir, project_name, 'all_fastqs')
-
-    #--------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------
     # Gather all read (pairs)
-    #--------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------
     print 'Loading reads'
     read_pairs = defaultdict(dict)
     exist_paired = False
@@ -84,11 +84,10 @@ def find_restriction_sites(project_name, rest_name, rest_site):
             assert read_idx not in read_pairs[rec.id], rec.description
             read_pairs[rec.id][read_idx] = str(rec.seq)
 
-
-    #--------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------
     # Find restriction sites
-    #--------------------------------------------------------------------------------
-    print 'Finding restriction sites'
+    # --------------------------------------------------------------------------------
+    print('Finding restriction sites')
     restriction_site_positions = make_restriction_site_position_finder(rest_site, exist_paired)
     out_fpath = os.path.join(fq_dir, rest_name + '_restriction_sites.txt')
     with open(out_fpath, 'w') as out:
@@ -199,7 +198,4 @@ if __name__ == '__main__':
     project_name = sys.argv[1]
     rest_name = sys.argv[2]
     rest_site = sys.argv[3].upper()
-
-    #find_restriction_sites(project_name, rest_name, rest_site) 
-    #count_restriction_sites(project_name, rest_name, rest_site, 10000)
     count_restriction_sites(project_name, rest_name, rest_site)

@@ -20,9 +20,6 @@ class Sextraction(object):
             if line.startswith('#'):
                 continue
             self.points.append(SextractorPoint(line))
-        self.build_point_rcs()
-
-    def build_point_rcs(self):
         self.point_rcs = np.array([(pt.r, pt.c) for pt in self.points])
 
     def rs(self):
@@ -30,19 +27,12 @@ class Sextraction(object):
 
     def cs(self):
         return np.array([pt.c for pt in self.points])
-            
-    def plot_points(self, ax=None, alpha=1.0):
-        if ax is None:
-            fig, ax = plt.subplots()
-        ax.plot(self.cs(), self.rs(), 'r.', alpha=alpha)
 
-    def plot_ellipses(self, ax=None, alpha=1.0, color=(1,0,0)):
+    def plot_ellipses(self, ax=None, alpha=1.0, color=(1, 0, 0)):
         if ax is None:
             fig, ax = plt.subplots()
-        ells = [Ellipse(xy=(pt.c, pt.r), width=pt.width, height=pt.height, angle=pt.theta) for pt
-                in self.points]
+        ells = [Ellipse(xy=(pt.c, pt.r), width=pt.width, height=pt.height, angle=pt.theta) for pt in self.points]
         for e in ells:
             ax.add_artist(e)
             e.set_alpha(alpha)
             e.set_facecolor(color)
-

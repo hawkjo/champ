@@ -38,14 +38,13 @@ def signal_hist_and_func(im, plot_title='', verbose=True, plot_curves=True):
     if verbose:
         print 'delta_x:', delta_x
 
-    num_ext_points = 10
     extended_x = np.r_[[min(0, 1.1*hx[0])], hx, 1.1*hx[-1]]
     extended_ratio = np.r_[[0], ratio, [1]]
 
     ratio_f_interp = interp1d(extended_x, extended_ratio, kind='cubic')
 
     if plot_curves:
-        fig = plt.figure(figsize=(10,10))
+        plt.figure(figsize=(10, 10))
         plt.plot(hx, hy, label='Data')
         plt.plot(hx, gy, label='Noise')
         plt.plot(hx, sig_y, label='Signal')
@@ -56,5 +55,3 @@ def signal_hist_and_func(im, plot_title='', verbose=True, plot_curves=True):
             plt.title(plot_title)
 
     return ratio_f_interp
-
-

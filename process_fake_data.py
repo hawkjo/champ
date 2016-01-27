@@ -23,7 +23,7 @@ def process_fig(align_run_name, im_fpath):
     fq_w_est = 936.0
     possible_tile_keys = ['lane1tile2108']
     
-    fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
+    fic = fastqimagecorrelator.FastqImageAligner(project_name)
     tile_data=local_config.fastq_tiles_given_read_name_fpath(aligning_read_names_fpath)
     fic.load_reads(tile_data)
     im = tifffile.imread(im_fpath)
@@ -49,7 +49,7 @@ def process_fig(align_run_name, im_fpath):
     fic.output_intensity_results(intensity_fpath)
     fic.write_alignment_stats(stats_fpath)
 
-    all_fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
+    all_fic = fastqimagecorrelator.FastqImageAligner(project_name)
     tile_data = local_config.fastq_tiles_given_read_name_fpath(all_read_names_fpath)
     all_fic.all_reads_fic_from_aligned_fic(fic, tile_data)
     all_read_rcs_fpath = os.path.join(results_dir, '{}_all_read_rcs.txt'.format(bname))

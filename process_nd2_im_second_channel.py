@@ -58,7 +58,7 @@ def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
         if not os.path.exists(d):
             os.makedirs(d)
 
-    fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
+    fic = fastqimagecorrelator.FastqImageAligner(project_name)
     tile_data=local_config.fastq_tiles_given_read_name_fpath(aligning_read_names_fpath)
     fic.load_reads(tile_data)
     fic.set_image_data(im=nd2[im_idx].data, objective=objective, fpath=str(im_idx), median_normalize=True)
@@ -80,7 +80,7 @@ def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     ax = fic.plot_hit_hists()
     ax.figure.savefig(os.path.join(fig_dir, '{}_hit_hists.pdf'.format(im_idx)))
 
-    all_fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
+    all_fic = fastqimagecorrelator.FastqImageAligner(project_name)
     tile_data = local_config.fastq_tiles_given_read_name_fpath(all_read_names_fpath)
     all_fic.all_reads_fic_from_aligned_fic(fic, tile_data)
     all_read_rcs_fpath = os.path.join(results_dir, '{}_all_read_rcs.txt'.format(im_idx))

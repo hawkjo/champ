@@ -87,6 +87,7 @@ import math
 
 import numpy
 from numpy.fft import fft2, ifft2, fftshift
+from matplotlib import pyplot as plt
 
 try:
     import scipy.ndimage.interpolation as ndii
@@ -265,19 +266,18 @@ def imread(fname, norm=True):
 
 def imshow(im0, im1, im2, im3=None, cmap=None, **kwargs):
     """Plot images using matplotlib."""
-    from matplotlib import pyplot
     if cmap is None:
         cmap = 'coolwarm'
     if im3 is None:
         im3 = abs(im2 - im0)
-    pyplot.subplot(221)
-    pyplot.imshow(im0, cmap, **kwargs)
-    pyplot.subplot(222)
-    pyplot.imshow(im1, cmap, **kwargs)
-    pyplot.subplot(223)
-    pyplot.imshow(im3, cmap, **kwargs)
-    pyplot.subplot(224)
-    pyplot.imshow(im2, cmap, **kwargs)
-    pyplot.show()
+    plt.subplot(221)
+    plt.imshow(im0, cmap, **kwargs)
+    plt.subplot(222)
+    plt.imshow(im1, cmap, **kwargs)
+    plt.subplot(223)
+    plt.imshow(im3, cmap, **kwargs)
+    plt.subplot(224)
+    plt.imshow(im2, cmap, **kwargs)
+    plt.show()
 
 

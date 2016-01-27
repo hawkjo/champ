@@ -6,7 +6,7 @@ import re
 
 
 def next_power_of_2(x):
-    return 1<<(int(np.ceil(x))-1).bit_length()
+    return 1 << (int(np.ceil(x)) - 1).bit_length()
 
 
 def max_2d_idx(a):
@@ -21,7 +21,7 @@ def pad_to_size(M, size):
 
 def right_rotation_matrix(angle, degrees=True):
     if degrees:
-        angle *= np.pi/180.0
+        angle *= np.pi / 180.0
     sina = np.sin(angle)
     cosa = np.cos(angle)
     return np.array([[cosa, sina],
@@ -34,7 +34,7 @@ def rcs_given_read_names(read_names):
 
 def median_normalize(im):
     med = np.median(im)
-    im = im / float(med)
+    im /= float(med)
     im -= 1
     return im
 
@@ -55,6 +55,7 @@ def strisfloat(x):
         return False
     else:
         return True
+
 
 def strisint(x):
     try:
@@ -177,10 +178,10 @@ def unfold_radial_symmetry(folded, with_max=False):
         folded = list(folded.flatten())
 
     # The following determines the value of m as defined above
-    m = (-1.5 + np.sqrt(1.5**2 - 4 * 0.5 * (1-len(folded))))  # / (2 * 0.5)
+    m = (-1.5 + np.sqrt(1.5**2 - 4 * 0.5 * (1 - len(folded))))
     assert m == int(m), len(folded)
     m = int(m)
-    slen = 2*m + 1
+    slen = 2 * m + 1
     x = np.empty((slen, slen))
 
     # Center
@@ -204,7 +205,7 @@ def unfold_radial_symmetry(folded, with_max=False):
 
     # Others
     for i in range(2, m+1):   # L_infty from c
-        for j in range(1, i): # L_1 from s
+        for j in range(1, i):  # L_1 from s
             val = folded.pop(0) / 8.0
             x[m-i, m-j] = val
             x[m-i, m+j] = val

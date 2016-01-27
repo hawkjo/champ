@@ -2,12 +2,11 @@ import matplotlib
 matplotlib.use('agg')
 import sys
 import os
-import fastqimagecorrelator
+import fastqimagealigner
 import local_config
 
 
 def get_align_params(align_param_fpath):
-    #d = {name: value for line in open(align_param_fpath) for name, value in line.strip().split()}
     d = {}
     for line in open(align_param_fpath):
         name, value = line.strip().split()
@@ -30,12 +29,12 @@ def process_fig(align_run_name, align_param_fpath, im_fpath):
     bname = os.path.splitext(os.path.basename(im_fpath))[0]
     sexcat_fpath = im_fpath.replace('.tif', '.cat')
     
-    fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
+    fic = fastqimagealigner.FastqImageAligner(project_name)
     fic.load_phiX()
     fic.set_image_data(im_fpath, objective, median_normalize=True)
     fic.set_sexcat_from_file(sexcat_fpath)
     fic.align(possible_tile_keys, rotation_est, fq_w_est)
-    print project_name, bname, ','.join(tile.key for tile in fic.hitting_tiles)
+    print(project_name, bname, ','.join(tile.key for tile in fic.hitting_tiles))
     
     fig_dir = os.path.join(local_config.fig_dir, align_run_name)
     if not os.path.exists(fig_dir):
@@ -56,7 +55,7 @@ def process_fig(align_run_name, align_param_fpath, im_fpath):
     fic.output_intensity_results(intensity_fpath)
     fic.write_alignment_stats(stats_fpath)
 
-    all_fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
+    all_fic = fastqimagealigner.FastqImageAligner(project_name)
     all_fic.all_reads_fic_from_aligned_fic(fic)
     all_read_rcs_fpath = os.path.join(results_dir, '{0}_all_read_rcs.txt'.format(bname))
     all_fic.write_read_names_rcs(all_read_rcs_fpath)

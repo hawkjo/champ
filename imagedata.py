@@ -17,7 +17,6 @@ class ImageData(object):
             self.set_im_from_file(fpath, objective, median_normalize)
 
     def set_im_from_ndarray(self, im, objective, fname='<name unknown>', median_normalize=False):
-        print(type(im))
         assert isinstance(im, np.ndarray), 'Image not numpy ndarray'
         self.im = im
         self.set_objective(objective)
@@ -48,7 +47,7 @@ class ImageData(object):
 
     def median_normalize(self):
         med = np.median(self.im)
-        self.im = self.im / float(med)
+        self.im /= float(med)
         self.im -= 1
 
     def D4_im_given_idx(self, idx):
