@@ -14,6 +14,9 @@ from sklearn.mixture import GMM
 from imagedata import ImageData
 from fastqtilercs import FastqTileRCs
 from misc import pad_to_size, max_2d_idx, AlignmentStats
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class FastqImageAligner(object):
@@ -160,19 +163,15 @@ class FastqImageAligner(object):
         return tile.key, best_im_key, best_max_corr, align_tr
 
     def fft_align(self, processors, recalc_fft=True, verbose=True):
-        if verbose:
-            print 'Set fastq tile mappings'
+        log.debug('Set fastq tile mappings')
         self.set_fastq_tile_mappings()
-        if verbose:
-            print 'Image D4 ffts'
+        log.debug('Image D4 ffts')
         self.image_data.D4_ffts(padding=self.fq_im_scaled_dims,
                                 processors=processors,
                                 force=recalc_fft)
-        if verbose:
-            print 'Fastq images and ffts'
+        log.debug('Fastq images and ffts')
         self.set_all_fastq_image_data(verbose=True)
-        if verbose:
-            print 'Aligning'
+        log.debug('Aligning')
         self.best_corr = 0
         self.max_corrs = []
         for tile in self.fastq_tiles_list:
@@ -183,8 +182,7 @@ class FastqImageAligner(object):
                 self.best_fq_key = fq_key
                 self.best_im_key = im_key
                 self.best_align_tr = align_tr
-        if verbose:
-            print 'Best result:', self.best_corr, self.best_fq_key, self.best_im_key, self.best_align_tr
+        log.debug('Best result: %s, %s, %s, %s' % (self.best_corr, self.best_fq_key, self.best_im_key, self.best_align_tr))
 
     def show_alignment(self, fq_key, im_key, ax=None):
         if ax is None:
@@ -350,11 +348,11 @@ class FastqImageAligner(object):
         self.good_mutual_hits = good_mutual_hits
         self.exclusive_hits = exclusive_hits
 
-        print 'Non-mutual hits:', len(non_mutual_hits)
-        print 'Mutual hits:', len(mutual_hits)
-        print 'Bad mutual hits:', len(bad_mutual_hits)
-        print 'Good mutual hits:', len(good_mutual_hits)
-        print 'Exclusive hits:', len(exclusive_hits)
+        log.info('Non-mutual hits: %s' % len(non_mutual_hits))
+        log.info('Mutual hits: %s' % len(mutual_hits))
+        log.info('Bad mutual hits: %s' % len(bad_mutual_hits))
+        log.info('Good mutual hits: %s' % len(good_mutual_hits))
+        log.info('Exclusive hits: %s' % len(exclusive_hits))
 
     def least_squares_mapping(self, hit_type='exclusive', pct_thresh=0.9, min_hits=50):
         """least_squares_mapping(self, hit_type='exclusive')
@@ -440,12 +438,12 @@ class FastqImageAligner(object):
         self.set_all_fastq_image_data()
         self.rotate_all_fastq_data(rotation_est)
 
-        print 'Prep time: %.3f seconds' % (time.time() - start_time)
+        log.debug('Prep time: %.3f seconds' % (time.time() - start_time))
         start_time = time.time()
 
         self.find_hitting_tiles(possible_tile_keys, snr_thresh)
 
-        print 'Rough alignment time: %.3f seconds' % (time.time() - start_time)
+        log.debug('Rough alignment time: %.3f seconds' % (time.time() - start_time))
         start_time = time.time()
 
         if not self.hitting_tiles:
@@ -453,12 +451,12 @@ class FastqImageAligner(object):
 
         self.least_squares_mapping(hit_type, min_hits=min_hits)
 
-        print 'Precision alignment time: %.3f seconds' % (time.time() - start_time)
+        log.debug('Precision alignment time: %.3f seconds' % (time.time() - start_time))
         start_time = time.time()
 
         self.find_hits()
 
-        print 'Hit finding time: %.3f seconds' % (time.time() - start_time)
+        log.debug('Hit finding time: %.3f seconds' % (time.time() - start_time))
         
     def precision_align_only(self,
                              hit_type=['exclusive', 'good_mutual'],
@@ -470,14 +468,13 @@ class FastqImageAligner(object):
 
         self.least_squares_mapping(hit_type, min_hits=min_hits)
 
-        print 'Precision alignment time: %.3f seconds' % (time.time() - start_time)
+        log.debug('Precision alignment time: %.3f seconds' % (time.time() - start_time))
         start_time = time.time()
 
         self.find_hits()
 
-        print 'Hit finding time: %.3f seconds' % (time.time() - start_time)
+        log.debug('Hit finding time: %.3f seconds' % (time.time() - start_time))
         
-
     def gmm_thresh(self, dists):
         self.gmm = GMM(2)
         self.gmm.fit(dists)

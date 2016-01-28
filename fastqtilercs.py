@@ -1,9 +1,9 @@
 from copy import deepcopy
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.spatial import ConvexHull
+from scipy import spatial
 import imreg
-import misc 
+import misc
 
 
 class FastqTileRCs(object):
@@ -52,7 +52,6 @@ class FastqTileRCs(object):
                 self.align_scale = scale
                 self.align_rot = rot
                 self.align_tr = tr
-        print(self.key, score, scale, rot, tr)
 
     def fft_align_with_im(self, image_data):
         im_data_im_shapes = set(a.shape for a in image_data.all_ffts.values())
@@ -131,7 +130,7 @@ class FastqTileRCs(object):
             fig, ax = plt.subplots()
         if rcs is None:
             rcs = self.aligned_rcs
-        hull = ConvexHull(rcs)
+        hull = spatial.ConvexHull(rcs)
         ax.plot(rcs[hull.vertices, 1], rcs[hull.vertices, 0], label=self.key)
 
     def plot_aligned_rcs(self, ax=None, **kwargs):

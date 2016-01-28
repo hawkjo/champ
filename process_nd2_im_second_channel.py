@@ -5,6 +5,9 @@ import os
 import fastqimagealigner
 import local_config
 import nd2reader
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class AlignmentParameters(object):
@@ -74,7 +77,7 @@ def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     stats_fpath = os.path.join(results_dir, '{}_stats.txt'.format(aligned_im_idx))
     fic.alignment_from_alignment_file(stats_fpath)
     fic.precision_align_only(min_hits=alignment_parameters.min_hits)
-    print alignment_parameters.project_name, bname, im_idx, ','.join(tile.key for tile in fic.hitting_tiles)
+    log.debug("%s %s %s %s" % (alignment_parameters.project_name, bname, im_idx, ','.join(tile.key for tile in fic.hitting_tiles)))
     
     intensity_fpath = os.path.join(results_dir, '{}_intensities.txt'.format(im_idx))
     stats_fpath = os.path.join(results_dir, '{}_stats.txt'.format(im_idx))
