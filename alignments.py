@@ -120,9 +120,5 @@ class Alignment:
     def is_perfect(self):
         return bool(len(self.errors) == 0 and len(self.ref_al.replace('-', '')) == len(self.ref))
 
-    def print_errors(self):
-        for error in self.errors:
-            print error
-
     def __str__(self):
         return '\n'.join([self.ref, self.ref_al, self.read_al])

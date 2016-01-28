@@ -6,6 +6,9 @@ import fastqimagealigner
 import local_config
 import nd2reader
 import nd2tools
+import logging
+
+log = logging.getLogger(__name__)
 
 
 def get_align_params(align_param_fpath):
@@ -80,7 +83,7 @@ def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     all_read_rcs_fpath = os.path.join(results_dir, '{}_all_read_rcs.txt'.format(im_idx))
 
     if os.path.isfile(all_read_rcs_fpath):
-        print bname, im_idx, ' already done.'
+        log.debug('%s, %s already done.' % (bname, im_idx))
 
     intensity_fpath = os.path.join(results_dir, '{}_intensities.txt'.format(im_idx))
     stats_fpath = os.path.join(results_dir, '{}_stats.txt'.format(im_idx))
@@ -90,7 +93,7 @@ def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     fic.set_image_data(im=nd2[im_idx], objective=objective, fpath=str(im_idx), median_normalize=True)
     fic.set_sexcat_from_file(sexcat_fpath)
     fic.align(possible_tile_keys, rotation_est, fq_w_est, snr_thresh=snr_thresh, min_hits=min_hits, hit_type=['exclusive', 'good_mutual'])
-    print project_name, bname, im_idx, ','.join(tile.key for tile in fic.hitting_tiles)
+    log.debug("%s %s %s %s" % (project_name, bname, im_idx, ','.join(tile.key for tile in fic.hitting_tiles)))
     
     fic.output_intensity_results(intensity_fpath)
     fic.write_alignment_stats(stats_fpath)
@@ -111,4 +114,3 @@ if __name__ == '__main__':
     if len(sys.argv) != len(fmt.split()):
         sys.exit('Usage: ' + fmt)
     process_fig(*sys.argv[1:])
-    print("donezo!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
