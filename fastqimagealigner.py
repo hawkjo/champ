@@ -182,7 +182,7 @@ class FastqImageAligner(object):
                 self.best_fq_key = fq_key
                 self.best_im_key = im_key
                 self.best_align_tr = align_tr
-        log.debug('Best result:', self.best_corr, self.best_fq_key, self.best_im_key, self.best_align_tr)
+        log.debug('Best result: %s, %s, %s, %s' % (self.best_corr, self.best_fq_key, self.best_im_key, self.best_align_tr))
 
     def show_alignment(self, fq_key, im_key, ax=None):
         if ax is None:
