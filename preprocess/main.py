@@ -26,7 +26,7 @@ import os
 import subprocess
 from source_extractor import SEConfig
 import time
-from pathos.multiprocessing import ProcessPool
+from multiprocessing import Pool
 import logging
 import multiprocessing
 
@@ -68,14 +68,14 @@ if __name__ == "__main__":
     thread_count = min(len(filenames), multiprocessing.cpu_count())
 
     # Assign each ND2 file to a thread, which converts it to a "fits" file
-    worker_pool = ProcessPool()
-    results = worker_pool.amap(create_fits_files, filenames)
+    worker_pool = Pool(processes=thread_count)
+    results = worker_pool.map_async(create_fits_files, filenames)
 
     # Wait for the work to be finished and track how long it takes
     log.info("Starting fits file conversions.")
     start = time.time()
-    while not results.ready():
-        time.sleep(1)
+    results.wait()
+    log.info("results success: %s" % results.successful())
     log.info("Done with fits file conversions. Elapsed time: %s seconds" % round(time.time() - start, 0))
 
     # Now run source extractor (astronomy software) to do...something
@@ -84,10 +84,9 @@ if __name__ == "__main__":
         start = time.time()
 
         # Set up a worker for each ND2 file like before
-        worker_pool = ProcessPool(thread_count)
-        results = worker_pool.amap(source_extract, [base_file for nd2_filename in filenames for base_file in base_files(nd2_filename)])
+        worker_pool = Pool(thread_count)
+        results = worker_pool.map_async(source_extract, [base_file for nd2_filename in filenames for base_file in base_files(nd2_filename)])
 
         # Wait for the work to be done
-        while not results.ready():
-            time.sleep(1)
+        results.wait()
     log.info("Done with Source Extractor! Took %s seconds" % round(time.time() - start, 0))
