@@ -6,7 +6,6 @@ import time
 import random
 from copy import deepcopy
 from itertools import izip
-import local_config
 import sextraction
 import scipy.optimize
 from scipy.spatial import KDTree
@@ -14,6 +13,7 @@ from sklearn.mixture import GMM
 from imagedata import ImageData
 from fastqtilercs import FastqTileRCs
 from misc import pad_to_size, max_2d_idx, AlignmentStats
+import reads
 import logging
 
 log = logging.getLogger(__name__)
@@ -23,6 +23,7 @@ class FastqImageAligner(object):
     """A class to find the alignment of fastq data and image data."""
     def __init__(self, project_name, file_structure):
         self.project_name = project_name
+        self.file_structure = file_structure
         self.fastq_tiles = {}
         self.fastq_tiles_list = []
         self.fastq_tiles_keys = []
@@ -32,15 +33,15 @@ class FastqImageAligner(object):
         self.fq_w = 927  # um
 
     def load_phiX(self):
-        self.load_reads(tile_data=local_config.phiX_read_names_given_project_name(self.project_name))
+        tile_data = reads.phix_read_names(self.project_name, self.file_structure)
+        self.load_reads(tile_data=tile_data)
 
     def load_all_reads(self, tile_keys=None):
-        tile_data=local_config.all_read_names_given_project_name(self.project_name)
+        tile_data = reads.all_read_names(self.project_name, self.file_structure)
         if tile_keys is None:
             self.load_reads(tile_data)
         else:
-            self.load_reads({tile_key: read_names for tile_key, read_names in tile_data.items()
-                             if tile_key in tile_keys})
+            self.load_reads({tile_key: read_names for tile_key, read_names in tile_data.items() if tile_key in tile_keys})
 
     def load_reads(self, tile_data):
         for tile_key, read_names in tile_data.items():

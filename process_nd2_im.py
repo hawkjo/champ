@@ -7,12 +7,12 @@ import local_config
 import nd2reader
 import nd2tools
 import logging
+import reads
 
 log = logging.getLogger(__name__)
 
 
 def get_align_params(align_param_fpath):
-    #d = {name: value for line in open(align_param_fpath) for name, value in line.strip().split()}
     d = {}
     for line in open(align_param_fpath):
         if not line.strip():
@@ -63,7 +63,8 @@ def tile_keys_given_nums(tile_nums):
     return ['lane1tile{0}'.format(tile_num) for tile_num in tile_nums]
 
 
-def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
+def process_fig(align_run_name, base_directory, nd2_fpath, align_param_fpath, im_idx):
+    file_structure = local_config.FileStructure(base_directory)
     im_idx = int(im_idx)
     project_name, aligning_read_names_fpath, all_read_names_fpath, objective, rotation_est, fq_w_est, \
             min_tile_num, max_tile_num, strategy, snr_thresh, min_hits = get_align_params(align_param_fpath)
@@ -75,9 +76,9 @@ def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     bname = os.path.splitext(os.path.basename(nd2_fpath))[0]
     sexcat_fpath = os.path.join(os.path.splitext(nd2_fpath)[0], '%d.cat' % im_idx)
     
-    fig_dir = os.path.join(local_config.fig_dir, align_run_name, bname)
-    results_dir = os.path.join(local_config.base_dir, 'results', align_run_name, bname)
-    for d in [fig_dir, results_dir]:
+    fig_dir = os.path.join(file_structure.figure_directory, align_run_name, bname)
+    results_dir = os.path.join(base_directory, 'results', align_run_name, bname)
+    for d in (fig_dir, results_dir):
         if not os.path.exists(d):
             os.makedirs(d)
     all_read_rcs_fpath = os.path.join(results_dir, '{}_all_read_rcs.txt'.format(im_idx))
@@ -88,7 +89,7 @@ def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     intensity_fpath = os.path.join(results_dir, '{}_intensities.txt'.format(im_idx))
     stats_fpath = os.path.join(results_dir, '{}_stats.txt'.format(im_idx))
     fic = fastqimagealigner.FastqImageAligner(project_name, file_structure)
-    tile_data = local_config.fastq_tiles_given_read_name_fpath(aligning_read_names_fpath)
+    tile_data = reads.get_read_names(aligning_read_names_fpath)
     fic.load_reads(tile_data)
     fic.set_image_data(im=nd2[im_idx], objective=objective, fpath=str(im_idx), median_normalize=True)
     fic.set_sexcat_from_file(sexcat_fpath)
@@ -105,7 +106,7 @@ def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
     ax.figure.savefig(os.path.join(fig_dir, '{}_hit_hists.pdf'.format(im_idx)))
 
     all_fic = fastqimagealigner.FastqImageAligner(project_name, file_structure)
-    tile_data = local_config.fastq_tiles_given_read_name_fpath(all_read_names_fpath)
+    tile_data = reads.get_read_names(all_read_names_fpath)
     all_fic.all_reads_fic_from_aligned_fic(fic, tile_data)
     all_fic.write_read_names_rcs(all_read_rcs_fpath)
 
