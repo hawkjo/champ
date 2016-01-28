@@ -7,57 +7,15 @@ import local_config
 import nd2reader
 import logging
 import reads
+import params
 
 log = logging.getLogger(__name__)
-
-
-class AlignmentParameters(object):
-    def __init__(self, lines):
-        self._data = {}
-        for line in map(str.strip, lines):
-            if not line:
-                continue
-            name, value = line.split()
-            self._data[name] = value
-
-        self._min_hits = self._data.get('min_hits', 15)
-        self._strategy = self._data.get('strategy', 'slow')
-        assert self._strategy in ['fast', 'slow'], 'Invalid alignment strategy: {strategy}'.format(strategy=self._strategy)
-
-    @property
-    def project_name(self):
-        return self._data['project_name']
-
-    @property
-    def aligning_read_names_fpath(self):
-        return self._data['aligning_read_names_fpath']
-
-    @property
-    def all_read_names_fpath(self):
-        return self._data['all_read_names_fpath']
-
-    @property
-    def objective(self):
-        return int(self._data['objective'])
-
-    @property
-    def aligned_im_idx_offset(self):
-        return int(self._data['aligned_im_idx_offset'])
-
-    @property
-    def min_hits(self):
-        return int(self._min_hits)
-
-
-def get_align_params(align_param_fpath):
-    with open(align_param_fpath) as lines:
-        return AlignmentParameters(lines)
 
 
 def process_fig(align_run_name, base_directory, nd2_fpath, align_param_fpath, im_idx):
     file_structure = local_config.FileStructure(base_directory)
     im_idx = int(im_idx)
-    alignment_parameters = get_align_params(align_param_fpath)
+    alignment_parameters = params.get_align_params(align_param_fpath)
     nd2 = nd2reader.Nd2(nd2_fpath)
     bname = os.path.splitext(os.path.basename(nd2_fpath))[0]
     aligned_im_idx = im_idx + alignment_parameters.aligned_im_idx_offset

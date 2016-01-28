@@ -8,46 +8,9 @@ import nd2reader
 import nd2tools
 import logging
 import reads
+import params
 
 log = logging.getLogger(__name__)
-
-
-def get_align_params(align_param_fpath):
-    d = {}
-    for line in open(align_param_fpath):
-        if not line.strip():
-            continue
-        name, value = line.strip().split()
-        d[name] = value
-
-    try:
-        strategy = d['strategy']
-    except:
-        strategy = 'slow'
-    assert strategy in ['fast', 'slow'], strategy
-
-    try:
-        snr_thresh = float(d['snr_thresh'])
-    except:
-        snr_thresh = 1.2
-
-    try:
-        min_hits = int(d['min_hits'])
-    except:
-        min_hits = 15
-
-    return (d['project_name'],
-            d['aligning_read_names_fpath'],
-            d['all_read_names_fpath'],
-            int(d['objective']),
-            float(d['rotation_est']),
-            float(d['fq_w_est']),
-            int(d['min_tile_num']),
-            int(d['max_tile_num']),
-            strategy,
-            snr_thresh,
-            min_hits
-           )
 
 
 def fast_possible_tile_keys(nd2, im_idx, min_tile, max_tile):
@@ -66,13 +29,13 @@ def tile_keys_given_nums(tile_nums):
 def process_fig(align_run_name, base_directory, nd2_fpath, align_param_fpath, im_idx):
     file_structure = local_config.FileStructure(base_directory)
     im_idx = int(im_idx)
-    project_name, aligning_read_names_fpath, all_read_names_fpath, objective, rotation_est, fq_w_est, \
-            min_tile_num, max_tile_num, strategy, snr_thresh, min_hits = get_align_params(align_param_fpath)
+    alignment_parameters = params.get_align_params(align_param_fpath)
     nd2 = nd2reader.Nd2(nd2_fpath)
-    if strategy == 'fast':
-        possible_tile_keys = fast_possible_tile_keys(nd2, im_idx, min_tile_num, max_tile_num)
-    elif strategy == 'slow':
-        possible_tile_keys = tile_keys_given_nums(range(min_tile_num, max_tile_num+1))
+    if alignment_parameters.strategy == 'fast':
+        possible_tile_keys = fast_possible_tile_keys(nd2, im_idx, alignment_parameters.min_tile_num, alignment_parameters.max_tile_num)
+    else:
+        assert alignment_parameters.strategy == 'slow'
+        possible_tile_keys = tile_keys_given_nums(range(alignment_parameters.min_tile_num, alignment_parameters.max_tile_num + 1))
     bname = os.path.splitext(os.path.basename(nd2_fpath))[0]
     sexcat_fpath = os.path.join(os.path.splitext(nd2_fpath)[0], '%d.cat' % im_idx)
     
@@ -88,13 +51,16 @@ def process_fig(align_run_name, base_directory, nd2_fpath, align_param_fpath, im
 
     intensity_fpath = os.path.join(results_dir, '{}_intensities.txt'.format(im_idx))
     stats_fpath = os.path.join(results_dir, '{}_stats.txt'.format(im_idx))
-    fic = fastqimagealigner.FastqImageAligner(project_name, file_structure)
-    tile_data = reads.get_read_names(aligning_read_names_fpath)
+    fic = fastqimagealigner.FastqImageAligner(alignment_parameters.project_name, file_structure)
+    tile_data = reads.get_read_names(alignment_parameters.aligning_read_names_fpath)
     fic.load_reads(tile_data)
-    fic.set_image_data(im=nd2[im_idx], objective=objective, fpath=str(im_idx), median_normalize=True)
+    fic.set_image_data(im=nd2[im_idx], objective=alignment_parameters.objective, fpath=str(im_idx), median_normalize=True)
     fic.set_sexcat_from_file(sexcat_fpath)
-    fic.align(possible_tile_keys, rotation_est, fq_w_est, snr_thresh=snr_thresh, min_hits=min_hits, hit_type=['exclusive', 'good_mutual'])
-    log.debug("%s %s %s %s" % (project_name, bname, im_idx, ','.join(tile.key for tile in fic.hitting_tiles)))
+    fic.align(possible_tile_keys, alignment_parameters.rotation_est, alignment_parameters.fq_w_est,
+              snr_thresh=alignment_parameters.snr_threshold,
+              min_hits=alignment_parameters.min_hits,
+              hit_type=['exclusive', 'good_mutual'])
+    log.debug("%s %s %s %s" % (alignment_parameters.project_name, bname, im_idx, ','.join(tile.key for tile in fic.hitting_tiles)))
     
     fic.output_intensity_results(intensity_fpath)
     fic.write_alignment_stats(stats_fpath)
@@ -105,8 +71,8 @@ def process_fig(align_run_name, base_directory, nd2_fpath, align_param_fpath, im
     ax = fic.plot_hit_hists()
     ax.figure.savefig(os.path.join(fig_dir, '{}_hit_hists.pdf'.format(im_idx)))
 
-    all_fic = fastqimagealigner.FastqImageAligner(project_name, file_structure)
-    tile_data = reads.get_read_names(all_read_names_fpath)
+    all_fic = fastqimagealigner.FastqImageAligner(alignment_parameters.project_name, file_structure)
+    tile_data = reads.get_read_names(alignment_parameters.all_read_names_fpath)
     all_fic.all_reads_fic_from_aligned_fic(fic, tile_data)
     all_fic.write_read_names_rcs(all_read_rcs_fpath)
 
