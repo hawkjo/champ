@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from pathos.multiprocessing import ProcessingPool
+from multiprocessing import Pool
 from misc import next_power_of_2
 import tifffile
 
@@ -72,7 +72,7 @@ class ImageData(object):
         if hasattr(self, 'all_ffts') and self.all_ffts and not force:
             return
         self.fft_padding = padding
-        pool = ProcessingPool(processors)
+        pool = Pool(processors)
         ffts = pool.map(self.single_fft, self.iterate_D4_idxs())
         self.all_ffts = {idx: fft for idx, fft in zip(self.iterate_D4_idxs(), ffts)}
         del pool
