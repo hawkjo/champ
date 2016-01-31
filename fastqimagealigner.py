@@ -537,6 +537,8 @@ class FastqImageAligner(object):
         self.sexcat.plot_ellipses(ax=ax, **kwargs)
 
         line_kwargs = line_kwargs or {}
+        title_kwargs = title_kwargs or {}
+        legend_kwargs = legend_kwargs or {}
         self.plot_hits(self.non_mutual_hits, 'grey', ax, line_kwargs)
         self.plot_hits(self.bad_mutual_hits, 'b', ax, line_kwargs)
         self.plot_hits(self.good_mutual_hits, 'magenta', ax, line_kwargs)
@@ -567,7 +569,6 @@ class FastqImageAligner(object):
         fastq_line = Line2D([], [], color='k', alpha=0.3, marker='o', markersize=10,
                 label='Fastq Points: %d' % (len(self.aligned_rcs_in_frame)))
         handles = [grey_line, blue_line, magenta_line, red_line, sexcat_line, fastq_line]
-        legend_kwargs = legend_kwargs or {}
         legend = ax.legend(handles=handles, **legend_kwargs)
         legend.get_frame().set_color('white')
         return ax
