@@ -1,3 +1,7 @@
+"""
+Automatically finds unittests and runs them.
+
+"""
 import unittest
 loader = unittest.TestLoader()
 tests = loader.discover('tests', pattern='*.py', top_level_dir='.')

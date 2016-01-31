@@ -103,7 +103,7 @@ class AlignmentStats:
         self.numtiles = len(self.tile)
 
 
-def pM_concentration_given_fpath(fpath, convention='steve'):
+def pM_concentration_given_fpath(fpath):
     pattern = '[-_]([0-9_.]+)([pn]M)'
     m = re.search(pattern, fpath)
     assert m, fpath
