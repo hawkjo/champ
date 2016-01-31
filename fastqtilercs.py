@@ -13,7 +13,7 @@ class FastqTileRCs(object):
         self.read_names = read_names
         self.rcs = np.array([map(int, name.split(':')[-2:]) for name in self.read_names])
 
-    def set_fastq_image_data(self, offset, scale, scaled_dims, w, force=False, verbose=True):
+    def set_fastq_image_data(self, offset, scale, scaled_dims, w):
         self.offset = offset
         self.scale = scale
         self.image_shape = scaled_dims

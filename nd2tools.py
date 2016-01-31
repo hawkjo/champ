@@ -73,7 +73,7 @@ def plot_nd2_grid(nd2, edge, channel, idx_start=None, idx_end=None, suptitle='')
             ax = axs[r, c]
         mn = min(mn, im.min())
         mx = max(mx, im.max())
-        ax.matshow(im, vmin=0, vmax=2)#, cmap=plt.get_cmap('Blues'))
+        ax.matshow(im, vmin=0, vmax=2)
         ax.set_xticks([])
         ax.set_yticks([])
         ax.text(im.shape[1]/2,

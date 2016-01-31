@@ -163,7 +163,7 @@ class FastqImageAligner(object):
                 align_tr = np.array(max_idx) - fq_image.shape
         return tile.key, best_im_key, best_max_corr, align_tr
 
-    def fft_align(self, processors, recalc_fft=True, verbose=True):
+    def fft_align(self, processors, recalc_fft=True):
         log.debug('Set fastq tile mappings')
         self.set_fastq_tile_mappings()
         log.debug('Image D4 ffts')
@@ -272,13 +272,10 @@ class FastqImageAligner(object):
         thresh = np.percentile(dists, pct_thresh * 100)
         return [hit for hit in hits if self.single_hit_dist(hit) <= thresh]
 
-    def find_hits(self,
-            good_posterior_thresh_pct=0.99,
-            second_neighbor_thresh=None,
-            consider_tiles='all'):
-        #--------------------------------------------------------------------------------
+    def find_hits(self, second_neighbor_thresh=None, consider_tiles='all'):
+        # --------------------------------------------------------------------------------
         # Find nearest neighbors
-        #--------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------
         self.find_points_in_frame(consider_tiles)
         sexcat_tree = KDTree(self.sexcat.point_rcs)
         aligned_tree = KDTree(self.aligned_rcs_in_frame)
@@ -294,9 +291,9 @@ class FastqImageAligner(object):
             dist, idx = sexcat_tree.query(pt)
             aligned_to_sexcat_idxs_rev.add((idx, i))
 
-        #--------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------
         # Find categories of hits
-        #--------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------
         mutual_hits = sexcat_to_aligned_idxs & aligned_to_sexcat_idxs_rev
         non_mutual_hits = sexcat_to_aligned_idxs ^ aligned_to_sexcat_idxs_rev
 
@@ -305,9 +302,9 @@ class FastqImageAligner(object):
         exclusive_hits = set((i, j) for i, j in mutual_hits if i not in
                              sexcat_in_non_mutual and j not in aligned_in_non_mutual)
 
-        #--------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------
         # Recover good non-exclusive mutual hits. 
-        #--------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------
         # If the distance to second neighbor is too close, that suggests a bad peak call combining
         # two peaks into one. Filter those out with a gaussian-mixture-model-determined threshold.
         if self.image_data.objective == 60:
@@ -334,9 +331,9 @@ class FastqImageAligner(object):
                 good_mutual_hits.add((i, j))
         bad_mutual_hits = mutual_hits - exclusive_hits - good_mutual_hits
 
-        #--------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------
         # Test that the four groups form a partition of all hits and finalize
-        #--------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------
         assert (non_mutual_hits | bad_mutual_hits | good_mutual_hits | exclusive_hits
                 == sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev
                 and  len(non_mutual_hits) + len(bad_mutual_hits)
@@ -425,64 +422,46 @@ class FastqImageAligner(object):
             if hasattr(self, 'control_corr'):
                 tile.set_snr_with_control_corr(self.control_corr)
 
-    def align(self,
-              possible_tile_keys,
-              rotation_est,
-              fq_w_est=927,
-              snr_thresh=1.2,
-              hit_type=['exclusive', 'good_mutual'],
-              min_hits=15):
-        start_time = time.time()
+    def align(self, possible_tile_keys, rotation_est, fq_w_est=927, snr_thresh=1.2,
+              hit_type=('exclusive', 'good_mutual'), min_hits=15):
 
+        start_time = time.time()
         self.fq_w = fq_w_est
         self.set_fastq_tile_mappings()
         self.set_all_fastq_image_data()
         self.rotate_all_fastq_data(rotation_est)
-
         log.debug('Prep time: %.3f seconds' % (time.time() - start_time))
-        start_time = time.time()
 
+        start_time = time.time()
         self.find_hitting_tiles(possible_tile_keys, snr_thresh)
-
         log.debug('Rough alignment time: %.3f seconds' % (time.time() - start_time))
-        start_time = time.time()
 
+        start_time = time.time()
         if not self.hitting_tiles:
             raise RuntimeError('Alignment not found')
-
         self.least_squares_mapping(hit_type, min_hits=min_hits)
-
         log.debug('Precision alignment time: %.3f seconds' % (time.time() - start_time))
+
         start_time = time.time()
-
         self.find_hits()
-
         log.debug('Hit finding time: %.3f seconds' % (time.time() - start_time))
         
-    def precision_align_only(self,
-                             hit_type=['exclusive', 'good_mutual'],
-                             min_hits=15):
+    def precision_align_only(self, hit_type=('exclusive', 'good_mutual'), min_hits=15):
         start_time = time.time()
-
         if not self.hitting_tiles:
             raise RuntimeError('Alignment not found')
-
         self.least_squares_mapping(hit_type, min_hits=min_hits)
-
         log.debug('Precision alignment time: %.3f seconds' % (time.time() - start_time))
+        
         start_time = time.time()
-
         self.find_hits()
-
         log.debug('Hit finding time: %.3f seconds' % (time.time() - start_time))
         
     def gmm_thresh(self, dists):
         self.gmm = GMM(2)
         self.gmm.fit(dists)
-
         lower_idx = self.gmm.means_.argmin()
         higher_idx = 1 - lower_idx
-
         lower_mean = self.gmm.means_[lower_idx]
         good_posterior_thresh_pct = 0.99
         f = lambda x: self.gmm.predict_proba([x])[0][higher_idx] - good_posterior_thresh_pct
@@ -533,30 +512,31 @@ class FastqImageAligner(object):
         axs[1].legend()
         return axs
 
-    def plot_hits(self, hits, color, ax, kwargs={}):
+    def plot_hits(self, hits, color, ax, kwargs):
         for i, j in hits:
             ax.plot([self.sexcat.point_rcs[i, 1], self.aligned_rcs_in_frame[j, 1]],
                     [self.sexcat.point_rcs[i, 0], self.aligned_rcs_in_frame[j, 0]],
                     color=color, **kwargs)
         return ax
 
-    def plot_all_hits(self, ax=None, im_kwargs={}, line_kwargs={}, fqpt_kwargs={}, sext_kwargs={},
-                     title_kwargs={}, legend_kwargs={}):
+    def plot_all_hits(self, ax=None, im_kwargs=None, line_kwargs=None, fqpt_kwargs=None, sext_kwargs=None,
+                     title_kwargs=None, legend_kwargs=None):
         if ax is None:
             fig, ax = plt.subplots(figsize=(15, 15))
 
         kwargs = {'cmap': plt.get_cmap('Blues')}
-        kwargs.update(im_kwargs)
+        kwargs.update(im_kwargs or {})
         ax.matshow(self.image_data.im, **kwargs)
 
         kwargs = {'color': 'k', 'alpha': 0.3, 'linestyle': '', 'marker': 'o', 'markersize': 3}
-        kwargs.update(fqpt_kwargs)
+        kwargs.update(fqpt_kwargs or {})
         ax.plot(self.aligned_rcs_in_frame[:, 1], self.aligned_rcs_in_frame[:, 0], **kwargs)
 
         kwargs = {'alpha': 0.6, 'color': 'darkgoldenrod'}
-        kwargs.update(sext_kwargs)
+        kwargs.update(sext_kwargs or {})
         self.sexcat.plot_ellipses(ax=ax, **kwargs)
 
+        line_kwargs = line_kwargs or {}
         self.plot_hits(self.non_mutual_hits, 'grey', ax, line_kwargs)
         self.plot_hits(self.bad_mutual_hits, 'b', ax, line_kwargs)
         self.plot_hits(self.good_mutual_hits, 'magenta', ax, line_kwargs)
@@ -587,11 +567,12 @@ class FastqImageAligner(object):
         fastq_line = Line2D([], [], color='k', alpha=0.3, marker='o', markersize=10,
                 label='Fastq Points: %d' % (len(self.aligned_rcs_in_frame)))
         handles = [grey_line, blue_line, magenta_line, red_line, sexcat_line, fastq_line]
+        legend_kwargs = legend_kwargs or {}
         legend = ax.legend(handles=handles, **legend_kwargs)
         legend.get_frame().set_color('white')
         return ax
 
-    def plot_hit_vectors(self, hit_types=['exclusive'], ax=None):
+    def plot_hit_vectors(self, hit_types=('exclusive',), ax=None):
         if ax is None:
             fig, ax = plt.subplots(figsize=(15, 15))
         colors = {'exclusive': 'r',
@@ -613,7 +594,7 @@ class FastqImageAligner(object):
 
     def output_intensity_results(self, out_fpath):
         hit_given_aligned_idx = {}
-        for hit_type in ['non_mutual', 'bad_mutual', 'good_mutual', 'exclusive']:
+        for hit_type in ('non_mutual', 'bad_mutual', 'good_mutual', 'exclusive'):
             for i, j in getattr(self, hit_type + '_hits'):
                 hit_given_aligned_idx[j] = (hit_type, (i, j))
 
@@ -644,7 +625,7 @@ class FastqImageAligner(object):
                                          str(flux_err)]))
 
         with open(out_fpath, 'w') as out:
-            fields = ['read_name', 'image_name', 'hit_type', 'r', 'c', 'flux', 'flux_err']
+            fields = ('read_name', 'image_name', 'hit_type', 'r', 'c', 'flux', 'flux_err')
             out.write('# Fields: ' + '\t'.join(fields) + '\n')
             out.write('\n'.join(sorted(lines, key=lambda s: float(s.split()[3]), reverse=True)))
 
