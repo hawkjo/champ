@@ -5,7 +5,7 @@ import itertools
 class Error(object):
     bases = 'ACGTN'
 
-    def __init__(self, ref_pos, **kwarg):
+    def __init__(self, ref_pos, **kwargs):
         if isinstance(self, Ins):
             assert int(ref_pos) == ref_pos - 0.5
         else:
