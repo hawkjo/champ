@@ -19,7 +19,7 @@ def fast_possible_tile_keys(nd2, im_idx, min_tile, max_tile):
     pos_name = nd2tools.convert_nd2_coordinates(nd2, im_idx=im_idx, outfmt='pos_name')
     col_idx = cols.index(pos_name[1:])
     expected_tile = int(min_tile + col_idx * float(max_tile - min_tile)/(len(cols)-1))
-    return tile_keys_given_nums(range(expected_tile - 1, expected_tile + 2))
+    return tile_keys_given_nums(range(expected_tile, expected_tile + 2))
 
 
 def tile_keys_given_nums(tile_nums):

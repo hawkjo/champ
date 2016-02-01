@@ -35,11 +35,11 @@ class AlignmentParameters(object):
 
     @property
     def max_tile_num(self):
-        return int(self._max_tile)
+        return 2100 + int(self._max_tile)
 
     @property
     def min_tile_num(self):
-        return int(self._min_tile)
+        return 2100 + int(self._min_tile)
 
     @property
     def min_hits(self):

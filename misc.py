@@ -34,8 +34,9 @@ def rcs_given_read_names(read_names):
 
 def median_normalize(im):
     med = np.median(im)
+    im = im.astype('float', copy=False, casting='safe')
     im /= float(med)
-    im -= 1
+    im -= 1.0
     return im
 
 
