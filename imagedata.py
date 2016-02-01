@@ -47,7 +47,7 @@ class ImageData(object):
 
     def median_normalize(self):
         med = np.median(self.im)
-        self.im /= float(med)
+        self.im = self.im / float(med)
         self.im -= 1
 
     def D4_im_given_idx(self, idx):
