@@ -2,7 +2,7 @@ import os
 
 
 class AlignmentParameters(object):
-    def __init__(self, base_directory, chip_id, aligned_image_index_offset=0, fq_w_estimate=935.0, min_tile=1, max_tile=19, min_hits=15,
+    def __init__(self, base_directory, chip_id, aligned_image_index_offset=0, fq_w_estimate=935.0, min_tile=9, max_tile=11, min_hits=15,
                  objective=60, rotation_estimate=180.0, snr_threshold=1.2, strategy='slow'):
         assert strategy in ('fast', 'slow'), 'Invalid alignment strategy: {strategy}'.format(strategy=strategy)
         self._base_directory = base_directory

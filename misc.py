@@ -34,6 +34,9 @@ def rcs_given_read_names(read_names):
 
 def median_normalize(im):
     med = np.median(im)
+    # Doing in place division by a float won't work because we have an int64 array
+    # By casting to float with copy=False, we create a float view that allows
+    # in place division without having to perform any copies
     im = im.astype('float', copy=False, casting='safe')
     im /= float(med)
     im -= 1.0

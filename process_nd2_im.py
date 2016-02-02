@@ -29,7 +29,7 @@ def tile_keys_given_nums(tile_nums):
 def process_fig(base_directory, chip_id, nd2_filename, im_idx):
     file_structure = local_config.FileStructure(base_directory)
     im_idx = int(im_idx)
-    alignment_parameters = params.AlignmentParameters(base_directory, chip_id, strategy='fast')
+    alignment_parameters = params.AlignmentParameters(base_directory, chip_id)
     nd2 = nd2reader.Nd2('{base_directory}{sep}{nd2_filename}'.format(base_directory=base_directory,
                                                                      nd2_filename=nd2_filename,
                                                                      sep=os.path.sep))
