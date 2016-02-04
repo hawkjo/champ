@@ -19,24 +19,27 @@ def fast_possible_tile_keys(nd2, im_idx, min_tile, max_tile):
     pos_name = nd2tools.convert_nd2_coordinates(nd2, im_idx=im_idx, outfmt='pos_name')
     col_idx = cols.index(pos_name[1:])
     expected_tile = int(min_tile + col_idx * float(max_tile - min_tile)/(len(cols)-1))
-    return tile_keys_given_nums(range(expected_tile, expected_tile + 2))
+    return tile_keys_given_nums(range(expected_tile - 1, expected_tile + 2))
 
 
 def tile_keys_given_nums(tile_nums):
     return ['lane1tile{0}'.format(tile_num) for tile_num in tile_nums]
 
 
-def process_fig(base_directory, chip_id, nd2_filename, im_idx):
+def process_fig(base_directory, chip_id, strategy, nd2_filename, im_idx):
+    assert strategy in ('fast', 'slow'), 'Invalid alignment strategy'
     file_structure = local_config.FileStructure(base_directory)
     im_idx = int(im_idx)
     alignment_parameters = params.AlignmentParameters(base_directory, chip_id)
     nd2 = nd2reader.Nd2('{base_directory}{sep}{nd2_filename}'.format(base_directory=base_directory,
                                                                      nd2_filename=nd2_filename,
                                                                      sep=os.path.sep))
-    if alignment_parameters.strategy == 'fast':
-        possible_tile_keys = fast_possible_tile_keys(nd2, im_idx, alignment_parameters.min_tile_num, alignment_parameters.max_tile_num)
+    if strategy == 'fast':
+        # +4 and -5 are temporary hacks to see if something works
+        # if you are on the master branch and you're reading this, Jim is a failure as a programmer, and as a human being
+        # remind him that he has dishonored not only himself, but his children, and his children's children, for nine generations to come
+        possible_tile_keys = fast_possible_tile_keys(nd2, im_idx, alignment_parameters.min_tile_num + 4, alignment_parameters.max_tile_num - 5)
     else:
-        assert alignment_parameters.strategy == 'slow'
         possible_tile_keys = tile_keys_given_nums(range(alignment_parameters.min_tile_num, alignment_parameters.max_tile_num + 1))
 
     for directory in (file_structure.figure_directory, file_structure.results_directory):
@@ -79,7 +82,7 @@ def process_fig(base_directory, chip_id, nd2_filename, im_idx):
     all_fic.write_read_names_rcs(all_read_rcs_filepath)
 
 if __name__ == '__main__':
-    fmt = '{0} <base_directory> <chip_id> <nd2_fpath> <im_idx>'.format(sys.argv[0])
+    fmt = '{0} <base_directory> <chip_id> <strategy> <nd2_fpath> <im_idx>'.format(sys.argv[0])
     # fmt = '{0} <align_run_name> <nd2_fpath> <align_param_file> <im_idx>'.format(sys.argv[0])
     if len(sys.argv) != len(fmt.split()):
         sys.exit('Usage: ' + fmt)

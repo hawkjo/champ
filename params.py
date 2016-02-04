@@ -2,9 +2,8 @@ import os
 
 
 class AlignmentParameters(object):
-    def __init__(self, base_directory, chip_id, aligned_image_index_offset=0, fq_w_estimate=935.0, min_tile=9, max_tile=11, min_hits=15,
-                 objective=60, rotation_estimate=180.0, snr_threshold=1.2, strategy='slow'):
-        assert strategy in ('fast', 'slow'), 'Invalid alignment strategy: {strategy}'.format(strategy=strategy)
+    def __init__(self, base_directory, chip_id, aligned_image_index_offset=0, fq_w_estimate=935.0, min_tile=1, max_tile=19, min_hits=15,
+                 objective=60, rotation_estimate=180.0, snr_threshold=1.2):
         self._base_directory = base_directory
         self._chip_id = chip_id
         self._aligned_image_index_offset = aligned_image_index_offset
@@ -15,7 +14,6 @@ class AlignmentParameters(object):
         self._objective = objective
         self._rotation_estimate = rotation_estimate
         self._snr_threshold = snr_threshold
-        self._strategy = strategy
 
     @property
     def aligning_read_names_filepath(self):
@@ -60,10 +58,6 @@ class AlignmentParameters(object):
     @property
     def snr_threshold(self):
         return float(self._snr_threshold)
-
-    @property
-    def strategy(self):
-        return self._strategy
 
     def _make_filepath(self, filename):
         return '{base_directory}{sep}{chip_id}{sep}{filename}'.format(base_directory=self._base_directory,
