@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from multiprocessing import Pool
-from misc import next_power_of_2
+from misc import next_power_of_2, median_normalize as normalize_median
 import tifffile
 
 
@@ -23,7 +23,7 @@ class ImageData(object):
         self.fname = fname
         self.bname = os.path.splitext(self.fname)[0]
         if median_normalize:
-            self.median_normalize()
+            normalize_median(self.im)
 
     def set_im_from_file(self, fpath, objective, median_normalize=False):
         self.fpath = fpath
@@ -37,18 +37,13 @@ class ImageData(object):
             raise ValueError('Image type not accepted: %s' % self.fname)
         self.set_objective(objective)
         if median_normalize:
-            self.median_normalize()
+            normalize_median(self.im)
 
     def set_objective(self, objective):
         assert objective in [20, 40, 60], 'Accepted objectives are 20, 40, and 60'
         self.objective = objective
         self.um_per_pixel = 16.0 / self.objective
         self.um_dims = self.um_per_pixel * np.array(self.im.shape)
-
-    def median_normalize(self):
-        med = np.median(self.im)
-        self.im /= float(med)
-        self.im -= 1
 
     def D4_im_given_idx(self, idx):
         flip, rot = idx
@@ -83,6 +78,7 @@ class ImageData(object):
 
     def single_fft(self, idx):
         im = self.D4_im_given_idx(idx)
+        self.fft_padding = self.fft_padding.astype('int64', copy=False)
         totalx, totaly = np.array(self.fft_padding)+np.array(im.shape)
         w = next_power_of_2(totalx)
         h = next_power_of_2(totaly)

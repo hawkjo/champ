@@ -21,8 +21,8 @@ log = logging.getLogger(__name__)
 
 class FastqImageAligner(object):
     """A class to find the alignment of fastq data and image data."""
-    def __init__(self, project_name, file_structure):
-        self.project_name = project_name
+    def __init__(self, chip_id, file_structure):
+        self.chip_id = chip_id
         self.file_structure = file_structure
         self.fastq_tiles = {}
         self.fastq_tiles_list = []
@@ -33,11 +33,11 @@ class FastqImageAligner(object):
         self.fq_w = 927  # um
 
     def load_phiX(self):
-        tile_data = reads.phix_read_names(self.project_name, self.file_structure)
+        tile_data = reads.phix_read_names(self.chip_id, self.file_structure)
         self.load_reads(tile_data=tile_data)
 
     def load_all_reads(self, tile_keys=None):
-        tile_data = reads.all_read_names(self.project_name, self.file_structure)
+        tile_data = reads.all_read_names(self.chip_id, self.file_structure)
         if tile_keys is None:
             self.load_reads(tile_data)
         else:
@@ -114,13 +114,12 @@ class FastqImageAligner(object):
         self.fq_im_scaled_maxes = self.fq_im_scale * np.array([x_max-x_min, y_max-y_min])
         self.fq_im_scaled_dims = (self.fq_im_scaled_maxes + [1, 1]).astype(np.int)
 
-    def set_all_fastq_image_data(self, verbose=True):
+    def set_all_fastq_image_data(self):
         for key, tile in self.fastq_tiles.items():
             tile.set_fastq_image_data(self.fq_im_offset,
                                       self.fq_im_scale,
                                       self.fq_im_scaled_dims,
-                                      self.fq_w,
-                                      verbose=verbose)
+                                      self.fq_w)
 
     def rotate_all_fastq_data(self, degrees):
         im_shapes = []
@@ -171,7 +170,7 @@ class FastqImageAligner(object):
                                 processors=processors,
                                 force=recalc_fft)
         log.debug('Fastq images and ffts')
-        self.set_all_fastq_image_data(verbose=True)
+        self.set_all_fastq_image_data()
         log.debug('Aligning')
         self.best_corr = 0
         self.max_corrs = []
@@ -545,7 +544,7 @@ class FastqImageAligner(object):
         self.plot_hits(self.exclusive_hits, 'r', ax, line_kwargs)
         ax.set_title('All Hits: %s vs. %s %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s, SNR: %s'
                 % (self.image_data.bname,
-                   self.project_name,
+                   self.chip_id,
                    ','.join(tile.key for tile in self.hitting_tiles),
                    ','.join('%.2f' % tile.rotation_degrees for tile in self.hitting_tiles),
                    ','.join('%.2f' % tile.w for tile in self.hitting_tiles),
@@ -634,7 +633,7 @@ class FastqImageAligner(object):
         stats = [
             'Image:                 %s' % self.image_data.fname,
             'Objective:             %d' % self.image_data.objective,
-            'Project Name:          %s' % self.project_name,
+            'Project Name:          %s' % self.chip_id,
             'Tile:                  %s' % ','.join(tile.key for tile in self.hitting_tiles),
             'Rotation (deg):        %s' % ','.join('%.4f' % tile.rotation_degrees for tile in self.hitting_tiles),
             'Tile width (um):       %s' % ','.join('%.4f' % tile.w for tile in self.hitting_tiles),

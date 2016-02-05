@@ -1,66 +1,66 @@
+import os
+
+
 class AlignmentParameters(object):
-    def __init__(self, lines):
-        self._data = {}
-        for line in map(str.strip, lines):
-            if not line:
-                continue
-            name, value = line.split()
-            self._data[name] = value
-
-        self._snr_threshold = self._data.get('snr_thresh', 1.2)
-        self._min_hits = self._data.get('min_hits', 15)
-        self._strategy = self._data.get('strategy', 'slow')
-        assert self._strategy in ['fast', 'slow'], 'Invalid alignment strategy: {strategy}'.format(strategy=self._strategy)
-
-    @property
-    def max_tile_num(self):
-        return int(self._data['max_tile_num'])
+    def __init__(self, base_directory, chip_id, aligned_image_index_offset=0, fq_w_estimate=935.0, min_tile=1, max_tile=19, min_hits=15,
+                 objective=60, rotation_estimate=180.0, snr_threshold=1.2):
+        self._base_directory = base_directory
+        self._chip_id = chip_id
+        self._aligned_image_index_offset = aligned_image_index_offset
+        self._fq_w_estimate = fq_w_estimate
+        self._min_tile = min_tile
+        self._max_tile = max_tile
+        self._min_hits = min_hits
+        self._objective = objective
+        self._rotation_estimate = rotation_estimate
+        self._snr_threshold = snr_threshold
 
     @property
-    def strategy(self):
-        return self._strategy
+    def aligning_read_names_filepath(self):
+        return self._make_filepath('phiX_mappings/phiX_read_names.txt')
 
     @property
-    def min_tile_num(self):
-        return int(self._data['min_tile_num'])
+    def aligned_image_index_offset(self):
+        return int(self._aligned_image_index_offset)
 
     @property
-    def project_name(self):
-        return self._data['project_name']
-
-    @property
-    def aligning_read_names_fpath(self):
-        return self._data['aligning_read_names_fpath']
-
-    @property
-    def all_read_names_fpath(self):
-        return self._data['all_read_names_fpath']
-
-    @property
-    def objective(self):
-        return int(self._data['objective'])
-
-    @property
-    def aligned_im_idx_offset(self):
-        return int(self._data['aligned_im_idx_offset'])
-
-    @property
-    def snr_threshold(self):
-        return float(self._snr_threshold)
-
-    @property
-    def rotation_estimate(self):
-        return float(self._data['rotation_est'])
+    def all_read_names_filepath(self):
+        return self._make_filepath('read_names/all_read_names.txt')
 
     @property
     def fq_w_est(self):
-        return float(self._data['fq_w_est'])
+        return float(self._fq_w_estimate)
+
+    @property
+    def max_tile_num(self):
+        return 2100 + int(self._max_tile)
+
+    @property
+    def min_tile_num(self):
+        return 2100 + int(self._min_tile)
 
     @property
     def min_hits(self):
         return int(self._min_hits)
 
+    @property
+    def objective(self):
+        return int(self._objective)
 
-def get_align_params(align_param_fpath):
-    with open(align_param_fpath) as lines:
-        return AlignmentParameters(lines)
+    @property
+    def chip_id(self):
+        return self._chip_id
+
+    @property
+    def rotation_estimate(self):
+        return float(self._rotation_estimate)
+
+    @property
+    def snr_threshold(self):
+        return float(self._snr_threshold)
+
+    def _make_filepath(self, filename):
+        return '{base_directory}{sep}{chip_id}{sep}{filename}'.format(base_directory=self._base_directory,
+                                                                      chip_id=self._chip_id,
+                                                                      sep=os.path.sep,
+                                                                      filename=filename)
