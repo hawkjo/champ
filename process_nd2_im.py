@@ -83,7 +83,6 @@ def process_fig(base_directory, chip_id, strategy, nd2_filename, im_idx):
 
 if __name__ == '__main__':
     fmt = '{0} <base_directory> <chip_id> <strategy> <nd2_fpath> <im_idx>'.format(sys.argv[0])
-    # fmt = '{0} <align_run_name> <nd2_fpath> <align_param_file> <im_idx>'.format(sys.argv[0])
     if len(sys.argv) != len(fmt.split()):
         sys.exit('Usage: ' + fmt)
     process_fig(*sys.argv[1:])

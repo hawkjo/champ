@@ -46,6 +46,7 @@ def create_fits_files(nd2_filename):
             f.write(str(xyz_file))
             indexes.append(n)
     for n in indexes:
+        log.info("fits n: %s" % n)
         subprocess.call(['fitsify', '%s%s%s.xyz' % (nd2_filename, os.path.sep, n), '%s%s%s.fits' % (nd2_filename, os.path.sep, n), '1', '2', '3'])
     log.info("Done creating fits files for %s" % nd2_filename)
 
@@ -59,7 +60,7 @@ def source_extract(base_file):
     # Don't print any output
     with open('/dev/null', 'w') as devnull:
         command = command.format(base_file=base_file).split(' ')
-        subprocess.call(command, stdout=devnull, stderr=devnull)
+        subprocess.call(command)
 
 
 if __name__ == "__main__":
@@ -74,8 +75,9 @@ if __name__ == "__main__":
     # Wait for the work to be finished and track how long it takes
     log.info("Starting fits file conversions.")
     start = time.time()
+
     results.wait()
-    log.info("results success: %s" % results.successful())
+    # log.info("results success: %s" % results.successful())
     log.info("Done with fits file conversions. Elapsed time: %s seconds" % round(time.time() - start, 0))
 
     # Now run source extractor (astronomy software) to do...something
