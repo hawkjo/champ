@@ -4,6 +4,8 @@ from matplotlib.patches import Ellipse
 
 
 class SextractorPoint(object):
+    __slots__ = ['c', 'r', 'flux', 'flux_err', 'flags', 'width', 'height', 'theta']
+
     def __init__(self, line):
         self.c, self.r, self.flux, self.flux_err, self.flags, \
                 self.width, self.height, self.theta \
