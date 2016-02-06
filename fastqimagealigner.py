@@ -1,20 +1,20 @@
-import numpy as np
+from copy import deepcopy
+from fastqtilercs import FastqTileRCs
+from imagedata import ImageData
+from itertools import izip
+import logging
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from scipy import ndimage
-import time
+from misc import pad_to_size, max_2d_idx, AlignmentStats
+import numpy as np
 import random
-from copy import deepcopy
-from itertools import izip
-import sextraction
+import reads
+from scipy import ndimage
 import scipy.optimize
 from scipy.spatial import KDTree
+import sextraction
 from sklearn.mixture import GMM
-from imagedata import ImageData
-from fastqtilercs import FastqTileRCs
-from misc import pad_to_size, max_2d_idx, AlignmentStats
-import reads
-import logging
+import time
 
 log = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ class FastqImageAligner(object):
             self.set_tile_alignment(astats.tile[i],
                                     astats.scaling[i],
                                     astats.tile_width[i],
-                                    astats.rotation[i]*np.pi/180,
+                                    astats.rotation[i] * np.pi / 180,
                                     astats.rc_offset[i]
                                    )
         
@@ -104,7 +104,7 @@ class FastqImageAligner(object):
         assert self.image_data is not None, 'No image data loaded.'
         assert self.fastq_tiles != {}, 'No fastq data loaded.'
 
-        self.all_data = np.concatenate([tile.rcs for key, tile in self.fastq_tiles.items()])
+        self.all_data = np.concatenate([tile.rcs for tile in self.fastq_tiles.values()])
 
         x_min, y_min = self.all_data.min(axis=0)
         x_max, y_max = self.all_data.max(axis=0)
@@ -128,7 +128,6 @@ class FastqImageAligner(object):
         self.fq_im_scaled_dims = np.array(im_shapes).max(axis=0)
         for tile in self.fastq_tiles_list:
             tile.image_shape = self.fq_im_scaled_dims
-
 
     def imreg_align(self):
         for key, tile in sorted(self.fastq_tiles.items()):
@@ -212,7 +211,7 @@ class FastqImageAligner(object):
         self.image_data.set_single_fft((0, 0), padding=self.fq_im_scaled_dims)
         self.control_corr = 0
         for control_tile in control_tiles:
-            _, _, corr, _ = self.fft_align_tile(control_tile)
+            corr = self.fft_align_tile(control_tile)[2]
             if corr > self.control_corr:
                 self.control_corr = corr
 
@@ -398,15 +397,15 @@ class FastqImageAligner(object):
             # Reminder: All indices are in the order (sexcat_idx, in_frame_idx)
             hits = self.remove_longest_hits(get_hits(hit_type), pct_thresh)
             assert len(hits) > min_hits, 'Too few hits for least squares mapping: {0}'.format(len(hits))
-            A = np.zeros((2*len(hits), 4))
-            b = np.zeros((2*len(hits),))
+            A = np.zeros((2 * len(hits), 4))
+            b = np.zeros((2 * len(hits),))
             for i, (sexcat_idx, in_frame_idx) in enumerate(hits):
                 tile_key, (xir, yir) = self.rcs_in_frame[in_frame_idx]
-                A[2*i, :]   = [xir, -yir, 1, 0]
+                A[2*i, :] = [xir, -yir, 1, 0]
                 A[2*i+1, :] = [yir,  xir, 0, 1]
 
                 xis, yis = self.sexcat.point_rcs[sexcat_idx]
-                b[2*i]   = xis
+                b[2*i] = xis
                 b[2*i+1] = yis
 
             x = np.linalg.lstsq(A, b)[0]

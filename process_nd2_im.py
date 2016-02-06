@@ -1,12 +1,11 @@
 import sys
 import os
 import fastqimagealigner
-import local_config
+import config
 import nd2reader
 import nd2tools
 import logging
 import reads
-import params
 
 log = logging.getLogger(__name__)
 
@@ -26,9 +25,9 @@ def tile_keys_given_nums(tile_nums):
 
 def process_fig(base_directory, chip_id, strategy, nd2_filename, im_idx):
     assert strategy in ('fast', 'slow'), 'Invalid alignment strategy'
-    file_structure = local_config.FileStructure(base_directory)
+    file_structure = config.Experiment(base_directory)
     im_idx = int(im_idx)
-    alignment_parameters = params.AlignmentParameters(base_directory, chip_id)
+    alignment_parameters = config.AlignmentParameters(base_directory, chip_id)
     nd2 = nd2reader.Nd2('{base_directory}{sep}{nd2_filename}'.format(base_directory=base_directory,
                                                                      nd2_filename=nd2_filename,
                                                                      sep=os.path.sep))

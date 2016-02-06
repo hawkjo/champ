@@ -2,7 +2,6 @@ import os
 import numpy as np
 from multiprocessing import Pool
 from misc import next_power_of_2, median_normalize as normalize_median
-import tifffile
 
 
 class ImageData(object):
@@ -31,8 +30,6 @@ class ImageData(object):
         self.bname, ext = os.path.splitext(self.fname)
         if ext == '.npy':
             self.im = np.load(self.fpath)
-        elif ext == '.tif':
-            self.im = tifffile.imread(self.fpath)
         else:
             raise ValueError('Image type not accepted: %s' % self.fname)
         self.set_objective(objective)

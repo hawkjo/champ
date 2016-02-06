@@ -2,7 +2,7 @@ from copy import deepcopy
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import spatial
-import imreg
+import imreg_dft as imreg
 import misc
 
 

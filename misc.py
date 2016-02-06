@@ -157,8 +157,8 @@ def fold_radial_symmetry(x, with_max=False):
         folded.append(x[i, i] + x[i, o] + x[o, i] + x[o, o])  # diagonal
         
     # Others
-    for i in range(2, m+1):   # L_infty from c
-        for j in range(1, i): # L_1 from s
+    for i in range(2, m+1):  # L_infty from c
+        for j in range(1, i):  # L_1 from s
             folded.append(sum([x[m-i, m-j],
                                x[m-i, m+j],
                                x[m+i, m-j],
