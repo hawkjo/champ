@@ -4,7 +4,7 @@ Usage:
   chimp <command> [-v | -vv | -vvv]
 
 Commands:
-  align         creates alignments from raw images and NGS sequence data
+  align         Creates alignments from raw images and NGS sequence data.
 
 Options:
   -h --help     Show this screen.
