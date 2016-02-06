@@ -2,8 +2,6 @@ import os
 import copy
 import nd2reader
 import numpy as np
-import matplotlib
-matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from misc import median_normalize
 import sys

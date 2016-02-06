@@ -14,6 +14,8 @@ Options:
 from docopt import docopt
 from preprocess.main import run as align
 import logging
+import matplotlib
+matplotlib.use('agg')
 
 
 if __name__ == '__main__':
