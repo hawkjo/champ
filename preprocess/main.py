@@ -30,9 +30,7 @@ from multiprocessing import Pool
 import logging
 import multiprocessing
 
-log = logging.getLogger()
-log.addHandler(logging.StreamHandler())
-log.setLevel(logging.DEBUG)
+log = logging.getLogger(__name__)
 
 
 def create_fits_files(nd2_filename):
@@ -63,7 +61,7 @@ def source_extract(base_file):
         subprocess.call(command)
 
 
-if __name__ == "__main__":
+def run():
     filenames = [nd2_filename for nd2_filename in images.get_nd2_filenames()]
     # Try to use one core per file, but top out at the number of cores that the machine has. This hasn't been proven to be optimal.
     thread_count = min(len(filenames), multiprocessing.cpu_count())
