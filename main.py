@@ -28,7 +28,7 @@ if __name__ == '__main__':
                  1: logging.WARN,
                  2: logging.INFO,
                  3: logging.DEBUG}
-    log.setLevel(log_level[arguments['-v']])
+    log.setLevel(log_level.get(arguments.get('-v', 0), 3))
 
     # parse the command
     commands = {'align': align}

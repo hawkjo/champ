@@ -1,11 +1,11 @@
-import sys
-import os
-import fastqimagealigner
 import config
+import fastqimagealigner
+import logging
 import nd2reader
 import nd2tools
-import logging
+import os
 import reads
+import sys
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +54,8 @@ def process_fig(base_directory, chip_id, strategy, nd2_filename, im_idx):
     fic = fastqimagealigner.FastqImageAligner(chip_id, file_structure)
     tile_data = reads.get_read_names(alignment_parameters.aligning_read_names_filepath)
     fic.load_reads(tile_data)
-    fic.set_image_data(im=nd2[im_idx], objective=alignment_parameters.objective, fpath=str(im_idx), median_normalize=True)
+    fic.set_image_data(im=nd2[im_idx], objective=alignment_parameters.objective,
+                       fpath=str(im_idx), median_normalize=True)
     fic.set_sexcat_from_file(sexcat_fpath)
     fic.align(possible_tile_keys,
               alignment_parameters.rotation_estimate,
@@ -62,7 +63,8 @@ def process_fig(base_directory, chip_id, strategy, nd2_filename, im_idx):
               snr_thresh=alignment_parameters.snr_threshold,
               min_hits=alignment_parameters.min_hits,
               hit_type=('exclusive', 'good_mutual'))
-    log.debug("%s %s %s %s" % (alignment_parameters.chip_id, base_nd2_name, im_idx, ','.join(tile.key for tile in fic.hitting_tiles)))
+    log.debug("%s %s %s %s" % (alignment_parameters.chip_id, base_nd2_name, im_idx,
+                               ','.join(tile.key for tile in fic.hitting_tiles)))
     
     fic.output_intensity_results(intensity_fpath)
     fic.write_alignment_stats(stats_fpath)

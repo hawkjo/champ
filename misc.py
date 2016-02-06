@@ -62,13 +62,7 @@ def strisfloat(x):
 
 
 def strisint(x):
-    try:
-        a = float(x)
-        b = int(x)
-    except ValueError:
-        return False
-    else:
-        return a == b
+    return x.isdigit()
 
 
 class AlignmentStats:
@@ -144,10 +138,10 @@ def fold_radial_symmetry(x, with_max=False):
 
     slen = x.shape[0]
     assert x.shape == (slen, slen), x  # Check for 2d square matrix
-    m = int(slen/2)
-    folded = []
-    
+    m = int(slen / 2)
+
     # Center
+    folded = []
     folded.append(x[m, m])
     
     # Sides and Diagonals
@@ -193,7 +187,7 @@ def unfold_radial_symmetry(folded, with_max=False):
 
     # Sides and Diagonals
     for i in range(m):
-        o = slen-i-1
+        o = slen - i - 1
 
         sval = folded.pop(0) / 4.0
         x[i, m] = sval

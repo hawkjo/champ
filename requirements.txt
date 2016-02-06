@@ -1,3 +1,4 @@
+docopt==0.6.2
 numpy==1.10.4
 biopython==1.66
 nd2reader==2.1.0
