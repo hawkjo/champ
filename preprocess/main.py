@@ -1,24 +1,3 @@
-"""
-This replaces:
-    sextractor_all_directories.sh
-    sextractor_directories.sh
-    sextractor_txt_file.sh
-
-
-It might eventually replace other files involved in making raw data available for high-level analysis.
-
-Assumptions:
-  The user has a directory with an ND2 file and some raw data from the sequencer. They will be named something like:
-
-  15-11-18_SA15243_Cascade-TA_1nM-007.nd2
-  SA15243/
-
-  That's it!
-
-Goal:
-  Be able to run a command like "chimp preprocess" in the directory with the ND2 and NGS files and it does everything.
-
-"""
 import images
 from xyz import XYZFile
 from nd2reader import Nd2
@@ -44,7 +23,6 @@ def create_fits_files(nd2_filename):
             f.write(str(xyz_file))
             indexes.append(n)
     for n in indexes:
-        log.info("fits n: %s" % n)
         subprocess.call(['fitsify', '%s%s%s.xyz' % (nd2_filename, os.path.sep, n), '%s%s%s.fits' % (nd2_filename, os.path.sep, n), '1', '2', '3'])
     log.info("Done creating fits files for %s" % nd2_filename)
 
@@ -58,7 +36,7 @@ def source_extract(base_file):
     # Don't print any output
     with open('/dev/null', 'w') as devnull:
         command = command.format(base_file=base_file).split(' ')
-        subprocess.call(command)
+        subprocess.call(command, stdout=devnull, stderr=devnull)
 
 
 def run():
