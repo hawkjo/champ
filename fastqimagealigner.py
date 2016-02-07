@@ -1,20 +1,20 @@
-import numpy as np
+from copy import deepcopy
+from fastqtilercs import FastqTileRCs
+from imagedata import ImageData
+from itertools import izip
+import logging
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from scipy import ndimage
-import time
+from misc import pad_to_size, max_2d_idx, AlignmentStats
+import numpy as np
 import random
-from copy import deepcopy
-from itertools import izip
-import sextraction
+import reads
+from scipy import ndimage
 import scipy.optimize
 from scipy.spatial import KDTree
+import sextraction
 from sklearn.mixture import GMM
-from imagedata import ImageData
-from fastqtilercs import FastqTileRCs
-from misc import pad_to_size, max_2d_idx, AlignmentStats
-import reads
-import logging
+import time
 
 log = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ class FastqImageAligner(object):
             self.set_tile_alignment(astats.tile[i],
                                     astats.scaling[i],
                                     astats.tile_width[i],
-                                    astats.rotation[i]*np.pi/180,
+                                    astats.rotation[i] * np.pi / 180,
                                     astats.rc_offset[i]
                                    )
         
@@ -104,7 +104,7 @@ class FastqImageAligner(object):
         assert self.image_data is not None, 'No image data loaded.'
         assert self.fastq_tiles != {}, 'No fastq data loaded.'
 
-        self.all_data = np.concatenate([tile.rcs for key, tile in self.fastq_tiles.items()])
+        self.all_data = np.concatenate([tile.rcs for tile in self.fastq_tiles.values()])
 
         x_min, y_min = self.all_data.min(axis=0)
         x_max, y_max = self.all_data.max(axis=0)
@@ -115,20 +115,17 @@ class FastqImageAligner(object):
         self.fq_im_scaled_dims = (self.fq_im_scaled_maxes + [1, 1]).astype(np.int)
 
     def set_all_fastq_image_data(self):
-        for key, tile in self.fastq_tiles.items():
+        for tile in self.fastq_tiles.values():
             tile.set_fastq_image_data(self.fq_im_offset,
                                       self.fq_im_scale,
                                       self.fq_im_scaled_dims,
                                       self.fq_w)
 
     def rotate_all_fastq_data(self, degrees):
-        im_shapes = []
-        for tile in self.fastq_tiles_list:
-            im_shapes.append(tile.rotate_data(degrees))
+        im_shapes = [tile.rotate_data(degrees) for tile in self.fastq_tiles_list]
         self.fq_im_scaled_dims = np.array(im_shapes).max(axis=0)
         for tile in self.fastq_tiles_list:
             tile.image_shape = self.fq_im_scaled_dims
-
 
     def imreg_align(self):
         for key, tile in sorted(self.fastq_tiles.items()):
@@ -150,6 +147,8 @@ class FastqImageAligner(object):
 
         # Align
         best_max_corr = float('-inf')
+        best_im_key = None
+        align_tr = None
         for im_key, im_data_fft in self.image_data.all_ffts.items():
             fq_im_fft = fq_im_fft_given_shape[im_data_fft.shape]
             cross_corr = abs(np.fft.ifft2(np.conj(fq_im_fft) * im_data_fft))
@@ -160,6 +159,8 @@ class FastqImageAligner(object):
                 best_im_key = im_key
                 best_max_corr = max_corr
                 align_tr = np.array(max_idx) - fq_image.shape
+        if best_im_key is None:
+            raise ValueError("Unable to align tile")
         return tile.key, best_im_key, best_max_corr, align_tr
 
     def fft_align(self, processors, recalc_fft=True):
@@ -212,7 +213,7 @@ class FastqImageAligner(object):
         self.image_data.set_single_fft((0, 0), padding=self.fq_im_scaled_dims)
         self.control_corr = 0
         for control_tile in control_tiles:
-            _, _, corr, _ = self.fft_align_tile(control_tile)
+            corr = self.fft_align_tile(control_tile)[2]
             if corr > self.control_corr:
                 self.control_corr = corr
 
@@ -263,8 +264,7 @@ class FastqImageAligner(object):
         return [self.single_hit_dist(hit) for hit in hits]
 
     def single_hit_dist(self, hit):
-        i, j = hit
-        return np.linalg.norm(self.sexcat.point_rcs[i] - self.aligned_rcs_in_frame[j])
+        return np.linalg.norm(self.sexcat.point_rcs[hit[0]] - self.aligned_rcs_in_frame[hit[1]])
 
     def remove_longest_hits(self, hits, pct_thresh):
         dists = self.hit_dists(hits)
@@ -335,7 +335,7 @@ class FastqImageAligner(object):
         # --------------------------------------------------------------------------------
         assert (non_mutual_hits | bad_mutual_hits | good_mutual_hits | exclusive_hits
                 == sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev
-                and  len(non_mutual_hits) + len(bad_mutual_hits)
+                and len(non_mutual_hits) + len(bad_mutual_hits)
                 + len(good_mutual_hits) + len(exclusive_hits)
                 == len(sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev))
 
@@ -398,20 +398,18 @@ class FastqImageAligner(object):
             # Reminder: All indices are in the order (sexcat_idx, in_frame_idx)
             hits = self.remove_longest_hits(get_hits(hit_type), pct_thresh)
             assert len(hits) > min_hits, 'Too few hits for least squares mapping: {0}'.format(len(hits))
-            A = np.zeros((2*len(hits), 4))
-            b = np.zeros((2*len(hits),))
+            A = np.zeros((2 * len(hits), 4))
+            b = np.zeros((2 * len(hits),))
             for i, (sexcat_idx, in_frame_idx) in enumerate(hits):
                 tile_key, (xir, yir) = self.rcs_in_frame[in_frame_idx]
-                A[2*i, :]   = [xir, -yir, 1, 0]
+                A[2*i, :] = [xir, -yir, 1, 0]
                 A[2*i+1, :] = [yir,  xir, 0, 1]
 
                 xis, yis = self.sexcat.point_rcs[sexcat_idx]
-                b[2*i]   = xis
+                b[2*i] = xis
                 b[2*i+1] = yis
 
-            x = np.linalg.lstsq(A, b)[0]
-            alpha, beta, x_offset, y_offset = x
-
+            alpha, beta, x_offset, y_offset = np.linalg.lstsq(A, b)[0]
             offset = np.array([x_offset, y_offset])
             theta = np.arctan2(beta, alpha)
             lbda = alpha / np.cos(theta)
@@ -497,16 +495,14 @@ class FastqImageAligner(object):
         axs[0].hist(non_mut_dists, 40, histtype='step', normed=True, label='Data')
         axs[0].plot(xs, pdf, label='PDF')
         ylim = axs[0].get_ylim()
-        axs[0].plot([self.second_neighbor_thresh, self.second_neighbor_thresh], ylim,
-                'g--', label='Threshold')
+        axs[0].plot([self.second_neighbor_thresh, self.second_neighbor_thresh], ylim, 'g--', label='Threshold')
         axs[0].set_title('%s GMM PDF of Non-mutual hits' % self.image_data.bname)
         axs[0].legend()
         axs[0].set_ylim(ylim)
 
         axs[1].hist(non_mut_dists, 40, histtype='step', normed=True, label='Data')
         axs[1].plot(xs, posteriors, label='Posterior')
-        axs[1].plot([self.second_neighbor_thresh, self.second_neighbor_thresh], [0, 1],
-                'g--', label='Threshold')
+        axs[1].plot([self.second_neighbor_thresh, self.second_neighbor_thresh], [0, 1], 'g--', label='Threshold')
         axs[1].set_title('%s GMM Posterior Probabilities' % self.image_data.bname)
         axs[1].legend()
         return axs
@@ -555,18 +551,14 @@ class FastqImageAligner(object):
         ax.set_xlim([0, self.image_data.im.shape[1]])
         ax.set_ylim([self.image_data.im.shape[0], 0])
 
-        grey_line = Line2D([], [], color='grey',
-                label='Non-mutual hits: %d' % (len(self.non_mutual_hits)))
-        blue_line = Line2D([], [], color='blue',
-                label='Bad mutual hits: %d' % (len(self.bad_mutual_hits)))
-        magenta_line = Line2D([], [], color='magenta',
-                label='Good mutual hits: %d' % (len(self.good_mutual_hits)))
-        red_line = Line2D([], [], color='red',
-                label='Exclusive hits: %d' % (len(self.exclusive_hits)))
+        grey_line = Line2D([], [], color='grey', label='Non-mutual hits: %d' % (len(self.non_mutual_hits)))
+        blue_line = Line2D([], [], color='blue', label='Bad mutual hits: %d' % (len(self.bad_mutual_hits)))
+        magenta_line = Line2D([], [], color='magenta', label='Good mutual hits: %d' % (len(self.good_mutual_hits)))
+        red_line = Line2D([], [], color='red', label='Exclusive hits: %d' % (len(self.exclusive_hits)))
         sexcat_line = Line2D([], [], color='darkgoldenrod', alpha=0.6, marker='o', markersize=10,
-                label='Sextractor Ellipses: %d' % (len(self.sexcat.point_rcs)))
+                             label='Sextractor Ellipses: %d' % (len(self.sexcat.point_rcs)))
         fastq_line = Line2D([], [], color='k', alpha=0.3, marker='o', markersize=10,
-                label='Fastq Points: %d' % (len(self.aligned_rcs_in_frame)))
+                            label='Fastq Points: %d' % (len(self.aligned_rcs_in_frame)))
         handles = [grey_line, blue_line, magenta_line, red_line, sexcat_line, fastq_line]
         legend = ax.legend(handles=handles, **legend_kwargs)
         legend.get_frame().set_color('white')

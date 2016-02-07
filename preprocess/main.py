@@ -1,13 +1,14 @@
 import images
-from xyz import XYZFile
-from nd2reader import Nd2
-import os
-import subprocess
-from source_extractor import SEConfig
-import time
-from multiprocessing import Pool
 import logging
 import multiprocessing
+from multiprocessing import Pool
+from nd2reader import Nd2
+import os
+from source_extractor import SEConfig
+import subprocess
+import time
+from xyz import XYZFile
+
 
 log = logging.getLogger(__name__)
 
@@ -41,7 +42,8 @@ def source_extract(base_file):
 
 def run():
     filenames = [nd2_filename for nd2_filename in images.get_nd2_filenames()]
-    # Try to use one core per file, but top out at the number of cores that the machine has. This hasn't been proven to be optimal.
+    # Try to use one core per file, but top out at the number of cores that the machine has.
+    # This hasn't been proven to be optimal.
     thread_count = min(len(filenames), multiprocessing.cpu_count())
 
     # Assign each ND2 file to a thread, which converts it to a "fits" file

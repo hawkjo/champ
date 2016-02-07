@@ -2,7 +2,7 @@ from copy import deepcopy
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import spatial
-import imreg
+import imreg_dft as imreg
 import misc
 
 
@@ -30,7 +30,7 @@ class FastqTileRCs(object):
 
     def image(self):
         image = np.zeros(self.image_shape)
-        image[self.mapped_rcs.astype(np.int)[:,0], self.mapped_rcs.astype(np.int)[:,1]] = 1
+        image[self.mapped_rcs.astype(np.int)[:, 0], self.mapped_rcs.astype(np.int)[:, 1]] = 1
         return image
 
     def imreg_align_with_im(self, im):
@@ -39,7 +39,7 @@ class FastqTileRCs(object):
         sq_fq_im = misc.pad_to_size(fq_image, (edge_len, edge_len))
 
         self.max_score = float('-inf')
-        for flip in [False, True]:
+        for flip in (False, True):
             if flip:
                 im = np.fliplr(im)
             sq_im = misc.pad_to_size(im, (edge_len, edge_len))
@@ -97,7 +97,7 @@ class FastqTileRCs(object):
         A = np.zeros((2*len(self.rcs), 4))
         for i, pt in enumerate(self.rcs):
             xir, yir = pt
-            A[2*i, :]   = [xir, -yir, 1, 0]
+            A[2*i, :] = [xir, -yir, 1, 0]
             A[2*i+1, :] = [yir,  xir, 0, 1]
 
         x = np.array([lbda * np.cos(theta),
@@ -111,13 +111,12 @@ class FastqTileRCs(object):
         self.rotation = theta
         self.rotation_degrees = theta * 180.0 / np.pi
         self.offset = offset
-
         self.aligned_rcs = np.dot(A, x).reshape((len(self.rcs), 2))
 
     def set_correlation(self, im):
         """Sets alignment correlation. Only works when image need not be flipped or rotated."""
-        self.best_max_corr =  sum(im[pt[0], pt[1]] for pt in self.aligned_rcs
-                                  if 0 <= pt[0] < im.shape[0] and 0 <= pt[1] < im.shape[1])
+        self.best_max_corr = sum(im[pt[0], pt[1]] for pt in self.aligned_rcs
+                                 if 0 <= pt[0] < im.shape[0] and 0 <= pt[1] < im.shape[1])
 
     def set_snr(self, snr):
         self.snr = snr

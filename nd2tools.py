@@ -74,8 +74,8 @@ def plot_nd2_grid(nd2, edge, channel, idx_start=None, idx_end=None, suptitle='')
         ax.matshow(im, vmin=0, vmax=2)
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.text(im.shape[1]/2,
-                im.shape[0]/2,
+        ax.text(im.shape[1] / 2,
+                im.shape[0] / 2,
                 pos_name,
                 color='white',
                 fontsize=24,
@@ -123,9 +123,9 @@ def stitch_nd2(nd2, channel, row_start=None, row_end=None, col_start=None, col_e
                 if score > max_score:
                     max_score, best_overlap, best_lateral = score, ovr, lat
         if direction == 'lr':
-            offset = np.array([best_lateral, im_shape[1]-best_overlap])
+            offset = np.array([best_lateral, im_shape[1] - best_overlap])
         else:
-            offset = np.array([im_shape[0]-best_overlap, best_lateral])
+            offset = np.array([im_shape[0] - best_overlap, best_lateral])
         return offset
 
     def best_alignment_pos(nascent_im,
@@ -159,8 +159,8 @@ def stitch_nd2(nd2, channel, row_start=None, row_end=None, col_start=None, col_e
 
         start_pos = curr_pos + offset
         max_score, best_pos = float('-inf'), None
-        for r_off in range(min_overlap, max_overlap+1):
-            for c_off in range(min_overlap, max_overlap+1):
+        for r_off in range(min_overlap, max_overlap + 1):
+            for c_off in range(min_overlap, max_overlap + 1):
                 pos = start_pos + np.array([r_off, c_off])
                 r, c = pos
                 score_mat = np.multiply(im, nascent_im[r:r+im_shape[0], c:c+im_shape[1]])
@@ -203,7 +203,6 @@ def stitch_nd2(nd2, channel, row_start=None, row_end=None, col_start=None, col_e
                     curr_pos = best_alignment_pos(nascent_im, im_idx, curr_pos, direction='dr')
                 else:
                     curr_pos = best_alignment_pos(nascent_im, im_idx, curr_pos, direction='rd')
-                r, c = curr_pos
                 positions[(row, col)] = copy.deepcopy(curr_pos)
 
     minr = min(pos[0] for pos in positions.values())
@@ -224,7 +223,6 @@ def stitch_nd2(nd2, channel, row_start=None, row_end=None, col_start=None, col_e
             stch_im[r:r+im.shape[0], c:c+im.shape[1]] = im
             sign = (-1)**(i+j)
             diff_im[r:r+im.shape[0], c:c+im.shape[1]] += sign*im
-
     return stch_im, diff_im, positions
 
 

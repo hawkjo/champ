@@ -1,6 +1,8 @@
+docopt==0.6.2
 numpy==1.10.4
 biopython==1.66
 nd2reader==2.1.0
 scipy==0.16.1
 matplotlib==1.5.1
 scikit-learn==0.17
+imreg-dft==1.0.5

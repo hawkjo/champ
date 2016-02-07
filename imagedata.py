@@ -2,7 +2,6 @@ import os
 import numpy as np
 from multiprocessing import Pool
 from misc import next_power_of_2, median_normalize as normalize_median
-import tifffile
 
 
 class ImageData(object):
@@ -31,8 +30,6 @@ class ImageData(object):
         self.bname, ext = os.path.splitext(self.fname)
         if ext == '.npy':
             self.im = np.load(self.fpath)
-        elif ext == '.tif':
-            self.im = tifffile.imread(self.fpath)
         else:
             raise ValueError('Image type not accepted: %s' % self.fname)
         self.set_objective(objective)
@@ -58,9 +55,9 @@ class ImageData(object):
             yield idx, self.D4_im_given_idx(idx)
 
     def iterate_D4_idxs(self):
-        for flip in [0, 1]:
-            for rot in [0, 90, 180, 270]:
-                yield (flip, rot)
+        for flip in (0, 1):
+            for rot in (0, 90, 180, 270):
+                yield flip, rot
 
     def D4_ffts(self, padding=(0, 0), processors=1, force=False):
         """Makes images and ffts of all flips and 90 degree rotations (i.e. D4)"""
@@ -79,10 +76,10 @@ class ImageData(object):
     def single_fft(self, idx):
         im = self.D4_im_given_idx(idx)
         self.fft_padding = self.fft_padding.astype('int64', copy=False)
-        totalx, totaly = np.array(self.fft_padding)+np.array(im.shape)
+        totalx, totaly = np.array(self.fft_padding) + np.array(im.shape)
         w = next_power_of_2(totalx)
         h = next_power_of_2(totaly)
         padded_im = np.pad(im,
-                           ((self.fft_padding[0], w-totalx), (self.fft_padding[1], h-totaly)),
+                           ((self.fft_padding[0], w - totalx), (self.fft_padding[1], h - totaly)),
                            mode='constant')
         return np.fft.fft2(padded_im)
