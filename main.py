@@ -12,6 +12,7 @@ Options:
 
 """
 from docopt import docopt
+from error import quit
 from preprocess.main import run as align
 import logging
 import matplotlib
@@ -34,8 +35,7 @@ if __name__ == '__main__':
     commands = {'align': align}
     command_name = arguments['<command>']
     if command_name not in commands:
-        print("Invalid command.")
-        exit(1)
+        quit("Invalid command.")
 
     # run the command
     commands[command_name]()
