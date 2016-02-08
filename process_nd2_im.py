@@ -23,12 +23,11 @@ def tile_keys_given_nums(tile_nums):
     return ['lane1tile{0}'.format(tile_num) for tile_num in tile_nums]
 
 
-def process_fig(base_directory, chip_id, strategy, nd2_filename, im_idx):
+def process_fig(alignment_parameters, strategy, nd2_filename, im_idx):
     assert strategy in ('fast', 'slow'), 'Invalid alignment strategy'
-    file_structure = config.Experiment(base_directory)
+    file_structure = config.Experiment(alignment_parameters.base_directory)
     im_idx = int(im_idx)
-    alignment_parameters = config.AlignmentParameters(base_directory, chip_id)
-    nd2 = nd2reader.Nd2('{base_directory}{sep}{nd2_filename}'.format(base_directory=base_directory,
+    nd2 = nd2reader.Nd2('{base_directory}{sep}{nd2_filename}'.format(base_directory=alignment_parameters.base_directory,
                                                                      nd2_filename=nd2_filename,
                                                                      sep=os.path.sep))
     if strategy == 'fast':
@@ -48,10 +47,10 @@ def process_fig(base_directory, chip_id, strategy, nd2_filename, im_idx):
     if os.path.isfile(all_read_rcs_filepath):
         log.debug('%s, %s already done.' % (base_nd2_name, im_idx))
 
-    sexcat_fpath = os.path.join(base_directory, os.path.splitext(nd2_filename)[0], '%d.cat' % im_idx)
+    sexcat_fpath = os.path.join(alignment_parameters.base_directory, os.path.splitext(nd2_filename)[0], '%d.cat' % im_idx)
     intensity_fpath = os.path.join(file_structure.results_directory, '{}_intensities.txt'.format(im_idx))
     stats_fpath = os.path.join(file_structure.results_directory, '{}_stats.txt'.format(im_idx))
-    fic = fastqimagealigner.FastqImageAligner(chip_id, file_structure)
+    fic = fastqimagealigner.FastqImageAligner(alignment_parameters.chip_id, file_structure)
     tile_data = reads.get_read_names(alignment_parameters.aligning_read_names_filepath)
     fic.load_reads(tile_data)
     fic.set_image_data(im=nd2[im_idx], objective=alignment_parameters.objective,
@@ -79,9 +78,3 @@ def process_fig(base_directory, chip_id, strategy, nd2_filename, im_idx):
     tile_data = reads.get_read_names(alignment_parameters.all_read_names_filepath)
     all_fic.all_reads_fic_from_aligned_fic(fic, tile_data)
     all_fic.write_read_names_rcs(all_read_rcs_filepath)
-
-if __name__ == '__main__':
-    fmt = '{0} <base_directory> <chip_id> <strategy> <nd2_fpath> <im_idx>'.format(sys.argv[0])
-    if len(sys.argv) != len(fmt.split()):
-        sys.exit('Usage: ' + fmt)
-    process_fig(*sys.argv[1:])

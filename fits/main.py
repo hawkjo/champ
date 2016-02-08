@@ -6,6 +6,7 @@ from nd2reader import Nd2
 import os
 from source_extractor import SEConfig
 import subprocess
+import sys
 import time
 from xyz import XYZFile
 
@@ -40,7 +41,7 @@ def source_extract(base_file):
         subprocess.call(command, stdout=devnull, stderr=devnull)
 
 
-def run():
+def run(command_line_arguments):
     filenames = [nd2_filename for nd2_filename in images.get_nd2_filenames()]
     # Try to use one core per file, but top out at the number of cores that the machine has.
     # This hasn't been proven to be optimal.
@@ -48,7 +49,9 @@ def run():
 
     # Assign each ND2 file to a thread, which converts it to a "fits" file
     worker_pool = Pool(processes=thread_count)
-    results = worker_pool.map_async(create_fits_files, filenames)
+    # KeyboardInterrupt won't behave as expected while multiprocessing unless you specify a timeout. We don't want one really, so we just use the largest
+    # possible integer instead
+    results = worker_pool.map_async(create_fits_files, filenames).get(sys.maxint)
 
     # Wait for the work to be finished and track how long it takes
     log.info("Starting fits file conversions.")
@@ -65,7 +68,7 @@ def run():
 
         # Set up a worker for each ND2 file like before
         worker_pool = Pool(thread_count)
-        results = worker_pool.map_async(source_extract, [base_file for nd2_filename in filenames for base_file in base_files(nd2_filename)])
+        results = worker_pool.map_async(source_extract, [base_file for nd2_filename in filenames for base_file in base_files(nd2_filename)]).get(sys.maxint)
 
         # Wait for the work to be done
         results.wait()
