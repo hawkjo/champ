@@ -2,7 +2,6 @@ from copy import deepcopy
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import spatial
-import imreg_dft as imreg
 import misc
 
 
@@ -32,26 +31,6 @@ class FastqTileRCs(object):
         image = np.zeros(self.image_shape)
         image[self.mapped_rcs.astype(np.int)[:, 0], self.mapped_rcs.astype(np.int)[:, 1]] = 1
         return image
-
-    def imreg_align_with_im(self, im):
-        fq_image = self.image()
-        edge_len = misc.next_power_of_2(np.r_[fq_image.shape, im.shape].max())
-        sq_fq_im = misc.pad_to_size(fq_image, (edge_len, edge_len))
-
-        self.max_score = float('-inf')
-        for flip in (False, True):
-            if flip:
-                im = np.fliplr(im)
-            sq_im = misc.pad_to_size(im, (edge_len, edge_len))
-            fq_match_im, scale, rot, tr = imreg.similarity(sq_im, sq_fq_im)
-            score = (sq_im * fq_match_im).sum()
-
-            if score > self.max_score:
-                self.max_score = score
-                self.best_match_im = fq_match_im
-                self.align_scale = scale
-                self.align_rot = rot
-                self.align_tr = tr
 
     def fft_align_with_im(self, image_data):
         im_data_im_shapes = set(a.shape for a in image_data.all_ffts.values())
