@@ -5,9 +5,6 @@ Usage:
   chimp preprocess [-v | -vv | -vvv]
   chimp align [--chip_id] [--objective] [--min_hits] [--min_tile] [--max_tile] [--fq_w_estimate] [--rotation_estimate] [--snr_threshold] [--index_offset] [-v | -vv | -vvv]
 
-Commands:
-  align         Creates alignments from raw images and NGS sequence data.
-
 Options:
   -h --help     Show this screen.
   --version     Show version.
@@ -21,7 +18,7 @@ from controller.preprocess import fitsify
 import logging
 
 
-if __name__ == '__main__':
+def main(args=None):
     arguments = docopt(__doc__, version='0.0.1')
 
     # configure the logger

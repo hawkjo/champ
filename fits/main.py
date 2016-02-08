@@ -51,7 +51,7 @@ def run(command_line_arguments):
     worker_pool = Pool(processes=thread_count)
     # KeyboardInterrupt won't behave as expected while multiprocessing unless you specify a timeout. We don't want one really, so we just use the largest
     # possible integer instead
-    results = worker_pool.map_async(create_fits_files, filenames).get(sys.maxint)
+    results = worker_pool.map_async(create_fits_files, filenames).get(timeout=sys.maxint)
 
     # Wait for the work to be finished and track how long it takes
     log.info("Starting fits file conversions.")
@@ -68,7 +68,8 @@ def run(command_line_arguments):
 
         # Set up a worker for each ND2 file like before
         worker_pool = Pool(thread_count)
-        results = worker_pool.map_async(source_extract, [base_file for nd2_filename in filenames for base_file in base_files(nd2_filename)]).get(sys.maxint)
+        files = [base_file for nd2_filename in filenames for base_file in base_files(nd2_filename)]
+        results = worker_pool.map_async(source_extract, files).get(timeout=sys.maxint)
 
         # Wait for the work to be done
         results.wait()
