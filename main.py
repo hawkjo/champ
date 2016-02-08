@@ -1,9 +1,9 @@
-"""Chip-Hybridized Interaction Mapping Platform
+"""
+Chip-Hybridized Interaction Mapping Platform
 
 Usage:
   chimp preprocess [-v | -vv | -vvv]
-  chimp align [--chip_id] [--objective] [--min_hits] [--min_tile] [--max_tile] [--fq_w_estimate] [--rotation_estimate]
-                        [--snr_threshold] [--index_offset] [-v | -vv | -vvv]
+  chimp align [--chip_id] [--objective] [--min_hits] [--min_tile] [--max_tile] [--fq_w_estimate] [--rotation_estimate] [--snr_threshold] [--index_offset] [-v | -vv | -vvv]
 
 Commands:
   align         Creates alignments from raw images and NGS sequence data.
