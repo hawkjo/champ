@@ -40,7 +40,7 @@ def source_extract(base_file):
         subprocess.call(command, stdout=devnull, stderr=devnull)
 
 
-def run():
+def run(command_line_arguments):
     filenames = [nd2_filename for nd2_filename in images.get_nd2_filenames()]
     # Try to use one core per file, but top out at the number of cores that the machine has.
     # This hasn't been proven to be optimal.

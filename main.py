@@ -1,7 +1,10 @@
 """Chip-Hybridized Interaction Mapping Platform
 
 Usage:
-  chimp <command> [-v | -vv | -vvv]
+  chimp align [--chip_id] [--objective] [--min_hits] [--min_tile] [--max_tile] [--fq_w_estimate] [--rotation_estimate]
+                        [--snr_threshold] [--index_offset] [-v | -vv | -vvv]
+  chimp preprocess [-v | -vv | -vvv]
+
 
 Commands:
   align         Creates alignments from raw images and NGS sequence data.
@@ -12,8 +15,8 @@ Options:
 
 """
 from docopt import docopt
-from error import quit
-from preprocess.main import run as align
+from controller.align import align
+from controller.preprocess import fitsify
 import logging
 import matplotlib
 matplotlib.use('agg')
@@ -29,13 +32,12 @@ if __name__ == '__main__':
                  1: logging.WARN,
                  2: logging.INFO,
                  3: logging.DEBUG}
+    # default to silent if the user supplies no verbosity setting
+    # if they give us an invalid setting (four or more v's) set to debug mode
     log.setLevel(log_level.get(arguments.get('-v', 0), 3))
 
-    # parse the command
-    commands = {'align': align}
-    command_name = arguments['<command>']
-    if command_name not in commands:
-        quit("Invalid command.")
+    if arguments['preprocess']:
+        fitsify(arguments)
 
-    # run the command
-    commands[command_name]()
+    if arguments['align']:
+        align(arguments)
