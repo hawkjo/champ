@@ -55,7 +55,6 @@ class FastqImageAligner(object):
         else:
             self.load_reads(tile_data)
         self.image_data = deepcopy(other_fic.image_data)
-
         self.fq_w = other_fic.fq_w
         self.set_fastq_tile_mappings()
         self.set_all_fastq_image_data()

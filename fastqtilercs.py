@@ -72,7 +72,7 @@ class FastqTileRCs(object):
         self.aligned_rcs = self.get_new_aligned_rcs()
 
     def set_aligned_rcs_given_transform(self, lbda, theta, offset):
-        """Performs transform calculated in FastqImageCorrelator.least_squares_mapping."""
+        """Performs transform calculated in FastqImageAligner.least_squares_mapping."""
         A = np.zeros((2*len(self.rcs), 4))
         for i, pt in enumerate(self.rcs):
             xir, yir = pt
