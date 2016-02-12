@@ -128,7 +128,6 @@ class FastqImageAligner(object):
         impossible_tiles = [tile for tile in self.fastq_tiles.values() if tile not in possible_tiles]
         control_tiles = random.sample(impossible_tiles, 3)
 
-        self.image_data.set_single_fft(self.fq_im_scaled_dims)
         self.control_corr = 0
         for control_tile in control_tiles:
             corr = self.fft_align_tile(control_tile)[2]

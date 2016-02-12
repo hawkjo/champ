@@ -8,7 +8,7 @@ def load_sextraction(experiment, nd2_name, image_index):
         return sextraction.Sextraction(f)
 
 
-def align(image, tile, params):
+def align(image, tile, sexcat, params):
     """
 
     :param image:
@@ -17,10 +17,9 @@ def align(image, tile, params):
     :return:
     """
     fic = FastqImageAligner(params.chip_id)
-    fic.load_reads(tile_data)
-    fic.set_image_data(im=nd2[image_index], objective=params.objective,
-                       fpath=str(image_index), median_normalize=True)
-    fic.sexcat = load_sextraction(experiment, nd2_name, image_index)
+    # fic.set_image_data(im=nd2[image_index], objective=params.objective,
+    #                    fpath=str(image_index), median_normalize=True)
+    # fic.sexcat = load_sextraction(experiment, nd2_name, image_index)
 
     fic.align(possible_tile_keys,
               alignment_parameters.rotation_estimate,

@@ -1,10 +1,10 @@
 import os
 import numpy as np
-from misc import next_power_of_2, median_normalize as normalize_median
+from misc import median_normalize as normalize_median
 
 
 class ImageData(object):
-    """A class for image data to be correlated with fastq coordinate data."""
+    """ A class for image data to be correlated with fastq coordinate data. """
     def __init__(self, fpath=None, objective=None, im=None, fname='<name unknown>', median_normalize=False):
         if im is not None:
             if fpath:
@@ -40,16 +40,3 @@ class ImageData(object):
         self.objective = objective
         self.um_per_pixel = 16.0 / self.objective
         self.um_dims = self.um_per_pixel * np.array(self.im.shape)
-
-    def set_single_fft(self, padding):
-        self.fft_padding = padding.astype('int64', copy=False)
-        self.all_ffts = {(0, 0): self.single_fft()}
-
-    def single_fft(self):
-        totalx, totaly = np.array(self.fft_padding) + np.array(self.im.shape)
-        w = next_power_of_2(totalx)
-        h = next_power_of_2(totaly)
-        padded_im = np.pad(self.im,
-                           ((self.fft_padding[0], w - totalx), (self.fft_padding[1], h - totaly)),
-                           mode='constant')
-        return np.fft.fft2(padded_im)
