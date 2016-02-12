@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.patches import Ellipse
 
 
 class SextractorPoint(object):
@@ -16,9 +14,9 @@ class SextractorPoint(object):
 
 
 class Sextraction(object):
-    def __init__(self, fpath):
+    def __init__(self, lines):
         self.points = []
-        for line in open(fpath):
+        for line in lines:
             if line.startswith('#'):
                 continue
             self.points.append(SextractorPoint(line))
@@ -30,11 +28,3 @@ class Sextraction(object):
     def cs(self):
         return np.array([pt.c for pt in self.points])
 
-    def plot_ellipses(self, ax=None, alpha=1.0, color=(1, 0, 0)):
-        if ax is None:
-            fig, ax = plt.subplots()
-        ells = [Ellipse(xy=(pt.c, pt.r), width=pt.width, height=pt.height, angle=pt.theta) for pt in self.points]
-        for e in ells:
-            ax.add_artist(e)
-            e.set_alpha(alpha)
-            e.set_facecolor(color)

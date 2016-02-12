@@ -5,13 +5,12 @@ import nd2reader
 import nd2tools
 import os
 import reads
-import sys
 
 log = logging.getLogger(__name__)
 
 
 def fast_possible_tile_keys(nd2, im_idx, min_tile, max_tile):
-    coord_info, xs, ys, zs, pos_names, rows, cols = nd2tools.get_nd2_image_coord_info(nd2)
+    _, _, _, _, _, _, cols = nd2tools.get_nd2_image_coord_info(nd2)
     cols.sort()
     pos_name = nd2tools.convert_nd2_coordinates(nd2, im_idx=im_idx, outfmt='pos_name')
     col_idx = cols.index(pos_name[1:])

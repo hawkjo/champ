@@ -1,6 +1,5 @@
 import os
 import numpy as np
-from multiprocessing import Pool
 from misc import next_power_of_2, median_normalize as normalize_median
 
 
@@ -42,44 +41,15 @@ class ImageData(object):
         self.um_per_pixel = 16.0 / self.objective
         self.um_dims = self.um_per_pixel * np.array(self.im.shape)
 
-    def D4_im_given_idx(self, idx):
-        flip, rot = idx
-        if flip:
-            flip_im = np.fliplr(self.im)
-        else:
-            flip_im = self.im
-        return np.rot90(flip_im, k=(rot/90))
+    def set_single_fft(self, padding):
+        self.fft_padding = padding.astype('int64', copy=False)
+        self.all_ffts = {(0, 0): self.single_fft()}
 
-    def iterate_D4_images(self):
-        for idx in self.iterate_D4_idxs():
-            yield idx, self.D4_im_given_idx(idx)
-
-    def iterate_D4_idxs(self):
-        for flip in (0, 1):
-            for rot in (0, 90, 180, 270):
-                yield flip, rot
-
-    def D4_ffts(self, padding=(0, 0), processors=1, force=False):
-        """Makes images and ffts of all flips and 90 degree rotations (i.e. D4)"""
-        if hasattr(self, 'all_ffts') and self.all_ffts and not force:
-            return
-        self.fft_padding = padding
-        pool = Pool(processors)
-        ffts = pool.map(self.single_fft, self.iterate_D4_idxs())
-        self.all_ffts = {idx: fft for idx, fft in zip(self.iterate_D4_idxs(), ffts)}
-        del pool
-
-    def set_single_fft(self, idx, padding):
-        self.fft_padding = padding
-        self.all_ffts = {idx: self.single_fft(idx)}
-
-    def single_fft(self, idx):
-        im = self.D4_im_given_idx(idx)
-        self.fft_padding = self.fft_padding.astype('int64', copy=False)
-        totalx, totaly = np.array(self.fft_padding) + np.array(im.shape)
+    def single_fft(self):
+        totalx, totaly = np.array(self.fft_padding) + np.array(self.im.shape)
         w = next_power_of_2(totalx)
         h = next_power_of_2(totaly)
-        padded_im = np.pad(im,
+        padded_im = np.pad(self.im,
                            ((self.fft_padding[0], w - totalx), (self.fft_padding[1], h - totaly)),
                            mode='constant')
         return np.fft.fft2(padded_im)
