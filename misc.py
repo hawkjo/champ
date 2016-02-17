@@ -66,6 +66,10 @@ def strisint(x):
         return a == b
 
 
+def stoftoi(s):
+    return int(round(float(s)))
+
+
 class AlignmentStats:
     def __init__(self, fpath):
         for line in open(fpath):
