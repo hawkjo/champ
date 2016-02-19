@@ -1,4 +1,5 @@
 class FastqFiles(object):
+    """ Sorts compressed FastQ files provided to us from the Illumina sequencer. """
     def __init__(self, filenames):
         self._filenames = [f for f in self._filter_names(filenames)]
 
