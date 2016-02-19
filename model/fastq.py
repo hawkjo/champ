@@ -1,19 +1,25 @@
 class FastqRead(object):
-    __slots__ = ['name', 'sequence', '_column', '_row', '_lane', '_tile']
+    __slots__ = ['_record', '_lane', '_tile', '_column', '_row']
 
-    def __init__(self, name, sequence):
-        self.name = name
-        self.sequence = sequence
-        self._lane, self._tile, self._column, self._row = name.rsplit(':')[-4:]
+    def __init__(self, record):
+        self._record = record
+        self._lane, self._tile, self._column, self._row = map(int, record.name.rsplit(':')[-4:])
+
+    def __repr__(self):
+        return self._record.format("fastq")
+
+    @property
+    def name(self):
+        return self._record.name
 
     @property
     def tile(self):
-        return tuple(map(int, (self._lane, self._tile[3:5])))
+        return self._lane, self._tile
 
     @property
     def row(self):
-        return int(self._row)
+        return self._row
 
     @property
     def column(self):
-        return int(self._column)
+        return self._column
