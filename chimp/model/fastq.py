@@ -31,18 +31,11 @@ class FastqRead(object):
 
 class FastqFiles(object):
     """ Sorts compressed FastQ files provided to us from the Illumina sequencer. """
-    def __init__(self, data):
-        self._files = {f: data[f] for f in self._filter_names(data)}
-
-    def __len__(self):
-        return len(self._files)
-
+    def __init__(self, filenames):
+        self._filenames = filenames
+        
     def __iter__(self):
-        # yields all files, in order of largest to smallest
-        # we want to do this because as we use more and more memory to store FastqRead objects, we have less
-        # to open the next gzipped FastQ file. So by processing larger files first, we make it more likely that
-        # we'll be able to "pack" additional files in
-        for f, size in reversed(sorted(self._files.items(), key=lambda (x, y): y)):
+        for f in self._filenames:
             yield f
 
     @property
@@ -64,10 +57,10 @@ class FastqFiles(object):
             yield filename
 
     def _sort_filenames(self, paired=True):
-        for filename in self._files:
+        for filename in self._filenames:
             if '_R1_' in filename or '_R1.' in filename:
                 pair = filename.replace('_R1_', '_R2_').replace('_R1.', '_R2.')
-                if paired and pair in self._files:
+                if paired and pair in self._filenames:
                     yield filename, pair
-                elif not paired and pair not in self._files:
+                elif not paired and pair not in self._filenames:
                     yield filename

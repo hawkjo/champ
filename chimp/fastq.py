@@ -18,15 +18,8 @@ def parse_fastq_gzip_file(path):
     del f
 
 
-def load_fastq_filenames(directory):
-    filenames = [os.path.join(directory, filename) for filename in os.listdir(directory)]
-    sizes = map(os.path.getsize, filenames)
-    data = {filename: size for filename, size in zip(filenames, sizes)}
-    return FastqFiles(data)
-
-
 def load_all_fastq_data(directory):
-    filenames = load_fastq_filenames(directory)
+    filenames = FastqFiles([os.path.join(directory, filename) for filename in os.listdir(directory)])
     reads = defaultdict(list)
     for n, filename in enumerate(filenames):
         for r in parse_fastq_gzip_file(filename):
