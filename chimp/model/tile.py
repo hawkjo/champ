@@ -57,5 +57,5 @@ def load_tile_manager(um_per_pixel, read_data):
     x_max, y_max = all_data.max(axis=0)
 
     scale = (FASTQ_TILE_WIDTH / (x_max - x_min)) / um_per_pixel
-    offset = scale * np.array([-x_min, -y_min])
+    offset = np.array([-x_min, -y_min])
     return TileManager(tile_data, scale, offset)
