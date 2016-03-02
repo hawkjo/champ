@@ -12,12 +12,14 @@ Options:
 
 """
 import matplotlib
-matplotlib.use('agg')
+# matplotlib.use('agg')
 from model.tile import load_tile_manager
 from fastq import load_classified_reads
 from nd2reader import Nd2
 from docopt import docopt
 import logging
+from skimage import io
+import numpy as np
 
 
 def main(args=None):
@@ -38,9 +40,9 @@ def main(args=None):
         read_data = load_classified_reads('phix')
         tm = load_tile_manager(0.266666666666667, read_data)
         tile = tm.get(13)
-        print("about to FFT bro")
-        print(tile.fft)
-        print("fft success")
+        io.imshow(tile.image)
+        io.show()
+
 
 
 if __name__ == '__main__':
