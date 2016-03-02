@@ -4,8 +4,9 @@ import gzip
 import logging
 from model.fastq import FastqRead, FastqFiles
 import os
-from progressbar import ProgressBar, Percentage, Counter, Bar, ETA
+from progressbar import ProgressBar, Percentage, Counter, Bar, AdaptiveETA
 import pysam
+import random
 import subprocess
 from collections import namedtuple
 
@@ -41,7 +42,6 @@ class FastqReadClassifier(object):
         return self._run(command)
 
     def _run(self, command):
-
         with open("/dev/null", 'w+') as devnull:
             kwargs = dict(shell=True, stderr=devnull, stdout=devnull)
             subprocess.call(' '.join(command), **kwargs)
@@ -56,7 +56,7 @@ def classify_fastq_reads(classifier_path, fastq_files):
     pbar = ProgressBar(widgets=[Percentage(),
                                 ' (', Counter(), ' of %s) ' % fastq_files.alignment_length,
                                 Bar(),
-                                ETA()],
+                                AdaptiveETA()],
                        max_value=fastq_files.alignment_length).start()
 
     classifier = FastqReadClassifier(classifier_path)
@@ -99,10 +99,14 @@ def save_classified_reads(name, reads):
             f.write('%s\n' % read)
 
 
-def load_classified_reads(name, ignore_side_1=True):
+def load_classified_reads(name, random_selection=False, ignore_side_1=True):
     """
     Reads flat text files with unaligned read names and puts them into a dictionary
     organized by (lane, side, tile)
+
+    random_selection is set to a percentage between 0.0 and 100.0 when not all reads should be loaded
+    This is used in cases where phiX is not available for alignment and a subset of all reads should be used
+
     """
     read_data = defaultdict(list)
     with open('classified_reads/%s' % name) as f:
@@ -111,7 +115,8 @@ def load_classified_reads(name, ignore_side_1=True):
             fastq_read = FastqRead(record)
             if ignore_side_1 and fastq_read.side == 1:
                 continue
-            read_data[fastq_read.region].append(fastq_read)
+            if not random_selection or random.random() < random_selection:
+                read_data[fastq_read.region].append(fastq_read)
     return read_data
 
 
@@ -139,8 +144,12 @@ def main(fastq_directory, classifier_paths):
     pbar = ProgressBar(widgets=[Percentage(),
                                 ' (', Counter(), ' of %s) ' % len(fastq_files),
                                 Bar(),
-                                ETA()],
+                                AdaptiveETA()],
                        max_value=len(fastq_files)).start()
     for all_read_names in pbar(stream_all_read_names(fastq_files)):
         all_unclassified_reads.update(all_read_names.difference(all_classified_reads))
     save_classified_reads('unclassified', all_unclassified_reads)
+
+
+if __name__ == '__main__':
+    main("SA15243/all_fastqs", ['/var/ngstest/phix/phix'])
