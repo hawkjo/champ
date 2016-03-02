@@ -1,12 +1,19 @@
 from Bio import SeqIO
 from collections import defaultdict
 import gzip
+import logging
 from model.fastq import FastqRead, FastqFiles
-from model.tile import Tile
 import os
-import progressbar
+from progressbar import ProgressBar, Percentage, Counter, Bar, ETA
 import pysam
 import subprocess
+from collections import namedtuple
+
+
+log = logging.getLogger(__name__)
+
+
+FastqName = namedtuple('FastqRead', ['name'])
 
 
 def parse_fastq_gzip_file(path):
@@ -14,19 +21,6 @@ def parse_fastq_gzip_file(path):
         for dna in SeqIO.parse(f, 'fastq'):
             yield FastqRead(dna)
     del f
-
-
-def load_tiles(fastq_files):
-    """
-    We need to do this, but not using the raw data. We should use the parsed files so we can get sequence info too
-
-    """
-    reads = defaultdict(list)
-    for filename in fastq_files:
-        for r in parse_fastq_gzip_file(filename):
-            reads[r.region].append(r)
-    for region, fastq_reads in reads.items():
-        yield Tile(region, fastq_reads)
 
 
 class FastqReadClassifier(object):
@@ -47,20 +41,29 @@ class FastqReadClassifier(object):
         return self._run(command)
 
     def _run(self, command):
-        subprocess.call(' '.join(command), shell=True)
-        sam_command = 'samtools view -bS /tmp/chimp.sam | samtools sort - /tmp/final'
-        subprocess.call(sam_command, shell=True)
-        subprocess.call('samtools index /tmp/final.bam', shell=True)
-        for r in pysam.Samfile('/tmp/final.bam'):
-            yield r.qname
+
+        with open("/dev/null", 'w+') as devnull:
+            kwargs = dict(shell=True, stderr=devnull, stdout=devnull)
+            subprocess.call(' '.join(command), **kwargs)
+            sam_command = 'samtools view -bS /tmp/chimp.sam | samtools sort - /tmp/final'
+            subprocess.call(sam_command, **kwargs)
+            subprocess.call('samtools index /tmp/final.bam', **kwargs)
+            for r in pysam.Samfile('/tmp/final.bam'):
+                yield r.qname
 
 
 def classify_fastq_reads(classifier_path, fastq_files):
+    pbar = ProgressBar(widgets=[Percentage(),
+                                ' (', Counter(), ' of %s) ' % fastq_files.alignment_length,
+                                Bar(),
+                                ETA()],
+                       max_value=fastq_files.alignment_length).start()
+
     classifier = FastqReadClassifier(classifier_path)
+    log.info("Searching for reads for %s. This will take a while!" % classifier.name)
+
+    current = 0
     reads = set()
-    pbar = progressbar.ProgressBar(max_value=fastq_files.alignment_length)
-    current = 1
-    pbar.update(current)
     for file1, file2 in fastq_files.paired:
         for read in classifier.paired_call(file1, file2):
             reads.add(read)
@@ -71,7 +74,7 @@ def classify_fastq_reads(classifier_path, fastq_files):
             reads.add(read)
         current += 1
         pbar.update(current)
-    pbar.update(current)
+    pbar.finish()
     return classifier.name, reads
 
 
@@ -96,12 +99,29 @@ def save_classified_reads(name, reads):
             f.write('%s\n' % read)
 
 
+def load_classified_reads(name, ignore_side_1=True):
+    """
+    Reads flat text files with unaligned read names and puts them into a dictionary
+    organized by (lane, side, tile)
+    """
+    read_data = defaultdict(list)
+    with open('classified_reads/%s' % name) as f:
+        for line in f:
+            record = FastqName(name=line.strip())
+            fastq_read = FastqRead(record)
+            if ignore_side_1 and fastq_read.side == 1:
+                continue
+            read_data[fastq_read.region].append(fastq_read)
+    return read_data
+
+
 def main(fastq_directory, classifier_paths):
     """
     Parses fastq files and creates text files containing read names that belong to each source
     Currently this is just used to find phiX
 
     """
+    assert isinstance(classifier_paths, list)
     filenames = [os.path.join(fastq_directory, filename) for filename in os.listdir(fastq_directory)]
     fastq_files = FastqFiles(filenames)
     classified_reads = classify_all_reads(classifier_paths, fastq_files)
@@ -115,10 +135,12 @@ def main(fastq_directory, classifier_paths):
 
     # now figure out which reads remain unclassified and save them to a catch-all bucket
     all_unclassified_reads = set()
-    for all_read_names in stream_all_read_names(fastq_files):
+    log.info('Finding reads that were not classified. This will take a while.')
+    pbar = ProgressBar(widgets=[Percentage(),
+                                ' (', Counter(), ' of %s) ' % len(fastq_files),
+                                Bar(),
+                                ETA()],
+                       max_value=len(fastq_files)).start()
+    for all_read_names in pbar(stream_all_read_names(fastq_files)):
         all_unclassified_reads.update(all_read_names.difference(all_classified_reads))
     save_classified_reads('unclassified', all_unclassified_reads)
-
-
-if __name__ == '__main__':
-    main('SA15243/all_fastqs', ['/home/jim/Desktop/ngs/phix/bowtie2/phix'])

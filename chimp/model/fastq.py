@@ -1,33 +1,43 @@
 class FastqRead(object):
     """ Wraps the raw data about a single DNA read that we receive from Illumina. """
-    __slots__ = ('_name', '_seq')
+    __slots__ = ('_name', '_lane', '_side', '_tile')
 
     def __init__(self, record):
         self._name = record.name
-        self._seq = record.seq
+        self._lane = None
+        self._side = None
+        self._tile = None
 
     @property
     def name(self):
         return self._name
 
     @property
-    def sequence(self):
-        return self._seq
+    def region(self):
+        return self.lane, self.side, self.tile
 
     @property
-    def region(self):
-        return self._lookup_name_data(4), self._lookup_name_data(3)
+    def lane(self):
+        return int(self._lookup_name_data(4))
+
+    @property
+    def tile(self):
+        return int(self._lookup_name_data(3)[-2:])
+
+    @property
+    def side(self):
+        return int(self._lookup_name_data(3)[0])
 
     @property
     def row(self):
-        return self._lookup_name_data(1)
+        return int(self._lookup_name_data(1))
 
     @property
     def column(self):
-        return self._lookup_name_data(2)
+        return int(self._lookup_name_data(2))
 
     def _lookup_name_data(self, index):
-        return int(self._name.rsplit(':')[-index])
+        return self._name.rsplit(':')[-index]
 
 
 class FastqFiles(object):
@@ -38,6 +48,9 @@ class FastqFiles(object):
     def __iter__(self):
         for f in self._filenames:
             yield f
+
+    def __len__(self):
+        return len(self._filenames)
 
     @property
     def alignment_length(self):
@@ -57,7 +70,7 @@ class FastqFiles(object):
 
     def _filter_names(self, data):
         # eliminate filenames that can't possibly be fastq files of interest
-        for filename in data:
+        for filename in reversed(data):
             if not filename.endswith('fastq.gz'):
                 continue
             if '_I1_' in filename or '_I2_' in filename or '_I1.' in filename or '_I2.' in filename:

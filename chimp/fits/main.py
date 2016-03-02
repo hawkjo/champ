@@ -1,4 +1,3 @@
-import images
 import logging
 import multiprocessing
 from multiprocessing import Pool
@@ -12,6 +11,37 @@ from xyz import XYZFile
 
 
 log = logging.getLogger(__name__)
+
+
+def get_nd2_filenames():
+    """
+    Finds the ND2s in the current directory and returns their names without the .nd2 extension.
+
+    """
+    for f in os.listdir(os.getcwd()):
+        if f.endswith(".nd2"):
+            yield os.path.splitext(f)[0]
+
+
+def make_image_data_directory(nd2_filename):
+    """
+    Creates a directory based on the ND2 filenames in order to store data derived from them.
+
+    """
+    if not os.path.isdir(nd2_filename):
+        os.mkdir(nd2_filename)
+
+
+def base_files(nd2_filename):
+    return ["%s%s%s" % (nd2_filename, os.path.sep, os.path.splitext(filename)[0]) for filename in os.listdir(nd2_filename) if filename.endswith(".xyz")]
+
+
+def source_extract(base_file):
+    command = 'sextractor {base_file}.fits -PARAMETERS_NAME spot.param -CATALOG_NAME {base_file}.cat -CHECKIMAGE_TYPE OBJECTS -CHECKIMAGE_NAME {base_file}.model'
+    # Don't print any output
+    with open('/dev/null', 'w') as devnull:
+        command = command.format(base_file=base_file).split(' ')
+        subprocess.call(command, stdout=devnull, stderr=devnull)
 
 
 def create_fits_files(nd2_filename):
@@ -29,19 +59,7 @@ def create_fits_files(nd2_filename):
     log.info("Done creating fits files for %s" % nd2_filename)
 
 
-def base_files(nd2_filename):
-    return ["%s%s%s" % (nd2_filename, os.path.sep, os.path.splitext(filename)[0]) for filename in os.listdir(nd2_filename) if filename.endswith(".xyz")]
-
-
-def source_extract(base_file):
-    command = 'sextractor {base_file}.fits -PARAMETERS_NAME spot.param -CATALOG_NAME {base_file}.cat -CHECKIMAGE_TYPE OBJECTS -CHECKIMAGE_NAME {base_file}.model'
-    # Don't print any output
-    with open('/dev/null', 'w') as devnull:
-        command = command.format(base_file=base_file).split(' ')
-        subprocess.call(command, stdout=devnull, stderr=devnull)
-
-
-def run(command_line_arguments):
+def run():
     filenames = [nd2_filename for nd2_filename in images.get_nd2_filenames()]
     # Try to use one core per file, but top out at the number of cores that the machine has.
     # This hasn't been proven to be optimal.
