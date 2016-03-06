@@ -1,6 +1,4 @@
 class GridImages(object):
-    # TODO: This should return MicroscopeData instead of raw ND2 Images
-
     def __init__(self, nd2, alignment_channel=None, channel_offset=None):
         """
         Since some ND2s were created where multiple channels had the same name, we can't always use the channel name, though we will be able to going forward
@@ -19,11 +17,9 @@ class GridImages(object):
         self._parse_grid()
 
     def left_iter(self):
-
         for column in range(self._width):
             for row in range(self._height):
-                index = self._get_indexes(row, column)[self._channel_offset]
-                yield self._nd2[index]
+                return self.get(row, column)
 
     def _determine_channel_offset(self, channel_name):
         maximum_reasonable_number_of_channels = 10
@@ -32,12 +28,17 @@ class GridImages(object):
                 return n
         raise ValueError('The channel you set to be used for alignment was not found in the given ND2.')
 
-    def _get_first_offset_number(self, row, column):
-        return column * len(self._nd2.channels) + (row * self._width)
+    def get(self, row, column):
+        index = self._get_indexes(row, column)[self._channel_offset]
+        image = self._nd2[index]
+
 
     def _get_indexes(self, row, column):
         first = self._get_first_offset_number(row, column)
         return tuple((first + i for i in range(len(self._nd2.channels))))
+
+    def _get_first_offset_number(self, row, column):
+        return column * len(self._nd2.channels) + (row * self._width)
 
     def _parse_grid(self):
         try:
