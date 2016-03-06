@@ -41,17 +41,12 @@ def main(**kwargs):
     for _ in range(3):
         log.info('')
 
-    try:
-
-        if arguments['readsort']:
-            readsort.main(arguments)
-        if arguments['bowtie']:
-            raise NotImplementedError("We haven't set up the bowtie thing yet. Sorry.")
-        if arguments['align']:
-            align.main(arguments)
-
-    except Exception as e:
-        error.fail(str(e))
+    if arguments['readsort']:
+        readsort.main(arguments)
+    if arguments['bowtie']:
+        raise NotImplementedError("We haven't set up the bowtie thing yet. Sorry.")
+    if arguments['align']:
+        align.main(arguments)
 
 
 if __name__ == '__main__':
