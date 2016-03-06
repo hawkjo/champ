@@ -1,8 +1,11 @@
 class GridImages(object):
+    # TODO: This should return MicroscopeData instead of raw ND2 Images
+
     def __init__(self, nd2, alignment_channel=None, channel_offset=None):
         """
         Since some ND2s were created where multiple channels had the same name, we can't always use the channel name, though we will be able to going forward
         now that we saw that that was happening.
+
         """
         self._nd2 = nd2
         self._rows = None
@@ -16,6 +19,7 @@ class GridImages(object):
         self._parse_grid()
 
     def left_iter(self):
+
         for column in range(self._width):
             for row in range(self._height):
                 index = self._get_indexes(row, column)[self._channel_offset]
