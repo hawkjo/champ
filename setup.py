@@ -1,6 +1,5 @@
-from setuptools import setup, find_packages
-
-VERSION = '0.0.1'
+from setuptools import setup
+from chimp.model.constants import VERSION
 
 requirements = []
 with open('requirements.txt') as f:

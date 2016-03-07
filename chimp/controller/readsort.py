@@ -1,5 +1,4 @@
-import error
-from chimp import fastq
+from chimp import error, fastq
 import logging
 from chimp.model.fastq import FastqFiles
 import os
