@@ -6,14 +6,14 @@ class SextractorPoint(object):
 
     def __init__(self, column, row, flux, flux_err, flags, width, height, theta):
         # Sextractor coordinates are 1-based
-        self.column = column - 1
-        self.row = row - 1
-        self.flux = flux
-        self.flux_err = flux_err
-        self.flags = flags
-        self.width = width
-        self.height = height
-        self.theta = theta
+        self.column = float(column) - 1.0
+        self.row = float(row) - 1.0
+        self.flux = float(flux)
+        self.flux_err = float(flux_err)
+        self.flags = int(flags)
+        self.width = float(width)
+        self.height = float(height)
+        self.theta = float(theta)
 
 
 class Sextraction(object):

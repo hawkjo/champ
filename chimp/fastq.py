@@ -104,7 +104,7 @@ def get_progress_bar(length):
         
         
 def save_classified_reads(name, reads, out_directory):
-    with open('%s/%s' % (out_directory, name), 'w+') as f:
+    with open(os.path.join(out_directory, name), 'w+') as f:
         for read in reads:
             f.write('%s\n' % read)
 

@@ -1,6 +1,7 @@
+from chimp import files
+from chimp.model.xyz import XYZFile
 import functools
 import logging
-from chimp.model.xyz import XYZFile
 import multiprocessing
 from multiprocessing import Pool
 from nd2reader import Nd2
@@ -59,28 +60,8 @@ THETA_IMAGE
             f.write(convolution_text)
 
 
-def get_nd2_filenames(nd2_directory):
-    """
-    Finds the ND2s in the current directory and returns their names without the .nd2 extension.
-
-    """
-    for f in os.listdir(nd2_directory):
-        if f.endswith(".nd2"):
-            yield os.path.splitext(f)[0]
-
-
-def ensure_image_data_directory_exists(data_directory, nd2_filename):
-    """
-    Creates a directory based on the ND2 filenames in order to store data derived from them.
-
-    """
-    new_directory = os.path.join(data_directory, nd2_filename)
-    if not os.path.isdir(new_directory):
-        os.mkdir(new_directory)
-
-
 def base_files(nd2_filename):
-    return ["%s%s%s" % (nd2_filename, os.path.sep, os.path.splitext(filename)[0])
+    return ["%s" % os.path.join(nd2_filename, os.path.splitext(filename)[0])
             for filename in os.listdir(nd2_filename) if filename.endswith(".xyz")]
 
 
@@ -106,12 +87,11 @@ def create_fits_files(data_directory, nd2_filename):
 
 
 def main(data_directory):
-    filenames = []
-    for nd2_filename in get_nd2_filenames(data_directory):
-        filenames.append(nd2_filename)
-        ensure_image_data_directory_exists(data_directory, nd2_filename)
+    image_files = files.load_image_files()
+    for filename in image_files.filenames:
+        files.ensure_image_data_directory_exists(data_directory, filename)
     # Try to use one core per file, but top out at the number of cores that the machine has.
-    thread_count = min(len(filenames), multiprocessing.cpu_count())
+    thread_count = min(len(image_files), multiprocessing.cpu_count())
     log.debug("Using %s threads for source extraction" % thread_count)
     # Assign each ND2 file to a thread, which converts it to a "fits" file
     worker_pool = Pool(processes=thread_count)
@@ -123,7 +103,7 @@ def main(data_directory):
     # KeyboardInterrupt won't behave as expected while multiprocessing unless you specify a timeout.
     # We don't want one really, so we just use the largest possible integer instead
     start = time.time()
-    worker_pool.map_async(fits_func, filenames).get(timeout=sys.maxint)
+    worker_pool.map_async(fits_func, image_files.filenames).get(timeout=sys.maxint)
     log.info("Done with fits file conversions. Elapsed time: %s seconds" % round(time.time() - start, 0))
 
     # Now run source extractor to find the coordinates of points
@@ -132,6 +112,6 @@ def main(data_directory):
         start = time.time()
         # Set up a worker for each ND2 file like before
         worker_pool = Pool(thread_count)
-        files = [base_file for nd2_filename in filenames for base_file in base_files(nd2_filename)]
-        worker_pool.map_async(source_extract, files).get(timeout=sys.maxint)
+        bfiles = [base_file for nd2_filename in image_files.filenames for base_file in base_files(nd2_filename)]
+        worker_pool.map_async(source_extract, bfiles).get(timeout=sys.maxint)
         log.info("Done with Source Extractor! Took %s seconds" % round(time.time() - start, 0))

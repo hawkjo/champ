@@ -1,5 +1,4 @@
 import logging
-import os
 
 
 class CommandLineArguments(object):
@@ -19,11 +18,6 @@ class CommandLineArguments(object):
                      3: logging.DEBUG}
         # default to silent if the user supplies no verbosity setting
         return log_level.get(self._arguments['-v'], logging.FATAL)
-
-    @property
-    def out_directory(self):
-        return self._arguments['-o'] if self._arguments['-o'] else os.path.join(self._current_directory,
-                                                                                'classified_reads')
 
     @property
     def fastq_directory(self):

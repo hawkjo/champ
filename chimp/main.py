@@ -3,7 +3,7 @@ Chip-Hybridized Interaction Mapping Platform
 
 Usage:
   chimp bowtie PATH_TO_FASTA [-v | -vv | -vvv]
-  chimp sort FASTQ_DIRECTORY PATHS_TO_BAMFILES ... [-o sorted_files_directory] [-v | -vv | -vvv]
+  chimp sort FASTQ_DIRECTORY PATHS_TO_BAMFILES ... [-v | -vv | -vvv]
   chimp align [--min_hits] [--tile_width_estimate] [--rotation_estimate] [--snr_threshold] [--index_offset] [-v | -vv | -vvv]
 
 Options:
@@ -28,7 +28,6 @@ import os
 def main(**kwargs):
     arguments = CommandLineArguments(docopt(__doc__, version=VERSION), os.getcwd())
 
-        # configure the logger
     log = logging.getLogger()
     log.addHandler(logging.StreamHandler())
     log.setLevel(arguments.log_level)
