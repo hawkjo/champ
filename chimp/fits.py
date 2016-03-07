@@ -85,7 +85,6 @@ def base_files(nd2_filename):
 
 
 def source_extract(base_file):
-    log.debug("base file %s" % base_file)
     command = '/usr/bin/sextractor {base_file}.fits -PARAMETERS_NAME spot.param -CATALOG_NAME {base_file}.cat -CHECKIMAGE_TYPE OBJECTS -CHECKIMAGE_NAME {base_file}.model'
     # Don't print any output
     with open('/dev/null', 'w') as devnull:
@@ -112,7 +111,6 @@ def main(data_directory):
         filenames.append(nd2_filename)
         ensure_image_data_directory_exists(data_directory, nd2_filename)
     # Try to use one core per file, but top out at the number of cores that the machine has.
-    # This hasn't been proven to be optimal.
     thread_count = min(len(filenames), multiprocessing.cpu_count())
     log.debug("Using %s threads for source extraction" % thread_count)
     # Assign each ND2 file to a thread, which converts it to a "fits" file
