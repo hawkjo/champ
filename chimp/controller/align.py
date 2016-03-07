@@ -1,6 +1,6 @@
-import fastq
-import fits
-from model.tile import load_tile_manager
+from chimp import fastq
+from chimp import fits
+from chimp.model.tile import load_tile_manager
 import os
 
 

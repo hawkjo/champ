@@ -17,11 +17,11 @@ Commands:
   align     maps reads from the high-throughput sequencer to fluorescent points in microscope image data
 
 """
-from controller import align, bowtie, readsort
+from chimp.controller import align, bowtie, readsort
 from docopt import docopt
 import error
 import logging
-from model.clargs import CommandLineArguments
+from chimp.model.clargs import CommandLineArguments
 import os
 
 

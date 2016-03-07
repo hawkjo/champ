@@ -2,7 +2,7 @@ from Bio import SeqIO
 from collections import defaultdict
 import gzip
 import logging
-from model.fastq import FastqRead
+from chimp.model.fastq import FastqRead
 import os
 from progressbar import ProgressBar, Percentage, Counter, Bar
 import pysam

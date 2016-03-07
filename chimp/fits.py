@@ -1,6 +1,6 @@
 import functools
 import logging
-from model.xyz import XYZFile
+from chimp.model.xyz import XYZFile
 import multiprocessing
 from multiprocessing import Pool
 from nd2reader import Nd2

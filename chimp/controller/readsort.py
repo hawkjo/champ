@@ -1,7 +1,7 @@
 import error
-import fastq
+from chimp import fastq
 import logging
-from model.fastq import FastqFiles
+from chimp.model.fastq import FastqFiles
 import os
 
 log = logging.getLogger(__name__)

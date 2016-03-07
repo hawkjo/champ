@@ -1,5 +1,5 @@
 import numpy as np
-from model.constants import FASTQ_TILE_WIDTH
+from chimp.model.constants import FASTQ_TILE_WIDTH
 import logging
 
 log = logging.getLogger(__name__)

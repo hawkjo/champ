@@ -11,12 +11,12 @@ with open('requirements.txt') as f:
 if __name__ == '__main__':
     setup(
         name='chimp',
-        packages=find_packages(exclude=['*test*']),
+        packages=['chimp', 'chimp.controller', 'chimp.model', 'chimp'],
         install_requires=requirements,
         version=VERSION,
         entry_points={
           'console_scripts': [
-              'chimp = main:main'
+              'chimp = chimp.main:main'
           ]
         },
         description='',
