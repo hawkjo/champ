@@ -40,7 +40,7 @@ def pad_image(image, pad):
     return np.pad(image, ((0, pad[0]), (0, pad[1])), mode='constant')
 
 
-def main(arguments, nd2):
+def main(arguments, image_files):
     """
     Let's think through this.
     So we have like 11 different concentrations.
@@ -52,6 +52,27 @@ def main(arguments, nd2):
 
     What's the output?
 
+    Alignment (transform, rotate, scale) for EVERY image in EVERY concentration, where alignment occurred
+
+    So we want an AlignmentResults object for each concentration. We do that so we can checkpoint at the end of each,
+    because this will fail. Need to build restart ability eventually.
+
+    END FINDING
+    Take each image using left and right iter
+    Try to align to 1-4 or 19-16 and also controls
+    Get the outermost tiles and the columns of the images
+
+    Do simple linear interpolation for tiles/columns
+    Do precision alignment for every image inbetween the bounding columns, as you iterate over interpolated tiles
+    Put results into the AlignmentResults object
+
+    CONSIDER
+    For rough alignment, you need microscope image and tile
+    For precision alignment, you need sextractor image and tile
+
+    Not the output:
+    Intensity data (from sextractor)
+    Read names with real coordinates
 
     """
     read_data = fastq.load_mapped_reads(arguments.alignment_reads,
