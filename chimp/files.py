@@ -20,7 +20,7 @@ class ImageFiles(object):
 
 
 def load_image_files():
-    filenames = [f for f in os.listdir(os.getcwd()) if f.endswith(".nd2")]
+    filenames = [f for f in os.listdir(os.getcwd()) if f.endswith('.nd2')]
     return ImageFiles(filenames)
 
 

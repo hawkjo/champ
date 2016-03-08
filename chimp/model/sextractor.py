@@ -25,3 +25,10 @@ class Sextraction(object):
     @property
     def rcs(self):
         return np.array([(pt.row, pt.column) for pt in self.points])
+
+    @property
+    def image(self):
+        rcs = self.rcs
+        image = np.zeros(rcs.max(axis=0) + 1)
+        image[rcs.astype(np.int)[:, 0], rcs.astype(np.int)[:, 1]] = 1
+        return image

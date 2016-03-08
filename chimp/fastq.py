@@ -1,14 +1,12 @@
 from Bio import SeqIO
-from collections import defaultdict
+from chimp.model.fastq import FastqRead
+from collections import defaultdict, namedtuple
 import gzip
 import logging
-from chimp.model.fastq import FastqRead
 import os
 from progressbar import ProgressBar, Percentage, Counter, Bar
 import pysam
-import random
 import subprocess
-from collections import namedtuple
 
 
 log = logging.getLogger(__name__)
@@ -42,7 +40,7 @@ class FastqReadClassifier(object):
         return self._run(command)
 
     def _run(self, command):
-        with open("/dev/null", 'w+') as devnull:
+        with open('/dev/null', 'w+') as devnull:
             kwargs = dict(shell=True, stderr=devnull, stdout=devnull)
             subprocess.call(' '.join(command), **kwargs)
             sam_command = 'samtools view -bS /tmp/chimp.sam | samtools sort - /tmp/final'
@@ -55,7 +53,7 @@ class FastqReadClassifier(object):
 def classify_fastq_reads(classifier_path, fastq_files):
     progress_bar = get_progress_bar(fastq_files.alignment_length)
     classifier = FastqReadClassifier(classifier_path)
-    log.info("Searching for reads for %s. This will take a while!" % classifier.name)
+    log.info('Searching for reads for %s. This will take a while!' % classifier.name)
 
     current = 0
     reads = set()
@@ -109,7 +107,7 @@ def save_classified_reads(name, reads, out_directory):
             f.write('%s\n' % read)
 
 
-def load_classified_reads(sorted_reads_directory, name, random_selection=False, ignore_side_1=True):
+def load_mapped_reads(name, ignore_side_1=True):
     """
     Reads flat text files with unaligned read names and puts them into a dictionary
     organized by (lane, side, tile).
@@ -119,12 +117,11 @@ def load_classified_reads(sorted_reads_directory, name, random_selection=False, 
 
     """
     read_data = defaultdict(list)
-    with open('%s/%s' % (sorted_reads_directory, name)) as f:
+    with open('%s' % os.path.join('mapped_reads', name)) as f:
         for line in f:
             record = FastqName(name=line.strip())
             fastq_read = FastqRead(record)
             if ignore_side_1 and fastq_read.side == 1:
                 continue
-            if not random_selection or random.random() < random_selection:
-                read_data[fastq_read.region].append(fastq_read)
+            read_data[fastq_read.region].append(fastq_read)
     return read_data

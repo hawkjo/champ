@@ -13,8 +13,8 @@ def main(arguments):
     Typically this is just used to separate phiX reads from everything else.
 
     """
-    # hardcode the output directory for sorted reads
-    out_directory = 'sorted_reads'
+    # hardcode the output directory for mapped reads
+    out_directory = 'mapped_reads'
     # validate and/or create directories
     if not os.path.isdir(out_directory):
         os.makedirs(out_directory)

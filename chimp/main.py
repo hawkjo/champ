@@ -3,7 +3,7 @@ Chip-Hybridized Interaction Mapping Platform
 
 Usage:
   chimp bowtie PATH_TO_FASTA [-v | -vv | -vvv]
-  chimp sort FASTQ_DIRECTORY PATHS_TO_BAMFILES ... [-v | -vv | -vvv]
+  chimp map FASTQ_DIRECTORY PATHS_TO_BAMFILES ... [-v | -vv | -vvv]
   chimp align [--min_hits] [--tile_width_estimate] [--rotation_estimate] [--snr_threshold] [--index_offset] [-v | -vv | -vvv]
 
 Options:
@@ -12,11 +12,11 @@ Options:
 
 Commands:
   bowtie    convenience wrapper for a bowtie2 command to create files necessary to classify reads in fastq files
-  sort      classifies all the reads in the fastq files, typically for separating phiX from your reads
+  map       maps all the reads in the fastq files, typically for separating phiX
   align     maps reads from the high-throughput sequencer to fluorescent points in microscope image data
 
 """
-from chimp.controller import align, bowtie, readsort
+from chimp.controller import align, bowtie, mapreads
 from docopt import docopt
 from chimp import error
 import logging
@@ -38,7 +38,7 @@ def main(**kwargs):
 
     commands = {'align': align.main,
                 'bowtie': lambda *x: None,
-                'sort': readsort.main,
+                'map': mapreads.main,
                 }
     commands[arguments.command](arguments)
 
