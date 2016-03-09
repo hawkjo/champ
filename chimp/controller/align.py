@@ -1,6 +1,5 @@
-from chimp.model.tile import load_tile_manager
-import os
+from chimp import align as al
 
 
 def main(arguments):
-    pass
+    al.main('15-11-18_SA15243_Cascade-TA_1nM-007', alignment_offset=1)

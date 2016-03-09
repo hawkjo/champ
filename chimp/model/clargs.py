@@ -31,7 +31,7 @@ class CommandLineArguments(object):
     def command(self):
         for possible_command in ('align',
                                  'bowtie',
-                                 'readsort'):
+                                 'map'):
             if self._arguments[possible_command]:
                 return possible_command
 

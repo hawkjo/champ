@@ -4,7 +4,7 @@ Chip-Hybridized Interaction Mapping Platform
 Usage:
   chimp bowtie PATH_TO_FASTA [-v | -vv | -vvv]
   chimp map FASTQ_DIRECTORY PATHS_TO_BAMFILES ... [-v | -vv | -vvv]
-  chimp align [--min_hits] [--tile_width_estimate] [--rotation_estimate] [--snr_threshold] [--index_offset] [-v | -vv | -vvv]
+  chimp align (--alignment_channel <alignment_channel> | --alignment_index <alignment_index>) [--min_hits] [--rotation_estimate] [--snr_threshold] [--tile_width_estimate] [-v | -vv | -vvv]
 
 Options:
   -h --help     Show this screen.
