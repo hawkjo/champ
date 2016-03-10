@@ -2,23 +2,20 @@
 Chip-Hybridized Interaction Mapping Platform
 
 Usage:
-  chimp bowtie PATH_TO_FASTA [-v | -vv | -vvv]
   chimp map FASTQ_DIRECTORY PATHS_TO_BAMFILES ... [-v | -vv | -vvv]
-  chimp align (--alignment_channel <alignment_channel> | --alignment_index <alignment_index>) [--min_hits] [--rotation_estimate] [--snr_threshold] [--tile_width_estimate] [-v | -vv | -vvv]
+  chimp align READ_NAME (--alignment_channel <alignment_channel> | --alignment_index <alignment_index>) [--min_hits] [--rotation_estimate] [--snr_threshold] [--tile_width_estimate] [-v | -vv | -vvv]
 
 Options:
   -h --help     Show this screen.
   --version     Show version.
 
 Commands:
-  bowtie    convenience wrapper for a bowtie2 command to create files necessary to classify reads in fastq files
   map       maps all the reads in the fastq files, typically for separating phiX
   align     maps reads from the high-throughput sequencer to fluorescent points in microscope image data
 
 """
-from chimp.controller import align, bowtie, mapreads
+from chimp.controller import align, mapreads
 from docopt import docopt
-from chimp import error
 import logging
 from chimp.model.clargs import CommandLineArguments
 from chimp.model.constants import VERSION
@@ -37,7 +34,6 @@ def main(**kwargs):
         log.info('')
 
     commands = {'align': align.main,
-                'bowtie': lambda *x: None,
                 'map': mapreads.main,
                 }
     commands[arguments.command](arguments)

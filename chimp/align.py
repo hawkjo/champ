@@ -6,7 +6,11 @@ from functools import partial
 from nd2reader import Nd2
 import numpy as np
 import os
-from skimage import io
+import time
+
+
+def next_power_of_2(x):
+    return 1<<(int(np.ceil(x))-1).bit_length()
 
 
 def load_sexcat(directory, index):
@@ -33,10 +37,12 @@ def pad_images(tile_image, microscope_image):
     Pad to 4096 pixels, or whatever.
 
     """
-    return pad_image(tile_image, microscope_image.shape), pad_image(microscope_image, tile_image.shape)
+    dimension = next_power_of_2(max(tile_image.shape[0], microscope_image.shape[0], tile_image.shape[1], microscope_image.shape[1]))
+    return pad_image(tile_image, dimension), pad_image(microscope_image, dimension)
 
 
-def pad_image(image, pad):
+def pad_image(image, pad_to_size):
+    pad = pad_to_size - image.shape[0], pad_to_size - image.shape[1]
     return np.pad(image, ((0, pad[0]), (0, pad[1])), mode='constant')
 
 
@@ -85,15 +91,16 @@ def main(base_image_name, alignment_channel=None, alignment_offset=None):
     loader = partial(load_sexcat, base_image_name)
     mapped_reads = fastq.load_mapped_reads('phix')
     tm = tile.load_tile_manager(nd2.pixel_microns, mapped_reads)
-    t = tm.get(1)
+    ts = [tm.get(i) for i in range(1, 20)]
     grid = GridImages(nd2, loader, alignment_channel, alignment_offset)
     for microscope_data in grid.left_iter():
-        padded_tile, padded_microscope = pad_images(t.image, microscope_data.image)
-        tile_fft = np.fft.fft2(padded_tile)
-        image_fft = np.fft.fft2(padded_microscope)
-        cross_corr = abs(np.fft.ifft2(np.conj(tile_fft) * image_fft))
-        max_corr = cross_corr.max()
-        print(max_corr)
+        for t in ts:
+            start = time.time()
+            padded_tile, padded_microscope = pad_images(t.image, microscope_data.image)
+            tile_fft = np.fft.fft2(padded_tile)
+            image_fft = np.fft.fft2(padded_microscope)
+            cross_corr = abs(np.fft.ifft2(np.conj(tile_fft) * image_fft))
+            max_corr = cross_corr.max()
 
 
 if __name__ == '__main__':
