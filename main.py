@@ -37,3 +37,7 @@ def main(args=None):
 
     if arguments['align']:
         align(arguments)
+
+
+if __name__ == '__main__':
+    main()

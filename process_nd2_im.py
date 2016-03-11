@@ -38,6 +38,7 @@ def process_fig(alignment_parameters, strategy, nd2_filename, im_idx):
     else:
         possible_tile_keys = tile_keys_given_nums(range(alignment_parameters.min_tile_num, alignment_parameters.max_tile_num + 1))
 
+    print("possible tile keys", possible_tile_keys)
     for directory in (file_structure.figure_directory, file_structure.results_directory):
         if not os.path.exists(directory):
             os.makedirs(directory)
