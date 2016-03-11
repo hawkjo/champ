@@ -113,15 +113,16 @@ class FastqImageAligner(object):
         self.fq_im_scale = (float(self.fq_w) / (x_max-x_min)) / self.image_data.um_per_pixel
         self.fq_im_scaled_maxes = self.fq_im_scale * np.array([x_max-x_min, y_max-y_min])
         self.fq_im_scaled_dims = (self.fq_im_scaled_maxes + [1, 1]).astype(np.int)
-        print(self.fq_im_offset, self.fq_im_scale, self.fq_im_scaled_maxes, self.fq_im_scaled_dims)
+        print("the four in set fastq tile mappings", self.fq_im_offset, self.fq_im_scale, self.fq_im_scaled_maxes, self.fq_im_scaled_dims)
 
     def set_all_fastq_image_data(self):
-        print("setting fastq image data")
+        print("tile shapes in set all fastq image data")
         for tile in self.fastq_tiles.values():
             tile.set_fastq_image_data(self.fq_im_offset,
                                       self.fq_im_scale,
                                       self.fq_im_scaled_dims,
                                       self.fq_w)
+            print(tile.image_shape)
 
     def rotate_all_fastq_data(self, degrees):
         print("rotating fastq data")
@@ -129,6 +130,7 @@ class FastqImageAligner(object):
         self.fq_im_scaled_dims = np.array(im_shapes).max(axis=0)
         for tile in self.fastq_tiles_list:
             tile.image_shape = self.fq_im_scaled_dims
+            print(tile.image_shape)
 
     def imreg_align(self):
         for key, tile in sorted(self.fastq_tiles.items()):
