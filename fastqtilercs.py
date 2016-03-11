@@ -34,7 +34,6 @@ class FastqTileRCs(object):
 
     def fft_align_with_im(self, image_data):
         im_data_im_shapes = set(a.shape for a in image_data.all_ffts.values())
-        print("im data im shapes", im_data_im_shapes)
         assert len(im_data_im_shapes) <= 2, im_data_im_shapes
 
         # Make the ffts
@@ -51,12 +50,10 @@ class FastqTileRCs(object):
             cross_corr = abs(np.fft.ifft2(np.conj(fq_im_fft) * im_data_fft))
             max_corr = cross_corr.max()
             max_idx = misc.max_2d_idx(cross_corr)
-            print("max corr", max_corr, "max idx", max_idx)
             if max_corr > self.best_max_corr:
                 self.best_im_key = im_key
                 self.best_max_corr = max_corr
                 self.align_tr = np.array(max_idx) - fq_image.shape
-                print("align tr", self.align_tr)
         return self.key, self.best_im_key, self.best_max_corr, self.align_tr
 
     def get_new_aligned_rcs(self, new_fq_w=None, new_degree_rot=0, new_tr=(0, 0)):
