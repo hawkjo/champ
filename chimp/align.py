@@ -7,6 +7,7 @@ from nd2reader import Nd2
 import numpy as np
 import os
 import time
+import matplotlib.pyplot as plt
 
 
 def next_power_of_2(x):
@@ -93,15 +94,15 @@ def main(base_image_name, alignment_channel=None, alignment_offset=None):
     tm = tile.load_tile_manager(nd2.pixel_microns, mapped_reads)
     ts = [tm.get(i) for i in range(1, 20)]
     grid = GridImages(nd2, loader, alignment_channel, alignment_offset)
-    for microscope_data in grid.left_iter():
-        for t in ts:
-            start = time.time()
-            padded_tile, padded_microscope = pad_images(t.image, microscope_data.image)
-            tile_fft = np.fft.fft2(padded_tile)
-            image_fft = np.fft.fft2(padded_microscope)
-            cross_corr = abs(np.fft.ifft2(np.conj(tile_fft) * image_fft))
-            max_corr = cross_corr.max()
+    microscope_data = grid.get(4, 35)
 
+    for t in ts:
+        padded_tile, padded_microscope = pad_images(t.image, microscope_data.image)
+        tile_fft = np.fft.fft2(padded_tile)
+        image_fft = np.fft.fft2(padded_microscope)
+        cross_corr = abs(np.fft.ifft2(np.conj(tile_fft) * image_fft))
+        max_corr = cross_corr.max()
+        print(max_corr)
 
 if __name__ == '__main__':
     main('/var/experiments/151118/15-11-18_SA15243_Cascade-TA_1nM-007', alignment_offset=1)
