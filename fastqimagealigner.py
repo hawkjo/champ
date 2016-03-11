@@ -126,11 +126,13 @@ class FastqImageAligner(object):
 
     def rotate_all_fastq_data(self, degrees):
         print("rotating fastq data")
+        print("degrees: ", degrees)
         im_shapes = [tile.rotate_data(degrees) for tile in self.fastq_tiles_list]
+        print("im shapes len", len(im_shapes))
         self.fq_im_scaled_dims = np.array(im_shapes).max(axis=0)
+        print("final fq im sacled dims", self.fq_im_scaled_dims)
         for tile in self.fastq_tiles_list:
             tile.image_shape = self.fq_im_scaled_dims
-            print(tile.image_shape)
 
     def imreg_align(self):
         for key, tile in sorted(self.fastq_tiles.items()):
