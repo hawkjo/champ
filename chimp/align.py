@@ -92,9 +92,9 @@ def main(base_image_name, alignment_channel=None, alignment_offset=None):
     loader = partial(load_sexcat, base_image_name)
     mapped_reads = fastq.load_mapped_reads('phix')
     tm = tile.load_tile_manager(nd2.pixel_microns, mapped_reads)
-    ts = [tm.get(i) for i in range(1, 20)]
+    ts = [tm.get(i) for i in range(11, 16)]
     grid = GridImages(nd2, loader, alignment_channel, alignment_offset)
-    microscope_data = grid.get(4, 35)
+    microscope_data = grid.get(3, 3)
 
     for t in ts:
         padded_tile, padded_microscope = pad_images(t.image, microscope_data.image)

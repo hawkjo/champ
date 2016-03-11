@@ -30,7 +30,6 @@ class Tile(object):
 
     @property
     def image(self):
-        (fq_im_scaled_maxes + [1, 1]).astype(np.int)
         new_rcs = self._scale * (self.rcs + np.tile(self._offset, (self.rcs.shape[0], 1)))
         image = np.zeros(new_rcs.max(axis=0) + 1)
         image[new_rcs.astype(np.int)[:, 0], new_rcs.astype(np.int)[:, 1]] = 1
