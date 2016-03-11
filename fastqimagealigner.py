@@ -117,12 +117,14 @@ class FastqImageAligner(object):
 
     def set_all_fastq_image_data(self):
         print("tile shapes in set all fastq image data")
+        print("set all fastq image data self values")
+        print(self.fq_im_offset, self.fq_im_scale, self.fq_im_scaled_dims, self.fq_w)
         for tile in self.fastq_tiles.values():
             tile.set_fastq_image_data(self.fq_im_offset,
                                       self.fq_im_scale,
                                       self.fq_im_scaled_dims,
                                       self.fq_w)
-            print(tile.image_shape)
+            print("tile shape", tile.image_shape)
 
     def rotate_all_fastq_data(self, degrees):
         print("rotating fastq data")
@@ -134,11 +136,12 @@ class FastqImageAligner(object):
         for tile in self.fastq_tiles_list:
             tile.image_shape = self.fq_im_scaled_dims
 
-    def imreg_align(self):
-        for key, tile in sorted(self.fastq_tiles.items()):
-            tile.imreg_align_with_im(self.image_data.im)
+    # def imreg_align(self):
+    #     for key, tile in sorted(self.fastq_tiles.items()):
+    #         tile.imreg_align_with_im(self.image_data.im)
 
     def fft_align_tile(self, tile):
+        print("function: fft align tile")
         return tile.fft_align_with_im(self.image_data)
 
     def fft_align_tile_with_im(self, tile):
@@ -149,6 +152,7 @@ class FastqImageAligner(object):
         fq_image = tile.image()
         fq_im_fft_given_shape = {}
         for shape in im_data_im_shapes:
+            print("im data im shape, singular", shape)
             padded_fq_im = pad_to_size(fq_image, shape)
             fq_im_fft_given_shape[shape] = np.fft.fft2(padded_fq_im)
 
@@ -160,8 +164,9 @@ class FastqImageAligner(object):
             fq_im_fft = fq_im_fft_given_shape[im_data_fft.shape]
             cross_corr = abs(np.fft.ifft2(np.conj(fq_im_fft) * im_data_fft))
             max_corr = cross_corr.max()
+            print("max_corr", max_corr)
             max_idx = max_2d_idx(cross_corr)
-
+            print("max_idx", max_idx)
             if max_corr > best_max_corr:
                 best_im_key = im_key
                 best_max_corr = max_corr
