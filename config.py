@@ -21,6 +21,9 @@ class Experiment(object):
     def results_directory(self):
         return os.path.join(self._base_dir, 'results')
 
+    def get_sexcat_path(self, nd2_name, image_index):
+        return os.path.join(self._base_dir, nd2_name, '%d.cat' % image_index)
+
 
 class AlignmentParameters(object):
     """ Parses user-provided alignment parameters and provides a default in case no value was given. """

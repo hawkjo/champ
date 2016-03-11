@@ -1,6 +1,5 @@
-from setuptools import setup, find_packages
-
-VERSION = '0.0.1'
+from setuptools import setup
+from chimp.model.constants import VERSION
 
 requirements = []
 with open('requirements.txt') as f:
@@ -11,12 +10,12 @@ with open('requirements.txt') as f:
 if __name__ == '__main__':
     setup(
         name='chimp',
-        packages=find_packages(exclude=['*test*']),
+        packages=['chimp', 'chimp.controller', 'chimp.model', 'chimp'],
         install_requires=requirements,
         version=VERSION,
         entry_points={
           'console_scripts': [
-              'chimp = main:main'
+              'chimp = chimp.main:main'
           ]
         },
         description='',
