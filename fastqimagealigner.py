@@ -133,6 +133,7 @@ class FastqImageAligner(object):
         print("im shapes len", len(im_shapes))
         self.fq_im_scaled_dims = np.array(im_shapes).max(axis=0)
         print("final fq im sacled dims", self.fq_im_scaled_dims)
+        print("THE END OF ALL fastq tile mappings", self.fq_im_offset, self.fq_im_scale, self.fq_im_scaled_maxes, self.fq_im_scaled_dims)
         for tile in self.fastq_tiles_list:
             tile.image_shape = self.fq_im_scaled_dims
 
