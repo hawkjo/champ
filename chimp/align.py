@@ -102,7 +102,7 @@ def main(base_image_name, alignment_channel=None, alignment_offset=None):
         image_fft = np.fft.fft2(padded_microscope)
         cross_corr = abs(np.fft.ifft2(np.conj(tile_fft) * image_fft))
         max_corr = cross_corr.max()
-        print(max_corr)
+
 
 if __name__ == '__main__':
     main('/var/experiments/151118/15-11-18_SA15243_Cascade-TA_1nM-007', alignment_offset=1)
