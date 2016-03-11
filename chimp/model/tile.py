@@ -30,6 +30,7 @@ class Tile(object):
 
     @property
     def image(self):
+        (fq_im_scaled_maxes + [1, 1]).astype(np.int)
         new_rcs = self._scale * (self.rcs + np.tile(self._offset, (self.rcs.shape[0], 1)))
         image = np.zeros(new_rcs.max(axis=0) + 1)
         image[new_rcs.astype(np.int)[:, 0], new_rcs.astype(np.int)[:, 1]] = 1
@@ -57,6 +58,5 @@ def load_tile_manager(um_per_pixel, read_data):
     x_max, y_max = all_data.max(axis=0)
 
     scale = (FASTQ_TILE_WIDTH / (x_max - x_min)) / um_per_pixel
-    scale = 0.1253682
     offset = np.array([-x_min, -y_min])
     return TileManager(tile_data, scale, offset)
