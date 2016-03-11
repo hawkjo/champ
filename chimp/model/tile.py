@@ -9,7 +9,7 @@ class TileManager(object):
     def __init__(self, tile_data, scale, offset):
         self._tiles = {}
         for region, rcs in tile_data.items():
-            self._tiles[region] = Tile(flip_coordinates(rcs), scale, offset)
+            self._tiles[region] = Tile(rcs, scale, offset)
 
     def get(self, tile_number, lane=1, side=2):
         key = lane, side, tile_number
@@ -50,7 +50,7 @@ def load_tile_manager(um_per_pixel, read_data):
         # fastq_reads is a list of FastqRead
         rcs = np.array([(r.row, r.column) for r in fastq_reads])
         tile_shapes.append(rcs.max(axis=0) + 1)
-        tile_data[region] = rcs
+        tile_data[region] = flip_coordinates(rcs)
 
     all_data = np.concatenate([rcs for rcs in tile_data.values()])
     x_min, y_min = all_data.min(axis=0)
@@ -58,8 +58,4 @@ def load_tile_manager(um_per_pixel, read_data):
 
     scale = (FASTQ_TILE_WIDTH / (x_max - x_min)) / um_per_pixel
     offset = np.array([-x_min, -y_min])
-    print("all data len", len(all_data))
-    print("mins", x_min, y_min)
-    print("maxs", x_max, y_max)
-    print("scale", scale)
     return TileManager(tile_data, scale, offset)

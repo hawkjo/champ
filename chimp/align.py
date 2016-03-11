@@ -90,7 +90,7 @@ def pad_image(image, pad_to_size):
 def main(base_image_name, alignment_channel=None, alignment_offset=None):
     nd2 = Nd2('%s.nd2' % base_image_name)
     loader = partial(load_sexcat, base_image_name)
-    mapped_reads = fastq.load_mapped_reads('phix', ignore_side_1=False)
+    mapped_reads = fastq.load_mapped_reads('phix')
     tm = tile.load_tile_manager(nd2.pixel_microns, mapped_reads)
     ts = [tm.get(i) for i in range(11, 16)]
     grid = GridImages(nd2, loader, alignment_channel, alignment_offset)

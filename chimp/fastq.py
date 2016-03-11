@@ -107,7 +107,7 @@ def save_classified_reads(name, reads, out_directory):
             f.write('%s\n' % read)
 
 
-def load_mapped_reads(name, ignore_side_1=True):
+def load_mapped_reads(name):
     """
     Reads flat text files with unaligned read names and puts them into a dictionary
     organized by (lane, side, tile).
@@ -121,7 +121,5 @@ def load_mapped_reads(name, ignore_side_1=True):
         for line in f:
             record = FastqName(name=line.strip())
             fastq_read = FastqRead(record)
-            if ignore_side_1 and fastq_read.side == 1:
-                continue
             read_data[fastq_read.region].append(fastq_read)
     return read_data
