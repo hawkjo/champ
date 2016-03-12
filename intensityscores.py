@@ -19,7 +19,7 @@ class IntensityScores(object):
         self.scores = self.raw_scores
 
     def get_LDA_scores(self,
-                       results_dir_given_nd2,
+                       results_dirs,
                        lda_weights_fpath,
                        side_px=3,
                        verbose=True,
@@ -37,9 +37,7 @@ class IntensityScores(object):
 
         # Read scores
         lda_weights = np.loadtxt(lda_weights_fpath)
-        for nd2 in self.nd2s:
-            results_dir = results_dir_given_nd2[nd2]
-            assert os.path.isdir(results_dir), results_dir
+        for nd2, results_dir in zip(self.nd2s, results_dirs):
             results_fpaths = glob.glob(os.path.join(results_dir, '*_all_read_rcs.txt'))
             if verbose: print 'Num results files:', len(results_fpaths)
         
@@ -98,6 +96,26 @@ class IntensityScores(object):
         
     def get_read_names_in_image(self, nd2, im_idx):
         return set(self.raw_scores[nd2][im_idx].keys())
+
+    def build_score_given_read_name_given_channel(self):
+        self.score_given_read_name_in_channel = {nd2: {} for nd2 in self.nd2s}
+        for nd2 in self.nd2s:
+            channel_idxs = set([im_idx % 4 for im_idx in self.scores[nd2].keys()])
+            self.score_given_read_name_in_channel[nd2] = {
+                channel_idx: {} for channel_idx in channel_idxs
+            }
+            for im_idx, score_given_read_name in self.scores[nd2].items():
+                channel_idx = im_idx % len(nd2.channels)
+                for read_name, score in score_given_read_name.items():
+                    self.score_given_read_name_in_channel[nd2][channel_idx][read_name] = score
+
+    def get_scores_given_read_name_in_channel(self, nd2, channel_idx):
+        score_given_read_name_in_channel = {}
+        for im_idx, score_given_read_name in self.scores[nd2].items():
+            if im_idx % len(nd2.channels) == channel_idx:
+                for read_name, score in score_given_read_name.items():
+                    score_given_read_name_in_channel[read_name] = score
+        return score_given_read_name_in_channel
 
     def plot_normalization_constants(self):
         for nd2 in self.nd2s:
