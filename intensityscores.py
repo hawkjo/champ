@@ -74,26 +74,33 @@ class IntensityScores(object):
         self.normalizing_constants = {nd2: {} for nd2 in self.nd2s}
         for nd2 in self.nd2s:
             if verbose: print nd2tools.bname_given_nd2(nd2)
-            median_given_im_idx = {}
-            for im_idx in self.raw_scores[nd2].keys():
+            for channel_idx in range(len(nd2.channels)):
                 if verbose: misctools.dot()
-                reference_read_names_in_image = (self.get_read_names_in_image(nd2, im_idx)
-                                                 & reference_read_names)
-                median_given_im_idx[im_idx]  = np.median(
-                    [max(self.raw_scores[nd2][im_idx][read_name], 1)
-                     for read_name in reference_read_names_in_image]
-                )
-            if verbose: print
-
-            median_of_medians = np.median(median_given_im_idx.values())
-            for im_idx in self.raw_scores[nd2].keys():
-                Z = median_given_im_idx[im_idx] / float(median_of_medians)
-                self.normalizing_constants[nd2][im_idx] = Z
-                im_scores = self.raw_scores[nd2][im_idx]
-                self.scores[nd2][im_idx] = {
-                    read_name: im_scores[read_name] / Z
-                    for read_name in self.get_read_names_in_image(nd2, im_idx)
-                }
+                median_given_im_idx = {}
+                for im_idx in self.raw_scores[nd2].keys():
+                    if im_idx % len(nd2.channels) != channel_idx:
+                        continue
+                    reference_read_names_in_image = (self.get_read_names_in_image(nd2, im_idx)
+                                                     & reference_read_names)
+                    if len(reference_read_names_in_image) < 10:
+                        print 'Warning: 10 > {} reference reads in im_idx {}'.format(
+                            len(reference_read_names_in_image), im_idx
+                        )
+                    median_given_im_idx[im_idx]  = np.median(
+                        [self.raw_scores[nd2][im_idx][read_name]
+                         for read_name in reference_read_names_in_image]
+                    )
+                if verbose: print
+    
+                median_of_medians = np.median(median_given_im_idx.values())
+                for im_idx in median_given_im_idx.keys():
+                    Z = median_given_im_idx[im_idx] / float(median_of_medians)
+                    self.normalizing_constants[nd2][im_idx] = Z
+                    im_scores = self.raw_scores[nd2][im_idx]
+                    self.scores[nd2][im_idx] = {
+                        read_name: im_scores[read_name] / Z
+                        for read_name in self.get_read_names_in_image(nd2, im_idx)
+                    }
         
     def get_read_names_in_image(self, nd2, im_idx):
         return set(self.raw_scores[nd2][im_idx].keys())
@@ -130,7 +137,7 @@ class IntensityScores(object):
                 channel_idx = im_idx % len(nd2.channels)
                 pos_name = nd2tools.convert_nd2_coordinates(nd2, im_idx=im_idx, outfmt='pos_name')
                 row = string.uppercase.index(pos_name[0])
-                col = int(pos_name[1:])
+                col = int(pos_name[1:])-1
                 M_given_channel_idx[channel_idx][row, col] = self.normalizing_constants[nd2][im_idx]
 
             for channel_idx, M in M_given_channel_idx.items():
@@ -147,7 +154,7 @@ class IntensityScores(object):
                 ax.set_yticklabels(string.uppercase[:M.shape[0]])
                 ax.xaxis.set_ticks_position('bottom')
 
-    def plot_aligned_images(self):
+    def plot_aligned_images(self, channel_idxs, colors, markers):
         for nd2 in self.nd2s:
             rs = defaultdict(list)
             cs = defaultdict(list)
@@ -158,8 +165,7 @@ class IntensityScores(object):
                 cs[channel_idx].append(c)
 
             fig, ax = plt.subplots(figsize=(10, 7))
-            for channel_idx, marker in zip(rs.keys(), 'o*x^'):
-                color = nd2.channels[channel_idx].lower()
+            for channel_idx, color, marker in zip(channel_idxs, colors, markers):
                 ax.plot(cs[channel_idx], rs[channel_idx], marker,
                         color=color, alpha=0.4,
                         label=nd2.channels[channel_idx])
