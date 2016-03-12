@@ -83,6 +83,7 @@ class IntensityScores(object):
                     [max(self.raw_scores[nd2][im_idx][read_name], 1)
                      for read_name in reference_read_names_in_image]
                 )
+            if verbose: print
 
             median_of_medians = np.median(median_given_im_idx.values())
             for im_idx in self.raw_scores[nd2].keys():
