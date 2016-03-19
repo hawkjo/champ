@@ -85,6 +85,7 @@ def stream_all_read_names(fastq_files):
             yield {r.name for r in parse_fastq_lines(fh)}
         del fh
 
+
 def load_unclassified_reads(fastq_files, all_classified_reads):
     all_unclassified_reads = set()
     progress_bar = get_progress_bar(len(fastq_files))
