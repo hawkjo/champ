@@ -1,5 +1,6 @@
-class FastqRead(object):
-    """ Wraps the raw data about a single DNA read that we receive from Illumina. """
+class FastqAlignmentRead(object):
+    """ Wraps the raw data about a single DNA read that we receive from Illumina.
+        Discards the sequence and quality data to conserve memory. """
     __slots__ = ('_name', '_lane', '_side', '_tile')
 
     def __init__(self, record):

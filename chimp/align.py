@@ -2,6 +2,7 @@ from chimp.model.sextractor import Sextraction
 from chimp.model.grid import GridImages
 from chimp.model import tiles
 from chimp import fastq
+from collections import defaultdict
 from functools import partial
 import logging
 from nd2reader import Nd2
@@ -50,6 +51,24 @@ def correlate_image_and_tile(image, tile):
     return cross_correlation.max(), max_index, alignment_transform
 
 
+def get_expected_tile_map(min_tile, max_tile, min_column, max_column):
+    """
+    Creates a dictionary that relates each column of microscope images to its expected tile, +/- 1.
+
+    """
+    tile_map = defaultdict(list)
+    normalization_factor = float(max_tile - min_tile) / (max_column - min_column - 1)
+    for column in range(min_column, max_column + 1):
+        expected_tile = int(column * normalization_factor)
+        tile_map[column].append(expected_tile)
+        if expected_tile > 1:
+            tile_map[column].append(expected_tile - 1)
+        if expected_tile < 19:
+            # Mi-Seq chips have 19 tiles on each side
+            tile_map[column].append(expected_tile + 1)
+    return tile_map
+
+
 def main(base_image_name, snr, alignment_channel=None, alignment_offset=None):
     LEFT_TILES = tuple(range(1, 11))
     RIGHT_TILES = tuple(range(11, 20))
@@ -60,7 +79,9 @@ def main(base_image_name, snr, alignment_channel=None, alignment_offset=None):
     grid = GridImages(nd2, loader, alignment_channel, alignment_offset)
     left_tile, left_column = find_end_tile(grid.left_iter(), tm, snr, LEFT_TILES, RIGHT_TILES, "left")
     right_tile, right_column = find_end_tile(grid.right_iter(), tm, snr, RIGHT_TILES, LEFT_TILES, "right")
-
+    tile_map = get_expected_tile_map(left_tile, right_tile, left_column, right_column)
+    import pprint
+    pprint.pprint(tile_map)
     # now do linear interpolation to match up tiles with images, getting 3 most likely tiles
     # for every image (bounded by left_column and right_column), try to rough align to the tiles
     # find hits

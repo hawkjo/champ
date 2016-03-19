@@ -1,5 +1,5 @@
 from Bio import SeqIO
-from chimp.model.fastq import FastqRead
+from chimp.model.fastq import FastqAlignmentRead
 from collections import defaultdict, namedtuple
 import gzip
 import logging
@@ -15,11 +15,9 @@ log = logging.getLogger(__name__)
 FastqName = namedtuple('FastqRead', ['name'])
 
 
-def parse_fastq_gzip_file(path):
-    with gzip.open(path) as f:
-        for dna in SeqIO.parse(f, 'fastq'):
-            yield FastqRead(dna)
-    del f
+def parse_fastq_lines(fh):
+    for dna in SeqIO.parse(fh, 'fastq'):
+        yield FastqAlignmentRead(dna)
 
 
 class FastqReadClassifier(object):
@@ -83,8 +81,9 @@ def classify_all_reads(classifier_paths, fastq_files):
 def stream_all_read_names(fastq_files):
     # streams sets of read names for each fastq file
     for filename in fastq_files:
-        yield {r.name for r in parse_fastq_gzip_file(filename)}
-
+        with gzip.open(filename) as fh:
+            yield {r.name for r in parse_fastq_lines(fh)}
+        del fh
 
 def load_unclassified_reads(fastq_files, all_classified_reads):
     all_unclassified_reads = set()
@@ -120,6 +119,6 @@ def load_mapped_reads(name):
     with open('%s' % os.path.join('mapped_reads', name)) as f:
         for line in f:
             record = FastqName(name=line.strip())
-            fastq_read = FastqRead(record)
+            fastq_read = FastqAlignmentRead(record)
             read_data[fastq_read.region].append(fastq_read)
     return read_data
