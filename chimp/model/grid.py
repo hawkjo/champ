@@ -50,11 +50,13 @@ class GridImages(object):
         raise ValueError('The channel you set to be used for alignment was not found in the given ND2.')
 
     def get(self, row, column):
+        print("requested rc:", row, column)
         indexes = self._get_indexes(row, column)
         index = indexes[self._channel_offset]
-        image = self._normalize_median(self._nd2[index])
+        print(index)
+        normalized_image = self._normalize_median(self._nd2[index])
         sextraction = self._sextraction_loader(index)
-        return MicroscopeData(image, sextraction, row, column)
+        return MicroscopeData(normalized_image, sextraction, row, column)
 
     def _normalize_median(self, im):
         med = np.median(im)
@@ -68,10 +70,21 @@ class GridImages(object):
 
     def _get_indexes(self, row, column):
         first = self._get_first_offset_number(row, column)
+        print("first", first)
         return tuple((first + i for i in range(len(self._nd2.channels))))
 
     def _get_first_offset_number(self, row, column):
-        return column * len(self._nd2.channels) + (row * self._width * len(self._nd2.channels))
+        """
+        Images are obtained left-to-right in odd-numbered rows and right-to-left in even-numbered rows.
+
+        """
+        if row % 2:
+            # right to left
+            columns = self._width - column - 1
+        else:
+            columns = column
+        print("adjusted row column:", row, columns)
+        return columns * len(self._nd2.channels) + (row * self._width * len(self._nd2.channels))
 
     def _parse_grid(self):
         try:
