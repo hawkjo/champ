@@ -112,9 +112,6 @@ def load_mapped_reads(name):
     Reads flat text files with unaligned read names and puts them into a dictionary
     organized by (lane, side, tile).
 
-    random_selection is set to a fraction between 0.0 and 1.0 when not all reads should be loaded.
-    This is used in cases where phiX is not available for alignment and a subset of all reads should be used.
-
     """
     read_data = defaultdict(list)
     with open('%s' % os.path.join('mapped_reads', name)) as f:

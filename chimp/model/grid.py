@@ -50,10 +50,8 @@ class GridImages(object):
         raise ValueError('The channel you set to be used for alignment was not found in the given ND2.')
 
     def get(self, row, column):
-        print("requested rc:", row, column)
         indexes = self._get_indexes(row, column)
         index = indexes[self._channel_offset]
-        print(index)
         normalized_image = self._normalize_median(self._nd2[index])
         sextraction = self._sextraction_loader(index)
         return MicroscopeData(normalized_image, sextraction, row, column)
@@ -62,7 +60,7 @@ class GridImages(object):
         med = np.median(im)
         # Doing in place division by a float won't work because we have an int64 array
         # By casting to float with copy=False, we create a float view that allows
-        # in place division without having to perform any copies
+        # in place division without having to perform any copies. Probably.
         im = im.astype('float', copy=False, casting='safe')
         im /= float(med)
         im -= 1.0
@@ -70,7 +68,6 @@ class GridImages(object):
 
     def _get_indexes(self, row, column):
         first = self._get_first_offset_number(row, column)
-        print("first", first)
         return tuple((first + i for i in range(len(self._nd2.channels))))
 
     def _get_first_offset_number(self, row, column):
@@ -83,7 +80,6 @@ class GridImages(object):
             columns = self._width - column - 1
         else:
             columns = column
-        print("adjusted row column:", row, columns)
         return columns * len(self._nd2.channels) + (row * self._width * len(self._nd2.channels))
 
     def _parse_grid(self):

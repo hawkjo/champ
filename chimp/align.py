@@ -9,14 +9,12 @@ from nd2reader import Nd2
 import numpy as np
 import os
 import random
+import time
+import padding
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
-
-
-def next_power_of_2(x):
-    return 1 << (int(np.ceil(x)) - 1).bit_length()
 
 
 def load_sexcat(directory, index):
@@ -24,30 +22,18 @@ def load_sexcat(directory, index):
         return Sextraction(f)
 
 
-def pad_images(tile_image, microscope_image):
-    """
-    Pad to 4096 pixels, or whatever.
-
-    """
-    dimension = next_power_of_2(max(tile_image.shape[0], microscope_image.shape[0],
-                                    tile_image.shape[1], microscope_image.shape[1]))
-    return pad_image(tile_image, dimension), pad_image(microscope_image, dimension)
-
-
-def pad_image(image, pad_to_size):
-    pad = pad_to_size - image.shape[0], pad_to_size - image.shape[1]
-    return np.pad(image, ((0, pad[0]), (0, pad[1])), mode='constant')
-
-
 def max_2d_idx(a):
     return np.unravel_index(a.argmax(), a.shape)
 
 
-def correlate_image_and_tile(image, tile):
-    padded_tile, padded_microscope = pad_images(tile.image, image)
-    tile_fft = np.fft.fft2(padded_tile)
+def correlate_image_and_tile(image, tile_fft_conjugate):
+    dimension = padding.calculate_pad_size(tile_fft_conjugate.shape[0],
+                                           tile_fft_conjugate.shape[1],
+                                           image.shape[0],
+                                           image.shape[1])
+    padded_microscope = padding.pad_image(image, dimension)
     image_fft = np.fft.fft2(padded_microscope)
-    cross_correlation = abs(np.fft.ifft2(np.conj(tile_fft) * image_fft))
+    cross_correlation = abs(np.fft.ifft2(tile_fft_conjugate * image_fft))
     max_index = max_2d_idx(cross_correlation)
     alignment_transform = np.array(max_index) - image_fft.shape
     return cross_correlation.max(), max_index, alignment_transform
@@ -72,18 +58,22 @@ def get_expected_tile_map(min_tile, max_tile, min_column, max_column):
     return tile_map
 
 
-def main(base_image_name, snr, alignment_channel=None, alignment_offset=None):
+def main(base_image_name, snr, alignment_channel=None, alignment_offset=None, cache_size=20):
     LEFT_TILES = tuple(range(1, 11))
-    RIGHT_TILES = tuple(range(11, 20))
+    RIGHT_TILES = tuple(reversed(range(11, 20)))
     nd2 = Nd2('%s.nd2' % base_image_name)
     loader = partial(load_sexcat, base_image_name)
     log.debug("Loading mapped reads.")
     mapped_reads = fastq.load_mapped_reads('phix')
-    tm = tiles.load_tile_manager(nd2.pixel_microns, mapped_reads)
+    tm = tiles.load_tile_manager(nd2.pixel_microns, nd2.height, nd2.width, mapped_reads, cache_size)
     grid = GridImages(nd2, loader, alignment_channel, alignment_offset)
     log.debug("Loaded grid and tile manager.")
     left_tile, left_column = find_end_tile(grid.left_iter(), tm, snr, LEFT_TILES, RIGHT_TILES, "left")
     right_tile, right_column = find_end_tile(grid.right_iter(), tm, snr, RIGHT_TILES, LEFT_TILES, "right")
+    log.debug("Data was acquired between tiles %s and %s" % (left_tile, right_tile))
+    log.debug("Using images from column %s and %s" % (left_column, right_column))
+
+    # get a dictionary of tiles that each image will probably be found in
     tile_map = get_expected_tile_map(left_tile, right_tile, left_column, right_column)
 
     # results is a hacky temporary data structure for storing alignment results. Jim WILL make it better
@@ -92,11 +82,14 @@ def main(base_image_name, snr, alignment_channel=None, alignment_offset=None):
         possible_tiles = set(tile_map[microscope_data.column])
         impossible_tiles = set(range(1, 20)) - possible_tiles
         control_correlation = calculate_control_correlation(microscope_data.image, tm, impossible_tiles)
-        for tile in possible_tiles:
-            cross_correlation, max_index, alignment_transform = correlate_image_and_tile(microscope_data.image, tm.get(tile))
-            if cross_correlation > (control_correlation * snr):
+        noise_threshold = control_correlation * snr
+        for tile_number in possible_tiles:
+            tile = tm.get(tile_number)
+            cross_correlation, max_index, alignment_transform = correlate_image_and_tile(microscope_data.image,
+                                                                                         tm.fft_conjugate(tile_number))
+            if cross_correlation > noise_threshold:
                 results[(microscope_data.row, microscope_data.column)].append((tile, cross_correlation, max_index, alignment_transform))
-                print("match! %s %s %s %s" % (microscope_data.row, microscope_data.column, tile, cross_correlation))
+                log.debug("%sx%s in tile %s. Strength: %s" % (microscope_data.row, microscope_data.column, tile_number, (cross_correlation / noise_threshold)))
     return results
 
 
@@ -112,8 +105,8 @@ def show_grid(results, rows, columns):
 def calculate_control_correlation(image, tile_manager, impossible_tiles):
     control_correlation = 0.0
     for impossible_tile in random.sample(impossible_tiles, 3):
-        tile = tile_manager.get(impossible_tile)
-        cross_correlation, max_index, alignment_transform = correlate_image_and_tile(image, tile)
+        tile_fft_conjugate = tile_manager.fft_conjugate(impossible_tile)
+        cross_correlation, max_index, alignment_transform = correlate_image_and_tile(image, tile_fft_conjugate)
         control_correlation = max(control_correlation, cross_correlation)
     return control_correlation
 
@@ -125,15 +118,13 @@ def find_end_tile(grid_images, tile_manager, snr, possible_tiles, impossible_til
         control_correlation = calculate_control_correlation(microscope_data.image, tile_manager, impossible_tiles)
         # now find which tile the image aligns to, if any
         for tile_number in possible_tiles:
-            tile = tile_manager.get(tile_number)
-            cross_correlation, max_index, alignment_transform = correlate_image_and_tile(microscope_data.image, tile)
+            tile_fft_conjugate = tile_manager.fft_conjugate(tile_number)
+            cross_correlation, max_index, alignment_transform = correlate_image_and_tile(microscope_data.image,
+                                                                                         tile_fft_conjugate)
             if cross_correlation > (control_correlation * snr):
-                log.debug("Tile #%s aligns. Correlation: %s" % (tile_number, cross_correlation))
-                log.debug("%s end tile: %s" % (side_name, tile_number))
                 return tile_number, microscope_data.column
 
 
 if __name__ == '__main__':
-    log.debug("booting")
-    results = main('/var/experiments/151118/15-11-18_SA15243_Cascade-TA_1nM-007', 1.2, alignment_offset=1)
+    results = main('/var/experiments/151118/15-11-18_SA15243_Cascade-TA_1nM-007', 1.2, alignment_offset=1, cache_size=8)
     show_grid(results, 7, 60)

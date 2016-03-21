@@ -24,8 +24,3 @@ class MicroscopeData(object):
 
         """
         return self._sextraction.rcs
-
-    @property
-    def simage(self):
-        # just for fun
-        return self._sextraction.image
