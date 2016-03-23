@@ -19,7 +19,6 @@ class TileManager(object):
         for region, rcs in tile_data.items():
             self._tiles[region] = Tile(flip_coordinates(rcs), scale, offset)
 
-
     def _calculate_fft_conjugate(self, image, image_height, image_width):
         """
         Precompute the conjugate of the FFT of the tile points since it's slow and we need to reuse this result many times.
@@ -54,7 +53,6 @@ class TileManager(object):
 class Tile(object):
     """ Wraps fastq tile coordinates """
     def __init__(self, rcs, scale, offset):
-        # not sure if tile needs to know its region anymore
         self._rcs = rcs
         self._scale = scale
         self._offset = offset
@@ -64,8 +62,12 @@ class Tile(object):
         return self._rcs
 
     @property
+    def normalized_rcs(self):
+        return self._scale * (self.rcs + np.tile(self._offset, (self.rcs.shape[0], 1)))
+
+    @property
     def image(self):
-        new_rcs = self._scale * (self.rcs + np.tile(self._offset, (self.rcs.shape[0], 1)))
+        new_rcs = self.normalized_rcs
         image = np.zeros(new_rcs.max(axis=0) + 1)
         image[new_rcs.astype(np.int)[:, 0], new_rcs.astype(np.int)[:, 1]] = 1
         return image

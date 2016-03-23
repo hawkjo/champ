@@ -8,9 +8,14 @@ import logging
 from nd2reader import Nd2
 import numpy as np
 import os
-import random
-import time
 import padding
+import random
+import scipy.optimize
+from scipy.spatial import KDTree
+from sklearn.mixture import GMM
+from skimage import io
+import matplotlib.pyplot as plt
+
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -79,27 +84,97 @@ def main(base_image_name, snr, alignment_channel=None, alignment_offset=None, ca
     # results is a hacky temporary data structure for storing alignment results. Jim WILL make it better
     results = defaultdict(list)
     for microscope_data in grid.bounded_iter(left_column, right_column):
-        possible_tiles = set(tile_map[microscope_data.column])
-        impossible_tiles = set(range(1, 20)) - possible_tiles
-        control_correlation = calculate_control_correlation(microscope_data.image, tm, impossible_tiles)
-        noise_threshold = control_correlation * snr
-        for tile_number in possible_tiles:
+        for tile_number, cross_correlation, max_index, alignment_transform in get_rough_alignment(microscope_data, tm, tile_map, snr):
+            results[(microscope_data.row, microscope_data.column)].append((tile_number, cross_correlation, max_index, alignment_transform))
             tile = tm.get(tile_number)
-            cross_correlation, max_index, alignment_transform = correlate_image_and_tile(microscope_data.image,
-                                                                                         tm.fft_conjugate(tile_number))
-            if cross_correlation > noise_threshold:
-                results[(microscope_data.row, microscope_data.column)].append((tile, cross_correlation, max_index, alignment_transform))
-                log.debug("%sx%s in tile %s. Strength: %s" % (microscope_data.row, microscope_data.column, tile_number, (cross_correlation / noise_threshold)))
-    return results
+            hits = find_hits(microscope_data, tile, alignment_transform)
 
 
-def show_grid(results, rows, columns):
-    for row in range(rows):
-        print(''.join(["*" if results.get((row, column)) else '|' for column in range(columns)]))
+def find_hits(microscope_data, tile, rough_alignment_transform):
+    tile_points = []
+    point_indexes = []
+    for i, original_point in enumerate(tile.normalized_rcs):
+        point = original_point + rough_alignment_transform
+        if 0 <= point[0] < microscope_data.shape[0] and 0 <= point[1] < microscope_data.shape[1]:
+            tile_points.append(point)
+            point_indexes.append(i)
 
-    # find hits
-    # do precision alignment on those hits
-    # store results of precision alignment somehow
+    aligned_rcs = np.array(tile_points).astype(np.int)
+    sexcat_tree = KDTree(microscope_data.rcs)
+    aligned_tree = KDTree(aligned_rcs)
+    sexcat_to_aligned_idxs = set()
+    for i, pt in enumerate(microscope_data.rcs):
+        dist, idx = aligned_tree.query(pt)
+        sexcat_to_aligned_idxs.add((i, idx))
+
+    aligned_to_sexcat_idxs_rev = set()
+    for i, pt in enumerate(aligned_rcs):
+        dist, idx = sexcat_tree.query(pt)
+        aligned_to_sexcat_idxs_rev.add((idx, i))
+
+    # --------------------------------------------------------------------------------
+    # Find categories of hits
+    # --------------------------------------------------------------------------------
+    mutual_hits = sexcat_to_aligned_idxs & aligned_to_sexcat_idxs_rev
+    non_mutual_hits = sexcat_to_aligned_idxs ^ aligned_to_sexcat_idxs_rev
+
+    sexcat_in_non_mutual = set(i for i, j in non_mutual_hits)
+    aligned_in_non_mutual = set(j for i, j in non_mutual_hits)
+    exclusive_hits = set((i, j) for i, j in mutual_hits if i not in
+                         sexcat_in_non_mutual and j not in aligned_in_non_mutual)
+
+    # --------------------------------------------------------------------------------
+    # Recover good non-exclusive mutual hits.
+    # --------------------------------------------------------------------------------
+    # If the distance to second neighbor is too close, that suggests a bad peak call combining
+    # two peaks into one. Filter those out with a gaussian-mixture-model-determined threshold.
+    good_hit_thresh = 5
+    second_neighbor_thresh = 2 * good_hit_thresh
+    exclusive_hits = set(hit for hit in exclusive_hits
+                         if single_hit_dist(hit, microscope_data.rcs, aligned_rcs) <= good_hit_thresh)
+
+    good_mutual_hits = set()
+    for i, j in (mutual_hits - exclusive_hits):
+        if single_hit_dist((i, j), microscope_data.rcs, aligned_rcs) > good_hit_thresh:
+            continue
+        third_wheels = [tup for tup in non_mutual_hits if i == tup[0] or j == tup[1]]
+        third_wheel_distances = [single_hit_dist(hit, microscope_data.rcs, aligned_rcs) for hit in third_wheels]
+        if min(third_wheel_distances) > second_neighbor_thresh:
+            good_mutual_hits.add((i, j))
+    bad_mutual_hits = mutual_hits - exclusive_hits - good_mutual_hits
+
+    # --------------------------------------------------------------------------------
+    # Test that the four groups form a partition of all hits and finalize
+    # --------------------------------------------------------------------------------
+    assert (non_mutual_hits | bad_mutual_hits | good_mutual_hits | exclusive_hits
+            == sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev
+            and len(non_mutual_hits) + len(bad_mutual_hits)
+            + len(good_mutual_hits) + len(exclusive_hits)
+            == len(sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev))
+
+    log.debug('Non-mutual hits: %s' % len(non_mutual_hits))
+    log.debug('Mutual hits: %s' % len(mutual_hits))
+    log.debug('Bad mutual hits: %s' % len(bad_mutual_hits))
+    log.debug('Good mutual hits: %s' % len(good_mutual_hits))
+    log.debug('Exclusive hits: %s' % len(exclusive_hits))
+    return exclusive_hits
+
+
+def single_hit_dist(hit, microscope_rcs, aligned_rcs):
+    return np.linalg.norm(microscope_rcs[hit[0]] - aligned_rcs[hit[1]])
+
+
+def get_rough_alignment(microscope_data, tile_manager, tile_map, snr):
+    possible_tiles = set(tile_map[microscope_data.column])
+    impossible_tiles = set(range(1, 20)) - possible_tiles
+    control_correlation = calculate_control_correlation(microscope_data.image, tile_manager, impossible_tiles)
+    noise_threshold = control_correlation * snr
+    for tile_number in possible_tiles:
+        cross_correlation, max_index, alignment_transform = correlate_image_and_tile(microscope_data.image,
+                                                                                     tile_manager.fft_conjugate(tile_number))
+        if cross_correlation > noise_threshold:
+            log.debug("Field of view %sx%s is in tile %s" % (microscope_data.row, microscope_data.column, tile_number))
+            yield tile_number, cross_correlation, max_index, alignment_transform
 
 
 def calculate_control_correlation(image, tile_manager, impossible_tiles):
@@ -127,4 +202,3 @@ def find_end_tile(grid_images, tile_manager, snr, possible_tiles, impossible_til
 
 if __name__ == '__main__':
     results = main('/var/experiments/151118/15-11-18_SA15243_Cascade-TA_1nM-007', 1.2, alignment_offset=1, cache_size=8)
-    show_grid(results, 7, 60)

@@ -5,9 +5,10 @@ class MicroscopeData(object):
     """
     def __init__(self, image, sextraction, row, column):
         self._image = image
-        self._sextraction = sextraction
-        self.row = row
         self.column = column
+        self.row = row
+        self.shape = image.shape
+        self._sextraction = sextraction
 
     @property
     def image(self):
