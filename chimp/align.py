@@ -10,13 +10,8 @@ import numpy as np
 import os
 import padding
 import random
-import scipy.optimize
 from scipy.spatial import KDTree
-from sklearn.mixture import GMM
-from skimage import io
-import matplotlib.pyplot as plt
 import time
-
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -33,6 +28,7 @@ def max_2d_idx(a):
 
 
 def correlate_image_and_tile(image, tile_fft_conjugate):
+    start = time.time()
     dimension = padding.calculate_pad_size(tile_fft_conjugate.shape[0],
                                            tile_fft_conjugate.shape[1],
                                            image.shape[0],
@@ -42,6 +38,7 @@ def correlate_image_and_tile(image, tile_fft_conjugate):
     cross_correlation = abs(np.fft.ifft2(tile_fft_conjugate * image_fft))
     max_index = max_2d_idx(cross_correlation)
     alignment_transform = np.array(max_index) - image_fft.shape
+    log.debug("Correlating image and tile took %s seconds" % (time.time() - start))
     return cross_correlation.max(), max_index, alignment_transform
 
 
@@ -74,9 +71,8 @@ def main(base_image_name, snr, alignment_channel=None, alignment_offset=None, ca
     tm = tiles.load_tile_manager(nd2.pixel_microns, nd2.height, nd2.width, mapped_reads, cache_size)
     grid = GridImages(nd2, loader, alignment_channel, alignment_offset)
     log.debug("Loaded grid and tile manager.")
-    # left_tile, left_column = find_end_tile(grid.left_iter(), tm, snr, LEFT_TILES, RIGHT_TILES, "left")
-    # right_tile, right_column = find_end_tile(grid.right_iter(), tm, snr, RIGHT_TILES, LEFT_TILES, "right")
-    left_tile, left_column, right_tile, right_column = 4, 0, 14, 59
+    left_tile, left_column = find_end_tile(grid.left_iter(), tm, snr, LEFT_TILES, RIGHT_TILES, "left")
+    right_tile, right_column = find_end_tile(grid.right_iter(), tm, snr, RIGHT_TILES, LEFT_TILES, "right")
     log.debug("Data was acquired between tiles %s and %s" % (left_tile, right_tile))
     log.debug("Using images from column %s and %s" % (left_column, right_column))
 
@@ -89,14 +85,18 @@ def main(base_image_name, snr, alignment_channel=None, alignment_offset=None, ca
         for tile_number, cross_correlation, max_index, alignment_transform in get_rough_alignment(microscope_data, tm, tile_map, snr):
             results[(microscope_data.row, microscope_data.column)].append((tile_number, cross_correlation, max_index, alignment_transform))
             tile = tm.get(tile_number)
-            exclusive_hits, aligned_rcs = find_hits(microscope_data, tile, alignment_transform, precision_hit_threshold)
-            least_squares_mapping(exclusive_hits, microscope_data.rcs, aligned_rcs)
+            aligned_rcs, aligned_indexes = find_aligned_rcs_and_indexes(microscope_data, tile, alignment_transform)
+            exclusive_hits, aligned_rcs = find_hits(microscope_data, aligned_rcs, precision_hit_threshold)
+            offset, theta, lbda = least_squares_mapping(exclusive_hits, microscope_data.rcs, aligned_rcs)
 
 
 def remove_longest_hits(hits, microscope_data, aligned_rcs, pct_thresh):
+    start = time.time()
     dists = [single_hit_dist(hit, microscope_data.rcs, aligned_rcs) for hit in hits]
     proximity_threshold = np.percentile(dists, pct_thresh * 100)
-    return [hit for hit in hits if single_hit_dist(hit, microscope_data.rcs, aligned_rcs) <= proximity_threshold]
+    nice_hits = [hit for hit in hits if single_hit_dist(hit, microscope_data.rcs, aligned_rcs) <= proximity_threshold]
+    log.debug("Finding nice hits took %s seconds" % (time.time() - start))
+    return nice_hits
 
 
 def least_squares_mapping(hits, sexcat_rcs, inframe_tile_rcs, min_hits=50):
@@ -131,8 +131,8 @@ def least_squares_mapping(hits, sexcat_rcs, inframe_tile_rcs, min_hits=50):
 
     This system of equations is then finally solved for lambda and theta.
     """
-    # Reminder: All indices are in the order (sexcat_idx, in_frame_idx)
     start = time.time()
+    # Reminder: All indices are in the order (sexcat_idx, in_frame_idx)
     assert len(hits) > min_hits, 'Too few hits for least squares mapping: {0}'.format(len(hits))
     A = np.zeros((2 * len(hits), 4))
     b = np.zeros((2 * len(hits),))
@@ -144,23 +144,16 @@ def least_squares_mapping(hits, sexcat_rcs, inframe_tile_rcs, min_hits=50):
         xis, yis = sexcat_rcs[sexcat_idx]
         b[2*i] = xis
         b[2*i+1] = yis
-    print("setup for least squares took %s seconds" % (time.time() - start))
 
-    start = time.time()
     alpha, beta, x_offset, y_offset = np.linalg.lstsq(A, b)[0]
-    print("least squares took %s sec" % (time.time() - start))
     offset = np.array([x_offset, y_offset])
     theta = np.arctan2(beta, alpha)
     lbda = alpha / np.cos(theta)
-
-    log.debug("precision alignment")
-    log.debug("===================")
-    log.debug("offset: %s" % offset)
-    log.debug("theta: %s" % theta)
-    log.debug("lambda: %s" % lbda)
+    log.debug("Precision alignment took %s seconds" % (time.time() - start))
+    return offset, theta, lbda
 
 
-def find_hits(microscope_data, tile, rough_alignment_transform, precision_hit_threshold):
+def find_aligned_rcs_and_indexes(microscope_data, tile, rough_alignment_transform):
     tile_points = []
     point_indexes = []
     for i, original_point in enumerate(tile.normalized_rcs):
@@ -168,8 +161,10 @@ def find_hits(microscope_data, tile, rough_alignment_transform, precision_hit_th
         if 0 <= point[0] < microscope_data.shape[0] and 0 <= point[1] < microscope_data.shape[1]:
             tile_points.append(point)
             point_indexes.append(i)
+    return np.array(tile_points).astype(np.int), point_indexes
 
-    aligned_rcs = np.array(tile_points).astype(np.int)
+
+def find_hits(microscope_data, aligned_rcs, precision_hit_threshold):
     sexcat_tree = KDTree(microscope_data.rcs)
     aligned_tree = KDTree(aligned_rcs)
     sexcat_to_aligned_idxs = set()
@@ -199,38 +194,30 @@ def find_hits(microscope_data, tile, rough_alignment_transform, precision_hit_th
     # If the distance to second neighbor is too close, that suggests a bad peak call combining
     # two peaks into one. Filter those out with a gaussian-mixture-model-determined threshold.
     good_hit_thresh = 5
-    second_neighbor_thresh = 2 * good_hit_thresh
+    # second_neighbor_thresh = 2 * good_hit_thresh
     exclusive_hits = set(hit for hit in exclusive_hits
                          if single_hit_dist(hit, microscope_data.rcs, aligned_rcs) <= good_hit_thresh)
 
-    good_mutual_hits = set()
-    for i, j in (mutual_hits - exclusive_hits):
-        if single_hit_dist((i, j), microscope_data.rcs, aligned_rcs) > good_hit_thresh:
-            continue
-        third_wheels = [tup for tup in non_mutual_hits if i == tup[0] or j == tup[1]]
-        third_wheel_distances = [single_hit_dist(hit, microscope_data.rcs, aligned_rcs) for hit in third_wheels]
-        if min(third_wheel_distances) > second_neighbor_thresh:
-            good_mutual_hits.add((i, j))
-    bad_mutual_hits = mutual_hits - exclusive_hits - good_mutual_hits
+    # good_mutual_hits = set()
+    # for i, j in (mutual_hits - exclusive_hits):
+    #     if single_hit_dist((i, j), microscope_data.rcs, aligned_rcs) > good_hit_thresh:
+    #         continue
+    #     third_wheels = [tup for tup in non_mutual_hits if i == tup[0] or j == tup[1]]
+    #     third_wheel_distances = [single_hit_dist(hit, microscope_data.rcs, aligned_rcs) for hit in third_wheels]
+    #     if min(third_wheel_distances) > second_neighbor_thresh:
+    #         good_mutual_hits.add((i, j))
+    # bad_mutual_hits = mutual_hits - exclusive_hits - good_mutual_hits
 
     # --------------------------------------------------------------------------------
     # Test that the four groups form a partition of all hits and finalize
     # --------------------------------------------------------------------------------
-    assert (non_mutual_hits | bad_mutual_hits | good_mutual_hits | exclusive_hits
-            == sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev
-            and len(non_mutual_hits) + len(bad_mutual_hits)
-            + len(good_mutual_hits) + len(exclusive_hits)
-            == len(sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev))
+    # assert (non_mutual_hits | bad_mutual_hits | good_mutual_hits | exclusive_hits
+    #         == sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev
+    #         and len(non_mutual_hits) + len(bad_mutual_hits)
+    #         + len(good_mutual_hits) + len(exclusive_hits)
+    #         == len(sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev))
 
-    log.debug('Non-mutual hits: %s' % len(non_mutual_hits))
-    log.debug('Mutual hits: %s' % len(mutual_hits))
-    log.debug('Bad mutual hits: %s' % len(bad_mutual_hits))
-    log.debug('Good mutual hits: %s' % len(good_mutual_hits))
-    log.debug('Exclusive hits: %s' % len(exclusive_hits))
-
-    nice_hits = remove_longest_hits(exclusive_hits, microscope_data, aligned_rcs, precision_hit_threshold)
-    log.debug("Nice hits: %s" % len(nice_hits))
-    return nice_hits, aligned_rcs
+    return remove_longest_hits(exclusive_hits, microscope_data, aligned_rcs, precision_hit_threshold)
 
 
 def single_hit_dist(hit, microscope_rcs, aligned_rcs):
@@ -238,13 +225,17 @@ def single_hit_dist(hit, microscope_rcs, aligned_rcs):
 
 
 def get_rough_alignment(microscope_data, tile_manager, tile_map, snr):
+    start = time.time()
     possible_tiles = set(tile_map[microscope_data.column])
     impossible_tiles = set(range(1, 20)) - possible_tiles
     control_correlation = calculate_control_correlation(microscope_data.image, tile_manager, impossible_tiles)
     noise_threshold = control_correlation * snr
+    log.debug("rough alignment setup took %s seconds" % (time.time() - start))
     for tile_number in possible_tiles:
+        start = time.time()
         cross_correlation, max_index, alignment_transform = correlate_image_and_tile(microscope_data.image,
                                                                                      tile_manager.fft_conjugate(tile_number))
+        log.debug("Cross correlation took %s seconds" % (time.time() - start))
         if cross_correlation > noise_threshold:
             log.debug("Field of view %sx%s is in tile %s" % (microscope_data.row, microscope_data.column, tile_number))
             yield tile_number, cross_correlation, max_index, alignment_transform
@@ -274,4 +265,4 @@ def find_end_tile(grid_images, tile_manager, snr, possible_tiles, impossible_til
 
 
 if __name__ == '__main__':
-    results = main('/var/experiments/151118/15-11-18_SA15243_Cascade-TA_1nM-007', 1.2, alignment_offset=1, cache_size=8)
+    main('/var/experiments/151118/15-11-18_SA15243_Cascade-TA_1nM-007', 1.2, alignment_offset=1, cache_size=8)

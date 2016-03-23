@@ -4,7 +4,6 @@ from collections import defaultdict, namedtuple
 import gzip
 import logging
 import os
-from progressbar import ProgressBar, Percentage, Counter, Bar
 import pysam
 import subprocess
 
@@ -49,7 +48,6 @@ class FastqReadClassifier(object):
 
 
 def classify_fastq_reads(classifier_path, fastq_files):
-    progress_bar = get_progress_bar(fastq_files.alignment_length)
     classifier = FastqReadClassifier(classifier_path)
     log.info('Searching for reads for %s. This will take a while!' % classifier.name)
 
@@ -59,13 +57,10 @@ def classify_fastq_reads(classifier_path, fastq_files):
         for read in classifier.paired_call(file1, file2):
             reads.add(read)
         current += 1
-        progress_bar.update(current)
     for file1 in fastq_files.single:
         for read in classifier.single_call(file1):
             reads.add(read)
         current += 1
-        progress_bar.update(current)
-    progress_bar.finish()
     return classifier.name, reads
 
 
@@ -88,18 +83,10 @@ def stream_all_read_names(fastq_files):
 
 def load_unclassified_reads(fastq_files, all_classified_reads):
     all_unclassified_reads = set()
-    progress_bar = get_progress_bar(len(fastq_files))
-    for all_read_names in progress_bar(stream_all_read_names(fastq_files)):
+    for all_read_names in stream_all_read_names(fastq_files):
         all_unclassified_reads.update(all_read_names.difference(all_classified_reads))
     return all_unclassified_reads
 
-
-def get_progress_bar(length):
-    return ProgressBar(widgets=[Percentage(),
-                                ' (', Counter(), ' of %s) ' % length,
-                                Bar()],
-                       max_value=length).start()
-        
         
 def save_classified_reads(name, reads, out_directory):
     with open(os.path.join(out_directory, name), 'w+') as f:

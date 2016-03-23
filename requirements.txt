@@ -2,8 +2,8 @@ docopt==0.6.2
 biopython==1.66
 numpy==1.10.4
 nd2reader
-progressbar2
 pysam
 scipy==0.16.1
+tqdm
 matplotlib==1.5.1
 scikit-learn==0.17
