@@ -15,6 +15,7 @@ from scipy.spatial import KDTree
 from sklearn.mixture import GMM
 from skimage import io
 import matplotlib.pyplot as plt
+import time
 
 
 log = logging.getLogger(__name__)
@@ -63,7 +64,7 @@ def get_expected_tile_map(min_tile, max_tile, min_column, max_column):
     return tile_map
 
 
-def main(base_image_name, snr, alignment_channel=None, alignment_offset=None, cache_size=20):
+def main(base_image_name, snr, alignment_channel=None, alignment_offset=None, cache_size=20, precision_hit_threshold=0.9):
     LEFT_TILES = tuple(range(1, 11))
     RIGHT_TILES = tuple(reversed(range(11, 20)))
     nd2 = Nd2('%s.nd2' % base_image_name)
@@ -73,8 +74,9 @@ def main(base_image_name, snr, alignment_channel=None, alignment_offset=None, ca
     tm = tiles.load_tile_manager(nd2.pixel_microns, nd2.height, nd2.width, mapped_reads, cache_size)
     grid = GridImages(nd2, loader, alignment_channel, alignment_offset)
     log.debug("Loaded grid and tile manager.")
-    left_tile, left_column = find_end_tile(grid.left_iter(), tm, snr, LEFT_TILES, RIGHT_TILES, "left")
-    right_tile, right_column = find_end_tile(grid.right_iter(), tm, snr, RIGHT_TILES, LEFT_TILES, "right")
+    # left_tile, left_column = find_end_tile(grid.left_iter(), tm, snr, LEFT_TILES, RIGHT_TILES, "left")
+    # right_tile, right_column = find_end_tile(grid.right_iter(), tm, snr, RIGHT_TILES, LEFT_TILES, "right")
+    left_tile, left_column, right_tile, right_column = 4, 0, 14, 59
     log.debug("Data was acquired between tiles %s and %s" % (left_tile, right_tile))
     log.debug("Using images from column %s and %s" % (left_column, right_column))
 
@@ -87,10 +89,78 @@ def main(base_image_name, snr, alignment_channel=None, alignment_offset=None, ca
         for tile_number, cross_correlation, max_index, alignment_transform in get_rough_alignment(microscope_data, tm, tile_map, snr):
             results[(microscope_data.row, microscope_data.column)].append((tile_number, cross_correlation, max_index, alignment_transform))
             tile = tm.get(tile_number)
-            hits = find_hits(microscope_data, tile, alignment_transform)
+            exclusive_hits, aligned_rcs = find_hits(microscope_data, tile, alignment_transform, precision_hit_threshold)
+            least_squares_mapping(exclusive_hits, microscope_data.rcs, aligned_rcs)
 
 
-def find_hits(microscope_data, tile, rough_alignment_transform):
+def remove_longest_hits(hits, microscope_data, aligned_rcs, pct_thresh):
+    dists = [single_hit_dist(hit, microscope_data.rcs, aligned_rcs) for hit in hits]
+    proximity_threshold = np.percentile(dists, pct_thresh * 100)
+    return [hit for hit in hits if single_hit_dist(hit, microscope_data.rcs, aligned_rcs) <= proximity_threshold]
+
+
+def least_squares_mapping(hits, sexcat_rcs, inframe_tile_rcs, min_hits=50):
+    """
+    "Input": set of tuples of (sexcat_idx, in_frame_idx) mappings.
+
+    "Output": scaling lambda, rotation theta, x_offset, y_offset, and aligned_rcs
+
+    We here solve the matrix least squares equation Ax = b, where
+
+            [ x0r -y0r 1 0 ]
+            [ y0r  x0r 0 1 ]
+        A = [ x1r -y1r 1 0 ]
+            [ y1r  x1r 0 1 ]
+                  . . .
+            [ xnr -ynr 1 0 ]
+            [ ynr  xnr 0 1 ]
+
+    and
+
+        b = [ x0s y0s x1s y1s . . . xns yns ]^T
+
+    The r and s subscripts indicate rcs and sexcat coords.
+
+    The interpretation of x is then given by
+
+        x = [ alpha beta x_offset y_offset ]^T
+
+    where
+        alpha = lambda cos(theta), and
+        beta = lambda sin(theta)
+
+    This system of equations is then finally solved for lambda and theta.
+    """
+    # Reminder: All indices are in the order (sexcat_idx, in_frame_idx)
+    start = time.time()
+    assert len(hits) > min_hits, 'Too few hits for least squares mapping: {0}'.format(len(hits))
+    A = np.zeros((2 * len(hits), 4))
+    b = np.zeros((2 * len(hits),))
+    for i, (sexcat_idx, in_frame_idx) in enumerate(hits):
+        xir, yir = inframe_tile_rcs[in_frame_idx]
+        A[2*i, :] = [xir, -yir, 1, 0]
+        A[2*i+1, :] = [yir,  xir, 0, 1]
+
+        xis, yis = sexcat_rcs[sexcat_idx]
+        b[2*i] = xis
+        b[2*i+1] = yis
+    print("setup for least squares took %s seconds" % (time.time() - start))
+
+    start = time.time()
+    alpha, beta, x_offset, y_offset = np.linalg.lstsq(A, b)[0]
+    print("least squares took %s sec" % (time.time() - start))
+    offset = np.array([x_offset, y_offset])
+    theta = np.arctan2(beta, alpha)
+    lbda = alpha / np.cos(theta)
+
+    log.debug("precision alignment")
+    log.debug("===================")
+    log.debug("offset: %s" % offset)
+    log.debug("theta: %s" % theta)
+    log.debug("lambda: %s" % lbda)
+
+
+def find_hits(microscope_data, tile, rough_alignment_transform, precision_hit_threshold):
     tile_points = []
     point_indexes = []
     for i, original_point in enumerate(tile.normalized_rcs):
@@ -157,7 +227,10 @@ def find_hits(microscope_data, tile, rough_alignment_transform):
     log.debug('Bad mutual hits: %s' % len(bad_mutual_hits))
     log.debug('Good mutual hits: %s' % len(good_mutual_hits))
     log.debug('Exclusive hits: %s' % len(exclusive_hits))
-    return exclusive_hits
+
+    nice_hits = remove_longest_hits(exclusive_hits, microscope_data, aligned_rcs, precision_hit_threshold)
+    log.debug("Nice hits: %s" % len(nice_hits))
+    return nice_hits, aligned_rcs
 
 
 def single_hit_dist(hit, microscope_rcs, aligned_rcs):
