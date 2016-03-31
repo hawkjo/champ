@@ -54,7 +54,7 @@ class GridImages(object):
         index = indexes[self._channel_offset]
         normalized_image = self._normalize_median(self._nd2[index])
         sextraction = self._sextraction_loader(index)
-        return MicroscopeData(normalized_image, sextraction, row, column)
+        return MicroscopeData(normalized_image, sextraction, index, row, column)
 
     def _normalize_median(self, im):
         med = np.median(im)

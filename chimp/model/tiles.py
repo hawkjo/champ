@@ -17,11 +17,12 @@ class TileManager(object):
         self._cache_tile_numbers = deque()
         self._cache_size = cache_size
         for region, rcs in tile_data.items():
-            self._tiles[region] = Tile(flip_coordinates(rcs), scale, offset)
+            self._tiles[region] = Tile(rcs, scale, offset)
 
     def _calculate_fft_conjugate(self, image, image_height, image_width):
         """
-        Precompute the conjugate of the FFT of the tile points since it's slow and we need to reuse this result many times.
+        Precompute the conjugate of the FFT of the tile points since it's slow and we need to reuse this result
+        many times.
 
         """
         padding_dimension = padding.calculate_pad_size(image.shape[0], image.shape[1], image_height, image_width)
@@ -53,13 +54,18 @@ class TileManager(object):
 class Tile(object):
     """ Wraps fastq tile coordinates """
     def __init__(self, rcs, scale, offset):
-        self._rcs = rcs
+        self._raw_rcs = rcs
+        self._rcs = flip_coordinates(rcs)
         self._scale = scale
         self._offset = offset
 
     @property
     def rcs(self):
         return self._rcs
+
+    @property
+    def raw_rcs(self):
+        return self._raw_rcs
 
     @property
     def normalized_rcs(self):

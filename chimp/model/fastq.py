@@ -1,17 +1,13 @@
 class FastqAlignmentRead(object):
     """ Wraps the raw data about a single DNA read that we receive from Illumina.
         Discards the sequence and quality data to conserve memory. """
-    __slots__ = ('_name', '_lane', '_side', '_tile')
+    __slots__ = ('name', '_lane', '_side', '_tile')
 
     def __init__(self, record):
-        self._name = record.name
+        self.name = record.name
         self._lane = None
         self._side = None
         self._tile = None
-
-    @property
-    def name(self):
-        return self._name
 
     @property
     def region(self):
@@ -38,7 +34,7 @@ class FastqAlignmentRead(object):
         return int(self._lookup_name_data(2))
 
     def _lookup_name_data(self, index):
-        return self._name.rsplit(':')[-index]
+        return self.name.rsplit(':')[-index]
 
 
 class FastqFiles(object):

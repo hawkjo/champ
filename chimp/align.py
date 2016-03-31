@@ -11,9 +11,8 @@ import os
 import padding
 import random
 from scipy.spatial import KDTree
-import time
 
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
 
@@ -28,7 +27,6 @@ def max_2d_idx(a):
 
 
 def correlate_image_and_tile(image, tile_fft_conjugate):
-    start = time.time()
     dimension = padding.calculate_pad_size(tile_fft_conjugate.shape[0],
                                            tile_fft_conjugate.shape[1],
                                            image.shape[0],
@@ -38,7 +36,6 @@ def correlate_image_and_tile(image, tile_fft_conjugate):
     cross_correlation = abs(np.fft.ifft2(tile_fft_conjugate * image_fft))
     max_index = max_2d_idx(cross_correlation)
     alignment_transform = np.array(max_index) - image_fft.shape
-    log.debug("Correlating image and tile took %s seconds" % (time.time() - start))
     return cross_correlation.max(), max_index, alignment_transform
 
 
@@ -62,40 +59,123 @@ def get_expected_tile_map(min_tile, max_tile, min_column, max_column):
 
 
 def main(base_image_name, snr, alignment_channel=None, alignment_offset=None, cache_size=20, precision_hit_threshold=0.9):
+    log.info("Starting alignment process for %s" % base_image_name)
     LEFT_TILES = tuple(range(1, 11))
     RIGHT_TILES = tuple(reversed(range(11, 20)))
     nd2 = Nd2('%s.nd2' % base_image_name)
     loader = partial(load_sexcat, base_image_name)
-    log.debug("Loading mapped reads.")
     mapped_reads = fastq.load_mapped_reads('phix')
     tm = tiles.load_tile_manager(nd2.pixel_microns, nd2.height, nd2.width, mapped_reads, cache_size)
     grid = GridImages(nd2, loader, alignment_channel, alignment_offset)
-    log.debug("Loaded grid and tile manager.")
-    left_tile, left_column = find_end_tile(grid.left_iter(), tm, snr, LEFT_TILES, RIGHT_TILES, "left")
-    right_tile, right_column = find_end_tile(grid.right_iter(), tm, snr, RIGHT_TILES, LEFT_TILES, "right")
+    # left_tile, left_column = find_end_tile(grid.left_iter(), tm, snr, LEFT_TILES, RIGHT_TILES, "left")
+    # right_tile, right_column = find_end_tile(grid.right_iter(), tm, snr, RIGHT_TILES, LEFT_TILES, "right")
+    left_tile, left_column, right_tile, right_column = 4, 0, 14, 59
     log.debug("Data was acquired between tiles %s and %s" % (left_tile, right_tile))
     log.debug("Using images from column %s and %s" % (left_column, right_column))
 
     # get a dictionary of tiles that each image will probably be found in
     tile_map = get_expected_tile_map(left_tile, right_tile, left_column, right_column)
+    images = grid.bounded_iter(left_column, right_column)
+    results = align(images, tm, tile_map, snr, precision_hit_threshold)
 
+    transform_map = {}
+    # iterate over all the reads, get their names, tiles, and (original) coordinates. key is RCs and tile
+
+
+    for index, rs in results.items():
+        for result in rs:
+            for (o_r, o_c), (a_r, a_c) in zip(result.original_rcs, result.aligned_rcs):
+                # see if this result is in the transform map
+                # if it is, we need to print the read name, and its new precision aligned RCs
+                pass
+
+
+        # (env)jim@laptop:/var/ngs/results/15-11-18_SA15243_Cascade-TA_1nM-007$ head 693_all_read_rcs.txt
+        # M02288:175:000000000-AHFHH:1:2106:20506:18735	346.528897	365.788045
+        # M02288:175:000000000-AHFHH:1:2106:20923:18945	293.914871	339.923116
+        # M02288:175:000000000-AHFHH:1:2106:20841:17867	305.513085	475.182636
+        # M02288:175:000000000-AHFHH:1:2106:22252:18407	127.689377	409.081890
+        # M02288:175:000000000-AHFHH:1:2106:20890:19031	297.954636	329.084712
+        # M02288:175:000000000-AHFHH:1:2106:20844:19507	303.155728	269.260445
+        # M02288:175:000000000-AHFHH:1:2106:19615:21237	455.385165	50.549534
+        # M02288:175:000000000-AHFHH:1:2106:22971:20255	35.176616	177.907008
+        # M02288:175:000000000-AHFHH:1:2106:21574:21465	209.128909	24.286750
+        # M02288:175:000000000-AHFHH:1:2106:20345:20774	364.282240	109.567544
+
+        # I don't think we need these anymore, can we just skip them?
+        # (env)jim@laptop:/var/ngs/results/15-11-18_SA15243_Cascade-TA_1nM-007$ head 693_intensities.txt
+        # Fields: read_name	                            image_name	hit_type	r	    c	        flux	    flux_err
+        # M02288:175:000000000-AHFHH:1:2106:19204:18086	693	        good_mutual	510.175	445.657	    114620.7	3023.622
+        # M02288:175:000000000-AHFHH:1:2106:19184:20629	693	        exclusive	510.171	125.541	    69463.95	2429.896
+        # M02288:175:000000000-AHFHH:1:2106:19170:21496	693	        exclusive	510.105	16.895	    88329.27	2654.653
+        # M02288:175:000000000-AHFHH:1:2106:19185:21608	693	        exclusive	509.463	2.672	    91096.72	2894.898
+
+        # (env)jim@laptop:/var/ngs/results/15-11-18_SA15243_Cascade-TA_1nM-007$ head 693_stats.txt
+        # Image:                 693
+        # Objective:             60
+        # Project Name:          SA15243
+        # Tile:                  lane1tile2106
+        # Rotation (deg):        179.4489
+        # Tile width (um):       937.5918
+        # Scaling (px/fqu):      0.1255703
+        # RC Offset (px):        (2943.9816,2693.4738)
+        # Correlation:           4946.56
+        # Non-mutual hits:       687
+
+
+class Result(object):
+    def __init__(self, index, tile_number):
+        self.index = index
+        self.tile_number = tile_number
+        self.offset = None
+        self.theta = None
+        self.lbda = None
+        self.aligned_rcs = None
+        self.original_rcs = None
+
+    def set_precision_alignment(self, offset, theta, lbda):
+        self.offset = offset
+        self.theta = theta
+        self.lbda = lbda
+
+    def set_rcs(self, aligned_rcs, original_rcs):
+        self.aligned_rcs = aligned_rcs
+        self.original_rcs = original_rcs
+
+
+def precision_align_rcs(rcs, offset, theta, lbda):
+    """ This corrects the coordinates using the results of the precision alignment. """
+    print("PRECISION ALIGNED RCS NOT IMPLEMENTED")
+    return rcs
+
+
+def align(images, tm, tile_map, snr, precision_hit_threshold):
     # results is a hacky temporary data structure for storing alignment results. Jim WILL make it better
     results = defaultdict(list)
-    for microscope_data in grid.bounded_iter(left_column, right_column):
+    for microscope_data in images:
+        log.debug("aligning %sx%s" % (microscope_data.row, microscope_data.column))
         for tile_number, cross_correlation, max_index, alignment_transform in get_rough_alignment(microscope_data, tm, tile_map, snr):
-            results[(microscope_data.row, microscope_data.column)].append((tile_number, cross_correlation, max_index, alignment_transform))
+
+            # the rough alignment worked for this tile, so now calculate the precision alignment
             tile = tm.get(tile_number)
-            aligned_rcs, aligned_indexes = find_aligned_rcs_and_indexes(microscope_data, tile, alignment_transform)
-            exclusive_hits, aligned_rcs = find_hits(microscope_data, aligned_rcs, precision_hit_threshold)
-            offset, theta, lbda = least_squares_mapping(exclusive_hits, microscope_data.rcs, aligned_rcs)
+            rough_aligned_rcs, original_rcs = find_aligned_rcs(microscope_data, tile, alignment_transform)
+            exclusive_hits = find_hits(microscope_data, rough_aligned_rcs, precision_hit_threshold)
+            offset, theta, lbda = least_squares_mapping(exclusive_hits, microscope_data.sexcat_rcs, rough_aligned_rcs)
+            aligned_rcs = precision_align_rcs(rough_aligned_rcs, offset, theta, lbda)
+            # save the results
+            result = Result(microscope_data.index, tile_number)
+            result.set_rcs(aligned_rcs, original_rcs)
+            result.set_precision_alignment(offset, theta, lbda)
+            results[microscope_data.index].append(result)
+
+    log.debug("Done aligning!")
+    return results
 
 
 def remove_longest_hits(hits, microscope_data, aligned_rcs, pct_thresh):
-    start = time.time()
     dists = [single_hit_dist(hit, microscope_data.rcs, aligned_rcs) for hit in hits]
     proximity_threshold = np.percentile(dists, pct_thresh * 100)
     nice_hits = [hit for hit in hits if single_hit_dist(hit, microscope_data.rcs, aligned_rcs) <= proximity_threshold]
-    log.debug("Finding nice hits took %s seconds" % (time.time() - start))
     return nice_hits
 
 
@@ -131,7 +211,6 @@ def least_squares_mapping(hits, sexcat_rcs, inframe_tile_rcs, min_hits=50):
 
     This system of equations is then finally solved for lambda and theta.
     """
-    start = time.time()
     # Reminder: All indices are in the order (sexcat_idx, in_frame_idx)
     assert len(hits) > min_hits, 'Too few hits for least squares mapping: {0}'.format(len(hits))
     A = np.zeros((2 * len(hits), 4))
@@ -149,19 +228,18 @@ def least_squares_mapping(hits, sexcat_rcs, inframe_tile_rcs, min_hits=50):
     offset = np.array([x_offset, y_offset])
     theta = np.arctan2(beta, alpha)
     lbda = alpha / np.cos(theta)
-    log.debug("Precision alignment took %s seconds" % (time.time() - start))
     return offset, theta, lbda
 
 
-def find_aligned_rcs_and_indexes(microscope_data, tile, rough_alignment_transform):
+def find_aligned_rcs(microscope_data, tile, rough_alignment_transform):
     tile_points = []
-    point_indexes = []
-    for i, original_point in enumerate(tile.normalized_rcs):
+    original_rcs = []
+    for original_point, raw_point in zip(tile.normalized_rcs, tile.raw_rcs):
         point = original_point + rough_alignment_transform
         if 0 <= point[0] < microscope_data.shape[0] and 0 <= point[1] < microscope_data.shape[1]:
             tile_points.append(point)
-            point_indexes.append(i)
-    return np.array(tile_points).astype(np.int), point_indexes
+            original_rcs.append(raw_point)
+    return np.array(tile_points).astype(np.int), original_rcs
 
 
 def find_hits(microscope_data, aligned_rcs, precision_hit_threshold):
@@ -188,35 +266,9 @@ def find_hits(microscope_data, aligned_rcs, precision_hit_threshold):
     exclusive_hits = set((i, j) for i, j in mutual_hits if i not in
                          sexcat_in_non_mutual and j not in aligned_in_non_mutual)
 
-    # --------------------------------------------------------------------------------
-    # Recover good non-exclusive mutual hits.
-    # --------------------------------------------------------------------------------
-    # If the distance to second neighbor is too close, that suggests a bad peak call combining
-    # two peaks into one. Filter those out with a gaussian-mixture-model-determined threshold.
     good_hit_thresh = 5
-    # second_neighbor_thresh = 2 * good_hit_thresh
     exclusive_hits = set(hit for hit in exclusive_hits
                          if single_hit_dist(hit, microscope_data.rcs, aligned_rcs) <= good_hit_thresh)
-
-    # good_mutual_hits = set()
-    # for i, j in (mutual_hits - exclusive_hits):
-    #     if single_hit_dist((i, j), microscope_data.rcs, aligned_rcs) > good_hit_thresh:
-    #         continue
-    #     third_wheels = [tup for tup in non_mutual_hits if i == tup[0] or j == tup[1]]
-    #     third_wheel_distances = [single_hit_dist(hit, microscope_data.rcs, aligned_rcs) for hit in third_wheels]
-    #     if min(third_wheel_distances) > second_neighbor_thresh:
-    #         good_mutual_hits.add((i, j))
-    # bad_mutual_hits = mutual_hits - exclusive_hits - good_mutual_hits
-
-    # --------------------------------------------------------------------------------
-    # Test that the four groups form a partition of all hits and finalize
-    # --------------------------------------------------------------------------------
-    # assert (non_mutual_hits | bad_mutual_hits | good_mutual_hits | exclusive_hits
-    #         == sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev
-    #         and len(non_mutual_hits) + len(bad_mutual_hits)
-    #         + len(good_mutual_hits) + len(exclusive_hits)
-    #         == len(sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev))
-
     return remove_longest_hits(exclusive_hits, microscope_data, aligned_rcs, precision_hit_threshold)
 
 
@@ -225,17 +277,13 @@ def single_hit_dist(hit, microscope_rcs, aligned_rcs):
 
 
 def get_rough_alignment(microscope_data, tile_manager, tile_map, snr):
-    start = time.time()
     possible_tiles = set(tile_map[microscope_data.column])
     impossible_tiles = set(range(1, 20)) - possible_tiles
     control_correlation = calculate_control_correlation(microscope_data.image, tile_manager, impossible_tiles)
     noise_threshold = control_correlation * snr
-    log.debug("rough alignment setup took %s seconds" % (time.time() - start))
     for tile_number in possible_tiles:
-        start = time.time()
         cross_correlation, max_index, alignment_transform = correlate_image_and_tile(microscope_data.image,
                                                                                      tile_manager.fft_conjugate(tile_number))
-        log.debug("Cross correlation took %s seconds" % (time.time() - start))
         if cross_correlation > noise_threshold:
             log.debug("Field of view %sx%s is in tile %s" % (microscope_data.row, microscope_data.column, tile_number))
             yield tile_number, cross_correlation, max_index, alignment_transform
@@ -265,4 +313,4 @@ def find_end_tile(grid_images, tile_manager, snr, possible_tiles, impossible_til
 
 
 if __name__ == '__main__':
-    main('/var/experiments/151118/15-11-18_SA15243_Cascade-TA_1nM-007', 1.2, alignment_offset=1, cache_size=8)
+    main('/var/experiments/151118/15-11-18_SA15243_Cascade-TA_1nM-007', 1.2, alignment_offset=1, cache_size=7)

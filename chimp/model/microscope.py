@@ -3,8 +3,9 @@ class MicroscopeData(object):
     Holds raw microscope image data and the respective Source Extractor coordinates.
 
     """
-    def __init__(self, image, sextraction, row, column):
+    def __init__(self, image, sextraction, index, row, column):
         self._image = image
+        self.index = index
         self.column = column
         self.row = row
         self.shape = image.shape
@@ -19,7 +20,7 @@ class MicroscopeData(object):
         return self._image
 
     @property
-    def rcs(self):
+    def sexcat_rcs(self):
         """
         Coordinates of points as determined by Source Extractor.
 
