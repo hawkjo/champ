@@ -71,6 +71,12 @@ class Tile(object):
     def normalized_rcs(self):
         return self._scale * (self.rcs + np.tile(self._offset, (self.rcs.shape[0], 1)))
 
+    def aligned_rcs(self, offset, theta, lbda, atr):
+        aligned_rcs = np.dot(self.normalized_rcs, right_rotation_matrix(theta))
+        aligned_rcs *= lbda
+        aligned_rcs += np.tile(offset, (aligned_rcs.shape[0], 1))
+        return aligned_rcs
+
     @property
     def image(self):
         new_rcs = self.normalized_rcs
@@ -101,3 +107,11 @@ def load_tile_manager(um_per_pixel, image_height, image_width, read_data, cache_
     scale = (FASTQ_TILE_WIDTH / (x_max - x_min)) / um_per_pixel
     offset = np.array([-x_min, -y_min])
     return TileManager(tile_data, scale, offset, image_height, image_width, cache_size)
+
+
+def right_rotation_matrix(angle):
+    angle *= np.pi / 180.0
+    sina = np.sin(angle)
+    cosa = np.cos(angle)
+    return np.array([[cosa, sina],
+                     [-sina, cosa]])
