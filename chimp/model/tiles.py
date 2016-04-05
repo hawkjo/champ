@@ -60,6 +60,14 @@ class Tile(object):
         self._offset = offset
 
     @property
+    def scale(self):
+        return self._scale
+
+    @property
+    def offset(self):
+        return self._offset
+
+    @property
     def rcs(self):
         return self._rcs
 
@@ -69,13 +77,7 @@ class Tile(object):
 
     @property
     def normalized_rcs(self):
-        return self._scale * (self.rcs + np.tile(self._offset, (self.rcs.shape[0], 1)))
-
-    def aligned_rcs(self, offset, theta, lbda, atr):
-        aligned_rcs = np.dot(self.normalized_rcs, right_rotation_matrix(theta))
-        aligned_rcs *= lbda
-        aligned_rcs += np.tile(offset, (aligned_rcs.shape[0], 1))
-        return aligned_rcs
+        return normalize_rcs(self._scale, self._offset, self._rcs)
 
     @property
     def image(self):
@@ -85,11 +87,30 @@ class Tile(object):
         return image
 
 
+def precision_align_rcs(rcs, offset, theta, lbda):
+    A = np.zeros((2*len(rcs), 4))
+    for i, pt in enumerate(rcs):
+        xir, yir = pt
+        A[2*i, :] = [xir, -yir, 1, 0]
+        A[2*i+1, :] = [yir,  xir, 0, 1]
+
+    x = np.array([lbda * np.cos(theta),
+                  lbda * np.sin(theta),
+                  offset[0],
+                  offset[1]])
+
+    return np.dot(A, x).reshape((len(rcs), 2))
+
+
 def flip_coordinates(rcs):
     flip_180 = np.array([[-1, 0], [0, -1]])
     flipped_rcs = np.dot(rcs, flip_180)
     flipped_rcs -= np.tile(flipped_rcs.min(axis=0), (flipped_rcs.shape[0], 1))
     return flipped_rcs
+
+
+def normalize_rcs(scale, offset, rcs):
+    return scale * (rcs + np.tile(offset, (rcs.shape[0], 1)))
 
 
 def load_tile_manager(um_per_pixel, image_height, image_width, read_data, cache_size):
