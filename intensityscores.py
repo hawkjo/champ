@@ -90,7 +90,6 @@ class IntensityScores(object):
                         [self.raw_scores[nd2][im_idx][read_name]
                          for read_name in reference_read_names_in_image]
                     )
-                if verbose: print
     
                 median_of_medians = np.median(median_given_im_idx.values())
                 for im_idx in median_given_im_idx.keys():
@@ -101,6 +100,7 @@ class IntensityScores(object):
                         read_name: im_scores[read_name] / Z
                         for read_name in self.get_read_names_in_image(nd2, im_idx)
                     }
+            if verbose: print
         
     def get_read_names_in_image(self, nd2, im_idx):
         return set(self.raw_scores[nd2][im_idx].keys())
