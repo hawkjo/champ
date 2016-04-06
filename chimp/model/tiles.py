@@ -83,7 +83,7 @@ class Tile(object):
     def image(self):
         new_rcs = self.normalized_rcs
         image = np.zeros(new_rcs.max(axis=0) + 1)
-        image[new_rcs.astype(np.int)[:, 0], new_rcs.astype(np.int)[:, 1]] = 1
+        image[new_rcs.astype(np.int64)[:, 0], new_rcs.astype(np.int64)[:, 1]] = 1
         return image
 
 

@@ -58,7 +58,8 @@ def get_expected_tile_map(min_tile, max_tile, min_column, max_column):
     return tile_map
 
 
-def main(base_image_name, snr, alignment_channel=None, alignment_offset=None, cache_size=20, precision_hit_threshold=0.9):
+def main(base_image_name, snr, alignment_channel=None, alignment_offset=None, cache_size=20,
+         precision_hit_threshold=0.9, lane=1, side=2):
     log.info("Starting alignment process for %s" % base_image_name)
     LEFT_TILES = tuple(range(1, 11))
     RIGHT_TILES = tuple(reversed(range(11, 20)))
@@ -77,8 +78,6 @@ def main(base_image_name, snr, alignment_channel=None, alignment_offset=None, ca
     tile_map = get_expected_tile_map(left_tile, right_tile, left_column, right_column)
     images = grid.bounded_iter(left_column, right_column)
 
-    lane = 1
-    side = 2
     results = align(images, tm, tile_map, snr, precision_hit_threshold, lane, side)
 
     for index, rs in results.items():
@@ -91,15 +90,15 @@ def main(base_image_name, snr, alignment_channel=None, alignment_offset=None, ca
             corrected_rcs = tiles.flip_coordinates(result.original_rcs)
             corrected_rcs = tiles.normalize_rcs(tile.scale, tile.offset, corrected_rcs)
             corrected_rcs -= (tile.scale * tile.offset)
-
+            # put next line after precision align?
             corrected_rcs = tiles.precision_align_rcs(corrected_rcs,
                                                       result.offset,
                                                       result.theta,
                                                       result.lbda)
-            for (o_r, o_c), (c_r, c_c) in zip(result.original_rcs, corrected_rcs):
-                name = fastq_read_rcs.get((o_r, o_c))
-                if name is not None:
-                    print(name, o_r, o_c, c_r, c_c)
+            # for i, ((o_r, o_c), (c_r, c_c)) in enumerate(zip(result.original_rcs, corrected_rcs)):
+            #     name = fastq_read_rcs.get((o_r, o_c))
+            #     if name == "M02288:175:000000000-AHFHH:1:2104:3490:17288":
+            #         print(i, name, o_r, o_c, c_r / 452.527219, c_c / 188.160377)
 
 
 class Result(object):
@@ -116,9 +115,8 @@ class Result(object):
         self.lbda = None
         self.original_rcs = None
 
-    def set_precision_alignment(self, offset, theta, lbda, alignment_transform):
+    def set_precision_alignment(self, offset, theta, lbda):
         self.offset = offset
-        self.at = alignment_transform
         self.theta = theta
         self.lbda = lbda
 
@@ -131,7 +129,6 @@ def align(images, tm, tile_map, snr, precision_hit_threshold, lane, side):
     for n, microscope_data in enumerate(images):
         log.debug("aligning %sx%s" % (microscope_data.row, microscope_data.column))
         for tile_number, cross_correlation, max_index, alignment_transform in get_rough_alignment(microscope_data, tm, tile_map, snr):
-            print("alignment transform", alignment_transform)
             # the rough alignment worked for this tile, so now calculate the precision alignment
             tile = tm.get(tile_number, lane, side)
             rough_aligned_rcs, original_rcs = find_aligned_rcs(microscope_data, tile, alignment_transform)
@@ -141,7 +138,7 @@ def align(images, tm, tile_map, snr, precision_hit_threshold, lane, side):
             # save the results
             result = Result(microscope_data.index, microscope_data.row, microscope_data.column, lane, side, tile_number)
             result.set_rcs(original_rcs)
-            result.set_precision_alignment(offset, theta, lbda, alignment_transform)
+            result.set_precision_alignment(offset, theta, lbda)
             results[microscope_data.index].append(result)
         # skip for testing
         if n == 1:
@@ -210,7 +207,6 @@ def least_squares_mapping(hits, sexcat_rcs, inframe_tile_rcs, min_hits=50):
 
 
 def find_aligned_rcs(microscope_data, tile, rough_alignment_transform):
-    # rough_alignment_transform is -2590, -585
     tile_points = []
     original_rcs = []
     for normalized_point, raw_point in zip(tile.normalized_rcs, tile.raw_rcs):
@@ -218,7 +214,7 @@ def find_aligned_rcs(microscope_data, tile, rough_alignment_transform):
         if 0 <= point[0] < microscope_data.shape[0] and 0 <= point[1] < microscope_data.shape[1]:
             tile_points.append(point)
             original_rcs.append(raw_point)
-    return np.array(tile_points).astype(np.int), np.array(original_rcs).astype(np.int)
+    return np.array(tile_points).astype(np.int64), np.array(original_rcs).astype(np.int64)
 
 
 def find_hits(microscope_data, aligned_rcs, precision_hit_threshold):
