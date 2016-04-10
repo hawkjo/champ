@@ -1,9 +1,9 @@
 from chimp.model.sextractor import Sextraction
 from chimp.model.grid import GridImages
-from chimp.model import tiles
+from chimp.model import tiles, output, constants
 from chimp import fastq
 from collections import defaultdict
-from functools import partial
+import functools
 import logging
 from nd2reader import Nd2
 import numpy as np
@@ -44,12 +44,11 @@ def get_expected_tile_map(min_tile, max_tile, min_column, max_column):
     Creates a dictionary that relates each column of microscope images to its expected tile, +/- 1.
 
     """
-    # Mi-Seq chips have 19 tiles on each side
-    MISEQ_TILE_COUNT = 19
     tile_map = defaultdict(list)
     normalization_factor = float(max_tile - min_tile + 1) / float(max_column - min_column)
     for column in range(min_column, max_column + 1):
-        expected_tile = min(MISEQ_TILE_COUNT, max(1, int(round(column * normalization_factor, 0)))) + min_tile - 1
+        expected_tile = min(constants.MISEQ_TILE_COUNT,
+                            max(1, int(round(column * normalization_factor, 0)))) + min_tile - 1
         tile_map[column].append(expected_tile)
         if expected_tile > min_tile:
             tile_map[column].append(expected_tile - 1)
@@ -58,16 +57,16 @@ def get_expected_tile_map(min_tile, max_tile, min_column, max_column):
     return tile_map
 
 
-def main(base_image_name, snr, alignment_channel=None, alignment_offset=None, cache_size=20,
+def main(base_image_name, snr, project_name, alignment_channel=None, alignment_offset=None, cache_size=20,
          precision_hit_threshold=0.9, lane=1, side=2):
     log.info("Starting alignment process for %s" % base_image_name)
     LEFT_TILES = tuple(range(1, 11))
     RIGHT_TILES = tuple(reversed(range(11, 20)))
     nd2 = Nd2('%s.nd2' % base_image_name)
-    loader = partial(load_sexcat, base_image_name)
+    sextraction_loader = functools.partial(load_sexcat, base_image_name)
     phix_reads = fastq.load_mapped_reads('phix')
     tm = tiles.load_tile_manager(nd2.pixel_microns, nd2.height, nd2.width, phix_reads, cache_size)
-    grid = GridImages(nd2, loader, alignment_channel, alignment_offset)
+    grid = GridImages(nd2, sextraction_loader, alignment_channel, alignment_offset)
     # left_tile, left_column = find_end_tile(grid.left_iter(), tm, snr, LEFT_TILES, RIGHT_TILES, "left")
     # right_tile, right_column = find_end_tile(grid.right_iter(), tm, snr, RIGHT_TILES, LEFT_TILES, "right")
     left_tile, left_column, right_tile, right_column = 4, 0, 14, 59
@@ -78,80 +77,90 @@ def main(base_image_name, snr, alignment_channel=None, alignment_offset=None, ca
     tile_map = get_expected_tile_map(left_tile, right_tile, left_column, right_column)
     images = grid.bounded_iter(left_column, right_column)
 
-    results = align(images, tm, tile_map, snr, precision_hit_threshold, lane, side)
+    for index, results in align(images, tm, tile_map, snr, precision_hit_threshold, lane, side):
+        # all_reads = fastq.load_mapped_reads('unclassified')
+        all_reads = fastq.load_mapped_reads('phix')  # fake data for Jim's laptop
+        all_read_rcs = build_all_read_rcs(index, results, all_reads, tm)
+        with open(all_read_rcs.filename, 'w+') as f:
+            f.write(str(all_read_rcs))
 
-    for index, rs in results.items():
-        for result in rs:
-            fastq_read_rcs = {}
-            for read in phix_reads.get((result.lane, result.side, result.tile_number)):
-                fastq_read_rcs[(int(read.column), int(read.row))] = read.name
+        # hack until we get micromanager
+        objective = int(round(16.0 / nd2.pixel_microns))
+        stats_file = output.Stats(index, project_name, objective, lane, side, results)
+        with open(stats_file.filename, 'w+') as f:
+            f.write(str(stats_file))
 
-            tile = tm.get(result.tile_number)
-            corrected_rcs = tiles.flip_coordinates(result.original_rcs)
-            corrected_rcs = tiles.normalize_rcs(tile.scale, tile.offset, corrected_rcs)
-            corrected_rcs -= (tile.scale * tile.offset)
-            # put next line after precision align?
-            corrected_rcs = tiles.precision_align_rcs(corrected_rcs,
-                                                      result.offset,
-                                                      result.theta,
-                                                      result.lbda)
-            # for i, ((o_r, o_c), (c_r, c_c)) in enumerate(zip(result.original_rcs, corrected_rcs)):
-            #     name = fastq_read_rcs.get((o_r, o_c))
-            #     if name == "M02288:175:000000000-AHFHH:1:2104:3490:17288":
-            #         print(i, name, o_r, o_c, c_r / 452.527219, c_c / 188.160377)
+
+def build_all_read_rcs(index, results, alignment_reads, tile_manager):
+    all_read_rcs = output.AllReadRCs(index)
+    for result in results:
+        fastq_read_rcs = {}
+        # HEY YOU DUMB IDIOT, ALL READ RCS NEEDS ALL READS, NOT JUST ALIGNMENT READS
+        for read in alignment_reads.get((result.lane, result.side, result.tile_number)):
+            fastq_read_rcs[(int(read.column), int(read.row))] = read.name
+        tile = tile_manager.get(result.tile_number)
+        aligned_rcs = tiles.flip_coordinates(result.original_rcs)
+        aligned_rcs = tiles.normalize_rcs(tile.scale, tile.offset, aligned_rcs)
+        aligned_rcs -= (tile.scale * tile.offset)
+        aligned_rcs = tiles.precision_align_rcs(aligned_rcs, result.offset, result.theta, result.lbda)
+        all_read_rcs.add_rcs(result.original_rcs, aligned_rcs, fastq_read_rcs)
+    return all_read_rcs
 
 
 class Result(object):
-    def __init__(self, index, row, column, lane, side, tile_number):
+    """
+    Stores the outcome of alignments for each image.
+
+    """
+    def __init__(self, index, row, column, lane, side, tile_number, correlation, offset, theta, lbda,
+                 original_rcs, hits, sexcat_rcs, fastq_point_count):
         self.index = index
         self.row = row
         self.column = column
         self.lane = lane
         self.side = side
         self.tile_number = tile_number
-        self.offset = None
-        self.theta = None
-        self.at = None
-        self.lbda = None
-        self.original_rcs = None
-
-    def set_precision_alignment(self, offset, theta, lbda):
+        self.correlation = correlation
         self.offset = offset
         self.theta = theta
+        self.scale = lbda
         self.lbda = lbda
-
-    def set_rcs(self, original_rcs):
         self.original_rcs = original_rcs
+        self.hits = hits
+        self.sexcat_rcs = sexcat_rcs
+        self.fastq_point_count = fastq_point_count
 
 
 def align(images, tm, tile_map, snr, precision_hit_threshold, lane, side):
-    results = defaultdict(list)
     for n, microscope_data in enumerate(images):
-        log.debug("aligning %sx%s" % (microscope_data.row, microscope_data.column))
-        for tile_number, cross_correlation, max_index, alignment_transform in get_rough_alignment(microscope_data, tm, tile_map, snr):
-            # the rough alignment worked for this tile, so now calculate the precision alignment
-            tile = tm.get(tile_number, lane, side)
-            rough_aligned_rcs, original_rcs = find_aligned_rcs(microscope_data, tile, alignment_transform)
-            exclusive_hits = find_hits(microscope_data, rough_aligned_rcs, precision_hit_threshold)
-            offset, theta, lbda = least_squares_mapping(exclusive_hits, microscope_data.sexcat_rcs, rough_aligned_rcs)
+        if n == 3:
+            log.debug("aligning %sx%s" % (microscope_data.row, microscope_data.column))
+            results = []
+            for tile_number, cross_correlation, max_index, alignment_transform in get_rough_alignment(microscope_data, tm, tile_map, snr):
+                # the rough alignment worked for this tile, so now calculate the precision alignment
+                tile = tm.get(tile_number, lane, side)
+                rough_aligned_rcs, original_rcs = find_aligned_rcs(microscope_data, tile, alignment_transform)
+                hits = find_hits(microscope_data, rough_aligned_rcs)
+                good_exclusive_hits = remove_longest_hits(hits.exclusive, microscope_data, rough_aligned_rcs, precision_hit_threshold)
+                offset, theta, lbda = least_squares_mapping(good_exclusive_hits, microscope_data.sexcat_rcs, rough_aligned_rcs)
 
-            # save the results
-            result = Result(microscope_data.index, microscope_data.row, microscope_data.column, lane, side, tile_number)
-            result.set_rcs(original_rcs)
-            result.set_precision_alignment(offset, theta, lbda)
-            results[microscope_data.index].append(result)
-        # skip for testing
-        if n == 1:
-            return results
-    log.debug("Done aligning!")
-    return results
+                # save the results
+                result = Result(microscope_data.index, microscope_data.row, microscope_data.column, lane,
+                                side, tile_number, cross_correlation, offset, theta, lbda, original_rcs, hits,
+                                microscope_data.sexcat_rcs, len(rough_aligned_rcs))
+                results.append(result)
+                # skip for testing
+                yield microscope_data.index, results
+                raise StopIteration
+            if results:
+                yield microscope_data.index, results
 
 
 def remove_longest_hits(hits, microscope_data, aligned_rcs, pct_thresh):
-    dists = [single_hit_dist(hit, microscope_data.sexcat_rcs, aligned_rcs) for hit in hits]
+    dists = [single_hit_dist(microscope_data.sexcat_rcs, aligned_rcs, hit) for hit in hits]
     proximity_threshold = np.percentile(dists, pct_thresh * 100)
-    nice_hits = [hit for hit in hits if single_hit_dist(hit, microscope_data.sexcat_rcs, aligned_rcs) <= proximity_threshold]
-    return nice_hits
+    acceptable_hits = [hit for hit in hits if single_hit_dist(microscope_data.sexcat_rcs, aligned_rcs, hit) <= proximity_threshold]
+    return acceptable_hits
 
 
 def least_squares_mapping(hits, sexcat_rcs, inframe_tile_rcs, min_hits=50):
@@ -217,7 +226,7 @@ def find_aligned_rcs(microscope_data, tile, rough_alignment_transform):
     return np.array(tile_points).astype(np.int64), np.array(original_rcs).astype(np.int64)
 
 
-def find_hits(microscope_data, aligned_rcs, precision_hit_threshold):
+def find_hits(microscope_data, aligned_rcs):
     sexcat_tree = KDTree(microscope_data.sexcat_rcs)
     aligned_tree = KDTree(aligned_rcs)
     sexcat_to_aligned_idxs = set()
@@ -242,12 +251,31 @@ def find_hits(microscope_data, aligned_rcs, precision_hit_threshold):
                          sexcat_in_non_mutual and j not in aligned_in_non_mutual)
 
     good_hit_thresh = 5
+    second_neighbor_thresh = 2 * good_hit_thresh
+    hit_distance = functools.partial(single_hit_dist, microscope_data.sexcat_rcs, aligned_rcs)
+
     exclusive_hits = set(hit for hit in exclusive_hits
-                         if single_hit_dist(hit, microscope_data.sexcat_rcs, aligned_rcs) <= good_hit_thresh)
-    return remove_longest_hits(exclusive_hits, microscope_data, aligned_rcs, precision_hit_threshold)
+                         if hit_distance(hit) <= good_hit_thresh)
+    good_mutual_hits = set()
+    for i, j in (mutual_hits - exclusive_hits):
+        if hit_distance((i, j)) > good_hit_thresh:
+            continue
+        third_wheels = [tup for tup in non_mutual_hits if i == tup[0] or j == tup[1]]
+        if min([hit_distance(tw) for tw in third_wheels]) > second_neighbor_thresh:
+            good_mutual_hits.add((i, j))
+    bad_mutual_hits = mutual_hits - exclusive_hits - good_mutual_hits
+    return Hits(exclusive_hits, good_mutual_hits, bad_mutual_hits, non_mutual_hits)
 
 
-def single_hit_dist(hit, microscope_rcs, aligned_rcs):
+class Hits(object):
+    def __init__(self, exclusive, good_mutual, bad_mutual, non_mutual):
+        self.exclusive = exclusive
+        self.good_mutual = good_mutual
+        self.bad_mutual = bad_mutual
+        self.non_mutual = non_mutual
+
+
+def single_hit_dist(microscope_rcs, aligned_rcs, hit):
     return np.linalg.norm(microscope_rcs[hit[0]] - aligned_rcs[hit[1]])
 
 
@@ -288,4 +316,4 @@ def find_end_tile(grid_images, tile_manager, snr, possible_tiles, impossible_til
 
 
 if __name__ == '__main__':
-    main('/var/experiments/151118/15-11-18_SA15243_Cascade-TA_1nM-007', 1.2, alignment_offset=1, cache_size=7)
+    main('/var/experiments/151118/15-11-18_SA15243_Cascade-TA_1nM-007', 1.2, 'SA15243', alignment_offset=1, cache_size=4)
