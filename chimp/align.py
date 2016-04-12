@@ -231,7 +231,7 @@ def find_aligned_rcs(microscope_data, tile, rough_alignment_transform):
     original_rcs = []
     for normalized_point, raw_point in zip(tile.normalized_rcs, tile.raw_rcs):
         point = normalized_point + rough_alignment_transform
-        if 0 <= point[0] <= microscope_data.shape[0] and 0 <= point[1] <= microscope_data.shape[1]:
+        if 0 <= point[0] < microscope_data.shape[0] and 0 <= point[1] < microscope_data.shape[1]:
             tile_points.append(point)
             original_rcs.append(raw_point)
     return np.array(tile_points).astype(np.int64), np.array(original_rcs).astype(np.int64)
