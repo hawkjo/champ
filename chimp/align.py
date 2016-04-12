@@ -76,24 +76,17 @@ def main(base_image_name, snr, project_name, alignment_channel=None, alignment_o
     # get a dictionary of tiles that each image will probably be found in
     tile_map = get_expected_tile_map(left_tile, right_tile, left_column, right_column)
     images = grid.bounded_iter(left_column, right_column)
+    all_reads = fastq.load_mapped_reads('unclassified')
 
     for index, results in align(images, tm, tile_map, snr, precision_hit_threshold, lane, side):
-        # all_reads = fastq.load_mapped_reads('unclassified')
-        all_reads = fastq.load_mapped_reads('phix')  # fake data for Jim's laptop
         rcs = build_aligned_rcs(results, all_reads, tm)
-        all_read_rcs = output.AllReadRCs(index, rcs)
-        with open(all_read_rcs.filename, 'w+') as f:
-            f.write(str(all_read_rcs))
-
-        # hack until we get micromanager
         objective = int(round(16.0 / nd2.pixel_microns))
-
+        all_read_rcs_file = output.AllReadRCs(index, rcs)
         stats_file = output.Stats(index, project_name, objective, lane, side, results)
-        with open(stats_file.filename, 'w+') as f:
-            f.write(str(stats_file))
-
         intensity_file = output.Intensities(index, rcs, results)
-        print(str(intensity_file))
+        for outfile in all_read_rcs_file, stats_file, intensity_file:
+            with open(outfile.filename, 'w+') as f:
+                f.write(str(outfile))
 
 
 def build_aligned_rcs(results, alignment_reads, tile_manager):
