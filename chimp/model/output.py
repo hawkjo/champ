@@ -19,8 +19,26 @@ class ResultFile(object):
 
 
 class Intensities(ResultFile):
-    def __init__(self, index):
+    def __init__(self, index, rcs, results):
         super(Intensities, self).__init__(index, 'intensities')
+        # hits are (sexcat_idx, in_frame_idx)
+        self._rcs = rcs
+        self._results = results
+
+    def __str__(self):
+        output = []
+        for result in self._results:
+            hit_given_aligned_idx = {}
+            for sexcat_index, in_frame_index, label in result.hits:
+                hit_given_aligned_idx[in_frame_index] = label, sexcat_index, in_frame_index
+            for i, (name, (original_r, original_c, aligned_r, aligned_c)) in enumerate(self._rcs.items()):
+                hit_type = hit_given_aligned_idx[i][0]
+                output.append("\t".join(map(str, [name, self._index, hit_type, aligned_r, aligned_c])))
+        return "\n".join(output)
+
+
+    # read_name	                                        image_name	hit_type	r	        c	        flux	    flux_err
+    # M02288:175:000000000-AHFHH:1:2113:10816:20300	    367	        exclusive	510.527	    138.518	    91112.34	4991.381
 
 
 class Stats(ResultFile):
@@ -60,14 +78,10 @@ class AllReadRCs(ResultFile):
     Holds and formats results that go into the *_all_reads_rcs.txt file
 
     """
-    def __init__(self, index):
+    def __init__(self, index, aligned_rcs):
         super(AllReadRCs, self).__init__(index, 'all_read_rcs')
-
-    def add_rcs(self, original_rcs, aligned_rcs, fastq_read_rcs):
-        for (original_r, original_c), (aligned_r, aligned_c) in zip(original_rcs, aligned_rcs):
-            name = fastq_read_rcs.get((original_r, original_c))
-            if name is not None:
-                self._lines.add((name, aligned_r, aligned_c))
+        for name, (_, _, r, c) in aligned_rcs.items():
+            self._lines.add((name, r, c))
 
     def __str__(self):
         return '\n'.join(["%s\t%.6f\t%.6f" % (name, r, c) for name, r, c in self._lines])

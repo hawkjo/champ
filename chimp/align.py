@@ -80,22 +80,26 @@ def main(base_image_name, snr, project_name, alignment_channel=None, alignment_o
     for index, results in align(images, tm, tile_map, snr, precision_hit_threshold, lane, side):
         # all_reads = fastq.load_mapped_reads('unclassified')
         all_reads = fastq.load_mapped_reads('phix')  # fake data for Jim's laptop
-        all_read_rcs = build_all_read_rcs(index, results, all_reads, tm)
+        rcs = build_aligned_rcs(results, all_reads, tm)
+        all_read_rcs = output.AllReadRCs(index, rcs)
         with open(all_read_rcs.filename, 'w+') as f:
             f.write(str(all_read_rcs))
 
         # hack until we get micromanager
         objective = int(round(16.0 / nd2.pixel_microns))
+
         stats_file = output.Stats(index, project_name, objective, lane, side, results)
         with open(stats_file.filename, 'w+') as f:
             f.write(str(stats_file))
 
+        intensity_file = output.Intensities(index, rcs, results)
+        print(str(intensity_file))
 
-def build_all_read_rcs(index, results, alignment_reads, tile_manager):
-    all_read_rcs = output.AllReadRCs(index)
+
+def build_aligned_rcs(results, alignment_reads, tile_manager):
+    rcs = {}
     for result in results:
         fastq_read_rcs = {}
-        # HEY YOU DUMB IDIOT, ALL READ RCS NEEDS ALL READS, NOT JUST ALIGNMENT READS
         for read in alignment_reads.get((result.lane, result.side, result.tile_number)):
             fastq_read_rcs[(int(read.column), int(read.row))] = read.name
         tile = tile_manager.get(result.tile_number)
@@ -103,8 +107,11 @@ def build_all_read_rcs(index, results, alignment_reads, tile_manager):
         aligned_rcs = tiles.normalize_rcs(tile.scale, tile.offset, aligned_rcs)
         aligned_rcs -= (tile.scale * tile.offset)
         aligned_rcs = tiles.precision_align_rcs(aligned_rcs, result.offset, result.theta, result.lbda)
-        all_read_rcs.add_rcs(result.original_rcs, aligned_rcs, fastq_read_rcs)
-    return all_read_rcs
+        for (original_r, original_c), (aligned_r, aligned_c) in zip(result.original_rcs, aligned_rcs):
+            name = fastq_read_rcs.get((original_r, original_c))
+            if name is not None:
+                rcs[name] = original_r, original_c, aligned_r, aligned_c
+    return rcs
 
 
 class Result(object):
@@ -136,30 +143,34 @@ def align(images, tm, tile_map, snr, precision_hit_threshold, lane, side):
         if n == 3:
             log.debug("aligning %sx%s" % (microscope_data.row, microscope_data.column))
             results = []
-            for tile_number, cross_correlation, max_index, alignment_transform in get_rough_alignment(microscope_data, tm, tile_map, snr):
+            for tile_number, cross_correlation, max_index, alignment_transform in get_rough_alignment(microscope_data,
+                                                                                                      tm,
+                                                                                                      tile_map,
+                                                                                                      snr):
                 # the rough alignment worked for this tile, so now calculate the precision alignment
                 tile = tm.get(tile_number, lane, side)
                 rough_aligned_rcs, original_rcs = find_aligned_rcs(microscope_data, tile, alignment_transform)
                 hits = find_hits(microscope_data, rough_aligned_rcs)
-                good_exclusive_hits = remove_longest_hits(hits.exclusive, microscope_data, rough_aligned_rcs, precision_hit_threshold)
-                offset, theta, lbda = least_squares_mapping(good_exclusive_hits, microscope_data.sexcat_rcs, rough_aligned_rcs)
-
+                good_exclusive_hits = remove_longest_hits(hits.exclusive,
+                                                          microscope_data,
+                                                          rough_aligned_rcs,
+                                                          precision_hit_threshold)
+                offset, theta, lbda = least_squares_mapping(good_exclusive_hits,
+                                                            microscope_data.sexcat_rcs,
+                                                            rough_aligned_rcs)
                 # save the results
                 result = Result(microscope_data.index, microscope_data.row, microscope_data.column, lane,
                                 side, tile_number, cross_correlation, offset, theta, lbda, original_rcs, hits,
                                 microscope_data.sexcat_rcs, len(rough_aligned_rcs))
                 results.append(result)
-                # skip for testing
-                yield microscope_data.index, results
-                raise StopIteration
-            if results:
-                yield microscope_data.index, results
+            yield microscope_data.index, results
 
 
 def remove_longest_hits(hits, microscope_data, aligned_rcs, pct_thresh):
     dists = [single_hit_dist(microscope_data.sexcat_rcs, aligned_rcs, hit) for hit in hits]
     proximity_threshold = np.percentile(dists, pct_thresh * 100)
-    acceptable_hits = [hit for hit in hits if single_hit_dist(microscope_data.sexcat_rcs, aligned_rcs, hit) <= proximity_threshold]
+    acceptable_hits = [hit for hit in hits
+                       if single_hit_dist(microscope_data.sexcat_rcs, aligned_rcs, hit) <= proximity_threshold]
     return acceptable_hits
 
 
@@ -220,7 +231,7 @@ def find_aligned_rcs(microscope_data, tile, rough_alignment_transform):
     original_rcs = []
     for normalized_point, raw_point in zip(tile.normalized_rcs, tile.raw_rcs):
         point = normalized_point + rough_alignment_transform
-        if 0 <= point[0] < microscope_data.shape[0] and 0 <= point[1] < microscope_data.shape[1]:
+        if 0 <= point[0] <= microscope_data.shape[0] and 0 <= point[1] <= microscope_data.shape[1]:
             tile_points.append(point)
             original_rcs.append(raw_point)
     return np.array(tile_points).astype(np.int64), np.array(original_rcs).astype(np.int64)
@@ -273,6 +284,14 @@ class Hits(object):
         self.good_mutual = good_mutual
         self.bad_mutual = bad_mutual
         self.non_mutual = non_mutual
+
+    def __iter__(self):
+        for s, label in ((self.exclusive, 'exclusive'),
+                         (self.good_mutual, 'good_mutual'),
+                         (self.bad_mutual, 'bad_mutual'),
+                         (self.non_mutual, 'non_mutual')):
+            for sexcat_index, in_frame_index in s:
+                yield sexcat_index, in_frame_index, label
 
 
 def single_hit_dist(microscope_rcs, aligned_rcs, hit):
