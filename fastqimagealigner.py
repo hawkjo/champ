@@ -17,14 +17,13 @@ log = logging.getLogger(__name__)
 
 class FastqImageAligner(object):
     """A class to find the alignment of fastq data and image data."""
-    def __init__(self, chip_id):
+    def __init__(self, chip_id, file_structure):
         self.chip_id = chip_id
+        self.file_structure = file_structure
         self.fastq_tiles = {}
         self.fastq_tiles_list = []
         self.fastq_tiles_keys = []
         self.image_data = ImageData()
-        self.w_fq_tile_min = 895  # um
-        self.w_fq_tile_max = 937  # um
         self.fq_w = 927  # um
 
     def load_phiX(self):
@@ -336,21 +335,16 @@ class FastqImageAligner(object):
             if hasattr(self, 'control_corr'):
                 tile.set_snr_with_control_corr(self.control_corr)
 
-    def align(self, possible_tile_keys, rotation_est, fq_w_est=927, snr_thresh=1.2,
-              hit_type=('exclusive', 'good_mutual'), min_hits=15):
-
+    def rough_align(self, possible_tile_keys, rotation_est, fq_w_est=927, snr_thresh=1.2):
         start_time = time.time()
         self.fq_w = fq_w_est
         self.set_fastq_tile_mappings()
         self.set_all_fastq_image_data()
         self.rotate_all_fastq_data(rotation_est)
         log.debug('Prep time: %.3f seconds' % (time.time() - start_time))
-
         start_time = time.time()
         self.find_hitting_tiles(possible_tile_keys, snr_thresh)
         log.debug('Rough alignment time: %.3f seconds' % (time.time() - start_time))
-
-        self.precision_align_only(hit_type, min_hits)
 
     def precision_align_only(self, hit_type=('exclusive', 'good_mutual'), min_hits=15):
         start_time = time.time()
@@ -358,7 +352,6 @@ class FastqImageAligner(object):
             raise RuntimeError('Alignment not found')
         self.least_squares_mapping(hit_type, min_hits=min_hits)
         log.debug('Precision alignment time: %.3f seconds' % (time.time() - start_time))
-        
         start_time = time.time()
         self.find_hits()
         log.debug('Hit finding time: %.3f seconds' % (time.time() - start_time))
