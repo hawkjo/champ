@@ -76,14 +76,20 @@ def main(base_image_name, snr, project_name, alignment_channel=None, alignment_o
     # get a dictionary of tiles that each image will probably be found in
     tile_map = get_expected_tile_map(left_tile, right_tile, left_column, right_column)
     images = grid.bounded_iter(left_column, right_column)
-    all_reads = fastq.load_mapped_reads('unclassified')
+    all_reads = fastq.load_mapped_reads('phix')  # LIES
+
+    # What we really need is a single, unified data structure for results
+    # The UID is the read name
+    #
 
     for index, results in align(images, tm, tile_map, snr, precision_hit_threshold, lane, side):
+        sextractor = sextraction_loader(index)
         rcs = build_aligned_rcs(results, all_reads, tm)
+        phix_rcs = build_aligned_rcs(results, phix_reads, tm)
         objective = int(round(16.0 / nd2.pixel_microns))
         all_read_rcs_file = output.AllReadRCs(index, rcs)
         stats_file = output.Stats(index, project_name, objective, lane, side, results)
-        intensity_file = output.Intensities(index, rcs, results)
+        intensity_file = output.Intensities(index, rcs, results, sextractor)
         for outfile in all_read_rcs_file, stats_file, intensity_file:
             with open(outfile.filename, 'w+') as f:
                 f.write(str(outfile))
@@ -144,11 +150,12 @@ def align(images, tm, tile_map, snr, precision_hit_threshold, lane, side):
                 tile = tm.get(tile_number, lane, side)
                 rough_aligned_rcs, original_rcs = find_aligned_rcs(microscope_data, tile, alignment_transform)
                 hits = find_hits(microscope_data, rough_aligned_rcs)
-                good_exclusive_hits = remove_longest_hits(hits.exclusive,
-                                                          microscope_data,
-                                                          rough_aligned_rcs,
-                                                          precision_hit_threshold)
-                offset, theta, lbda = least_squares_mapping(good_exclusive_hits,
+                hits_for_alignment = hits.exclusive.union(hits.good_mutual)
+                high_quality_hits = remove_longest_hits(hits_for_alignment,
+                                                        microscope_data,
+                                                        rough_aligned_rcs,
+                                                        precision_hit_threshold)
+                offset, theta, lbda = least_squares_mapping(high_quality_hits,
                                                             microscope_data.sexcat_rcs,
                                                             rough_aligned_rcs)
                 # save the results

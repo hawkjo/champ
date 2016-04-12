@@ -19,11 +19,12 @@ class ResultFile(object):
 
 
 class Intensities(ResultFile):
-    def __init__(self, index, rcs, results):
+    def __init__(self, index, rcs, results, sextractor):
         super(Intensities, self).__init__(index, 'intensities')
         # hits are (sexcat_idx, in_frame_idx)
         self._rcs = rcs
         self._results = results
+        self._sextractor = sextractor
 
     def __str__(self):
         output = []
@@ -33,7 +34,8 @@ class Intensities(ResultFile):
                 hit_given_aligned_idx[in_frame_index] = label, sexcat_index, in_frame_index
             for i, (name, (original_r, original_c, aligned_r, aligned_c)) in enumerate(self._rcs.items()):
                 hit_type = hit_given_aligned_idx[i][0]
-                output.append("\t".join(map(str, [name, self._index, hit_type, aligned_r, aligned_c])))
+                sp = self._sextractor.points[i]
+                output.append("\t".join(map(str, [name, self._index, hit_type, aligned_r, aligned_c, sp.flux, sp.flux_err])))
         return "\n".join(output)
 
 
