@@ -33,6 +33,7 @@ def process_fig(alignment_parameters, image, nd2_filename, im_idx, objective, po
     fic.load_reads(tile_data)
     fic.set_image_data(im=image, objective=objective,
                        fpath=str(im_idx), median_normalize=True)
+
     fic.set_sexcat_from_file(sexcat_fpath)
     fic.rough_align(possible_tile_keys,
                     alignment_parameters.rotation_estimate,
