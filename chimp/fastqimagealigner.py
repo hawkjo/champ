@@ -128,13 +128,16 @@ class FastqImageAligner(object):
         return tile.fft_align_with_im(self.image_data)
 
     def find_hitting_tiles(self, possible_tile_keys, snr_thresh=1.2):
-        possible_tiles = [self.fastq_tiles[key] for key in possible_tile_keys]
+        possible_tiles = [self.fastq_tiles[key] for key in possible_tile_keys
+                          if key in self.fastq_tiles]
         impossible_tiles = [tile for tile in self.fastq_tiles.values() if tile not in possible_tiles]
-        control_tiles = random.sample(impossible_tiles, 3)
+        impossible_tiles.sort(key=lambda tile: -len(tile.read_names))
+        control_tiles = impossible_tiles[:2]
 
+        self.image_data.set_single_fft((0, 0), padding=self.fq_im_scaled_dims)
         self.control_corr = 0
         for control_tile in control_tiles:
-            corr = self.fft_align_tile(control_tile)[2]
+            _, _, corr, _ = self.fft_align_tile(control_tile)
             if corr > self.control_corr:
                 self.control_corr = corr
 
