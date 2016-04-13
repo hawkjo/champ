@@ -5,7 +5,6 @@ from itertools import izip
 import logging
 from misc import AlignmentStats
 import numpy as np
-import random
 import reads
 import scipy.optimize
 from scipy.spatial import KDTree

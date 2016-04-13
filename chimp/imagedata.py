@@ -71,7 +71,7 @@ class ImageData(object):
             return
         self.fft_padding = padding
         pool = Pool(processors)
-        ffts = pool.map_async(self.single_fft, self.iterate_D4_idxs()).get(timeout=sys.maxint)
+        ffts = pool.map_async(self.single_fft, self.iterate_D4_idxs()).get(sys.maxint)
         self.all_ffts = {idx: fft for idx, fft in zip(self.iterate_D4_idxs(), ffts)}
         del pool
 
@@ -85,6 +85,6 @@ class ImageData(object):
         w = misc.next_power_of_2(totalx)
         h = misc.next_power_of_2(totaly)
         padded_im = np.pad(im,
-                           ((self.fft_padding[0], w-totalx), (self.fft_padding[1], h-totaly)),
+                           ((int(self.fft_padding[0]), int(w-totalx)), (int(self.fft_padding[1]), int(h-totaly))),
                            mode='constant')
         return np.fft.fft2(padded_im)
