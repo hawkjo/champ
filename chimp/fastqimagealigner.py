@@ -96,23 +96,8 @@ class FastqImageAligner(object):
         else:
             self.image_data = ImageData(*args, **kwargs)
 
-    def set_fastq_tile_mappings(self):
-        """Calculate parameters for mapping fastq tiles for ffts."""
-        assert self.image_data is not None, 'No image data loaded.'
-        assert self.fastq_tiles != {}, 'No fastq data loaded.'
-
-        self.all_data = np.concatenate([tile.rcs for tile in self.fastq_tiles.values()])
-
-        x_min, y_min = self.all_data.min(axis=0)
-        x_max, y_max = self.all_data.max(axis=0)
-
-        self.fq_im_offset = np.array([-x_min, -y_min])
-        self.fq_im_scale = (float(self.fq_w) / (x_max-x_min)) / self.image_data.um_per_pixel
-        fq_im_scaled_maxes = self.fq_im_scale * np.array([x_max-x_min, y_max-y_min])
-        self.fq_im_scaled_dims = (fq_im_scaled_maxes + [1, 1]).astype(np.int)
-
     def set_all_fastq_image_data(self):
-        for tile in self.fastq_tiles.values():
+        for key, tile in self.fastq_tiles.items():
             tile.set_fastq_image_data(self.fq_im_offset,
                                       self.fq_im_scale,
                                       self.fq_im_scaled_dims,
@@ -123,6 +108,21 @@ class FastqImageAligner(object):
         self.fq_im_scaled_dims = np.array(im_shapes).max(axis=0)
         for tile in self.fastq_tiles_list:
             tile.image_shape = self.fq_im_scaled_dims
+
+    def set_fastq_tile_mappings(self):
+        """Calculate parameters for mapping fastq tiles for ffts."""
+        assert self.image_data is not None, 'No image data loaded.'
+        assert self.fastq_tiles != {}, 'No fastq data loaded.'
+
+        self.all_data = np.concatenate([tile.rcs for key, tile in self.fastq_tiles.items()])
+
+        x_min, y_min = self.all_data.min(axis=0)
+        x_max, y_max = self.all_data.max(axis=0)
+
+        self.fq_im_offset = np.array([-x_min, -y_min])
+        self.fq_im_scale = (float(self.fq_w) / (x_max-x_min)) / self.image_data.um_per_pixel
+        self.fq_im_scaled_maxes = self.fq_im_scale * np.array([x_max-x_min, y_max-y_min])
+        self.fq_im_scaled_dims = (self.fq_im_scaled_maxes + [1, 1]).astype(np.int)
 
     def fft_align_tile(self, tile):
         return tile.fft_align_with_im(self.image_data)
