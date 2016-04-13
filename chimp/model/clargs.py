@@ -20,6 +20,10 @@ class CommandLineArguments(object):
         return log_level.get(self._arguments['-v'], logging.FATAL)
 
     @property
+    def project_name(self):
+        return self._arguments['PROJECT_NAME']
+
+    @property
     def fastq_directory(self):
         return self._arguments['FASTQ_DIRECTORY']
 
@@ -30,24 +34,10 @@ class CommandLineArguments(object):
     @property
     def command(self):
         for possible_command in ('align',
-                                 'bowtie',
-                                 'map'):
+                                 'preprocess'):
             if self._arguments[possible_command]:
                 return possible_command
 
     @property
     def min_hits(self):
         return int(self._arguments['--min_hits'])
-
-    @property
-    def tile_width_estimate(self):
-        return int(self._arguments['--tile_width_estimate'])
-
-    @property
-    def rotation_estimate(self):
-        return float(self._arguments['--rotation_estimate'])
-
-    @property
-    def index_offset(self):
-        # TODO: This might be unnecessary
-        return int(self._arguments['--index_offset'])

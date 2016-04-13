@@ -3,7 +3,8 @@ Chip-Hybridized Interaction Mapping Platform
 
 Usage:
   chimp map FASTQ_DIRECTORY PATHS_TO_BAMFILES ... [-v | -vv | -vvv]
-  chimp align READ_NAME (--alignment_channel <alignment_channel> | --alignment_index <alignment_index>) [--min_hits] [--rotation_estimate] [--snr_threshold] [--tile_width_estimate] [-v | -vv | -vvv]
+  chimp align PROJECT_NAME ALIGNEMT_READ_NAME (--alignment_channel <alignment_channel> | --alignment_index <alignment_index>) [--min_hits] [--rotation_estimate] [--snr_threshold] [--tile_width_estimate] [-v | -vv | -vvv]
+  chimp preprocess [-v | -vv | -vvv ]
 
 Options:
   -h --help     Show this screen.
@@ -14,7 +15,7 @@ Commands:
   align     maps reads from the high-throughput sequencer to fluorescent points in microscope image data
 
 """
-from chimp.controller import align, mapreads
+from chimp.controller import align, preprocess
 from docopt import docopt
 import logging
 from chimp.model.clargs import CommandLineArguments
@@ -34,8 +35,7 @@ def main(**kwargs):
         log.info('')
 
     commands = {'align': align.main,
-                'map': mapreads.main,
-                }
+                'preprocess': preprocess.fitsify}
     commands[arguments.command](arguments)
 
 

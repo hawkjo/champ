@@ -11,15 +11,16 @@ import scipy.optimize
 from scipy.spatial import KDTree
 from sklearn.mixture import GMM
 import time
+import sextraction
+
 
 log = logging.getLogger(__name__)
 
 
 class FastqImageAligner(object):
     """A class to find the alignment of fastq data and image data."""
-    def __init__(self, chip_id, file_structure):
-        self.chip_id = chip_id
-        self.file_structure = file_structure
+    def __init__(self, experiment):
+        self.experiment = experiment
         self.fastq_tiles = {}
         self.fastq_tiles_list = []
         self.fastq_tiles_keys = []
@@ -27,11 +28,11 @@ class FastqImageAligner(object):
         self.fq_w = 927  # um
 
     def load_phiX(self):
-        tile_data = reads.phix_read_names(self.chip_id, self.file_structure)
+        tile_data = reads.phix_read_names(self.experiment)
         self.load_reads(tile_data=tile_data)
 
     def load_all_reads(self, tile_keys=None):
-        tile_data = reads.all_read_names(self.chip_id, self.file_structure)
+        tile_data = reads.all_read_names(self.experiment)
         if tile_keys is None:
             self.load_reads(tile_data)
         else:
@@ -84,6 +85,9 @@ class FastqImageAligner(object):
                                     astats.rotation[i] * np.pi / 180,
                                     astats.rc_offset[i]
                                    )
+
+    def set_sexcat_from_file(self, fpath):
+        self.sexcat = sextraction.Sextraction(fpath)
 
     def set_image_data(self, *args, **kwargs):
         if len(args) == 1 and isinstance(args[0], ImageData):

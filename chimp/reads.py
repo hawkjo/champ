@@ -2,21 +2,21 @@ import os
 from collections import defaultdict
 
 
-def phix_read_names(project_name, file_structure):
+def phix_read_names(experiment):
     fpath = os.path.join(
-            file_structure.data_directory,
+            experiment.data_directory,
             'from_fourierseq',
-            project_name,
+            experiment.project_name,
             'phiX_mappings',
             'phiX_read_names.txt')
     return get_read_names(fpath)
 
 
-def all_read_names(project_name, file_structure):
+def all_read_names(experiment):
     fpath = os.path.join(
-            file_structure.data_directory,
+            experiment.data_directory,
             'from_fourierseq',
-            project_name,
+            experiment.project_name,
             'all_fastqs',
             'all_read_names.txt')
     if not os.path.isdir(fpath):

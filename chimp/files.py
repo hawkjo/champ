@@ -24,11 +24,11 @@ def load_image_files():
     return ImageFiles(filenames)
 
 
-def ensure_image_data_directory_exists(data_directory, nd2_filename):
+def ensure_image_data_directory_exists(nd2_filename):
     """
     Creates a directory based on the ND2 filenames in order to store data derived from them.
 
     """
-    new_directory = os.path.join(data_directory, nd2_filename)
+    new_directory = os.path.join(nd2_filename)
     if not os.path.isdir(new_directory):
         os.mkdir(new_directory)
