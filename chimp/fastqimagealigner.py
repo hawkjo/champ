@@ -412,7 +412,7 @@ class FastqImageAligner(object):
         stats = [
             'Image:                 %s' % self.image_data.fname,
             'Objective:             %d' % self.image_data.objective,
-            'Project Name:          %s' % self.chip_id,
+            'Project Name:          %s' % self.project,
             'Tile:                  %s' % ','.join(tile.key for tile in self.hitting_tiles),
             'Rotation (deg):        %s' % ','.join('%.4f' % tile.rotation_degrees for tile in self.hitting_tiles),
             'Tile width (um):       %s' % ','.join('%.4f' % tile.w for tile in self.hitting_tiles),

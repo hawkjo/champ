@@ -44,6 +44,7 @@ def find_end_tile(indexes, alignment_parameters, nd2_filename, possible_tiles, e
                           objective,
                           possible_tiles,
                           experiment)
+        print("DONE PROCESS FIG")
         if fia.hitting_tiles:
             print(index, row, column, fia.hitting_tiles)
             return column, fia.hitting_tiles
