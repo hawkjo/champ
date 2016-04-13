@@ -5,18 +5,23 @@ import numpy as np
 import re
 
 
+def next_power_of_2(x):
+    return 1<<(int(np.ceil(x))-1).bit_length()
+
+
 def max_2d_idx(a):
     return np.unravel_index(a.argmax(), a.shape)
 
 
 def pad_to_size(M, size):
     assert len(size) == 2, 'Row and column sizes needed.'
-    left_to_pad = size - np.array(M.shape) 
+    left_to_pad = size - np.array(M.shape)
     return np.pad(M, ((0, left_to_pad[0]), (0, left_to_pad[1])), mode='constant')
 
 
-def right_rotation_matrix(angle):
-    angle *= np.pi / 180.0
+def right_rotation_matrix(angle, degrees=True):
+    if degrees:
+        angle *= np.pi/180.0
     sina = np.sin(angle)
     cosa = np.cos(angle)
     return np.array([[cosa, sina],
@@ -29,12 +34,8 @@ def rcs_given_read_names(read_names):
 
 def median_normalize(im):
     med = np.median(im)
-    # Doing in place division by a float won't work because we have an int64 array
-    # By casting to float with copy=False, we create a float view that allows
-    # in place division without having to perform any copies
-    im = im.astype('float', copy=False, casting='safe')
-    im /= float(med)
-    im -= 1.0
+    im = im / float(med)
+    im -= 1
     return im
 
 
@@ -55,9 +56,18 @@ def strisfloat(x):
     else:
         return True
 
-
 def strisint(x):
-    return x.isdigit()
+    try:
+        a = float(x)
+        b = int(x)
+    except ValueError:
+        return False
+    else:
+        return a == b
+
+
+def stoftoi(s):
+    return int(round(float(s)))
 
 
 class AlignmentStats:
@@ -96,7 +106,7 @@ class AlignmentStats:
         self.numtiles = len(self.tile)
 
 
-def pM_concentration_given_fpath(fpath):
+def pM_concentration_given_fpath(fpath, convention='steve'):
     pattern = '[-_]([0-9_.]+)([pn]M)'
     m = re.search(pattern, fpath)
     assert m, fpath
@@ -113,13 +123,13 @@ def fold_radial_symmetry(x, with_max=False):
     """Takes square matrix and folds it by radial symmetry into summed entries, and optionally max."""
     # Matrix value types are summarized as follows, with 7x7 as example size:
     #
-    #   d . . s . . d 
-    #   . d . s . d . 
-    #   . . d s d . . 
-    #   s s s c s s s 
-    #   . . d s d . . 
-    #   . d . s . d . 
-    #   d . . s . . d 
+    #   d . . s . . d
+    #   . d . s . d .
+    #   . . d s d . .
+    #   s s s c s s s
+    #   . . d s d . .
+    #   . d . s . d .
+    #   d . . s . . d
     #
     # Number of entries collapsed into one in this example via radial symmetry are as follows for
     # each value type:
@@ -133,21 +143,21 @@ def fold_radial_symmetry(x, with_max=False):
 
     slen = x.shape[0]
     assert x.shape == (slen, slen), x  # Check for 2d square matrix
-    m = int(slen / 2)
+    m = int(slen/2)
+    folded = []
 
     # Center
-    folded = []
     folded.append(x[m, m])
-    
+
     # Sides and Diagonals
     for i in range(m):
         o = slen-i-1
-        folded.append(x[i, m] + x[o, m] + x[m, i] + x[m, o])  # side 
+        folded.append(x[i, m] + x[o, m] + x[m, i] + x[m, o])  # side
         folded.append(x[i, i] + x[i, o] + x[o, i] + x[o, o])  # diagonal
-        
+
     # Others
-    for i in range(2, m+1):  # L_infty from c
-        for j in range(1, i):  # L_1 from s
+    for i in range(2, m+1):   # L_infty from c
+        for j in range(1, i): # L_1 from s
             folded.append(sum([x[m-i, m-j],
                                x[m-i, m+j],
                                x[m+i, m-j],
@@ -160,7 +170,7 @@ def fold_radial_symmetry(x, with_max=False):
     # Max
     if with_max:
         folded.append(x.max())
-    
+
     return folded
 
 
@@ -171,10 +181,10 @@ def unfold_radial_symmetry(folded, with_max=False):
         folded = list(folded.flatten())
 
     # The following determines the value of m as defined above
-    m = (-1.5 + np.sqrt(1.5**2 - 4 * 0.5 * (1 - len(folded))))
+    m = (-1.5 + np.sqrt(1.5**2 - 4 * 0.5 * (1-len(folded))))  # / (2 * 0.5)
     assert m == int(m), len(folded)
     m = int(m)
-    slen = 2 * m + 1
+    slen = 2*m + 1
     x = np.empty((slen, slen))
 
     # Center
@@ -182,7 +192,7 @@ def unfold_radial_symmetry(folded, with_max=False):
 
     # Sides and Diagonals
     for i in range(m):
-        o = slen - i - 1
+        o = slen-i-1
 
         sval = folded.pop(0) / 4.0
         x[i, m] = sval
@@ -198,7 +208,7 @@ def unfold_radial_symmetry(folded, with_max=False):
 
     # Others
     for i in range(2, m+1):   # L_infty from c
-        for j in range(1, i):  # L_1 from s
+        for j in range(1, i): # L_1 from s
             val = folded.pop(0) / 8.0
             x[m-i, m-j] = val
             x[m-i, m+j] = val

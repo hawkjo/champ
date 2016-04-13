@@ -2,6 +2,7 @@ import numpy as np
 import os
 from multiprocessing import Pool
 import sys
+from chimp import misc
 
 
 class ImageData(object):
@@ -81,8 +82,8 @@ class ImageData(object):
     def single_fft(self, idx):
         im = self.D4_im_given_idx(idx)
         totalx, totaly = np.array(self.fft_padding)+np.array(im.shape)
-        w = next_power_of_2(totalx)
-        h = next_power_of_2(totaly)
+        w = misc.next_power_of_2(totalx)
+        h = misc.next_power_of_2(totaly)
         padded_im = np.pad(im,
                            ((self.fft_padding[0], w-totalx), (self.fft_padding[1], h-totaly)),
                            mode='constant')
