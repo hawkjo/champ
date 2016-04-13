@@ -1,0 +1,3 @@
+FASTQ_TILE_WIDTH = 935.0  # micrometers
+MISEQ_TILE_COUNT = 19
+VERSION = '0.0.1'

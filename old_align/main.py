@@ -1,6 +1,6 @@
 from fastqimagealigner import FastqImageAligner
 import os
-import sextraction
+from chimp import sextraction
 
 
 def load_sextraction(experiment, nd2_name, image_index):

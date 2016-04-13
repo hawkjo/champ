@@ -33,10 +33,17 @@ def main(clargs):
 
 def find_end_tile(indexes, alignment_parameters, nd2_filename, possible_tiles, experiment):
     objective = 60
+    nd2 = Nd2(nd2_filename)
     for index, row, column in indexes:
-        nd2 = Nd2(nd2_filename)[index]
+        image = nd2[index]
         # first get the correlation to random tiles, so we can distinguish signal from noise
-        fia = process_fig(alignment_parameters, nd2, nd2_filename, index, objective, possible_tiles, experiment)
+        fia = process_fig(alignment_parameters,
+                          image,
+                          nd2_filename,
+                          index,
+                          objective,
+                          possible_tiles,
+                          experiment)
         if fia.hitting_tiles:
             print(index, row, column, fia.hitting_tiles)
             return column, fia.hitting_tiles

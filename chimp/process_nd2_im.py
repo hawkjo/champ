@@ -20,7 +20,7 @@ def tile_keys_given_nums(tile_nums):
     return ['lane1tile{0}'.format(tile_num) for tile_num in tile_nums]
 
 
-def process_fig(alignment_parameters, nd2, nd2_filename, im_idx, objective, possible_tile_keys, experiment):
+def process_fig(alignment_parameters, image, nd2_filename, im_idx, objective, possible_tile_keys, experiment):
     for directory in (experiment.figure_directory, experiment.results_directory):
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -32,7 +32,7 @@ def process_fig(alignment_parameters, nd2, nd2_filename, im_idx, objective, poss
     tile_data = reads.get_read_names(os.path.join(experiment.project_name,
                                      alignment_parameters.aligning_read_names_filepath))
     fic.load_reads(tile_data)
-    fic.set_image_data(im=nd2[im_idx], objective=objective,
+    fic.set_image_data(im=image, objective=objective,
                        fpath=str(im_idx), median_normalize=True)
     fic.set_sexcat_from_file(sexcat_fpath)
     fic.rough_align(possible_tile_keys,

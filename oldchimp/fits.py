@@ -15,6 +15,9 @@ log = logging.getLogger(__name__)
 
 
 class SEConfig(object):
+    def __init__(self, data_directory):
+        self._directory = data_directory
+
     def __enter__(self):
         self._create_config_files()
 
@@ -24,7 +27,7 @@ class SEConfig(object):
     def _delete_config_files(self):
         for filename in ('default.sex', 'spot.param', 'default.conv'):
             try:
-                os.unlink(filename)
+                os.unlink(os.path.join(self._directory, filename))
             except OSError:
                 pass
 
@@ -33,7 +36,7 @@ class SEConfig(object):
 DEBLEND_NTHRESH 64
 DEBLEND_MINCONT 0.00005
 """
-        with open('default.sex', 'w+') as f:
+        with open(os.path.join(self._directory, 'default.sex'), 'w+') as f:
             f.write(default_text)
 
         spot_text = """X_IMAGE
@@ -45,7 +48,7 @@ A_IMAGE
 B_IMAGE
 THETA_IMAGE
 """
-        with open('spot.param', 'w+') as f:
+        with open(os.path.join(self._directory, 'spot.param'), 'w+') as f:
             f.write(spot_text)
 
         convolution_text = """CONV NORM
@@ -53,7 +56,7 @@ THETA_IMAGE
 2 4 2
 1 2 1
 """
-        with open('default.conv', 'w+') as f:
+        with open(os.path.join(self._directory, 'default.conv'), 'w+') as f:
             f.write(convolution_text)
 
 
@@ -70,23 +73,23 @@ def source_extract(base_file):
         subprocess.call(command, stdout=devnull, stderr=devnull)
 
 
-def create_fits_files(nd2_filename):
+def create_fits_files(data_directory, nd2_filename):
     log.info("Creating fits files for %s..." % nd2_filename)
     nd2 = Nd2(nd2_filename + ".nd2")
     for n, image in enumerate(nd2):
         xyz_file = XYZFile(image)
-        xyz_path = "%s.xyz" % os.path.join(nd2_filename, str(n))
+        xyz_path = "%s.xyz" % os.path.join(data_directory, nd2_filename, str(n))
         with open(xyz_path, "w+") as f:
             f.write(str(xyz_file))
-        fits_path = '%s.fits' % os.path.join(nd2_filename, str(n))
+        fits_path = '%s.fits' % os.path.join(data_directory, nd2_filename, str(n))
         subprocess.call(['fitsify', xyz_path, fits_path, '1', '2', '3'])
     log.info("Done creating fits files for %s" % nd2_filename)
 
 
-def main():
+def main(data_directory):
     image_files = files.load_image_files()
-    for directory in image_files.directories:
-        files.ensure_image_data_directory_exists(directory)
+    for filename in image_files.filenames:
+        files.ensure_image_data_directory_exists(data_directory, filename)
     # Try to use one core per file, but top out at the number of cores that the machine has.
     thread_count = min(len(image_files), multiprocessing.cpu_count())
     log.debug("Using %s threads for source extraction" % thread_count)
@@ -96,19 +99,19 @@ def main():
     log.info("Starting fits file conversions.")
     # The multiprocessing thing only takes an iterable with no arguments, so we use a partial function to pass
     # the directory where the files should be written
-    fits_func = functools.partial(create_fits_files)
+    fits_func = functools.partial(create_fits_files, data_directory)
     # KeyboardInterrupt won't behave as expected while multiprocessing unless you specify a timeout.
     # We don't want one really, so we just use the largest possible integer instead
     start = time.time()
-    worker_pool.map_async(fits_func, image_files.directories).get(timeout=sys.maxint)
+    worker_pool.map_async(fits_func, image_files.filenames).get(timeout=sys.maxint)
     log.info("Done with fits file conversions. Elapsed time: %s seconds" % round(time.time() - start, 0))
 
     # Now run source extractor to find the coordinates of points
-    with SEConfig():
+    with SEConfig(data_directory):
         log.info("Starting Source Extractor...")
         start = time.time()
         # Set up a worker for each ND2 file like before
         worker_pool = Pool(thread_count)
-        bfiles = [base_file for nd2_filename in image_files.directories for base_file in base_files(nd2_filename)]
+        bfiles = [base_file for nd2_filename in image_files.filenames for base_file in base_files(nd2_filename)]
         worker_pool.map_async(source_extract, bfiles).get(timeout=sys.maxint)
         log.info("Done with Source Extractor! Took %s seconds" % round(time.time() - start, 0))
