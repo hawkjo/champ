@@ -20,7 +20,6 @@ class Sextraction(object):
     def __init__(self, lines):
         self.points = []
         for line in filter(lambda x: not x.startswith('#'), lines):
-            print(line)
             self.points.append(SextractorPoint(*line.strip().split()))
 
     @property

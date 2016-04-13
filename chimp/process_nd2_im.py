@@ -26,8 +26,7 @@ def process_fig(alignment_parameters, image, nd2_filename, im_idx, objective, po
             os.makedirs(directory)
 
     log.debug("Nd2: %s" % nd2_filename)
-    sexcat_fpath = os.path.join(nd2_filename, '%d.cat' % im_idx)
-    print(sexcat_fpath)
+    sexcat_fpath = os.path.join(nd2_filename.replace('.nd2', ''), '%d.cat' % im_idx)
     fic = fastqimagealigner.FastqImageAligner(experiment)
     tile_data = reads.get_read_names(os.path.join(experiment.project_name,
                                      alignment_parameters.aligning_read_names_filepath))
@@ -57,7 +56,7 @@ def write_output(im_idx, fic, experiment, alignment_parameters):
     ax = fic.plot_hit_hists()
     ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_hit_hists.pdf'.format(im_idx)))
 
-    all_fic = fastqimagealigner.FastqImageAligner(alignment_parameters.chip_id, experiment)
+    all_fic = fastqimagealigner.FastqImageAligner(experiment)
     tile_data = reads.get_read_names(alignment_parameters.all_read_names_filepath)
     all_fic.all_reads_fic_from_aligned_fic(fic, tile_data)
     all_fic.write_read_names_rcs(all_read_rcs_filepath)

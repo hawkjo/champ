@@ -87,7 +87,8 @@ class FastqImageAligner(object):
                                    )
 
     def set_sexcat_from_file(self, fpath):
-        self.sexcat = sextraction.Sextraction(fpath)
+        with open(fpath) as f:
+            self.sexcat = sextraction.Sextraction(f)
 
     def set_image_data(self, *args, **kwargs):
         if len(args) == 1 and isinstance(args[0], ImageData):
