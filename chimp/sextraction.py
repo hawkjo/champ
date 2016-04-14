@@ -1,5 +1,6 @@
 import numpy as np
-from matplotlib.pyplot import plt
+import matplotlib.pyplot as plt
+from matplotlib.patches import Ellipse
 
 
 class SextractorPoint(object):
@@ -32,7 +33,7 @@ class Sextraction(object):
             fig, ax = plt.subplots()
         ax.plot(self.cs(), self.rs(), 'r.', alpha=alpha)
 
-    def plot_ellipses(self, ax=None, alpha=1.0, color=(1,0,0)):
+    def plot_ellipses(self, ax=None, alpha=1.0, color=(1, 0, 0)):
         if ax is None:
             fig, ax = plt.subplots()
         ells = [Ellipse(xy=(pt.c, pt.r), width=pt.width, height=pt.height, angle=pt.theta) for pt

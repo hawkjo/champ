@@ -12,6 +12,7 @@ from sklearn.mixture import GMM
 import time
 import sextraction
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 
 log = logging.getLogger(__name__)
@@ -105,7 +106,7 @@ class FastqImageAligner(object):
         self.plot_hits(self.exclusive_hits, 'r', ax, line_kwargs)
         ax.set_title('All Hits: %s vs. %s %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s, SNR: %s'
                 % (self.image_data.bname,
-                   self.project_name,
+                   self.experiment.project_name,
                    ','.join(tile.key for tile in self.hitting_tiles),
                    ','.join('%.2f' % tile.rotation_degrees for tile in self.hitting_tiles),
                    ','.join('%.2f' % tile.w for tile in self.hitting_tiles),
