@@ -187,7 +187,7 @@ class FastqImageAligner(object):
         return [self.single_hit_dist(hit) for hit in hits]
 
     def single_hit_dist(self, hit):
-        return np.linalg.norm(self.sexcat.point_rcs[hit[0]] - self.aligned_rcs_in_frame[hit[1]])
+        return np.linalg.norm(self.sexcat.rcs[hit[0]] - self.aligned_rcs_in_frame[hit[1]])
 
     def remove_longest_hits(self, hits, pct_thresh):
         dists = self.hit_dists(hits)
@@ -199,12 +199,12 @@ class FastqImageAligner(object):
         # Find nearest neighbors
         # --------------------------------------------------------------------------------
         self.find_points_in_frame(consider_tiles)
-        sexcat_tree = KDTree(self.sexcat.point_rcs)
+        sexcat_tree = KDTree(self.sexcat.rcs)
         aligned_tree = KDTree(self.aligned_rcs_in_frame)
 
         # All indices are in the order (sexcat_idx, aligned_in_frame_idx)
         sexcat_to_aligned_idxs = set()
-        for i, pt in enumerate(self.sexcat.point_rcs):
+        for i, pt in enumerate(self.sexcat.rcs):
             dist, idx = aligned_tree.query(pt)
             sexcat_to_aligned_idxs.add((i, idx))
 
@@ -328,7 +328,7 @@ class FastqImageAligner(object):
                 A[2*i, :] = [xir, -yir, 1, 0]
                 A[2*i+1, :] = [yir,  xir, 0, 1]
 
-                xis, yis = self.sexcat.point_rcs[sexcat_idx]
+                xis, yis = self.sexcat.rcs[sexcat_idx]
                 b[2*i] = xis
                 b[2*i+1] = yis
 
@@ -414,7 +414,7 @@ class FastqImageAligner(object):
         stats = [
             'Image:                 %s' % self.image_data.fname,
             'Objective:             %d' % self.image_data.objective,
-            'Project Name:          %s' % self.project,
+            'Project Name:          %s' % self.experiment.project_name,
             'Tile:                  %s' % ','.join(tile.key for tile in self.hitting_tiles),
             'Rotation (deg):        %s' % ','.join('%.4f' % tile.rotation_degrees for tile in self.hitting_tiles),
             'Tile width (um):       %s' % ','.join('%.4f' % tile.w for tile in self.hitting_tiles),
@@ -425,13 +425,14 @@ class FastqImageAligner(object):
             'Bad mutual hits:       %d' % (len(self.bad_mutual_hits)),
             'Good mutual hits:      %d' % (len(self.good_mutual_hits)),
             'Exclusive hits:        %d' % (len(self.exclusive_hits)),
-            'Sextractor Ellipses:   %d' % (len(self.sexcat.point_rcs)),
+            'Sextractor Ellipses:   %d' % (len(self.sexcat.rcs)),
             'Fastq Points:          %d' % (len(self.aligned_rcs_in_frame)),
             ]
         with open(out_fpath, 'w') as out:
             out.write('\n'.join(stats))
 
     def write_read_names_rcs(self, out_fpath):
+        print("write read names %s" % out_fpath)
         im_shape = self.image_data.im.shape
         with open(out_fpath, 'w') as out:
             for tile in self.hitting_tiles:

@@ -44,7 +44,7 @@ class AlignmentParameters(object):
 
     @property
     def min_hits(self):
-        return int(self._args.get('--min_hits') or 15)
+        return 15
 
     @property
     def rotation_estimate(self):

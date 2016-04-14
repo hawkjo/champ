@@ -2,12 +2,12 @@ import numpy as np
 
 
 class SextractorPoint(object):
-    __slots__ = ['column', 'row', 'flux', 'flux_err', 'flags', 'width', 'height', 'theta']
+    __slots__ = ['c', 'r', 'flux', 'flux_err', 'flags', 'width', 'height', 'theta']
 
     def __init__(self, column, row, flux, flux_err, flags, width, height, theta):
         # Sextractor coordinates are 1-based
-        self.column = float(column) - 1.0
-        self.row = float(row) - 1.0
+        self.c = float(column) - 1.0
+        self.r = float(row) - 1.0
         self.flux = float(flux)
         self.flux_err = float(flux_err)
         self.flags = int(flags)

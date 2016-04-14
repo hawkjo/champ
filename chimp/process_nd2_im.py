@@ -25,7 +25,6 @@ def process_fig(alignment_parameters, image, nd2_filename, im_idx, objective, po
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-    log.debug("Nd2: %s" % nd2_filename)
     sexcat_fpath = os.path.join(nd2_filename.replace('.nd2', ''), '%d.cat' % im_idx)
     fic = fastqimagealigner.FastqImageAligner(experiment)
     tile_data = reads.get_read_names(os.path.join(experiment.project_name,
