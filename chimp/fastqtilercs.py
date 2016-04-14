@@ -12,11 +12,11 @@ class FastqTileRCs(object):
         self.read_names = read_names
         self.rcs = np.array([map(int, name.split(':')[-2:]) for name in self.read_names])
 
-    def set_fastq_image_data(self, offset, scale, scaled_dims, w, force=False, verbose=True):
+    def set_fastq_image_data(self, offset, scale, scaled_dims, width):
         self.offset = offset
         self.scale = scale
         self.image_shape = scaled_dims
-        self.w = w  # width in um
+        self.w = width  # width in um
         self.mapped_rcs = scale * (self.rcs + np.tile(offset, (self.rcs.shape[0], 1)))
         self.rotation_degrees = 0
 
@@ -31,27 +31,6 @@ class FastqTileRCs(object):
         image = np.zeros(self.image_shape)
         image[self.mapped_rcs.astype(np.int)[:,0], self.mapped_rcs.astype(np.int)[:,1]] = 1
         return image
-
-    def imreg_align_with_im(self, im):
-        fq_image = self.image()
-        edge_len = misc.next_power_of_2(np.r_[fq_image.shape, im.shape].max())
-        sq_fq_im = misc.pad_to_size(fq_image, (edge_len, edge_len))
-
-        self.max_score = float('-inf')
-        for flip in [False, True]:
-            if flip:
-                im = np.fliplr(im)
-            sq_im = misc.pad_to_size(im, (edge_len, edge_len))
-            fq_match_im, scale, rot, tr = imreg.similarity(sq_im, sq_fq_im)
-            score = (sq_im * fq_match_im).sum()
-
-            if score > self.max_score:
-                self.max_score = score
-                self.best_match_im = fq_match_im
-                self.align_scale = scale
-                self.align_rot = rot
-                self.align_tr = tr
-        print self.key, score, scale, rot, tr
 
     def fft_align_with_im(self, image_data):
         im_data_im_shapes = set(a.shape for a in image_data.all_ffts.values())
@@ -76,7 +55,6 @@ class FastqTileRCs(object):
                 self.best_im_key = im_key
                 self.best_max_corr = max_corr
                 self.align_tr = np.array(max_idx) - fq_image.shape
-        #print 'Result:', self.key, self.best_im_key, self.best_max_corr, self.align_tr
         return self.key, self.best_im_key, self.best_max_corr, self.align_tr
 
     def get_new_aligned_rcs(self, new_fq_w=None, new_degree_rot=0, new_tr=(0, 0)):
@@ -108,13 +86,10 @@ class FastqTileRCs(object):
 
         # First update w since it depends on previous scale setting
         self.w = lbda * float(self.w) / self.scale
-        #self.w = (self.rcs[:, 0].max() - self.rcs[:, 0].min()) * lbda
-
         self.scale = lbda
         self.rotation = theta
         self.rotation_degrees = theta * 180.0 / np.pi
         self.offset = offset
-
         self.aligned_rcs = np.dot(A, x).reshape((len(self.rcs), 2))
 
     def set_correlation(self, im):

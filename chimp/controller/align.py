@@ -6,6 +6,7 @@ import logging
 from nd2reader import Nd2
 from collections import defaultdict
 from chimp.model import constants
+import time
 
 
 log = logging.getLogger(__name__)
@@ -55,7 +56,7 @@ def main(clargs):
 
         tile_map = get_expected_tile_map(left_tile - 2100, right_tile - 2100, left_column, right_column)
         for index, row, column in grid.bounded_iter(left_column, right_column):
-            log.debug("Aligning image #%d from %s" % (index, nd2_filename))
+            log.debug("Aligning image (%d, %d) from %s" % (row, column, nd2_filename))
             image = nd2[index]
             print("tile map", tile_map[column])
             tile_numbers = (2100 + tile for tile in tile_map[column])
@@ -70,9 +71,13 @@ def main(clargs):
                               possible_tiles,
                               experiment)
             if fia.hitting_tiles:
-                print("About to precision align")
+                print("******** About to precision align")
                 precision_process_fig(fia, alignment_parameters)
+                print("******** About to write output")
+                start = time.time()
                 write_output(index, fia, experiment, alignment_parameters)
+                print("write time", time.time() - start)
+                print("******** Done writing")
             else:
                 print("#%d did not align to %s" % (index, " ".join(possible_tiles)))
 

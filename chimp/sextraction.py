@@ -2,33 +2,26 @@ import numpy as np
 
 
 class SextractorPoint(object):
-    __slots__ = ['c', 'r', 'flux', 'flux_err', 'flags', 'width', 'height', 'theta']
-
-    def __init__(self, column, row, flux, flux_err, flags, width, height, theta):
+    def __init__(self, line):
+        self.c, self.r, self.flux, self.flux_err, self.flags, \
+                self.width, self.height, self.theta \
+                = map(float, line.strip().split())
         # Sextractor coordinates are 1-based
-        self.c = float(column) - 1.0
-        self.r = float(row) - 1.0
-        self.flux = float(flux)
-        self.flux_err = float(flux_err)
-        self.flags = int(flags)
-        self.width = float(width)
-        self.height = float(height)
-        self.theta = float(theta)
+        self.r -= 1
+        self.c -= 1
 
 
 class Sextraction(object):
     def __init__(self, lines):
         self.points = []
-        for line in filter(lambda x: not x.startswith('#'), lines):
-            self.points.append(SextractorPoint(*line.strip().split()))
+        for line in lines:
+            if line.startswith('#'):
+                continue
+            self.points.append(SextractorPoint(line))
+        self.point_rcs = np.array([(pt.r, pt.c) for pt in self.points])
 
-    @property
-    def rcs(self):
-        return np.array([(pt.row, pt.column) for pt in self.points])
+    def rs(self):
+        return np.array([pt.r for pt in self.points])
 
-    @property
-    def image(self):
-        rcs = self.rcs
-        image = np.zeros(rcs.max(axis=0) + 1)
-        image[rcs.astype(np.int)[:, 0], rcs.astype(np.int)[:, 1]] = 1
-        return image
+    def cs(self):
+        return np.array([pt.c for pt in self.points])
