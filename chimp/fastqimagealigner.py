@@ -49,33 +49,6 @@ class FastqImageAligner(object):
         ax.set_title('%s Nearest Neighbor Distance Distributions' % self.image_data.bname)
         return ax
 
-    def plot_threshold_gmm(self, axs=None, force=False):
-        if axs is None:
-            fig, axs = plt.subplots(1, 2, figsize=(15, 6))
-        non_mut_dists = self.hit_dists(self.non_mutual_hits)
-        if not hasattr(self, 'gmm') and force:
-            self.gmm_thresh(non_mut_dists)
-        xs = np.linspace(0, max(non_mut_dists), 200)
-        posteriors = self.gmm.predict_proba(xs)
-        pdf = np.exp(self.gmm.score_samples(xs)[0])
-
-        axs[0].hist(non_mut_dists, 40, histtype='step', normed=True, label='Data')
-        axs[0].plot(xs, pdf, label='PDF')
-        ylim = axs[0].get_ylim()
-        axs[0].plot([self.second_neighbor_thresh, self.second_neighbor_thresh], ylim,
-                'g--', label='Threshold')
-        axs[0].set_title('%s GMM PDF of Non-mutual hits' % self.image_data.bname)
-        axs[0].legend()
-        axs[0].set_ylim(ylim)
-
-        axs[1].hist(non_mut_dists, 40, histtype='step', normed=True, label='Data')
-        axs[1].plot(xs, posteriors, label='Posterior')
-        axs[1].plot([self.second_neighbor_thresh, self.second_neighbor_thresh], [0, 1],
-                'g--', label='Threshold')
-        axs[1].set_title('%s GMM Posterior Probabilities' % self.image_data.bname)
-        axs[1].legend()
-        return axs
-
     def plot_hits(self, hits, color, ax, kwargs={}):
         for i, j in hits:
             ax.plot([self.sexcat.point_rcs[i, 1], self.aligned_rcs_in_frame[j, 1]],
@@ -134,26 +107,6 @@ class FastqImageAligner(object):
         legend.get_frame().set_color('white')
         return ax
 
-    def plot_hit_vectors(self, hit_types=['exclusive'], ax=None):
-        if ax is None:
-            fig, ax = plt.subplots(figsize=(15, 15))
-        colors = {'exclusive': 'r',
-                  'good_mutual': 'magenta',
-                  'bad_mutual': 'b',
-                  'non_mutual': 'grey'}
-        for hit_type in hit_types:
-            hits = getattr(self, hit_type + '_hits')
-            pts = np.array([self.sexcat.point_rcs[i] - self.aligned_rcs_in_frame[j] for i, j in hits])
-            ax.plot(pts[:, 1], pts[:, 0], '.', color=colors[hit_type])
-        ax.plot([0], [0], 'k*')
-        ax.set_aspect(1)
-        ylim = ax.get_ylim()
-        ax.set_ylim((ylim[1], ylim[0]))
-        ax.set_title('{0} {1} Hit Diffs'.format(self.image_data.bname, hit_type.capitalize()))
-        ax.set_xlabel('c')
-        ax.set_ylabel('r')
-        return ax
-
     def load_phiX(self):
         tile_data = reads.phix_read_names(self.experiment)
         self.load_reads(tile_data=tile_data)
@@ -170,18 +123,14 @@ class FastqImageAligner(object):
             self.fastq_tiles[tile_key] = FastqTileRCs(tile_key, read_names)
         self.fastq_tiles_list = [tile for tile_key, tile in sorted(self.fastq_tiles.items())]
 
-    def all_reads_fic_from_aligned_fic(self, other_fic, tile_data=None):
-        if tile_data is None:
-            self.load_all_reads(tile_keys=[tile.key for tile in other_fic.hitting_tiles])
-        else:
-            self.load_reads(tile_data)
+    def all_reads_fic_from_aligned_fic(self, other_fic, all_reads):
+        self.load_reads(all_reads)
         self.image_data = deepcopy(other_fic.image_data)
         self.fq_w = other_fic.fq_w
         self.set_fastq_tile_mappings()
         self.set_all_fastq_image_data()
         self.hitting_tiles = [self.fastq_tiles[tile.key] for tile in other_fic.hitting_tiles]
         self.sexcat = other_fic.sexcat
-
         for other_tile in other_fic.hitting_tiles:
             tile = self.fastq_tiles[other_tile.key]
             tile.set_aligned_rcs_given_transform(other_tile.scale,
@@ -560,11 +509,14 @@ class FastqImageAligner(object):
             out.write('\n'.join(stats))
 
     def write_read_names_rcs(self, out_fpath):
-        print("write read names %s" % out_fpath)
+        start = time.time()
         im_shape = self.image_data.im.shape
         with open(out_fpath, 'w') as out:
+            print("write preamble", time.time() - start)
+            start = time.time()
             for tile in self.hitting_tiles:
                 for read_name, pt in izip(tile.read_names, tile.aligned_rcs):
                     if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
                         out.write('%s\t%f\t%f\n' % (read_name, pt[0], pt[1]))
-
+                print("one tile", time.time() - start)
+            print("all tiles", time.time() - start)
