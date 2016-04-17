@@ -31,4 +31,5 @@ def get_read_names(fpath):
             lane, tile = line.strip().rsplit(':', 4)[1:3]
             key = 'lane{0}tile{1}'.format(lane, tile)
             tiles[key].add(line.strip())
-        return {key: list(values) for key, values in tiles.items()}
+    del f
+    return {key: list(values) for key, values in tiles.items()}

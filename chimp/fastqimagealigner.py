@@ -6,9 +6,7 @@ import logging
 from misc import AlignmentStats
 import numpy as np
 import reads
-import scipy.optimize
 from scipy.spatial import KDTree
-from sklearn.mixture import GMM
 import time
 import sextraction
 import matplotlib.pyplot as plt
@@ -25,8 +23,17 @@ class FastqImageAligner(object):
         self.fastq_tiles = {}
         self.fastq_tiles_list = []
         self.fastq_tiles_keys = []
-        self.image_data = ImageData()
+        self.image_data = None
         self.fq_w = 927  # um
+        self.control_corr = 0
+        # self.rcs_in_frame = []
+        # self.aligned_rcs_in_frame = None
+        self.non_mutual_hits = set()
+        self.mutual_hits = set()
+        self.bad_mutual_hits = set()
+        self.good_mutual_hits = set()
+        self.exclusive_hits = set()
+        self.hitting_tiles = []
 
     def plot_hit_hists(self, ax=None):
         if ax is None:
@@ -46,7 +53,7 @@ class FastqImageAligner(object):
             ax.hist(self.hit_dists(self.exclusive_hits), bins, label='Exclusive hits',
                     normed=True, histtype='step')
         ax.legend()
-        ax.set_title('%s Nearest Neighbor Distance Distributions' % self.image_data.bname)
+        ax.set_title('%s Nearest Neighbor Distance Distributions' % self.image_data.fname)
         return ax
 
     def plot_hits(self, hits, color, ax, kwargs={}):
@@ -78,7 +85,7 @@ class FastqImageAligner(object):
         self.plot_hits(self.good_mutual_hits, 'magenta', ax, line_kwargs)
         self.plot_hits(self.exclusive_hits, 'r', ax, line_kwargs)
         ax.set_title('All Hits: %s vs. %s %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s, SNR: %s'
-                % (self.image_data.bname,
+                % (self.image_data.fname,
                    self.experiment.project_name,
                    ','.join(tile.key for tile in self.hitting_tiles),
                    ','.join('%.2f' % tile.rotation_degrees for tile in self.hitting_tiles),
@@ -107,24 +114,14 @@ class FastqImageAligner(object):
         legend.get_frame().set_color('white')
         return ax
 
-    def load_phiX(self):
-        tile_data = reads.phix_read_names(self.experiment)
-        self.load_reads(tile_data=tile_data)
-
-    def load_all_reads(self, tile_keys=None):
-        tile_data = reads.all_read_names(self.experiment)
-        if tile_keys is None:
-            self.load_reads(tile_data)
-        else:
-            self.load_reads({tile_key: read_names for tile_key, read_names in tile_data.items() if tile_key in tile_keys})
-
-    def load_reads(self, tile_data):
+    def load_reads(self, tile_data, valid_keys=None):
         for tile_key, read_names in tile_data.items():
-            self.fastq_tiles[tile_key] = FastqTileRCs(tile_key, read_names)
+            if valid_keys is None or tile_key in valid_keys:
+                self.fastq_tiles[tile_key] = FastqTileRCs(tile_key, read_names)
         self.fastq_tiles_list = [tile for tile_key, tile in sorted(self.fastq_tiles.items())]
 
     def all_reads_fic_from_aligned_fic(self, other_fic, all_reads):
-        self.load_reads(all_reads)
+        self.load_reads(all_reads, valid_keys=[tile.key for tile in other_fic.hitting_tiles])
         self.image_data = deepcopy(other_fic.image_data)
         self.fq_w = other_fic.fq_w
         self.set_fastq_tile_mappings()
@@ -137,10 +134,6 @@ class FastqImageAligner(object):
                                                  other_tile.rotation,
                                                  other_tile.offset)
 
-    def fic_given_alignment(self, tile_data, tile_key, scale, fq_w, rotation, rc_offset):
-        self.load_reads(tile_data)
-        self.hitting_tiles = []
-        self.set_tile_alignment(tile_key, scale, fq_w, rotation, rc_offset)
 
     def set_tile_alignment(self, tile_key, scale, fq_w, rotation, rc_offset):
         if self.fastq_tiles[tile_key] not in self.hitting_tiles:
@@ -166,11 +159,8 @@ class FastqImageAligner(object):
         with open(fpath) as f:
             self.sexcat = sextraction.Sextraction(f)
 
-    def set_image_data(self, *args, **kwargs):
-        if len(args) == 1 and isinstance(args[0], ImageData):
-            self.image_data = args[0]
-        else:
-            self.image_data = ImageData(*args, **kwargs)
+    def set_image_data(self, fpath, objective, image):
+        self.image_data = ImageData(fpath, objective, image)
 
     def set_all_fastq_image_data(self):
         for key, tile in self.fastq_tiles.items():
@@ -200,65 +190,46 @@ class FastqImageAligner(object):
         self.fq_im_scaled_maxes = self.fq_im_scale * np.array([x_max-x_min, y_max-y_min])
         self.fq_im_scaled_dims = (self.fq_im_scaled_maxes + [1, 1]).astype(np.int)
 
-    def fft_align_tile(self, tile):
-        return tile.fft_align_with_im(self.image_data)
-
     def find_hitting_tiles(self, possible_tile_keys, snr_thresh=1.2):
         possible_tiles = [self.fastq_tiles[key] for key in possible_tile_keys
                           if key in self.fastq_tiles]
         impossible_tiles = [tile for tile in self.fastq_tiles.values() if tile not in possible_tiles]
         impossible_tiles.sort(key=lambda tile: -len(tile.read_names))
         control_tiles = impossible_tiles[:2]
-
-        self.image_data.set_single_fft((0, 0), padding=self.fq_im_scaled_dims)
+        self.image_data.set_fft(self.fq_im_scaled_dims)
         self.control_corr = 0
+        del impossible_tiles
         for control_tile in control_tiles:
-            _, _, corr, _ = self.fft_align_tile(control_tile)
+            corr, _ = control_tile.fft_align_with_im(self.image_data)
             if corr > self.control_corr:
                 self.control_corr = corr
+        del control_tiles
 
         self.hitting_tiles = []
         for tile in possible_tiles:
-            tile_key, _, max_corr, align_tr = self.fft_align_tile(tile)
+            max_corr, align_tr = tile.fft_align_with_im(self.image_data)
             if max_corr > snr_thresh * self.control_corr:
-                tile.set_aligned_rcs()
+                tile.set_aligned_rcs(align_tr)
                 tile.set_snr(max_corr / self.control_corr)
                 self.hitting_tiles.append(tile)
 
     def find_points_in_frame(self, consider_tiles='all'):
-        self.aligned_rcs_in_frame = []
         self.rcs_in_frame = []
+        aligned_rcs_in_frame = []
         im_shape = self.image_data.im.shape
 
         if consider_tiles == 'all':
             considered_tiles = self.hitting_tiles
-        elif consider_tiles == 'best':
-            best_corr = 0
-            for tile in self.hitting_tiles:
-                if tile.best_max_corr > best_corr:
-                    considered_tiles = [tile]
-                    best_corr = tile.best_max_corr
-        elif isinstance(consider_tiles, FastqTileRCs):
-            considered_tiles = [consider_tiles]
-        elif isinstance(consider_tiles, int):
-            considered_tiles = [self.hitting_tiles[consider_tiles]]
-        elif isinstance(consider_tiles, list):
-            if np.all([isinstance(el, FastqTileRCs) for el in consider_tiles]):
-                considered_tiles = consider_tiles
-            elif np.all([isinstance(el, int) for el in consider_tiles]):
-                considered_tiles = [self.hitting_tiles[i] for i in consider_tiles]
-            else:
-                raise ValueError('A consider_tiles list must either be all tiles or all indices')
         else:
-            raise ValueError('Invalid consider_tiles parameter.')
+            considered_tiles = [consider_tiles]
 
         for tile in considered_tiles:
             rcs = tile.rcs.astype(np.int)
             for i, pt in enumerate(tile.aligned_rcs):
                 if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
-                    self.aligned_rcs_in_frame.append(pt)
+                    aligned_rcs_in_frame.append(pt)
                     self.rcs_in_frame.append((tile.key, rcs[i]))
-        self.aligned_rcs_in_frame = np.array(self.aligned_rcs_in_frame)
+        self.aligned_rcs_in_frame = np.array(aligned_rcs_in_frame)
 
     def hit_dists(self, hits):
         return [self.single_hit_dist(hit) for hit in hits]
@@ -271,7 +242,7 @@ class FastqImageAligner(object):
         thresh = np.percentile(dists, pct_thresh * 100)
         return [hit for hit in hits if self.single_hit_dist(hit) <= thresh]
 
-    def find_hits(self, second_neighbor_thresh=None, consider_tiles='all'):
+    def find_hits(self, consider_tiles='all'):
         # --------------------------------------------------------------------------------
         # Find nearest neighbors
         # --------------------------------------------------------------------------------
@@ -312,11 +283,7 @@ class FastqImageAligner(object):
         else:
             good_hit_thresh = np.percentile(self.hit_dists(exclusive_hits), 95)
 
-        if second_neighbor_thresh is not None:
-            assert second_neighbor_thresh > 0
-            self.second_neighbor_thresh = second_neighbor_thresh
-        else:
-            self.second_neighbor_thresh = 2 * good_hit_thresh
+        second_neighbor_thresh = 2 * good_hit_thresh
 
         exclusive_hits = set(hit for hit in exclusive_hits
                              if self.single_hit_dist(hit) <= good_hit_thresh)
@@ -326,7 +293,7 @@ class FastqImageAligner(object):
             if self.hit_dists([(i, j)])[0] > good_hit_thresh:
                 continue
             third_wheels = [tup for tup in non_mutual_hits if i == tup[0] or j == tup[1]]
-            if min(self.hit_dists(third_wheels)) > self.second_neighbor_thresh:
+            if min(self.hit_dists(third_wheels)) > second_neighbor_thresh:
                 good_mutual_hits.add((i, j))
         bad_mutual_hits = mutual_hits - exclusive_hits - good_mutual_hits
 
@@ -345,11 +312,11 @@ class FastqImageAligner(object):
         self.good_mutual_hits = good_mutual_hits
         self.exclusive_hits = exclusive_hits
 
-        log.info('Non-mutual hits: %s' % len(non_mutual_hits))
-        log.info('Mutual hits: %s' % len(mutual_hits))
-        log.info('Bad mutual hits: %s' % len(bad_mutual_hits))
-        log.info('Good mutual hits: %s' % len(good_mutual_hits))
-        log.info('Exclusive hits: %s' % len(exclusive_hits))
+        log.debug('Non-mutual hits: %s' % len(non_mutual_hits))
+        log.debug('Mutual hits: %s' % len(mutual_hits))
+        log.debug('Bad mutual hits: %s' % len(bad_mutual_hits))
+        log.debug('Good mutual hits: %s' % len(good_mutual_hits))
+        log.debug('Exclusive hits: %s' % len(exclusive_hits))
 
     def least_squares_mapping(self, hit_type='exclusive', pct_thresh=0.9, min_hits=50):
         """least_squares_mapping(self, hit_type='exclusive')
@@ -413,7 +380,7 @@ class FastqImageAligner(object):
             offset = np.array([x_offset, y_offset])
             theta = np.arctan2(beta, alpha)
             lbda = alpha / np.cos(theta)
-
+            print("Alignment:", lbda, theta, offset)
             tile.set_aligned_rcs_given_transform(lbda, theta, offset)
             tile.set_correlation(self.image_data.im)
             if hasattr(self, 'control_corr'):
@@ -440,16 +407,6 @@ class FastqImageAligner(object):
         self.find_hits()
         log.debug('Hit finding time: %.3f seconds' % (time.time() - start_time))
         
-    def gmm_thresh(self, dists):
-        self.gmm = GMM(2)
-        self.gmm.fit(dists)
-        lower_idx = self.gmm.means_.argmin()
-        higher_idx = 1 - lower_idx
-        lower_mean = self.gmm.means_[lower_idx]
-        good_posterior_thresh_pct = 0.99
-        f = lambda x: self.gmm.predict_proba([x])[0][higher_idx] - good_posterior_thresh_pct
-        self.second_neighbor_thresh = scipy.optimize.brentq(f, lower_mean, max(dists))
-
     def output_intensity_results(self, out_fpath):
         hit_given_aligned_idx = {}
         for hit_type in ('non_mutual', 'bad_mutual', 'good_mutual', 'exclusive'):
@@ -486,6 +443,7 @@ class FastqImageAligner(object):
             fields = ('read_name', 'image_name', 'hit_type', 'r', 'c', 'flux', 'flux_err')
             out.write('# Fields: ' + '\t'.join(fields) + '\n')
             out.write('\n'.join(sorted(lines, key=lambda s: float(s.split()[3]), reverse=True)))
+        del lines
 
     def write_alignment_stats(self, out_fpath):
         stats = [
@@ -509,14 +467,10 @@ class FastqImageAligner(object):
             out.write('\n'.join(stats))
 
     def write_read_names_rcs(self, out_fpath):
-        start = time.time()
         im_shape = self.image_data.im.shape
         with open(out_fpath, 'w') as out:
-            print("write preamble", time.time() - start)
-            start = time.time()
             for tile in self.hitting_tiles:
                 for read_name, pt in izip(tile.read_names, tile.aligned_rcs):
                     if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
                         out.write('%s\t%f\t%f\n' % (read_name, pt[0], pt[1]))
-                print("one tile", time.time() - start)
-            print("all tiles", time.time() - start)
+        del out

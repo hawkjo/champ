@@ -23,32 +23,6 @@ def plot_hit_hists(fastq_image_aligner, ax=None):
     return ax
 
 
-def plot_threshold_gmm(fastq_image_aligner, axs=None, force=False):
-    if axs is None:
-        fig, axs = plt.subplots(1, 2, figsize=(15, 6))
-    non_mut_dists = fastq_image_aligner.hit_dists(fastq_image_aligner.non_mutual_hits)
-    if not hasattr(fastq_image_aligner, 'gmm') and force:
-        fastq_image_aligner.gmm_thresh(non_mut_dists)
-    xs = np.linspace(0, max(non_mut_dists), 200)
-    posteriors = fastq_image_aligner.gmm.predict_proba(xs)
-    pdf = np.exp(fastq_image_aligner.gmm.score_samples(xs)[0])
-
-    axs[0].hist(non_mut_dists, 40, histtype='step', normed=True, label='Data')
-    axs[0].plot(xs, pdf, label='PDF')
-    ylim = axs[0].get_ylim()
-    axs[0].plot([fastq_image_aligner.second_neighbor_thresh, fastq_image_aligner.second_neighbor_thresh], ylim, 'g--', label='Threshold')
-    axs[0].set_title('%s GMM PDF of Non-mutual hits' % fastq_image_aligner.image_data.bname)
-    axs[0].legend()
-    axs[0].set_ylim(ylim)
-
-    axs[1].hist(non_mut_dists, 40, histtype='step', normed=True, label='Data')
-    axs[1].plot(xs, posteriors, label='Posterior')
-    axs[1].plot([fastq_image_aligner.second_neighbor_thresh, fastq_image_aligner.second_neighbor_thresh], [0, 1], 'g--', label='Threshold')
-    axs[1].set_title('%s GMM Posterior Probabilities' % fastq_image_aligner.image_data.bname)
-    axs[1].legend()
-    return axs
-
-
 def plot_hits(fastq_image_aligner, hits, color, ax, kwargs):
     for i, j in hits:
         ax.plot([fastq_image_aligner.sexcat.point_rcs[i, 1], fastq_image_aligner.aligned_rcs_in_frame[j, 1]],

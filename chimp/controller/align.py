@@ -1,5 +1,5 @@
 from chimp.config import AlignmentParameters, Experiment
-from chimp.process_nd2_im import process_fig, precision_process_fig, write_output
+from chimp.process_nd2_im import process_fig, write_output
 from chimp.grid import GridImages
 from chimp import reads
 import os
@@ -7,6 +7,7 @@ import logging
 from nd2reader import Nd2
 from collections import defaultdict
 from chimp.model import constants
+import time
 
 log = logging.getLogger(__name__)
 
@@ -39,7 +40,6 @@ def main(clargs):
     RIGHT_TILES = tile_keys_given_nums(reversed(range(2111, 2120)))
     experiment = Experiment(clargs.project_name)
     objective = 60
-    print(nd2_filenames)
     for nd2_filename in nd2_filenames:
         nd2 = Nd2(nd2_filename)
         # CHANNEL OFFSET IS SET TO 1 JUST BECAUSE WE ARE GOING TO REMOVE THIS ENTIRELY
@@ -47,7 +47,7 @@ def main(clargs):
         grid = GridImages(nd2, channel_offset=1)
         alignment_parameters = AlignmentParameters(clargs)
         log.info("Finding end tiles")
-        # phix_tile_data = reads.get_read_names(os.path.join(experiment.project_name, alignment_parameters.aligning_read_names_filepath))
+        phix_tile_data = reads.get_read_names(os.path.join(experiment.project_name, alignment_parameters.aligning_read_names_filepath))
         # left_tiles, left_column = find_end_tile(grid.left_iter(), alignment_parameters, nd2_filename,
         #                                         LEFT_TILES, experiment, objective)
         # left_tile = min([int(tile.key[-4:]) for tile in left_tiles])
@@ -55,15 +55,13 @@ def main(clargs):
         #                                           RIGHT_TILES, experiment, objective)
         # right_tile = min([int(tile.key[-4:]) for tile in right_tiles])
         # do full alignment for images
-
         # skip end tile finding for make fast
         left_tile, right_tile = 2104, 2114
         left_column, right_column = 0, 59
-
         tile_map = get_expected_tile_map(left_tile - 2100, right_tile - 2100, left_column, right_column)
         all_tile_data = reads.get_read_names(alignment_parameters.all_read_names_filepath)
-
         for index, row, column in grid.bounded_iter(left_column, right_column):
+            start = time.time()
             log.debug("Aligning image (%d, %d) from %s" % (row, column, nd2_filename))
             image = nd2[index]
             tile_numbers = (2100 + tile for tile in tile_map[column])
@@ -72,14 +70,18 @@ def main(clargs):
             fia = process_fig(alignment_parameters,
                               image,
                               nd2_filename,
-                              all_tile_data,
+                              phix_tile_data,
                               index,
                               objective,
                               possible_tiles,
                               experiment)
             if fia.hitting_tiles:
-                precision_process_fig(fia, alignment_parameters)
+                fia.precision_align_only(hit_type=('exclusive', 'good_mutual'),
+                                         min_hits=alignment_parameters.min_hits)
                 write_output(index, fia, experiment, all_tile_data)
+            print(time.time() - start)
+            del fia
+            del image
 
 
 def find_end_tile(indexes, alignment_parameters, nd2_filename, alignment_tile_data, possible_tiles, experiment, objective):

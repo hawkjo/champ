@@ -2,7 +2,6 @@ import fastqimagealigner
 import logging
 import nd2tools
 import os
-import time
 
 log = logging.getLogger(__name__)
 
@@ -22,25 +21,20 @@ def tile_keys_given_nums(tile_nums):
 
 def process_fig(alignment_parameters, image, nd2_filename, tile_data, im_idx, objective, possible_tile_keys, experiment):
     for directory in (experiment.figure_directory, experiment.results_directory):
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        full_directory = os.path.join(directory, nd2_filename)
+        if not os.path.exists(full_directory):
+            os.makedirs(full_directory)
 
     sexcat_fpath = os.path.join(nd2_filename.replace('.nd2', ''), '%d.cat' % im_idx)
     fic = fastqimagealigner.FastqImageAligner(experiment)
     fic.load_reads(tile_data)
-    fic.set_image_data(im=image, objective=objective,
-                       fpath=str(im_idx), median_normalize=True)
-
+    fic.set_image_data(im_idx, objective, image)
     fic.set_sexcat_from_file(sexcat_fpath)
     fic.rough_align(possible_tile_keys,
                     alignment_parameters.rotation_estimate,
                     alignment_parameters.fq_w_est,
                     snr_thresh=alignment_parameters.snr_threshold)
     return fic
-
-
-def precision_process_fig(fic, alignment_parameters):
-    fic.precision_align_only(hit_type=('exclusive', 'good_mutual'), min_hits=alignment_parameters.min_hits)
 
 
 def write_output(im_idx, fic, experiment, tile_data):
@@ -52,9 +46,13 @@ def write_output(im_idx, fic, experiment, tile_data):
 
     ax = fic.plot_all_hits()
     ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_all_hits.pdf'.format(im_idx)))
+    del ax
+
     ax = fic.plot_hit_hists()
     ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_hit_hists.pdf'.format(im_idx)))
+    del ax
 
     all_fic = fastqimagealigner.FastqImageAligner(experiment)
     all_fic.all_reads_fic_from_aligned_fic(fic, tile_data)
     all_fic.write_read_names_rcs(all_read_rcs_filepath)
+    del all_fic

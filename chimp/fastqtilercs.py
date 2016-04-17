@@ -29,47 +29,31 @@ class FastqTileRCs(object):
 
     def image(self):
         image = np.zeros(self.image_shape)
-        image[self.mapped_rcs.astype(np.int)[:,0], self.mapped_rcs.astype(np.int)[:,1]] = 1
+        image[self.mapped_rcs.astype(np.int)[:, 0], self.mapped_rcs.astype(np.int)[:, 1]] = 1
         return image
 
     def fft_align_with_im(self, image_data):
-        im_data_im_shapes = set(a.shape for a in image_data.all_ffts.values())
-        assert len(im_data_im_shapes) <= 2, im_data_im_shapes
-
         # Make the ffts
         fq_image = self.image()
-        fq_im_fft_given_shape = {}
-        for shape in im_data_im_shapes:
-            padded_fq_im = misc.pad_to_size(fq_image, shape)
-            fq_im_fft_given_shape[shape] = np.fft.fft2(padded_fq_im)
+        padded_fq_im = misc.pad_to_size(fq_image, image_data.fft.shape)
+        fq_im_fft = np.fft.fft2(padded_fq_im)
 
         # Align
-        self.best_max_corr = float('-inf')
-        for im_key, im_data_fft in image_data.all_ffts.items():
-            fq_im_fft = fq_im_fft_given_shape[im_data_fft.shape]
-            cross_corr = abs(np.fft.ifft2(np.conj(fq_im_fft) * im_data_fft))
-            max_corr = cross_corr.max()
-            max_idx = misc.max_2d_idx(cross_corr)
+        im_data_fft = image_data.fft
+        cross_corr = abs(np.fft.ifft2(np.conj(fq_im_fft) * im_data_fft))
+        max_corr = cross_corr.max()
+        max_idx = misc.max_2d_idx(cross_corr)
+        align_tr = np.array(max_idx) - fq_image.shape
+        del im_data_fft
+        del fq_im_fft
+        del fq_image
+        return max_corr, align_tr
 
-            if max_corr > self.best_max_corr:
-                self.best_im_key = im_key
-                self.best_max_corr = max_corr
-                self.align_tr = np.array(max_idx) - fq_image.shape
-        return self.key, self.best_im_key, self.best_max_corr, self.align_tr
-
-    def get_new_aligned_rcs(self, new_fq_w=None, new_degree_rot=0, new_tr=(0, 0)):
+    def set_aligned_rcs(self, align_tr):
         """Returns aligned rcs. Only works when image need not be flipped or rotated."""
-        if new_fq_w is None:
-            new_fq_w = self.w
-        aligned_rcs = deepcopy(self.mapped_rcs)
-        aligned_rcs = np.dot(aligned_rcs, misc.right_rotation_matrix(new_degree_rot, degrees=True))
-        aligned_rcs -= np.tile(aligned_rcs.min(axis=0), (aligned_rcs.shape[0], 1))
-        aligned_rcs *= float(new_fq_w) / self.w
-        aligned_rcs += np.tile(self.align_tr + new_tr, (aligned_rcs.shape[0], 1))
-        return aligned_rcs
-
-    def set_aligned_rcs(self):
-        self.aligned_rcs = self.get_new_aligned_rcs()
+        self.aligned_rcs = deepcopy(self.mapped_rcs)
+        self.aligned_rcs -= np.tile(self.aligned_rcs.min(axis=0), (self.aligned_rcs.shape[0], 1))
+        self.aligned_rcs += np.tile(align_tr, (self.aligned_rcs.shape[0], 1))
 
     def set_aligned_rcs_given_transform(self, lbda, theta, offset):
         """Performs transform calculated in FastqImageCorrelator.least_squares_mapping."""
@@ -91,6 +75,8 @@ class FastqTileRCs(object):
         self.rotation_degrees = theta * 180.0 / np.pi
         self.offset = offset
         self.aligned_rcs = np.dot(A, x).reshape((len(self.rcs), 2))
+        del x
+        del A
 
     def set_correlation(self, im):
         """Sets alignment correlation. Only works when image need not be flipped or rotated."""
