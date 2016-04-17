@@ -41,6 +41,7 @@ def main(clargs):
     experiment = Experiment(clargs.project_name)
     objective = 60
     for nd2_filename in nd2_filenames:
+        base_name = os.path.splitext(nd2_filename)[0]
         nd2 = Nd2(nd2_filename)
         # CHANNEL OFFSET IS SET TO 1 JUST BECAUSE WE ARE GOING TO REMOVE THIS ENTIRELY
         # WHEN WE SWITCH TO MICROMANAGER
@@ -69,7 +70,7 @@ def main(clargs):
             # first get the correlation to random tiles, so we can distinguish signal from noise
             fia = process_fig(alignment_parameters,
                               image,
-                              nd2_filename,
+                              base_name,
                               phix_tile_data,
                               index,
                               objective,
@@ -78,20 +79,20 @@ def main(clargs):
             if fia.hitting_tiles:
                 fia.precision_align_only(hit_type=('exclusive', 'good_mutual'),
                                          min_hits=alignment_parameters.min_hits)
-                write_output(index, fia, experiment, all_tile_data)
+                write_output(index, base_name, fia, experiment, all_tile_data)
             print(time.time() - start)
             del fia
             del image
 
 
-def find_end_tile(indexes, alignment_parameters, nd2_filename, alignment_tile_data, possible_tiles, experiment, objective):
-    nd2 = Nd2(nd2_filename)
+def find_end_tile(indexes, alignment_parameters, base_name, alignment_tile_data, possible_tiles, experiment, objective):
+    nd2 = Nd2(base_name + ".nd2")
     for index, row, column in indexes:
         image = nd2[index]
         # first get the correlation to random tiles, so we can distinguish signal from noise
         fia = process_fig(alignment_parameters,
                           image,
-                          nd2_filename,
+                          base_name,
                           alignment_tile_data,
                           index,
                           objective,

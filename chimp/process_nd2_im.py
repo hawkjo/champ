@@ -19,16 +19,16 @@ def tile_keys_given_nums(tile_nums):
     return ['lane1tile{0}'.format(tile_num) for tile_num in tile_nums]
 
 
-def process_fig(alignment_parameters, image, nd2_filename, tile_data, im_idx, objective, possible_tile_keys, experiment):
+def process_fig(alignment_parameters, image, base_name, tile_data, image_index, objective, possible_tile_keys, experiment):
     for directory in (experiment.figure_directory, experiment.results_directory):
-        full_directory = os.path.join(directory, nd2_filename)
+        full_directory = os.path.join(directory, base_name)
         if not os.path.exists(full_directory):
             os.makedirs(full_directory)
 
-    sexcat_fpath = os.path.join(nd2_filename.replace('.nd2', ''), '%d.cat' % im_idx)
+    sexcat_fpath = os.path.join(base_name, '%d.cat' % image_index)
     fic = fastqimagealigner.FastqImageAligner(experiment)
     fic.load_reads(tile_data)
-    fic.set_image_data(im_idx, objective, image)
+    fic.set_image_data(image_index, objective, image)
     fic.set_sexcat_from_file(sexcat_fpath)
     fic.rough_align(possible_tile_keys,
                     alignment_parameters.rotation_estimate,
@@ -37,22 +37,18 @@ def process_fig(alignment_parameters, image, nd2_filename, tile_data, im_idx, ob
     return fic
 
 
-def write_output(im_idx, fic, experiment, tile_data):
-    intensity_fpath = os.path.join(experiment.results_directory, '{}_intensities.txt'.format(im_idx))
-    stats_fpath = os.path.join(experiment.results_directory, '{}_stats.txt'.format(im_idx))
-    all_read_rcs_filepath = os.path.join(experiment.results_directory, '{}_all_read_rcs.txt'.format(im_idx))
-    fic.output_intensity_results(intensity_fpath)
-    fic.write_alignment_stats(stats_fpath)
+def write_output(image_index, base_name, fastq_image_aligner, experiment, tile_data):
+    intensity_filepath = os.path.join(experiment.results_directory, base_name, '{}_intensities.txt'.format(image_index))
+    stats_filepath = os.path.join(experiment.results_directory, base_name, '{}_stats.txt'.format(image_index))
+    all_read_rcs_filepath = os.path.join(experiment.results_directory, base_name, '{}_all_read_rcs.txt'.format(image_index))
+    fastq_image_aligner.output_intensity_results(intensity_filepath)
+    fastq_image_aligner.write_alignment_stats(stats_filepath)
 
-    ax = fic.plot_all_hits()
-    ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_all_hits.pdf'.format(im_idx)))
-    del ax
+    # ax = fic.plot_all_hits()
+    # ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_all_hits.pdf'.format(im_idx)))
+    # ax = fic.plot_hit_hists()
+    # ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_hit_hists.pdf'.format(im_idx)))
 
-    ax = fic.plot_hit_hists()
-    ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_hit_hists.pdf'.format(im_idx)))
-    del ax
-
-    all_fic = fastqimagealigner.FastqImageAligner(experiment)
-    all_fic.all_reads_fic_from_aligned_fic(fic, tile_data)
-    all_fic.write_read_names_rcs(all_read_rcs_filepath)
-    del all_fic
+    all_fastq_image_aligner = fastqimagealigner.FastqImageAligner(experiment)
+    all_fastq_image_aligner.all_reads_fic_from_aligned_fic(fastq_image_aligner, tile_data)
+    all_fastq_image_aligner.write_read_names_rcs(all_read_rcs_filepath)

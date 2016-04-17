@@ -1,7 +1,5 @@
 from copy import deepcopy
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.spatial import ConvexHull
 import misc
 
 
@@ -16,7 +14,7 @@ class FastqTileRCs(object):
         self.offset = offset
         self.scale = scale
         self.image_shape = scaled_dims
-        self.w = width  # width in um
+        self.width = width  # width in um
         self.mapped_rcs = scale * (self.rcs + np.tile(offset, (self.rcs.shape[0], 1)))
         self.rotation_degrees = 0
 
@@ -44,9 +42,6 @@ class FastqTileRCs(object):
         max_corr = cross_corr.max()
         max_idx = misc.max_2d_idx(cross_corr)
         align_tr = np.array(max_idx) - fq_image.shape
-        del im_data_fft
-        del fq_im_fft
-        del fq_image
         return max_corr, align_tr
 
     def set_aligned_rcs(self, align_tr):
@@ -60,7 +55,7 @@ class FastqTileRCs(object):
         A = np.zeros((2*len(self.rcs), 4))
         for i, pt in enumerate(self.rcs):
             xir, yir = pt
-            A[2*i, :]   = [xir, -yir, 1, 0]
+            A[2*i, :] = [xir, -yir, 1, 0]
             A[2*i+1, :] = [yir,  xir, 0, 1]
 
         x = np.array([lbda * np.cos(theta),
@@ -69,35 +64,17 @@ class FastqTileRCs(object):
                       offset[1]])
 
         # First update w since it depends on previous scale setting
-        self.w = lbda * float(self.w) / self.scale
+        self.width = lbda * float(self.width) / self.scale
         self.scale = lbda
         self.rotation = theta
         self.rotation_degrees = theta * 180.0 / np.pi
         self.offset = offset
         self.aligned_rcs = np.dot(A, x).reshape((len(self.rcs), 2))
-        del x
-        del A
 
     def set_correlation(self, im):
         """Sets alignment correlation. Only works when image need not be flipped or rotated."""
-        self.best_max_corr =  sum(im[pt[0], pt[1]] for pt in self.aligned_rcs
-                                  if 0 <= pt[0] < im.shape[0] and 0 <= pt[1] < im.shape[1])
-
-    def set_snr(self, snr):
-        self.snr = snr
+        self.best_max_corr = sum(im[pt[0], pt[1]] for pt in self.aligned_rcs
+                                 if 0 <= pt[0] < im.shape[0] and 0 <= pt[1] < im.shape[1])
 
     def set_snr_with_control_corr(self, control_corr):
         self.snr = self.best_max_corr / control_corr
-
-    def plot_convex_hull(self, rcs=None, ax=None):
-        if ax is None:
-            fig, ax = plt.subplots()
-        if rcs is None:
-            rcs = self.aligned_rcs
-        hull = ConvexHull(rcs)
-        ax.plot(rcs[hull.vertices, 1], rcs[hull.vertices, 0], label=self.key)
-
-    def plot_aligned_rcs(self, ax=None, **kwargs):
-        if ax is None:
-            fig, ax = plt.subplots()
-        ax.plot(self.aligned_rcs[:, 1], self.aligned_rcs[:, 0], '.', **kwargs)

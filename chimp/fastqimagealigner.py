@@ -5,7 +5,6 @@ from itertools import izip
 import logging
 from misc import AlignmentStats
 import numpy as np
-import reads
 from scipy.spatial import KDTree
 import time
 import sextraction
@@ -70,7 +69,7 @@ class FastqImageAligner(object):
 
         kwargs = {'cmap': plt.get_cmap('Blues')}
         kwargs.update(im_kwargs)
-        ax.matshow(self.image_data.im, **kwargs)
+        ax.matshow(self.image_data.imageage, **kwargs)
 
         kwargs = {'color': 'k', 'alpha': 0.3, 'linestyle': '', 'marker': 'o', 'markersize': 3}
         kwargs.update(fqpt_kwargs)
@@ -89,13 +88,13 @@ class FastqImageAligner(object):
                    self.experiment.project_name,
                    ','.join(tile.key for tile in self.hitting_tiles),
                    ','.join('%.2f' % tile.rotation_degrees for tile in self.hitting_tiles),
-                   ','.join('%.2f' % tile.w for tile in self.hitting_tiles),
+                   ','.join('%.2f' % tile.width for tile in self.hitting_tiles),
                    ','.join('%.5f' % tile.scale for tile in self.hitting_tiles),
                    ','.join('%.1f' % tile.best_max_corr for tile in self.hitting_tiles),
                    ','.join('%.2f' % tile.snr if hasattr(tile, 'snr') else '-' for tile in self.hitting_tiles),
                    ), **title_kwargs)
-        ax.set_xlim([0, self.image_data.im.shape[1]])
-        ax.set_ylim([self.image_data.im.shape[0], 0])
+        ax.set_xlim([0, self.image_data.image.shape[1]])
+        ax.set_ylim([self.image_data.image.shape[0], 0])
 
         grey_line = Line2D([], [], color='grey',
                 label='Non-mutual hits: %d' % (len(self.non_mutual_hits)))
@@ -210,13 +209,13 @@ class FastqImageAligner(object):
             max_corr, align_tr = tile.fft_align_with_im(self.image_data)
             if max_corr > snr_thresh * self.control_corr:
                 tile.set_aligned_rcs(align_tr)
-                tile.set_snr(max_corr / self.control_corr)
+                tile.snr = max_corr / self.control_corr
                 self.hitting_tiles.append(tile)
 
     def find_points_in_frame(self, consider_tiles='all'):
         self.rcs_in_frame = []
         aligned_rcs_in_frame = []
-        im_shape = self.image_data.im.shape
+        im_shape = self.image_data.image.shape
 
         if consider_tiles == 'all':
             considered_tiles = self.hitting_tiles
@@ -279,18 +278,18 @@ class FastqImageAligner(object):
         # two peaks into one. Filter those out with a gaussian-mixture-model-determined threshold.
         if self.image_data.objective == 60:
             # Value decided by observation of our data. May vary with equipment.
-            good_hit_thresh = 5
+            good_hit_threshold = 5
         else:
-            good_hit_thresh = np.percentile(self.hit_dists(exclusive_hits), 95)
+            good_hit_threshold = np.percentile(self.hit_dists(exclusive_hits), 95)
 
-        second_neighbor_thresh = 2 * good_hit_thresh
+        second_neighbor_thresh = 2 * good_hit_threshold
 
         exclusive_hits = set(hit for hit in exclusive_hits
-                             if self.single_hit_dist(hit) <= good_hit_thresh)
+                             if self.single_hit_dist(hit) <= good_hit_threshold)
 
         good_mutual_hits = set()
         for i, j in (mutual_hits - exclusive_hits):
-            if self.hit_dists([(i, j)])[0] > good_hit_thresh:
+            if self.hit_dists([(i, j)])[0] > good_hit_threshold:
                 continue
             third_wheels = [tup for tup in non_mutual_hits if i == tup[0] or j == tup[1]]
             if min(self.hit_dists(third_wheels)) > second_neighbor_thresh:
@@ -382,7 +381,7 @@ class FastqImageAligner(object):
             lbda = alpha / np.cos(theta)
             print("Alignment:", lbda, theta, offset)
             tile.set_aligned_rcs_given_transform(lbda, theta, offset)
-            tile.set_correlation(self.image_data.im)
+            tile.set_correlation(self.image_data.image)
             if hasattr(self, 'control_corr'):
                 tile.set_snr_with_control_corr(self.control_corr)
 
@@ -452,7 +451,7 @@ class FastqImageAligner(object):
             'Project Name:          %s' % self.experiment.project_name,
             'Tile:                  %s' % ','.join(tile.key for tile in self.hitting_tiles),
             'Rotation (deg):        %s' % ','.join('%.4f' % tile.rotation_degrees for tile in self.hitting_tiles),
-            'Tile width (um):       %s' % ','.join('%.4f' % tile.w for tile in self.hitting_tiles),
+            'Tile width (um):       %s' % ','.join('%.4f' % tile.width for tile in self.hitting_tiles),
             'Scaling (px/fqu):      %s' % ','.join('%.7f' % tile.scale for tile in self.hitting_tiles),
             'RC Offset (px):        %s' % ','.join('(%.4f,%.4f)' % tuple(tile.offset) for tile in self.hitting_tiles),
             'Correlation:           %s' % ','.join('%.2f' % tile.best_max_corr for tile in self.hitting_tiles),
@@ -465,9 +464,10 @@ class FastqImageAligner(object):
             ]
         with open(out_fpath, 'w') as out:
             out.write('\n'.join(stats))
+        del out
 
     def write_read_names_rcs(self, out_fpath):
-        im_shape = self.image_data.im.shape
+        im_shape = self.image_data.image.shape
         with open(out_fpath, 'w') as out:
             for tile in self.hitting_tiles:
                 for read_name, pt in izip(tile.read_names, tile.aligned_rcs):
