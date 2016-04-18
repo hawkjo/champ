@@ -10,6 +10,7 @@ import time
 import sextraction
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.patches import Ellipse
 
 
 log = logging.getLogger(__name__)
@@ -62,6 +63,14 @@ class FastqImageAligner(object):
                     color=color, **kwargs)
         return ax
 
+    def plot_ellipses(self, ax, alpha=1.0, color=(1, 0, 0)):
+        ells = [Ellipse(xy=(pt.c, pt.r), width=pt.width, height=pt.height, angle=pt.theta)
+                for pt in self.sexcat.points]
+        for e in ells:
+            ax.add_artist(e)
+            e.set_alpha(alpha)
+            e.set_facecolor(color)
+
     def plot_all_hits(self, ax=None, im_kwargs={}, line_kwargs={}, fqpt_kwargs={}, sext_kwargs={},
                      title_kwargs={}, legend_kwargs={}):
         if ax is None:
@@ -77,7 +86,7 @@ class FastqImageAligner(object):
 
         kwargs = {'alpha': 0.6, 'color': 'darkgoldenrod'}
         kwargs.update(sext_kwargs)
-        self.sexcat.plot_ellipses(ax=ax, **kwargs)
+        self.plot_ellipses(ax, **kwargs)
 
         self.plot_hits(self.non_mutual_hits, 'grey', ax, line_kwargs)
         self.plot_hits(self.bad_mutual_hits, 'b', ax, line_kwargs)
@@ -132,7 +141,6 @@ class FastqImageAligner(object):
             tile.set_aligned_rcs_given_transform(other_tile.scale,
                                                  other_tile.rotation,
                                                  other_tile.offset)
-
 
     def set_tile_alignment(self, tile_key, scale, fq_w, rotation, rc_offset):
         if self.fastq_tiles[tile_key] not in self.hitting_tiles:

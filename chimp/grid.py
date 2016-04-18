@@ -37,16 +37,16 @@ class GridImages(object):
             for row in reversed(range(self._height)):
                 yield self.get(row, column), row, column
 
+    def get(self, row, column):
+        indexes = self._get_indexes(row, column)
+        return indexes[self._channel_offset]
+
     def _determine_channel_offset(self, channel_name):
         maximum_reasonable_number_of_channels = 10
         for n, image in zip(range(maximum_reasonable_number_of_channels), self._nd2):
             if image.channel == channel_name:
                 return n
         raise ValueError('The channel you set to be used for alignment was not found in the given ND2.')
-
-    def get(self, row, column):
-        indexes = self._get_indexes(row, column)
-        return indexes[self._channel_offset]
 
     def _get_indexes(self, row, column):
         first = self._get_first_offset_number(row, column)

@@ -6,7 +6,7 @@ import re
 
 
 def next_power_of_2(x):
-    return 1<<(int(np.ceil(x))-1).bit_length()
+    return 1 << (int(np.ceil(x))-1).bit_length()
 
 
 def max_2d_idx(a):
@@ -21,7 +21,7 @@ def pad_to_size(M, size):
 
 def right_rotation_matrix(angle, degrees=True):
     if degrees:
-        angle *= np.pi/180.0
+        angle *= np.pi / 180.0
     sina = np.sin(angle)
     cosa = np.cos(angle)
     return np.array([[cosa, sina],

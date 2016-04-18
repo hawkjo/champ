@@ -10,7 +10,7 @@ with open('requirements.txt') as f:
 if __name__ == '__main__':
     setup(
         name='chimp',
-        packages=['chimp', 'chimp.controller', 'chimp.model', 'chimp'],
+        packages=['chimp', 'chimp.controller', 'chimp.model'],
         install_requires=requirements,
         version=VERSION,
         entry_points={
@@ -18,7 +18,7 @@ if __name__ == '__main__':
               'chimp = chimp.main:main'
           ]
         },
-        description='',
+        description='Processes CHIMP image data',
         url='http://www.finkelsteinlab.org',
         keywords=['DNA', 'protein', 'illumina', 'bioinformatics', 'crispr'],
         classifiers=['Development Status :: 3 - Alpha',

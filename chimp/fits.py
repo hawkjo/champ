@@ -57,7 +57,7 @@ THETA_IMAGE
             f.write(convolution_text)
 
 
-def base_files(nd2_filename):
+def get_base_file_names(nd2_filename):
     return ["%s" % os.path.join(nd2_filename, os.path.splitext(filename)[0])
             for filename in os.listdir(nd2_filename) if filename.endswith(".xyz")]
 
@@ -109,6 +109,7 @@ def main():
         start = time.time()
         # Set up a worker for each ND2 file like before
         worker_pool = Pool(thread_count)
-        bfiles = [base_file for nd2_filename in image_files.directories for base_file in base_files(nd2_filename)]
-        worker_pool.map_async(source_extract, bfiles).get(timeout=sys.maxint)
+        base_files = [base_file for nd2_filename in image_files.directories
+                      for base_file in get_base_file_names(nd2_filename)]
+        worker_pool.map_async(source_extract, base_files).get(timeout=sys.maxint)
         log.info("Done with Source Extractor! Took %s seconds" % round(time.time() - start, 0))

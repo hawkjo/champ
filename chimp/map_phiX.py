@@ -5,7 +5,6 @@ import pysam
 from subprocess import check_call
 
 
-
 def get_relevant_dirs(projectname):
     project_dir = os.path.join(local_config.data_dir,
                                'from_fourierseq',
@@ -141,5 +140,4 @@ def map_project(projectname):
 if __name__ == '__main__':
     if len(sys.argv) != 2:
         sys.exit('Usage: %s <ProjectName>' % sys.argv[0])
-
     map_project(sys.argv[1])
