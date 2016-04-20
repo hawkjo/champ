@@ -41,14 +41,9 @@ def write_output(image_index, base_name, fastq_image_aligner, experiment, tile_d
     intensity_filepath = os.path.join(experiment.results_directory, base_name, '{}_intensities.txt'.format(image_index))
     stats_filepath = os.path.join(experiment.results_directory, base_name, '{}_stats.txt'.format(image_index))
     all_read_rcs_filepath = os.path.join(experiment.results_directory, base_name, '{}_all_read_rcs.txt'.format(image_index))
+
     fastq_image_aligner.output_intensity_results(intensity_filepath)
     fastq_image_aligner.write_alignment_stats(stats_filepath)
-
-    # ax = fic.plot_all_hits()
-    # ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_all_hits.pdf'.format(im_idx)))
-    # ax = fic.plot_hit_hists()
-    # ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_hit_hists.pdf'.format(im_idx)))
-
     all_fastq_image_aligner = fastqimagealigner.FastqImageAligner(experiment)
     all_fastq_image_aligner.all_reads_fic_from_aligned_fic(fastq_image_aligner, tile_data)
     all_fastq_image_aligner.write_read_names_rcs(all_read_rcs_filepath)
