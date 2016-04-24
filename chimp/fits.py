@@ -4,7 +4,6 @@ import functools
 import logging
 import multiprocessing
 from multiprocessing import Pool
-from nd2reader import Nd2
 import os
 import subprocess
 import sys
@@ -70,10 +69,10 @@ def source_extract(base_file):
         subprocess.call(command, stdout=devnull, stderr=devnull)
 
 
-def create_fits_files(nd2_filename):
-    log.info("Creating fits files for %s..." % nd2_filename)
-    nd2 = Nd2(nd2_filename + ".nd2")
-    for n, image in enumerate(nd2):
+def create_fits_files(h5_filename):
+    log.info("Creating fits files for %s..." % h5_filename)
+    h5 = h5py.File(h5_filename + ".h5")
+    for n, image in enumerate(h5):
         xyz_file = XYZFile(image)
         xyz_path = "%s.xyz" % os.path.join(nd2_filename, str(n))
         with open(xyz_path, "w+") as f:

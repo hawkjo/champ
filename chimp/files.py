@@ -20,15 +20,15 @@ class ImageFiles(object):
 
 
 def load_image_files():
-    filenames = [f for f in os.listdir(os.getcwd()) if f.endswith('.nd2')]
+    filenames = [f for f in os.listdir(os.getcwd()) if f.endswith('.h5')]
     return ImageFiles(filenames)
 
 
-def ensure_image_data_directory_exists(nd2_filename):
+def ensure_image_data_directory_exists(h5_filename):
     """
-    Creates a directory based on the ND2 filenames in order to store data derived from them.
+    Creates a directory based on the HDF5 filenames in order to store data derived from them.
 
     """
-    new_directory = os.path.join(nd2_filename)
+    new_directory = os.path.join(h5_filename)
     if not os.path.isdir(new_directory):
         os.mkdir(new_directory)

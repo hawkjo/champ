@@ -1,27 +1,4 @@
-import os
 from collections import defaultdict
-
-
-def phix_read_names(experiment):
-    fpath = os.path.join(
-            experiment.data_directory,
-            'from_fourierseq',
-            experiment.project_name,
-            'phiX_mappings',
-            'phiX_read_names.txt')
-    return get_read_names(fpath)
-
-
-def all_read_names(experiment):
-    fpath = os.path.join(
-            experiment.data_directory,
-            'from_fourierseq',
-            experiment.project_name,
-            'all_fastqs',
-            'all_read_names.txt')
-    if not os.path.isdir(fpath):
-        fpath = fpath.replace('all_fastqs', 'read_names')
-    return get_read_names(fpath)
 
 
 def get_read_names(fpath):
