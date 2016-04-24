@@ -1,6 +1,7 @@
 *.swp
 *.pyc
 *.ipynb
+*.ipynb_checkpoints
 kmerHMM
 env/
 

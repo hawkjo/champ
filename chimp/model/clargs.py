@@ -43,5 +43,9 @@ class CommandLineArguments(object):
                 return possible_command
 
     @property
+    def snr_threshold(self):
+        return float(self._arguments['--snr-threshold'])
+
+    @property
     def min_hits(self):
         return int(self._arguments['--min-hits'])
