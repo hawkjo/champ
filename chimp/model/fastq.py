@@ -1,3 +1,42 @@
+class FastqAlignmentRead(object):
+    """ Wraps the raw data about a single DNA read that we receive from Illumina.
+        Discards the sequence and quality data to conserve memory. """
+    __slots__ = ('name', '_lane', '_side', '_tile')
+
+    def __init__(self, record):
+        self.name = record.name
+        self._lane = None
+        self._side = None
+        self._tile = None
+
+    @property
+    def region(self):
+        return self.lane, self.side, self.tile
+
+    @property
+    def lane(self):
+        return int(self._lookup_name_data(4))
+
+    @property
+    def tile(self):
+        return int(self._lookup_name_data(3)[-2:])
+
+    @property
+    def side(self):
+        return int(self._lookup_name_data(3)[0])
+
+    @property
+    def row(self):
+        return int(self._lookup_name_data(1))
+
+    @property
+    def column(self):
+        return int(self._lookup_name_data(2))
+
+    def _lookup_name_data(self, index):
+        return self.name.rsplit(':')[-index]
+
+
 class FastqFiles(object):
     """ Sorts compressed FastQ files provided to us from the Illumina sequencer. """
     def __init__(self, filenames):

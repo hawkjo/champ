@@ -19,16 +19,16 @@ def tile_keys_given_nums(tile_nums):
     return ['lane1tile{0}'.format(tile_num) for tile_num in tile_nums]
 
 
-def process_fig(alignment_parameters, image, base_name, tile_data, image_index, objective, possible_tile_keys, experiment):
+def process_fig(alignment_parameters, base_name, tile_data, objective, experiment, image, possible_tile_keys):
     for directory in (experiment.figure_directory, experiment.results_directory):
         full_directory = os.path.join(directory, base_name)
         if not os.path.exists(full_directory):
             os.makedirs(full_directory)
 
-    sexcat_fpath = os.path.join(base_name, '%d.cat' % image_index)
+    sexcat_fpath = os.path.join(base_name, '%d.cat' % image.index)
     fic = fastqimagealigner.FastqImageAligner(experiment)
     fic.load_reads(tile_data)
-    fic.set_image_data(image_index, objective, image)
+    fic.set_image_data(image, objective)
     fic.set_sexcat_from_file(sexcat_fpath)
     fic.rough_align(possible_tile_keys,
                     alignment_parameters.rotation_estimate,
