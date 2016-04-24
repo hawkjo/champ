@@ -3,16 +3,18 @@ Chip-Hybridized Interaction Mapping Platform
 
 Usage:
   chimp map FASTQ_DIRECTORY PATHS_TO_BAMFILES ... [-v | -vv | -vvv]
-  chimp align PROJECT_NAME (--alignment_channel <alignment_channel> | --alignment_index <alignment_index>) [--min_hits] [--rotation_estimate] [--snr_threshold] [--tile_width_estimate] [-v | -vv | -vvv]
-  chimp preprocess [-v | -vv | -vvv ]
+  chimp preprocess ALIGNMENT_CHANNEL [-v | -vv | -vvv ]
+  chimp align PROJECT_NAME ALIGNMENT_CHANNEL [--min-hits] [--snr-threshold] [-v | -vv | -vvv]
+
 
 Options:
   -h --help     Show this screen.
   --version     Show version.
 
 Commands:
-  map       maps all the reads in the fastq files, typically for separating phiX
-  align     maps reads from the high-throughput sequencer to fluorescent points in microscope image data
+  map           maps all the reads in the fastq files, typically for separating phiX
+  preprocess    defines where points are in the microscope image data
+  align         maps reads from the high-throughput sequencer to fluorescent points in microscope image data
 
 """
 from chimp.controller import align, preprocess

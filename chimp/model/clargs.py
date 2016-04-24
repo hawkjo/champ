@@ -32,6 +32,10 @@ class CommandLineArguments(object):
         return self._arguments['PATHS_TO_BAMFILES']
 
     @property
+    def alignment_channel(self):
+        return self._arguments['--alignment-channel']
+
+    @property
     def command(self):
         for possible_command in ('align',
                                  'preprocess'):
@@ -40,4 +44,4 @@ class CommandLineArguments(object):
 
     @property
     def min_hits(self):
-        return int(self._arguments['--min_hits'])
+        return int(self._arguments['--min-hits'])
