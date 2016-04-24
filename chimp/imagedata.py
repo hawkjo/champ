@@ -4,15 +4,13 @@ from chimp import misc
 
 class ImageData(object):
     """A class for image data to be correlated with fastq coordinate data."""
-    def __init__(self, filename, objective, image):
+    def __init__(self, filename, um_per_pixel, image):
         assert isinstance(image, np.ndarray), 'Image not numpy ndarray'
-        assert objective in [20, 40, 60], 'Accepted objectives are 20, 40, and 60'
         self.fname = str(filename)
         self.fft = None
         self.image = image
         self.median_normalize()
-        self.objective = objective
-        self.um_per_pixel = 16.0 / self.objective
+        self.um_per_pixel = um_per_pixel
         self.um_dims = self.um_per_pixel * np.array(self.image.shape)
 
     def median_normalize(self):

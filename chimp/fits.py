@@ -56,9 +56,9 @@ THETA_IMAGE
             f.write(convolution_text)
 
 
-def get_base_file_names(nd2_filename):
-    return ["%s" % os.path.join(nd2_filename, os.path.splitext(filename)[0])
-            for filename in os.listdir(nd2_filename) if filename.endswith(".xyz")]
+def get_base_file_names(h5_filename):
+    return ["%s" % os.path.join(h5_filename, os.path.splitext(filename)[0])
+            for filename in os.listdir(h5_filename) if filename.endswith(".xyz")]
 
 
 def source_extract(base_file):
@@ -74,12 +74,12 @@ def create_fits_files(h5_filename):
     h5 = h5py.File(h5_filename + ".h5")
     for n, image in enumerate(h5):
         xyz_file = XYZFile(image)
-        xyz_path = "%s.xyz" % os.path.join(nd2_filename, str(n))
+        xyz_path = "%s.xyz" % os.path.join(h5_filename, str(n))
         with open(xyz_path, "w+") as f:
             f.write(str(xyz_file))
-        fits_path = '%s.fits' % os.path.join(nd2_filename, str(n))
+        fits_path = '%s.fits' % os.path.join(h5_filename, str(n))
         subprocess.call(['fitsify', xyz_path, fits_path, '1', '2', '3'])
-    log.info("Done creating fits files for %s" % nd2_filename)
+    log.info("Done creating fits files for %s" % h5_filename)
 
 
 def main():
@@ -89,7 +89,7 @@ def main():
     # Try to use one core per file, but top out at the number of cores that the machine has.
     thread_count = min(len(image_files), multiprocessing.cpu_count())
     log.debug("Using %s threads for source extraction" % thread_count)
-    # Assign each ND2 file to a thread, which converts it to a "fits" file
+    # Assign each HDF5 file to a thread, which converts it to a "fits" file
     worker_pool = Pool(processes=thread_count)
 
     log.info("Starting fits file conversions.")
@@ -106,9 +106,9 @@ def main():
     with SEConfig():
         log.info("Starting Source Extractor...")
         start = time.time()
-        # Set up a worker for each ND2 file like before
+        # Set up a worker for each HDF5 file like before
         worker_pool = Pool(thread_count)
-        base_files = [base_file for nd2_filename in image_files.directories
-                      for base_file in get_base_file_names(nd2_filename)]
+        base_files = [base_file for h5_filename in image_files.directories
+                      for base_file in get_base_file_names(h5_filename)]
         worker_pool.map_async(source_extract, base_files).get(timeout=sys.maxint)
         log.info("Done with Source Extractor! Took %s seconds" % round(time.time() - start, 0))

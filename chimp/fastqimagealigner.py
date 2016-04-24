@@ -166,8 +166,8 @@ class FastqImageAligner(object):
         with open(fpath) as f:
             self.sexcat = sextraction.Sextraction(f)
 
-    def set_image_data(self, image, objective):
-        self.image_data = ImageData(image.index, objective, image)
+    def set_image_data(self, image, um_per_pixel):
+        self.image_data = ImageData(image.index, um_per_pixel, image)
 
     def set_all_fastq_image_data(self):
         for key, tile in self.fastq_tiles.items():

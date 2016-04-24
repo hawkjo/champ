@@ -12,7 +12,7 @@ import h5py
 log = logging.getLogger(__name__)
 
 
-def run(alignment_parameters, alignment_tile_data, all_tile_data, experiment, objective, h5_filename):
+def run(alignment_parameters, alignment_tile_data, all_tile_data, experiment, um_per_pixel, h5_filename):
     # Align image data to FastQ reads and write the aligned FastQ reads to disk
     print("align_image_data!!! %s" % h5_filename)
     base_name = os.path.splitext(h5_filename)[0]
@@ -21,7 +21,7 @@ def run(alignment_parameters, alignment_tile_data, all_tile_data, experiment, ob
 
     # We need to call process_fig() several times with almost the same parameters
     figure_processor = functools.partial(process_fig, alignment_parameters, base_name,
-                                         alignment_tile_data, objective, experiment)
+                                         alignment_tile_data, um_per_pixel, experiment)
 
     # Find the outermost columns of image data where we overlap with FastQ tile reads
     # We do this so we can skip any images that are definitely not going to be useful to us

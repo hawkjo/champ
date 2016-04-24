@@ -5,7 +5,7 @@ import os
 log = logging.getLogger(__name__)
 
 
-def process_fig(alignment_parameters, base_name, tile_data, objective, experiment, image, possible_tile_keys):
+def process_fig(alignment_parameters, base_name, tile_data, um_per_pixel, experiment, image, possible_tile_keys):
     for directory in (experiment.figure_directory, experiment.results_directory):
         full_directory = os.path.join(directory, base_name)
         if not os.path.exists(full_directory):
@@ -14,7 +14,7 @@ def process_fig(alignment_parameters, base_name, tile_data, objective, experimen
     sexcat_fpath = os.path.join(base_name, '%d.cat' % image.index)
     fic = fastqimagealigner.FastqImageAligner(experiment)
     fic.load_reads(tile_data)
-    fic.set_image_data(image, objective)
+    fic.set_image_data(image, um_per_pixel)
     fic.set_sexcat_from_file(sexcat_fpath)
     fic.rough_align(possible_tile_keys,
                     alignment_parameters.rotation_estimate,

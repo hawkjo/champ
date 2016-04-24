@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 def main(clargs):
     h5_filenames = list(filter(lambda x: x.endswith('.h5'), os.listdir(os.getcwd())))
     experiment = Experiment(clargs.project_name)
-    objective = 60
+    um_per_pixel = 0.27
     alignment_parameters = AlignmentParameters(clargs)
     all_tile_data = reads.get_read_names(alignment_parameters.all_read_names_filepath)
     phix_tile_data = reads.get_read_names(os.path.join(experiment.project_name,
@@ -22,7 +22,7 @@ def main(clargs):
     # Jim's laptop only
     for h5_filename in h5_filenames:
         align.run(alignment_parameters, phix_tile_data,
-                  all_tile_data, experiment, objective, h5_filename)
+                  all_tile_data, experiment, um_per_pixel, h5_filename)
 
     # Actual code we should use
     # processes = min(len(h5_filenames), multiprocessing.cpu_count())
