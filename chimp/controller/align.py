@@ -19,6 +19,7 @@ def main(clargs):
     phix_tile_data = reads.get_read_names(os.path.join(experiment.project_name,
                                                        alignment_parameters.aligning_read_names_filepath))
     processes = min(len(nd2_filenames), multiprocessing.cpu_count())
+    processes = 1
     log.debug("Using %d processes for alignment" % processes)
     pool = multiprocessing.Pool(processes=processes)
     alignment_function = functools.partial(align.run,
@@ -27,4 +28,7 @@ def main(clargs):
                                            all_tile_data,
                                            experiment,
                                            objective)
-    pool.map_async(alignment_function, nd2_filenames).get(sys.maxint)
+    # pool.map_async(alignment_function, nd2_filenames).get(sys.maxint)
+    for nd2_filename in nd2_filenames:
+        align.run(alignment_parameters, phix_tile_data,
+                  all_tile_data, experiment, objective, nd2_filename)
