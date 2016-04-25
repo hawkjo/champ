@@ -3,7 +3,7 @@ Chip-Hybridized Interaction Mapping Platform
 
 Usage:
   chimp map FASTQ_DIRECTORY PATHS_TO_BAMFILES ... [-v | -vv | -vvv]
-  chimp preprocess ALIGNMENT_CHANNEL [-v | -vv | -vvv ]
+  chimp preprocess [-v | -vv | -vvv ]
   chimp align PROJECT_NAME ALIGNMENT_CHANNEL [--min-hits] [--snr-threshold] [-v | -vv | -vvv]
 
 
