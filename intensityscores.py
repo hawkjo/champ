@@ -108,14 +108,20 @@ class IntensityScores(object):
     def build_score_given_read_name_given_channel(self):
         self.score_given_read_name_in_channel = {nd2: {} for nd2 in self.nd2s}
         for nd2 in self.nd2s:
+            print nd2._filename
             channel_idxs = set([im_idx % 4 for im_idx in self.scores[nd2].keys()])
             self.score_given_read_name_in_channel[nd2] = {
                 channel_idx: {} for channel_idx in channel_idxs
             }
+            i = 0
             for im_idx, score_given_read_name in self.scores[nd2].items():
                 channel_idx = im_idx % len(nd2.channels)
                 for read_name, score in score_given_read_name.items():
+                    if i % 100000 == 0:
+                        misctools.dot()
                     self.score_given_read_name_in_channel[nd2][channel_idx][read_name] = score
+                    i += 1
+            print
 
     def get_scores_given_read_name_in_channel(self, nd2, channel_idx):
         score_given_read_name_in_channel = {}
