@@ -66,7 +66,7 @@ class GridImages(object):
         """
         for column in range(min_column, max_column):
             for row in range(self._height):
-                image = self.get(row, column), row, column
+                image = self.get(row, column)
                 if image is not None:
                     yield image
 
@@ -76,7 +76,7 @@ class GridImages(object):
     def right_iter(self):
         for column in reversed(range(self._width)):
             for row in reversed(range(self._height)):
-                image = self.get(row, column), row, column
+                image = self.get(row, column)
                 if image is not None:
                     yield image
 

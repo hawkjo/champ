@@ -71,7 +71,7 @@ def source_extract(base_file):
 
 
 def create_fits_files(h5_base_name):
-    log.info("Creating fits files for %s..." % h5_base_name)
+    log.info("Creating fits files for %s" % h5_base_name)
     h5 = h5py.File(h5_base_name + ".h5")
     for channel in h5.keys():
         channel = str(channel).strip().replace(" ", "_")
@@ -79,10 +79,10 @@ def create_fits_files(h5_base_name):
         for n, image in enumerate(grid):
             xyz_file = XYZFile(image)
             # TODO: The exact format of the filename will change, John has something figured out
-            xyz_path = "%s.xyz" % os.path.join(h5_base_name, channel, str(n))
+            xyz_path = "%s.xyz" % os.path.join(h5_base_name, "_".join([channel, str(n)]))
             with open(xyz_path, "w+") as f:
                 f.write(str(xyz_file))
-            fits_path = '%s.fits' % os.path.join(h5_base_name, str(n))
+            fits_path = '%s.fits' % os.path.join(h5_base_name, "_".join([channel, str(n)]))
             subprocess.call(['fitsify', xyz_path, fits_path, '1', '2', '3'])
     log.info("Done creating fits files for %s" % h5_base_name)
 
