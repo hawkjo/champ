@@ -42,6 +42,10 @@ class GridImages(object):
         self._channel = channel
         self._parse_grid()
 
+    def __iter__(self):
+        for image in self.bounded_iter(0, self._width):
+            yield image
+
     def _parse_grid(self):
         regex = re.compile('''^\(Major, minor\) = \((?P<column>\d+), (?P<row>\d+)\)$''')
         max_row = 0
@@ -63,7 +67,8 @@ class GridImages(object):
         for column in range(min_column, max_column):
             for row in range(self._height):
                 image = self.get(row, column), row, column
-                yield image if image else None
+                if image is not None:
+                    yield image
 
     def left_iter(self):
         return self.bounded_iter(0, self._width)
@@ -72,7 +77,8 @@ class GridImages(object):
         for column in reversed(range(self._width)):
             for row in reversed(range(self._height)):
                 image = self.get(row, column), row, column
-                yield image if image else None
+                if image is not None:
+                    yield image
 
     def get(self, row, column):
         try:

@@ -9,7 +9,7 @@ import os
 import subprocess
 import sys
 import time
-
+import h5py
 
 log = logging.getLogger(__name__)
 
@@ -70,21 +70,24 @@ def source_extract(base_file):
         subprocess.call(command, stdout=devnull, stderr=devnull)
 
 
-def create_fits_files(h5_filename, alignment_channel):
-    log.info("Creating fits files for %s..." % h5_filename)
-    h5 = h5py.File(h5_filename + ".h5")
-    grid = GridImages(h5, alignment_channel)
-    for n, image in enumerate(h5):
-        xyz_file = XYZFile(image)
-        xyz_path = "%s.xyz" % os.path.join(h5_filename, str(n))
-        with open(xyz_path, "w+") as f:
-            f.write(str(xyz_file))
-        fits_path = '%s.fits' % os.path.join(h5_filename, str(n))
-        subprocess.call(['fitsify', xyz_path, fits_path, '1', '2', '3'])
-    log.info("Done creating fits files for %s" % h5_filename)
+def create_fits_files(h5_base_name):
+    log.info("Creating fits files for %s..." % h5_base_name)
+    h5 = h5py.File(h5_base_name + ".h5")
+    for channel in h5.keys():
+        channel = str(channel).strip().replace(" ", "_")
+        grid = GridImages(h5, channel)
+        for n, image in enumerate(grid):
+            xyz_file = XYZFile(image)
+            # TODO: The exact format of the filename will change, John has something figured out
+            xyz_path = "%s.xyz" % os.path.join(h5_base_name, channel, str(n))
+            with open(xyz_path, "w+") as f:
+                f.write(str(xyz_file))
+            fits_path = '%s.fits' % os.path.join(h5_base_name, str(n))
+            subprocess.call(['fitsify', xyz_path, fits_path, '1', '2', '3'])
+    log.info("Done creating fits files for %s" % h5_base_name)
 
 
-def main(alignment_channel):
+def main():
     image_files = files.load_image_files()
     for directory in image_files.directories:
         files.ensure_image_data_directory_exists(directory)
@@ -101,7 +104,7 @@ def main(alignment_channel):
     # KeyboardInterrupt won't behave as expected while multiprocessing unless you specify a timeout.
     # We don't want one really, so we just use the largest possible integer instead
     start = time.time()
-    worker_pool.map_async(fits_func, image_files.directories, alignment_channel).get(timeout=sys.maxint)
+    worker_pool.map_async(fits_func, image_files.directories).get(timeout=sys.maxint)
     log.info("Done with fits file conversions. Elapsed time: %s seconds" % round(time.time() - start, 0))
 
     # Now run source extractor to find the coordinates of points

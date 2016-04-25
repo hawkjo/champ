@@ -8,9 +8,6 @@ import numpy as np
 from scipy.spatial import KDTree
 import time
 import sextraction
-import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-from matplotlib.patches import Ellipse
 
 
 log = logging.getLogger(__name__)
@@ -34,93 +31,6 @@ class FastqImageAligner(object):
         self.good_mutual_hits = set()
         self.exclusive_hits = set()
         self.hitting_tiles = []
-
-    def plot_hit_hists(self, ax=None):
-        if ax is None:
-            fig, ax = plt.subplots(figsize=(8, 8))
-        non_mut_dists = self.hit_dists(self.non_mutual_hits)
-        bins = np.linspace(0, max(non_mut_dists), 50)
-
-        if non_mut_dists:
-            ax.hist(non_mut_dists, bins, label='Non-mutual hits', normed=True, histtype='step')
-        if self.bad_mutual_hits:
-            ax.hist(self.hit_dists(self.bad_mutual_hits), bins,
-                    label='Bad mutual hits', normed=True, histtype='step')
-        if self.good_mutual_hits:
-            ax.hist(self.hit_dists(self.good_mutual_hits), bins, label='Good mutual hits',
-                    normed=True, histtype='step')
-        if self.exclusive_hits:
-            ax.hist(self.hit_dists(self.exclusive_hits), bins, label='Exclusive hits',
-                    normed=True, histtype='step')
-        ax.legend()
-        ax.set_title('%s Nearest Neighbor Distance Distributions' % self.image_data.fname)
-        return ax
-
-    def plot_hits(self, hits, color, ax, kwargs={}):
-        for i, j in hits:
-            ax.plot([self.sexcat.point_rcs[i, 1], self.aligned_rcs_in_frame[j, 1]],
-                    [self.sexcat.point_rcs[i, 0], self.aligned_rcs_in_frame[j, 0]],
-                    color=color, **kwargs)
-        return ax
-
-    def plot_ellipses(self, ax, alpha=1.0, color=(1, 0, 0)):
-        ells = [Ellipse(xy=(pt.c, pt.r), width=pt.width, height=pt.height, angle=pt.theta)
-                for pt in self.sexcat.points]
-        for e in ells:
-            ax.add_artist(e)
-            e.set_alpha(alpha)
-            e.set_facecolor(color)
-
-    def plot_all_hits(self, ax=None, im_kwargs={}, line_kwargs={}, fqpt_kwargs={}, sext_kwargs={},
-                     title_kwargs={}, legend_kwargs={}):
-        if ax is None:
-            fig, ax = plt.subplots(figsize=(15, 15))
-
-        kwargs = {'cmap': plt.get_cmap('Blues')}
-        kwargs.update(im_kwargs)
-        ax.matshow(self.image_data.imageage, **kwargs)
-
-        kwargs = {'color': 'k', 'alpha': 0.3, 'linestyle': '', 'marker': 'o', 'markersize': 3}
-        kwargs.update(fqpt_kwargs)
-        ax.plot(self.aligned_rcs_in_frame[:, 1], self.aligned_rcs_in_frame[:, 0], **kwargs)
-
-        kwargs = {'alpha': 0.6, 'color': 'darkgoldenrod'}
-        kwargs.update(sext_kwargs)
-        self.plot_ellipses(ax, **kwargs)
-
-        self.plot_hits(self.non_mutual_hits, 'grey', ax, line_kwargs)
-        self.plot_hits(self.bad_mutual_hits, 'b', ax, line_kwargs)
-        self.plot_hits(self.good_mutual_hits, 'magenta', ax, line_kwargs)
-        self.plot_hits(self.exclusive_hits, 'r', ax, line_kwargs)
-        ax.set_title('All Hits: %s vs. %s %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s, SNR: %s'
-                % (self.image_data.fname,
-                   self.experiment.project_name,
-                   ','.join(tile.key for tile in self.hitting_tiles),
-                   ','.join('%.2f' % tile.rotation_degrees for tile in self.hitting_tiles),
-                   ','.join('%.2f' % tile.width for tile in self.hitting_tiles),
-                   ','.join('%.5f' % tile.scale for tile in self.hitting_tiles),
-                   ','.join('%.1f' % tile.best_max_corr for tile in self.hitting_tiles),
-                   ','.join('%.2f' % tile.snr if hasattr(tile, 'snr') else '-' for tile in self.hitting_tiles),
-                   ), **title_kwargs)
-        ax.set_xlim([0, self.image_data.image.shape[1]])
-        ax.set_ylim([self.image_data.image.shape[0], 0])
-
-        grey_line = Line2D([], [], color='grey',
-                label='Non-mutual hits: %d' % (len(self.non_mutual_hits)))
-        blue_line = Line2D([], [], color='blue',
-                label='Bad mutual hits: %d' % (len(self.bad_mutual_hits)))
-        magenta_line = Line2D([], [], color='magenta',
-                label='Good mutual hits: %d' % (len(self.good_mutual_hits)))
-        red_line = Line2D([], [], color='red',
-                label='Exclusive hits: %d' % (len(self.exclusive_hits)))
-        sexcat_line = Line2D([], [], color='darkgoldenrod', alpha=0.6, marker='o', markersize=10,
-                label='Sextractor Ellipses: %d' % (len(self.sexcat.point_rcs)))
-        fastq_line = Line2D([], [], color='k', alpha=0.3, marker='o', markersize=10,
-                label='Fastq Points: %d' % (len(self.aligned_rcs_in_frame)))
-        handles = [grey_line, blue_line, magenta_line, red_line, sexcat_line, fastq_line]
-        legend = ax.legend(handles=handles, **legend_kwargs)
-        legend.get_frame().set_color('white')
-        return ax
 
     def load_reads(self, tile_data, valid_keys=None):
         for tile_key, read_names in tile_data.items():
