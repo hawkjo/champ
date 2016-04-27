@@ -28,6 +28,14 @@ class CommandLineArguments(object):
         return self._arguments['FASTQ_DIRECTORY']
 
     @property
+    def hdf5_file_path(self):
+        return self._arguments['HDF5_FILE_PATH']
+
+    @property
+    def tif_file_paths(self):
+        return self._arguments['TIF_FILE_PATHS']
+
+    @property
     def bamfiles(self):
         return self._arguments['PATHS_TO_BAMFILES']
 
