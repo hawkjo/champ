@@ -32,11 +32,11 @@ class AlignmentParameters(object):
 
     @property
     def aligning_read_names_filepath(self):
-        return 'phiX_mappings/phiX_read_names.txt'
+        return 'mapped_reads/phix'
 
     @property
     def all_read_names_filepath(self):
-        return 'read_names/all_read_names.txt'
+        return 'mapped_reads/unclassified'
 
     @property
     def fq_w_est(self):

@@ -49,7 +49,7 @@ class FastqReadClassifier(object):
 
 def classify_fastq_reads(classifier_path, fastq_files):
     classifier = FastqReadClassifier(classifier_path)
-    log.info('Searching for reads for %s. This will take a while!' % classifier.name)
+    log.info('Searching reads for %s. This will take a while!' % classifier.name)
 
     current = 0
     reads = set()

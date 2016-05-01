@@ -16,8 +16,7 @@ def main(clargs):
     um_per_pixel = 0.27
     alignment_parameters = AlignmentParameters(clargs)
     all_tile_data = reads.get_read_names(alignment_parameters.all_read_names_filepath)
-    phix_tile_data = reads.get_read_names(os.path.join(experiment.project_name,
-                                                       alignment_parameters.aligning_read_names_filepath))
+    phix_tile_data = reads.get_read_names(alignment_parameters.aligning_read_names_filepath)
 
     # Jim's laptop only
     for h5_filename in h5_filenames:

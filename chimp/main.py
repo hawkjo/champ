@@ -18,7 +18,7 @@ Commands:
   align         maps reads from the high-throughput sequencer to fluorescent points in microscope image data
 
 """
-from chimp.controller import align, preprocess, mapreads, convert
+from chimp.controller import align, preprocess, mapreads
 from docopt import docopt
 import logging
 from chimp.model.clargs import CommandLineArguments
@@ -40,7 +40,8 @@ def main(**kwargs):
     commands = {'align': align,
                 'preprocess': preprocess,
                 'map': mapreads,
-                'convert': convert}
+                # 'convert': convert
+                }
     commands[arguments.command].main(arguments)
 
 

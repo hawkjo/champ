@@ -46,7 +46,9 @@ class CommandLineArguments(object):
     @property
     def command(self):
         for possible_command in ('align',
-                                 'preprocess'):
+                                 'preprocess',
+                                 'map',
+                                 'convert'):
             if self._arguments[possible_command]:
                 return possible_command
 
