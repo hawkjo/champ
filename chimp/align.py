@@ -95,7 +95,10 @@ def find_end_tile(figure_processor, images, possible_tiles):
         # first get the correlation to random tiles, so we can distinguish signal from noise
         fia = figure_processor(image, possible_tiles)
         if fia.hitting_tiles:
+            print("tiles aligned!")
             # because of the way we iterate through the images, if we find one that aligns,
             # we can just stop because that gives us the outermost column of images and the
             # outermost FastQ tile
             return fia.hitting_tiles, image.column
+        else:
+            print("tiles did not align")

@@ -10,9 +10,7 @@ def process_fig(alignment_parameters, base_name, tile_data, um_per_pixel, experi
         full_directory = os.path.join(directory, base_name)
         if not os.path.exists(full_directory):
             os.makedirs(full_directory)
-    print(image.index)
-    print("bname", base_name)
-    sexcat_fpath = os.path.join(base_name, '%d.cat' % image.index)
+    sexcat_fpath = os.path.join(base_name, '%s.cat' % image.index)
     fic = fastqimagealigner.FastqImageAligner(experiment)
     fic.load_reads(tile_data)
     fic.set_image_data(image, um_per_pixel)

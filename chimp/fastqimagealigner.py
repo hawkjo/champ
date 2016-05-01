@@ -194,7 +194,7 @@ class FastqImageAligner(object):
         # --------------------------------------------------------------------------------
         # If the distance to second neighbor is too close, that suggests a bad peak call combining
         # two peaks into one. Filter those out with a gaussian-mixture-model-determined threshold.
-        if self.image_data.objective == 60:
+        if int(16.0 / self.image_data.um_per_pixel) == 60:
             # Value decided by observation of our data. May vary with equipment.
             good_hit_threshold = 5
         else:
@@ -365,7 +365,7 @@ class FastqImageAligner(object):
     def write_alignment_stats(self, out_fpath):
         stats = [
             'Image:                 %s' % self.image_data.fname,
-            'Objective:             %d' % self.image_data.objective,
+            'Objective:             %d' % int(16.0 / self.image_data.um_per_pixel),
             'Project Name:          %s' % self.experiment.project_name,
             'Tile:                  %s' % ','.join(tile.key for tile in self.hitting_tiles),
             'Rotation (deg):        %s' % ','.join('%.4f' % tile.rotation_degrees for tile in self.hitting_tiles),
