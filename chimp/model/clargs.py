@@ -20,6 +20,10 @@ class CommandLineArguments(object):
         return log_level.get(self._arguments['-v'], logging.FATAL)
 
     @property
+    def alignment_channel(self):
+        return self._arguments['ALIGNMENT_CHANNEL']
+
+    @property
     def project_name(self):
         return self._arguments['PROJECT_NAME']
 
@@ -38,10 +42,6 @@ class CommandLineArguments(object):
     @property
     def bamfiles(self):
         return self._arguments['PATHS_TO_BAMFILES']
-
-    @property
-    def alignment_channel(self):
-        return self._arguments['--alignment-channel']
 
     @property
     def command(self):

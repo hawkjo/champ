@@ -21,7 +21,7 @@ def main(clargs):
     # Jim's laptop only
     for h5_filename in h5_filenames:
         align.run(alignment_parameters, phix_tile_data,
-                  all_tile_data, experiment, um_per_pixel, h5_filename)
+                  all_tile_data, experiment, um_per_pixel, h5_filename, clargs.alignment_channel)
 
     # Actual code we should use
     # processes = min(len(h5_filenames), multiprocessing.cpu_count())

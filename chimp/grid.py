@@ -7,16 +7,17 @@ class Image(np.ndarray):
     Holds the raw pixel data of an image and provides access to some metadata.
 
     """
-    def __new__(cls, array, row, column):
+    def __new__(cls, array, row, column, channel):
         return np.asarray(array).view(cls)
 
-    def __init__(self, array, row, column):
+    def __init__(self, array, row, column, channel):
         self.row = row
         self.column = column
+        self.channel = channel
 
     @property
     def index(self):
-        return "%.3d_%.3d" % (self.row, self.column)
+        return "%s_%.3d_%.3d" % (self.channel, self.row, self.column)
 
     def __array_wrap__(self, obj, *_):
         if len(obj.shape) == 0:
@@ -83,6 +84,6 @@ class GridImages(object):
     def get(self, row, column):
         try:
             raw_array = self._h5[self._channel]['(Major, minor) = (%d, %d)' % (column, row)].value
-            return Image(raw_array, row, column)
+            return Image(raw_array, row, column, self._channel)
         except (KeyError, IndexError, AttributeError):
             return None
