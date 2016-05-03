@@ -3,7 +3,6 @@ from chimp.model import constants
 from chimp.process_nd2_im import process_fig, write_output
 from chimp.grid import GridImages
 import functools
-import time
 import os
 import logging
 import h5py
@@ -15,7 +14,6 @@ log = logging.getLogger(__name__)
 def run(alignment_parameters, alignment_tile_data, all_tile_data,
         experiment, um_per_pixel, h5_filename, alignment_channel):
     # Align image data to FastQ reads and write the aligned FastQ reads to disk
-    print("align_image_data!!! %s" % h5_filename)
     base_name = os.path.splitext(h5_filename)[0]
     h5 = h5py.File(h5_filename)
     grid = GridImages(h5, alignment_channel)
@@ -31,7 +29,6 @@ def run(alignment_parameters, alignment_tile_data, all_tile_data,
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
     for image in grid.bounded_iter(left_column, right_column):
-        start = time.time()
         log.debug("Aligning image from %s. Row: %d, Column: %d " % (h5_filename, image.row, image.column))
         # first get the correlation to random tiles, so we can distinguish signal from noise
         fia = figure_processor(image, tile_map[image.column])
@@ -40,7 +37,6 @@ def run(alignment_parameters, alignment_tile_data, all_tile_data,
             fia.precision_align_only(hit_type=('exclusive', 'good_mutual'),
                                      min_hits=alignment_parameters.min_hits)
             write_output(image.index, base_name, fia, experiment, all_tile_data)
-        print("%s, row %s column %s took %s seconds to align" % (h5_filename, image.row, image.column, (time.time() - start)))
         # The garbage collector takes its sweet time for some reason, so we have to manually delete
         # these objects or memory usage blow up
         del fia
@@ -95,10 +91,10 @@ def find_end_tile(figure_processor, images, possible_tiles):
         # first get the correlation to random tiles, so we can distinguish signal from noise
         fia = figure_processor(image, possible_tiles)
         if fia.hitting_tiles:
-            print("tiles aligned!")
+            log.debug("%s aligned to at least one tile!" % image.index)
             # because of the way we iterate through the images, if we find one that aligns,
             # we can just stop because that gives us the outermost column of images and the
             # outermost FastQ tile
             return fia.hitting_tiles, image.column
         else:
-            print("tiles did not align")
+            log.debug("%s did not align to any tiles." % image.index)
