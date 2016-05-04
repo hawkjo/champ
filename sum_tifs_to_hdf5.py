@@ -50,7 +50,7 @@ def tif_dir_to_hdf5(Major_axis_idx, hdf5_fpath, tif_fpaths):
                     else:
                         g = f[channel_name]
 
-                    out_im = summed_images[idx]
+                    out_im = np.flipud(summed_images[idx])
                     dset = g.create_dataset(dset_name, out_im.shape, dtype=out_im.dtype)
                     dset[...] = out_im
     print
