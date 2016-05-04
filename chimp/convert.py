@@ -11,7 +11,24 @@ special_chars_regex = re.compile('[\W]+')
 name_regex = re.compile('Pos_(\d+)_(\d+)\D')
 
 
-def tif_dir_to_hdf5(hdf5_file_path, tif_file_paths):
+def tif_dir_to_hdf5(hdf5_file_path, tif_file_paths, flipud, fliplr):
+    """
+    Converts a set of OME-TIFF files to HDF5, the format that CHIMP uses.
+
+    Parameters
+    ----------
+    hdf5_file_path      Path of the file to create. Can be relative.
+    tif_file_paths      List of filenames. Can be relative.
+    flipud              Flip the raw image data across the horizontal axis.
+    fliplr              Flip the raw image data across the vertical axis.
+
+    """
+    image_adjustment = lambda x: x
+    if flipud:
+        image_adjustment = lambda x: np.flipud(x)
+    if fliplr:
+        image_adjustment = lambda x: np.fliplr(image_adjustment(x))
+
     tif_axes = build_tif_axes(tif_file_paths)
     with h5py.File(hdf5_file_path, 'a') as h5:
         for file_path in tqdm.tqdm(tif_file_paths):
@@ -33,18 +50,18 @@ def tif_dir_to_hdf5(hdf5_file_path, tif_file_paths):
 
                 # Add images
                 for channel_index, page in zip(channel_indexes, tif.pages):
-                    summed_images[channel_index] += page.asarray()
+                    summed_images[channel_index] += image_adjustment(page.asarray())
 
                 # Add images to hdf5
                 dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_position, minor_axis_position)
                 for index, channel_name in enumerate(channel_names):
                     if channel_name not in h5:
-                        g = h5.create_group(channel_name)
+                        group = h5.create_group(channel_name)
                     else:
-                        g = h5[channel_name]
+                        group = h5[channel_name]
 
                     out_image = summed_images[index]
-                    dataset = g.create_dataset(dataset_name, out_image.shape, dtype=out_image.dtype)
+                    dataset = group.create_dataset(dataset_name, out_image.shape, dtype=out_image.dtype)
                     dataset[...] = out_image
 
 
@@ -55,8 +72,8 @@ def sanitize_name(name):
 def build_tif_axes(tif_file_paths):
     # we need to know the major and minor axis of each tif file, since we assume everywhere else in the codebase that
     # the Illumina tiles are arranged from left-to-right. However, depending on how you acquired your images, it could
-    # be long up and down, or left to right here, we build up a dictionary of each tif file and its axes, guaranteeing
-    # that the major axis comes first
+    # be long up and down, or left to right. We build up a dictionary of each tif file and its axes, guaranteeing
+    # that the major axis comes first.
     tif_axes = {}
     best_first = 0
     best_second = 0

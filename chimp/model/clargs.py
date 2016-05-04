@@ -59,3 +59,14 @@ class CommandLineArguments(object):
     @property
     def min_hits(self):
         return int(self._arguments['--min-hits'])
+
+    @property
+    def flipud(self):
+        # flip images across the horizontal axis
+        return True if '--flipud' in self._arguments else False
+
+    @property
+    def fliplr(self):
+        # flip images across the horizontal axis
+        return True if '--fliplr' in self._arguments else False
+
