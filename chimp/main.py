@@ -15,7 +15,8 @@ Commands:
   convert       creates an HDF5-formatted file from OME-TIFF files
   map           maps all the reads in the fastq files, typically for separating phiX
   preprocess    defines where points are in the microscope image data
-  align         maps reads from the high-throughput sequencer to fluorescent points in microscope image data
+  align         maps reads from the high-throughput sequencer to fluorescent
+                points in microscope image data
 
 """
 from chimp.controller import align, preprocess, mapreads, convert
@@ -34,7 +35,7 @@ def main(**kwargs):
     log.setLevel(arguments.log_level)
 
     # make some space to distinguish log messages from command prompt
-    for _ in range(3):
+    for _ in range(2):
         log.info('')
 
     commands = {'align': align,
