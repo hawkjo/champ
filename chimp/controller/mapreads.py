@@ -1,5 +1,5 @@
 import logging
-from chimp.model.fastq import FastqFiles
+from chimp.fastq import FastqFiles
 from chimp import fastq
 from chimp import error
 import os
@@ -16,10 +16,10 @@ def main(arguments):
     # hardcode the output directory for mapped reads
     out_directory = 'mapped_reads'
     # validate and/or create directories
-    if not os.path.isdir(out_directory):
-        os.makedirs(out_directory)
     if not os.path.isdir(arguments.fastq_directory):
         error.fail("The given fastq directory does not exist.")
+    if not os.path.isdir(out_directory):
+        os.makedirs(out_directory)
     filenames = [os.path.join(arguments.fastq_directory, filename)
                  for filename in os.listdir(arguments.fastq_directory)]
 

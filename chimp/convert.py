@@ -23,6 +23,8 @@ def tif_dir_to_hdf5(hdf5_file_path, tif_file_paths, flipud, fliplr):
     fliplr              Flip the raw image data across the vertical axis.
 
     """
+    # build up a function to perform the transformations needed to get the image in the orientation
+    # that CHIMP is expecting
     image_adjustment = lambda x: x
     if flipud:
         image_adjustment = lambda x: np.flipud(x)

@@ -2,7 +2,6 @@ import sys
 import os
 import fastqimagealigner
 import config
-import nd2reader
 import logging
 import reads
 
@@ -39,12 +38,6 @@ def process_fig(align_run_name, base_directory, nd2_fpath, align_param_fpath, im
     stats_fpath = os.path.join(results_dir, '{}_stats.txt'.format(im_idx))
     fic.output_intensity_results(intensity_fpath)
     fic.write_alignment_stats(stats_fpath)
-
-    ax = fic.plot_all_hits()
-    ax.figure.savefig(os.path.join(fig_dir, '{}_all_hits.pdf'.format(im_idx)))
-
-    ax = fic.plot_hit_hists()
-    ax.figure.savefig(os.path.join(fig_dir, '{}_hit_hists.pdf'.format(im_idx)))
 
     all_fic = fastqimagealigner.FastqImageAligner(alignment_parameters.project_name, file_structure)
     tile_data = reads.get_read_names(alignment_parameters.all_read_names_fpath)

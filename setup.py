@@ -1,5 +1,5 @@
 from setuptools import setup
-from chimp.model.constants import VERSION
+from chimp.constants import VERSION
 
 requirements = []
 with open('requirements.txt') as f:

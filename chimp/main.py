@@ -22,8 +22,8 @@ Commands:
 from chimp.controller import align, preprocess, mapreads, convert
 from docopt import docopt
 import logging
-from chimp.model.clargs import CommandLineArguments
-from chimp.model.constants import VERSION
+from chimp.config import CommandLineArguments
+from chimp.constants import VERSION
 import os
 
 

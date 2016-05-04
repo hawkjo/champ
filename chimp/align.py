@@ -1,5 +1,5 @@
 from collections import defaultdict
-from chimp.model import constants
+from chimp import constants
 from chimp.process_nd2_im import process_fig, write_output
 from chimp.grid import GridImages
 import functools
@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 
 def run(alignment_parameters, alignment_tile_data, all_tile_data,
-        experiment, um_per_pixel, h5_filename, alignment_channel):
+        experiment, um_per_pixel, alignment_channel, h5_filename):
     # Align image data to FastQ reads and write the aligned FastQ reads to disk
     base_name = os.path.splitext(h5_filename)[0]
     h5 = h5py.File(h5_filename)
