@@ -11,7 +11,6 @@ import nd2tools
 
 
 def get_align_params(align_param_fpath):
-    #d = {name: value for line in open(align_param_fpath) for name, value in line.strip().split()}
     d = {}
     for line in open(align_param_fpath):
         if not line.strip():
@@ -37,10 +36,6 @@ def get_align_params(align_param_fpath):
             int(d['aligned_im_idx_offset']),
             min_hits
            )
-
-
-def tile_keys_given_nums(tile_nums):
-    return ['lane1tile{0}'.format(tile_num) for tile_num in tile_nums]
 
 
 def process_fig(align_run_name, nd2_fpath, align_param_fpath, im_idx):
