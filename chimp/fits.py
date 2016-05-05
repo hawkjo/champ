@@ -1,4 +1,3 @@
-from chimp import files
 from chimp.grid import GridImages
 import functools
 import logging
@@ -13,6 +12,24 @@ import numpy as np
 
 
 log = logging.getLogger(__name__)
+
+
+class ImageFiles(object):
+    def __init__(self, filenames):
+        self._filenames = filenames
+
+    def __len__(self):
+        return len(self._filenames)
+
+    @property
+    def filenames(self):
+        for f in self._filenames:
+            yield f
+
+    @property
+    def directories(self):
+        for f in self._filenames:
+            yield os.path.splitext(f)[0]
 
 
 class XYZFile(object):
@@ -106,10 +123,20 @@ def create_fits_files(h5_base_name):
     log.info("Done creating fits files for %s" % h5_base_name)
 
 
+def ensure_image_data_directory_exists(h5_filename):
+    """
+    Creates a directory based on the HDF5 filenames in order to store data derived from them.
+
+    """
+    new_directory = os.path.join(h5_filename)
+    if not os.path.isdir(new_directory):
+        os.mkdir(new_directory)
+
+
 def main():
-    image_files = files.load_image_files()
+    image_files = ImageFiles([f for f in os.listdir(os.getcwd()) if f.endswith('.h5')])
     for directory in image_files.directories:
-        files.ensure_image_data_directory_exists(directory)
+        ensure_image_data_directory_exists(directory)
     # Try to use one core per file, but top out at the number of cores that the machine has.
     thread_count = min(len(image_files), multiprocessing.cpu_count())
     log.debug("Using %s threads for source extraction" % thread_count)

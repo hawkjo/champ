@@ -1,5 +1,4 @@
 from chimp.config import AlignmentParameters, Experiment
-from chimp import reads
 import os
 import logging
 import sys
@@ -15,8 +14,8 @@ def main(clargs):
     experiment = Experiment(clargs.project_name)
     um_per_pixel = 0.26666666
     alignment_parameters = AlignmentParameters(clargs)
-    all_tile_data = reads.get_read_names(alignment_parameters.all_read_names_filepath)
-    phix_tile_data = reads.get_read_names(alignment_parameters.aligning_read_names_filepath)
+    all_tile_data = align.load_read_names(alignment_parameters.all_read_names_filepath)
+    phix_tile_data = align.load_read_names(alignment_parameters.aligning_read_names_filepath)
 
     processes = min(len(h5_filenames), multiprocessing.cpu_count())
     log.debug("Using %d processes for alignment" % processes)

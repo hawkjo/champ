@@ -29,12 +29,8 @@ class Image(np.ndarray):
 class GridImages(object):
     def __init__(self, h5, channel):
         """
-        Since some ND2s were created where multiple channels had the same name, we can't always use the channel name,
-        though we will be able to going forward now that we saw that that was happening.
-
-        In the near future, we will also have data sets where we take multiple images in the same location and in the
-        same channel, with different exposures. We will then need to add them together, dynamically choosing which ones
-        to add in order to avoid saturation.
+        Provides an interface for retrieving images based on their row and column in the "grid" of
+        images taken over the surface of an Illumina chip.
 
         """
         self._h5 = h5

@@ -1,7 +1,6 @@
 docopt==0.6.2
 biopython==1.66
 numpy==1.10.4
-nd2reader
 pysam
 scipy==0.16.1
 tqdm
