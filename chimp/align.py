@@ -111,7 +111,8 @@ def find_end_tile(figure_processor, images, possible_tiles):
             log.debug("%s did not align to any tiles." % image.index)
 
 
-def process_fig(alignment_parameters, base_name, tile_data, um_per_pixel, experiment, image, possible_tile_keys):
+def process_fig(alignment_parameters, base_name, tile_data,
+                um_per_pixel, experiment, image, possible_tile_keys):
     for directory in (experiment.figure_directory, experiment.results_directory):
         full_directory = os.path.join(directory, base_name)
         if not os.path.exists(full_directory):
@@ -126,6 +127,45 @@ def process_fig(alignment_parameters, base_name, tile_data, um_per_pixel, experi
                     alignment_parameters.fq_w_est,
                     snr_thresh=alignment_parameters.snr_threshold)
     return fic
+
+
+def process_second_fig(alignment_parameters, base_name, tile_data, um_per_pixel, experiment, image):
+    for directory in (experiment.figure_directory, experiment.results_directory):
+        full_directory = os.path.join(directory, base_name)
+        if not os.path.exists(full_directory):
+            os.makedirs(full_directory)
+    sexcat_fpath = os.path.join(base_name, '%s.cat' % image.index)
+
+    # file_structure = config.Experiment(base_directory)
+    # im_idx = int(im_idx)
+    # alignment_parameters = config.get_align_params(align_param_fpath)
+    # nd2 = nd2reader.Nd2(nd2_fpath)
+    # bname = os.path.splitext(os.path.basename(nd2_fpath))[0]
+    # aligned_im_idx = im_idx + alignment_parameters.aligned_im_idx_offset
+
+    # fig_dir = os.path.join(file_structure.figure_directory, align_run_name, bname)
+    # results_dir = os.path.join(base_directory, 'results', align_run_name, bname)
+    # for d in [fig_dir, results_dir]:
+    #     if not os.path.exists(d):
+    #         os.makedirs(d)
+
+    fic = fastqimagealigner.FastqImageAligner(experiment)
+    fic.load_reads(tile_data)
+    fic.set_image_data(image, um_per_pixel)
+    fic.set_sexcat_from_file(sexcat_fpath)
+
+    # stats_fpath = os.path.join(results_dir, '{}_stats.txt'.format(aligned_im_idx))
+    fic.alignment_from_alignment_file(experiment.stats_file)
+    fic.precision_align_only(min_hits=alignment_parameters.min_hits)
+
+    fic.output_intensity_results(intensity_fpath)
+    fic.write_alignment_stats(stats_fpath)
+
+    all_fic = fastqimagealigner.FastqImageAligner(experiment)
+    all_fic.all_reads_fic_from_aligned_fic(fic, tile_data)
+    all_read_rcs_fpath = os.path.join(results_dir, '{}_all_read_rcs.txt'.format(im_idx))
+    all_fic.write_read_names_rcs(all_read_rcs_fpath)
+
 
 
 def write_output(image_index, base_name, fastq_image_aligner, experiment, tile_data):
