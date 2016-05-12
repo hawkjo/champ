@@ -10,7 +10,7 @@ def main(clargs):
         if not os.path.isdir(directory):
             log.debug("Skipping non-directory %s" % directory)
             continue
-        tif_filenames = [f for f in os.listdir(directory) if f.endswith(".ome.tif")]
+        tif_filenames = [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith(".ome.tif")]
         if tif_filenames:
             hdf5_file_path = "%s.h5" % directory
             log.debug("About to convert %d files in %s to HDF5 file: %s" % (len(tif_filenames),
