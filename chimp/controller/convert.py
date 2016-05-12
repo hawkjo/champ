@@ -8,7 +8,6 @@ log = logging.getLogger(__name__)
 def main(clargs):
     for directory in clargs.tif_directories:
         if not os.path.isdir(directory):
-            log.debug("Skipping non-directory %s" % directory)
             continue
         tif_filenames = [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith(".ome.tif")]
         if tif_filenames:
