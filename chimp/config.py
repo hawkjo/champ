@@ -37,8 +37,8 @@ class CommandLineArguments(object):
         return self._arguments['HDF5_FILE_PATH']
 
     @property
-    def tif_file_paths(self):
-        return self._arguments['TIF_FILE_PATHS']
+    def tif_directories(self):
+        return self._arguments['TIF_DIRECTORIES']
 
     @property
     def bamfiles(self):

@@ -2,7 +2,7 @@
 Chip-Hybridized Interaction Mapping Platform
 
 Usage:
-  chimp convert HDF5_FILE_PATH TIF_FILE_PATHS ... [--flipud] [--fliplr] [-v | -vv | -vvv]
+  chimp convert TIF_DIRECTORIES ... [--flipud] [--fliplr] [-v | -vv | -vvv]
   chimp preprocess [-v | -vv | -vvv ]
   chimp map FASTQ_DIRECTORY PATHS_TO_BAMFILES ... [-v | -vv | -vvv]
   chimp align PROJECT_NAME ALIGNMENT_CHANNEL [--min-hits] [--snr-threshold] [-v | -vv | -vvv]
