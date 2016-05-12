@@ -25,11 +25,11 @@ def tif_dir_to_hdf5(hdf5_file_path, tif_file_paths, flipud, fliplr):
     """
     # build up a function to perform the transformations needed to get the image in the orientation
     # that CHIMP is expecting
-    image_adjustment = lambda x: x
+    image_adjustments = []
     if flipud:
-        image_adjustment = lambda x: np.flipud(x)
+        image_adjustments.append(lambda x: np.flipud(x))
     if fliplr:
-        image_adjustment = lambda x: np.fliplr(image_adjustment(x))
+        image_adjustments.append(lambda x: np.fliplr(x))
 
     tif_axes = build_tif_axes(tif_file_paths)
     with h5py.File(hdf5_file_path, 'a') as h5:
@@ -52,7 +52,10 @@ def tif_dir_to_hdf5(hdf5_file_path, tif_file_paths, flipud, fliplr):
 
                 # Add images
                 for channel_index, page in zip(channel_indexes, tif.pages):
-                    summed_images[channel_index] += image_adjustment(page.asarray())
+                    image = page.asarray()
+                    for adjustment in image_adjustments:
+                        image = adjustment(image)
+                    summed_images[channel_index] += image
 
                 # Add images to hdf5
                 dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_position, minor_axis_position)
