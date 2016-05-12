@@ -8,6 +8,7 @@ class CommandLineArguments(object):
 
     """
     def __init__(self, arguments, current_directory):
+        print(arguments)
         self._arguments = arguments
         self._current_directory = current_directory
 
