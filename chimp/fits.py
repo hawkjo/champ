@@ -139,7 +139,8 @@ def main():
     for directory in image_files.directories:
         ensure_image_data_directory_exists(directory)
     # Try to use one core per file, but top out at the number of cores that the machine has.
-    thread_count = min(len(image_files), multiprocessing.cpu_count())
+    # thread_count = min(len(image_files), multiprocessing.cpu_count())
+    thread_count = multiprocessing.cpu_count()
     log.debug("Using %s threads for source extraction" % thread_count)
     # Assign each HDF5 file to a thread, which converts it to a "fits" file
     worker_pool = Pool(processes=thread_count)
