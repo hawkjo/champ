@@ -8,7 +8,6 @@ class CommandLineArguments(object):
 
     """
     def __init__(self, arguments, current_directory):
-        print(arguments)
         self._arguments = arguments
         self._current_directory = current_directory
 
@@ -65,12 +64,12 @@ class CommandLineArguments(object):
     @property
     def flipud(self):
         # flip images across the horizontal axis
-        return True if '--flipud' in self._arguments else False
+        return self._arguments['--flipud']
 
     @property
     def fliplr(self):
         # flip images across the horizontal axis
-        return True if '--fliplr' in self._arguments else False
+        return self._arguments['--fliplr']
 
 
 class Experiment(object):
