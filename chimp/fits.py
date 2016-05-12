@@ -113,12 +113,15 @@ def create_fits_files(h5_base_name):
     for channel in h5.keys():
         channel = str(channel).strip().replace(" ", "_")
         grid = GridImages(h5, channel)
+        print("grid ok")
         for n, image in enumerate(grid):
+            print(n, image.index)
             xyz_file = XYZFile(image)
             # TODO: The exact format of the filename will change, John has something figured out
             xyz_path = "%s.xyz" % os.path.join(h5_base_name, image.index)
             with open(xyz_path, "w+") as f:
                 f.write(str(xyz_file))
+            print("xyz ok")
             fits_path = '%s.fits' % os.path.join(h5_base_name, image.index)
             subprocess.call(['fitsify', xyz_path, fits_path, '1', '2', '3'])
     log.info("Done creating fits files for %s" % h5_base_name)
