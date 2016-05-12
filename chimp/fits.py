@@ -108,7 +108,7 @@ def source_extract(base_file):
 
 def create_fits_files(h5_base_name):
     h5_filename = h5_base_name + ".h5"
-    log.info("Creating fits files for %s" % h5_base_name)
+    log.info("Creating fits files for %s" % h5_filename)
     h5 = h5py.File(h5_filename)
     for channel in h5.keys():
         channel = str(channel).strip().replace(" ", "_")
