@@ -6,6 +6,8 @@ log = logging.getLogger(__name__)
 
 
 def main(clargs):
+    print(clargs.flipud, clargs.fliplr)
+    exit()
     for directory in clargs.tif_directories:
         if not os.path.isdir(directory):
             log.debug("Skipping non-directory %s" % directory)
