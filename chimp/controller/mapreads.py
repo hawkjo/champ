@@ -7,7 +7,7 @@ import os
 log = logging.getLogger(__name__)
 
 
-def main(arguments):
+def main(clargs):
     """
     Parses fastq files and creates text files containing read names that belong to each source
     Typically this is just used to separate phiX reads from everything else.
@@ -16,17 +16,17 @@ def main(arguments):
     # hardcode the output directory for mapped reads
     out_directory = 'mapped_reads'
     # validate and/or create directories
-    if not os.path.isdir(arguments.fastq_directory):
+    if not os.path.isdir(clargs.fastq_directory):
         error.fail("The given fastq directory does not exist.")
     if not os.path.isdir(out_directory):
         os.makedirs(out_directory)
-    filenames = [os.path.join(arguments.fastq_directory, filename)
-                 for filename in os.listdir(arguments.fastq_directory)]
+    filenames = [os.path.join(clargs.fastq_directory, filename)
+                 for filename in os.listdir(clargs.fastq_directory)]
 
     fastq_files = FastqFiles(filenames)
     all_classified_reads = set()
 
-    classified_reads = fastq.classify_all_reads(arguments.bamfiles, fastq_files)
+    classified_reads = fastq.classify_all_reads(clargs.bamfiles, fastq_files)
     for name, reads in classified_reads.items():
         # write the reads to disk for later use
         fastq.save_classified_reads(name, reads, out_directory)

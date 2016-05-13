@@ -25,6 +25,10 @@ class CommandLineArguments(object):
         return self._arguments['ALIGNMENT_CHANNEL']
 
     @property
+    def image_directory(self):
+        return self._arguments['IMAGE_DIRECTORY']
+
+    @property
     def project_name(self):
         return self._arguments['PROJECT_NAME']
 
