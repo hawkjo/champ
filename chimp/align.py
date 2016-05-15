@@ -6,7 +6,7 @@ import os
 import logging
 import h5py
 from collections import defaultdict
-
+import numpy as np
 
 log = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ def find_end_tile(figure_processor, images, possible_tiles):
     # possibly go together
     for image in images:
         # first get the correlation to random tiles, so we can distinguish signal from noise
-        fia = figure_processor(image, possible_tiles)
+        fia = figure_processor(np.flipud(image), possible_tiles)
         if fia.hitting_tiles:
             log.debug("%s aligned to at least one tile!" % image.index)
             # because of the way we iterate through the images, if we find one that aligns,
