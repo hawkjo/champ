@@ -78,6 +78,8 @@ def process_hdf5(align_run_name, hdf5_fpath, align_param_fpath, channel, im_idx)
             min_tile_num, max_tile_num, strategy, snr_thresh, min_hits = get_align_params(align_param_fpath)
 
     with h5py.File(hdf5_fpath) as f:
+        if channel not in f:
+            sys.exit('Invalid channel: {}. Options: {}'.format(channel, ', '.join(f.keys())))
         g = f[channel]
 
         print 'Setting possible_tile_keys_func...'
