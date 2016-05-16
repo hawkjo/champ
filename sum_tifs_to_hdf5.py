@@ -1,5 +1,6 @@
 import tifffile
 import h5py
+import hdf5_tools
 import sys
 import os
 import glob
@@ -43,7 +44,7 @@ def tif_dir_to_hdf5(Major_axis_idx, hdf5_fpath, tif_fpaths):
                     summed_images[channel_idx] += page.asarray()
 
                 # Add images to hdf5
-                dset_name = '(Major, minor) = ({}, {})'.format(Major_axis_pos, minor_axis_pos)
+                dset_name = hdf5_tools.dset_name_given_coords(Major_axis_pos, minor_axis_pos)
                 for idx, channel_name in enumerate(channel_names):
                     if channel_name not in f:
                         g = f.create_group(channel_name)
