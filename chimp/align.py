@@ -167,7 +167,6 @@ def process_second_fig(alignment_parameters, base_name, tile_data, um_per_pixel,
     all_fic.write_read_names_rcs(all_read_rcs_fpath)
 
 
-
 def write_output(image_index, base_name, fastq_image_aligner, experiment, tile_data):
     intensity_filepath = os.path.join(experiment.results_directory, base_name, '{}_intensities.txt'.format(image_index))
     stats_filepath = os.path.join(experiment.results_directory, base_name, '{}_stats.txt'.format(image_index))
