@@ -134,10 +134,12 @@ def ensure_image_data_directory_exists(h5_filename):
         os.mkdir(new_directory)
 
 
-def main():
-    image_files = ImageFiles([f for f in os.listdir(os.getcwd()) if f.endswith('.h5')])
+def main(image_directory):
+    image_files = ImageFiles([f for f in os.listdir(image_directory) if f.endswith('.h5')])
     for directory in image_files.directories:
-        ensure_image_data_directory_exists(directory)
+        # I think this is redundant since we created the HDF5 files from OME-TIFFs inside directories
+        # that have this name already
+        ensure_image_data_directory_exists(os.path.join(image_directory, directory))
     # Try to use one core per file, but top out at the number of cores that the machine has.
     thread_count = min(len(image_files), multiprocessing.cpu_count())
     log.debug("Using %s threads for source extraction" % thread_count)
