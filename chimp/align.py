@@ -102,8 +102,8 @@ def find_ends(grid, figure_processor):
     left_side_tiles = [format_tile_number(num) for num in range(1, 11)]
     right_side_tiles = [format_tile_number(num) for num in reversed(range(11, 20))]
 
-    right_tiles, right_column = find_end_tile(figure_processor, grid.right_iter(), right_side_tiles)
     left_tiles, left_column = find_end_tile(figure_processor, grid.left_iter(), left_side_tiles)
+    right_tiles, right_column = find_end_tile(figure_processor, grid.right_iter(), right_side_tiles)
 
     # do full alignment for images
     # skip end tile finding for make fast
@@ -140,6 +140,7 @@ def find_end_tile(figure_processor, images, possible_tiles):
     # Figures out which FastQ tile and column of image data are the furthest to the left or right
     # of the chip. By doing this we don't have to waste time aligning images with tiles that can't
     # possibly go together
+    print("FET PT", possible_tiles)
     for image in images:
         # first get the correlation to random tiles, so we can distinguish signal from noise
         fia = figure_processor(image, possible_tiles)
