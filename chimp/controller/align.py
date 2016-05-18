@@ -18,8 +18,6 @@ def main(clargs):
     log.debug("Loading tile data.")
     phix_tile_data = align.load_read_names(alignment_parameters.aligning_read_names_filepath)
     log.debug("Tile data loaded.")
-    processes = min(len(h5_filenames), multiprocessing.cpu_count())
-    log.debug("Using %d processes for alignment" % processes)
     align.run(h5_filenames, alignment_parameters, phix_tile_data,
               experiment, um_per_pixel, clargs.alignment_channel)
 
