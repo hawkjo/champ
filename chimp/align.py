@@ -118,7 +118,7 @@ def get_expected_tile_map(left_tiles, right_tiles, min_column, max_column):
     tile_map = defaultdict(list)
     min_tile = min([int(tile.key[-4:]) for tile in left_tiles])
     max_tile = max([int(tile.key[-4:]) for tile in right_tiles])
-    normalization_factor = float(max_tile - min_tile + 1) / float(max_column - min_column)
+    normalization_factor = abs(float(max_tile - min_tile + 1) / float(max_column - min_column))
     print("mmn", min_tile, max_tile, normalization_factor)
     # handle case where left tiles are on the right (and thus higher in number)
     tiles = range(min(min_column, max_column), max(min_column, max_column) + 1)
