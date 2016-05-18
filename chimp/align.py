@@ -97,8 +97,8 @@ def load_read_names(file_path):
 def find_ends(grid, figure_processor):
     # Determines which tiles we have image data from, for left and right sides of the chip.
     log.info("Finding end tiles")
-    right_side_tiles = [format_tile_number(num) for num in range(1, 11)]
-    left_side_tiles = [format_tile_number(num) for num in reversed(range(11, 20))]
+    right_side_tiles = [format_tile_number(2100 + num) for num in range(1, 11)]
+    left_side_tiles = [format_tile_number(2100 + num) for num in reversed(range(11, 20))]
 
     left_tiles, left_column = find_end_tile(figure_processor, grid.left_iter(), left_side_tiles)
     right_tiles, right_column = find_end_tile(figure_processor, grid.right_iter(), right_side_tiles)
@@ -136,7 +136,7 @@ def get_expected_tile_map(left_tiles, right_tiles, min_column, max_column):
 def format_tile_number(number):
     # this definitely looks like a temporary hack that will end up becoming the most enduring
     # part of this codebase
-    return 'lane1tile{0}'.format(2100 + number)
+    return 'lane1tile{0}'.format(number)
 
 
 def find_end_tile(figure_processor, images, possible_tiles):
