@@ -68,10 +68,8 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
 
 def find_boundary_columns(channel, alignment_parameters, alignment_tile_data, um_per_pixel,
                           experiment, end_tiles, h5_filename):
-    log.debug("Finding boundary columns")
     # Align image data to FastQ reads and write the aligned FastQ reads to disk
     base_name = os.path.splitext(h5_filename)[0]
-    log.debug("fbc base name %s" % base_name)
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
 
