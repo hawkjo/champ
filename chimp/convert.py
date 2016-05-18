@@ -90,7 +90,7 @@ def build_tif_axes(tif_file_paths):
         best_first = max(first, best_first)
         best_second = max(second, best_second)
         tif_axes[file_path] = (first, second)
-    if best_second > best_first:
+    if best_second < best_first:
         # the second thing is the major axis, so we need to invert them
         return {file_path: (second, first) for file_path, (first, second) in tif_axes.items()}
     # no need to invert, just return the values we already have
