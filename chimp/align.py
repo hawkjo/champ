@@ -141,7 +141,6 @@ def find_end_tile(figure_processor, images, possible_tiles):
     # Figures out which FastQ tile and column of image data are the furthest to the left or right
     # of the chip. By doing this we don't have to waste time aligning images with tiles that can't
     # possibly go together
-    print("FET PT", possible_tiles)
     for image in images:
         # first get the correlation to random tiles, so we can distinguish signal from noise
         fia = figure_processor(image, possible_tiles)
@@ -157,7 +156,6 @@ def find_end_tile(figure_processor, images, possible_tiles):
 
 def process_fig(alignment_parameters, base_name, tile_data,
                 um_per_pixel, experiment, image, possible_tile_keys):
-    print("process fig possible tile keys", possible_tile_keys)
     for directory in (experiment.figure_directory, experiment.results_directory):
         full_directory = os.path.join(directory, base_name)
         if not os.path.exists(full_directory):
