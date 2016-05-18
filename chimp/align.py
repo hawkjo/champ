@@ -29,6 +29,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, experiment, um_
 
     log.debug("Done finding boundaries!")
     print("end_tiles", end_tiles)
+    print("end_tilesdict", dict(end_tiles))
     exit()
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
