@@ -21,15 +21,10 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, experiment, um_
     pool = multiprocessing.Pool(num_processes)
     log.debug("Finding boundaries with %d processes" % num_processes)
     pool.map_async(boundary_finder, h5_filenames).get(timeout=sys.maxint)
-    print("EXIT FROM BOUNDARY FINDING ****************************************************")
     if not end_tiles:
         log.debug("whoops, no end tiles")
         exit()
-    print("found end tiles")
-
     log.debug("Done finding boundaries!")
-    print("end_tiles", end_tiles)
-    print("end_tilesdict", dict(end_tiles))
     exit()
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
@@ -123,12 +118,11 @@ def get_expected_tile_map(left_tiles, right_tiles, min_column, max_column):
     tile_map = defaultdict(list)
     min_tile = min([int(tile.key[-4:]) for tile in left_tiles])
     max_tile = max([int(tile.key[-4:]) for tile in right_tiles])
-    if min_tile > max_tile:
-        # terrible
-        min_tile, max_tile = max_tile, min_tile
     normalization_factor = float(max_tile - min_tile + 1) / float(max_column - min_column)
     print("mmn", min_tile, max_tile, normalization_factor)
-    for column in range(min_column, max_column + 1):
+    # handle case where left tiles are on the right (and thus higher in number)
+    tiles = range(min(min_column, max_column), max(min_column, max_column) + 1)
+    for column in tiles:
         expected_tile_number = min(constants.MISEQ_TILE_COUNT,
                                    max(1, int(round(column * normalization_factor, 0)))) + min_tile - 1
         tile_map[column].append(format_tile_number(expected_tile_number))
