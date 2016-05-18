@@ -99,8 +99,8 @@ def load_read_names(file_path):
 def find_ends(grid, figure_processor):
     # Determines which tiles we have image data from, for left and right sides of the chip.
     log.info("Finding end tiles")
-    left_side_tiles = range(1, 11)
-    right_side_tiles = reversed(range(11, 20))
+    left_side_tiles = list(range(1, 11))
+    right_side_tiles = list(reversed(range(11, 20)))
 
     right_tiles, right_column = find_end_tile(figure_processor, grid.right_iter(), right_side_tiles)
     left_tiles, left_column = find_end_tile(figure_processor, grid.left_iter(), left_side_tiles)
@@ -155,6 +155,7 @@ def find_end_tile(figure_processor, images, possible_tiles):
 
 def process_fig(alignment_parameters, base_name, tile_data,
                 um_per_pixel, experiment, image, possible_tile_keys):
+    print("process fig possible tile keys", possible_tile_keys)
     for directory in (experiment.figure_directory, experiment.results_directory):
         full_directory = os.path.join(directory, base_name)
         if not os.path.exists(full_directory):
