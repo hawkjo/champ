@@ -80,6 +80,6 @@ class GridImages(object):
     def get(self, row, column):
         try:
             raw_array = self._h5[self._channel]['(Major, minor) = (%d, %d)' % (column, row)].value
-            return Image(raw_array, row, column, self._channel)
+            return Image(np.flipud(raw_array), row, column, self._channel)
         except (KeyError, IndexError, AttributeError):
             return None
