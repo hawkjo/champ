@@ -44,11 +44,6 @@ def alignment(alignment_parameters, um_per_pixel, experiment, alignment_tile_dat
         image, possible_tile_keys, base_name = image_data
         log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
         # first get the correlation to random tiles, so we can distinguish signal from noise
-        print("ptk", possible_tile_keys)
-        print("umpp", um_per_pixel)
-        print("ishape", image.shape)
-        print("bname", base_name)
-        print("image", image.index)
         fia = process_fig(alignment_parameters, base_name, alignment_tile_data,  um_per_pixel,
                           experiment, image, possible_tile_keys)
         if fia.hitting_tiles:
@@ -108,8 +103,8 @@ def find_ends(grid, figure_processor):
     left_side_tiles = range(1, 11)
     right_side_tiles = reversed(range(11, 20))
 
-    left_tiles, left_column = find_end_tile(figure_processor, grid.left_iter(), left_side_tiles)
     right_tiles, right_column = find_end_tile(figure_processor, grid.right_iter(), right_side_tiles)
+    left_tiles, left_column = find_end_tile(figure_processor, grid.left_iter(), left_side_tiles)
 
     # do full alignment for images
     # skip end tile finding for make fast
