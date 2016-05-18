@@ -17,7 +17,6 @@ Commands:
   preprocess    defines where points are in the microscope image data
   align         maps reads from the high-throughput sequencer to fluorescent
                 points in microscope image data
-
 """
 from chimp.controller import align, preprocess, mapreads, convert
 from docopt import docopt
