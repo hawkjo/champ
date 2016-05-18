@@ -99,8 +99,9 @@ def load_read_names(file_path):
 def find_ends(grid, figure_processor):
     # Determines which tiles we have image data from, for left and right sides of the chip.
     log.info("Finding end tiles")
-    left_side_tiles = range(1, 11)
-    right_side_tiles = reversed(range(11, 20))
+    # TODO: SWITCH THIS BACK, THEYRE BACKWARDS
+    right_side_tiles = range(1, 11)
+    left_side_tiles = reversed(range(11, 20))
 
     left_tiles, left_column = find_end_tile(figure_processor, grid.left_iter(), left_side_tiles)
     right_tiles, right_column = find_end_tile(figure_processor, grid.right_iter(), right_side_tiles)
