@@ -120,7 +120,7 @@ class AlignmentParameters(object):
 
     @property
     def rotation_estimate(self):
-        return 0.0
+        return 180.0
 
     @property
     def snr_threshold(self):
