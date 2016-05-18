@@ -7,13 +7,14 @@ import logging
 import h5py
 from collections import defaultdict
 import multiprocessing
+from multiprocessing import Manager
 import sys
 
 log = logging.getLogger(__name__)
 
 
 def run(h5_filenames, alignment_parameters, alignment_tile_data, experiment, um_per_pixel, channel):
-    end_tiles = {}
+    end_tiles = Manager().dict()
     boundary_finder = functools.partial(find_boundary_columns, channel, alignment_parameters,
                                         alignment_tile_data, um_per_pixel, experiment, end_tiles)
     num_processes = len(h5_filenames)
