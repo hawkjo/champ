@@ -124,4 +124,4 @@ class AlignmentParameters(object):
 
     @property
     def snr_threshold(self):
-        return 1.2
+        return 2.0
