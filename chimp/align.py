@@ -16,7 +16,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, experiment, um_
     end_tiles = {}
     boundary_finder = functools.partial(find_boundary_columns, channel, alignment_parameters,
                                         alignment_tile_data, um_per_pixel, experiment, end_tiles)
-    num_processes = len(h5_filenames)
+    num_processes = 1 #len(h5_filenames)
     pool = multiprocessing.Pool(num_processes)
     log.debug("Finding boundaries with %d processes" % num_processes)
     pool.map_async(boundary_finder, h5_filenames).get(timeout=sys.maxint)
