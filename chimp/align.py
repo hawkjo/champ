@@ -82,6 +82,7 @@ def find_boundary_columns(channel, alignment_parameters, alignment_tile_data, um
         left_column, right_column, tile_map = find_ends(grid, figure_processor)
         print("!!!", base_name, left_column, right_column, tile_map)
         end_tiles[base_name] = left_column, right_column, tile_map
+        print("endtiles", end_tiles)
 
 
 def load_read_names(file_path):
@@ -117,9 +118,11 @@ def find_ends(grid, figure_processor):
 def get_expected_tile_map(left_tiles, right_tiles, min_column, max_column):
     # Creates a dictionary that relates each column of microscope images to its expected tile, +/- 1.
     tile_map = defaultdict(list)
+    print("getm", left_tiles, right_tiles, min_column, max_column)
     min_tile = min([int(tile.key[-4:]) for tile in left_tiles])
     max_tile = max([int(tile.key[-4:]) for tile in right_tiles])
     normalization_factor = float(max_tile - min_tile + 1) / float(max_column - min_column)
+    print("mmn", min_tile, max_tile, normalization_factor)
     for column in range(min_column, max_column + 1):
         expected_tile_number = min(constants.MISEQ_TILE_COUNT,
                                    max(1, int(round(column * normalization_factor, 0)))) + min_tile - 1
