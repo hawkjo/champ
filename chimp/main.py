@@ -39,7 +39,6 @@ def main(**kwargs):
         log.info('')
 
     commands = {'align': align.main,
-                'second': align.second,
                 'preprocess': preprocess.main,
                 'map': mapreads.main,
                 'convert': convert.main
