@@ -26,10 +26,10 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, experiment, um_
         log.debug("whoops, no end tiles")
         exit()
     print("found end tiles")
-    exit()
+
     log.debug("Done finding boundaries!")
     print("end_tiles", end_tiles)
-
+    exit()
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
     num_processes = multiprocessing.cpu_count()
