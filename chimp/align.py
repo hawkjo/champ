@@ -7,6 +7,7 @@ import logging
 import h5py
 from collections import defaultdict
 import multiprocessing
+import sys
 
 log = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, experiment, um_
     num_processes = len(h5_filenames)
     pool = multiprocessing.Pool(num_processes)
     log.debug("Finding boundaries with %d processes" % num_processes)
-    pool.map_async(boundary_finder, h5_filenames)
+    pool.map_async(boundary_finder, h5_filenames).get(timeout=sys.maxint)
 
     if not end_tiles:
         log.debug("whoops, no end tiles")
@@ -34,7 +35,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, experiment, um_
     alignment_func = functools.partial(alignment, alignment_parameters, um_per_pixel,
                                        experiment, alignment_tile_data)
     pool = multiprocessing.Pool(num_processes)
-    pool.map_async(alignment_func, iterate_all_images(h5_filenames, end_tiles, channel))
+    pool.map_async(alignment_func, iterate_all_images(h5_filenames, end_tiles, channel)).get(timeout=sys.maxint)
     log.debug("Done aligning!")
 
 
