@@ -108,6 +108,7 @@ class FastqImageAligner(object):
         self.fq_im_scaled_dims = (self.fq_im_scaled_maxes + [1, 1]).astype(np.int)
 
     def find_hitting_tiles(self, possible_tile_keys, snr_thresh=1.2):
+        print("ftk", list(self.fastq_tiles.keys()))
         possible_tiles = [self.fastq_tiles[key] for key in possible_tile_keys
                           if key in self.fastq_tiles]
         impossible_tiles = [tile for tile in self.fastq_tiles.values() if tile not in possible_tiles]
