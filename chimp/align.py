@@ -132,8 +132,9 @@ def get_expected_tile_map(left_tiles, right_tiles, min_column, max_column):
 
 
 def format_tile_number(number):
-    # hardcoding 2000, since we can only physically image side 2 currently.
-    return 'lane1tile{0}'.format(2000 + number)
+    # this definitely looks like a temporary hack that will end up becoming the most enduring
+    # part of this codebase
+    return 'lane1tile{0}'.format(2100 + number)
 
 
 def find_end_tile(figure_processor, images, possible_tiles):
