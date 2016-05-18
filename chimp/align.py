@@ -80,6 +80,7 @@ def find_boundary_columns(channel, alignment_parameters, alignment_tile_data, um
         # Find the outermost columns of image data where we overlap with FastQ tile reads
         # We do this so we can skip any images that are definitely not going to be useful to us
         left_column, right_column, tile_map = find_ends(grid, figure_processor)
+        print("!!!", base_name, left_column, right_column, tile_map)
         end_tiles[base_name] = left_column, right_column, tile_map
 
 
@@ -109,6 +110,7 @@ def find_ends(grid, figure_processor):
                                      right_tiles,
                                      left_column,
                                      right_column)
+
     return left_column, right_column, tile_map
 
 
