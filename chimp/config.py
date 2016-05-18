@@ -91,7 +91,6 @@ class Experiment(object):
     @property
     def alignment_file(self):
         return os.path.join(self.results_directory, 'align')
-
     @property
     def fourier_data_directory(self):
         return os.path.join(self.data_directory, 'from_fourierseq')
@@ -127,7 +126,7 @@ class AlignmentParameters(object):
 
     @property
     def rotation_estimate(self):
-        return 0.0
+        return 180.0
 
     @property
     def snr_threshold(self):
