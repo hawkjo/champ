@@ -63,10 +63,11 @@ def process_hdf5(align_run_name, hdf5_fpath, align_param_fpath, channel, im_idx)
                                                                  ', '.join(f.keys())))
         g = f[channel]
         def process_im_wrapper(tup):
-            dset_name, im = tup
+            dset_name, im, im_idx = tup
             im_bname = hdf5_tools.bname_given_channel_and_dset_name(channel, dset_name)
             aligned_im_bname = hdf5_tools.bname_given_channel_and_dset_name(aligned_channel, dset_name)
             process_im(im,
+                       im_idx,
                        im_bname,
                        aligned_im_bname,
                        sexcat_dir,
@@ -78,10 +79,11 @@ def process_hdf5(align_run_name, hdf5_fpath, align_param_fpath, channel, im_idx)
         dset_names.sort()
         dset_name = dset_names[im_idx]
         im = np.array(g[dset_name])
-        process_im_wrapper((dset_name, im))
+        process_im_wrapper((dset_name, im, im_idx))
 
         
 def process_im(im,
+               im_idx,
                im_bname,
                aligned_im_bname,
                sexcat_dir,
@@ -116,11 +118,12 @@ def process_im(im,
     fic.output_intensity_results(intensity_fpath)
     fic.write_alignment_stats(stats_fpath)
 
-    ax = fic.plot_all_hits()
-    ax.figure.savefig(os.path.join(fig_dir, '{}_all_hits.pdf'.format(im_bname)))
+    if im_idx % 20 == 0:
+        ax = fic.plot_all_hits()
+        ax.figure.savefig(os.path.join(fig_dir, '{}_all_hits.pdf'.format(im_bname)))
 
-    ax = fic.plot_hit_hists()
-    ax.figure.savefig(os.path.join(fig_dir, '{}_hit_hists.pdf'.format(im_bname)))
+        ax = fic.plot_hit_hists()
+        ax.figure.savefig(os.path.join(fig_dir, '{}_hit_hists.pdf'.format(im_bname)))
 
     all_fic = fastqimagecorrelator.FastqImageCorrelator(project_name)
     all_tile_data = local_config.fastq_tiles_given_read_name_fpath(all_read_names_fpath)
