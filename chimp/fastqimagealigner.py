@@ -21,7 +21,7 @@ class FastqImageAligner(object):
         self.fastq_tiles_list = []
         self.fastq_tiles_keys = []
         self.image_data = None
-        self.fq_w = 927  # um
+        self.fq_w = 935  # um
         self.control_corr = 0
         # self.rcs_in_frame = []
         # self.aligned_rcs_in_frame = None
@@ -115,7 +115,7 @@ class FastqImageAligner(object):
         control_tiles = impossible_tiles[:2]
         self.image_data.set_fft(self.fq_im_scaled_dims)
         self.control_corr = 0
-        del impossible_tiles
+
         for control_tile in control_tiles:
             corr, _ = control_tile.fft_align_with_im(self.image_data)
             if corr > self.control_corr:
