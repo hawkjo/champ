@@ -89,12 +89,9 @@ class Experiment(object):
         return 'data'
 
     @property
-    def stats_file(self):
-        return os.path.join(self.results_directory, 'stats.txt')
-
-    @property
     def alignment_file(self):
         return os.path.join(self.results_directory, 'align')
+
     @property
     def fourier_data_directory(self):
         return os.path.join(self.data_directory, 'from_fourierseq')

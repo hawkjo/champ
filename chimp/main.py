@@ -38,12 +38,13 @@ def main(**kwargs):
     for _ in range(2):
         log.info('')
 
-    commands = {'align': align,
-                'preprocess': preprocess,
-                'map': mapreads,
-                'convert': convert
+    commands = {'align': align.main,
+                'second': align.second,
+                'preprocess': preprocess.main,
+                'map': mapreads.main,
+                'convert': convert.main
                 }
-    commands[arguments.command].main(arguments)
+    commands[arguments.command](arguments)
 
 
 if __name__ == '__main__':
