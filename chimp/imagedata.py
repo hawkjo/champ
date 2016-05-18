@@ -1,6 +1,5 @@
 import numpy as np
 from chimp import misc
-from skimage import io
 
 
 class ImageData(object):
@@ -27,6 +26,4 @@ class ImageData(object):
         padded_im = np.pad(self.image,
                            ((int(padding[0]), int(w-totalx)), (int(padding[1]), int(h-totaly))),
                            mode='constant')
-        io.imshow(padded_im)
-        io.show()
         self.fft = np.fft.fft2(padded_im)
