@@ -24,7 +24,8 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, experiment, um_
     if not end_tiles:
         log.debug("whoops, no end tiles")
         exit()
-
+    print("found end tiles")
+    exit()
     log.debug("Done finding boundaries!")
     print("end_tiles", end_tiles)
 
