@@ -138,14 +138,6 @@ def get_expected_tile_map(left_tiles, right_tiles, min_column, max_column):
             tile_map[tile_map_column].append(format_tile_number(expected - 1))
     return tile_map
 
-    #     tile_map[column].append(format_tile_number(expected_tile_number))
-    #     # pad one tile in either direction, unless we're at the edge
-    #     if expected_tile_number > min_tile:
-    #         tile_map[column].append(format_tile_number(expected_tile_number - 1))
-    #     if expected_tile_number < max_tile:
-    #         tile_map[column].append(format_tile_number(expected_tile_number + 1))
-    # return tile_map
-
 
 def format_tile_number(number):
     # this definitely looks like a temporary hack that will end up becoming the most enduring
