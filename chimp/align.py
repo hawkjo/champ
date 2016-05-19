@@ -1,4 +1,5 @@
 from chimp import constants
+import itertools
 import fastqimagealigner
 from chimp.grid import GridImages
 import functools
@@ -116,26 +117,34 @@ def find_ends(grid, figure_processor):
 def get_expected_tile_map(left_tiles, right_tiles, min_column, max_column):
     # Creates a dictionary that relates each column of microscope images to its expected tile, +/- 1.
     tile_map = defaultdict(list)
-    min_tile = min([int(tile.key[-4:]) for tile in left_tiles])
-    max_tile = max([int(tile.key[-4:]) for tile in right_tiles])
-    normalization_factor = float(max_tile - min_tile + 1) / float(max_column - min_column)
-    print("mmn", min_tile, max_tile, min_column, max_column, normalization_factor)
-    # handle case where left tiles are on the right (and thus higher in number)
-    tiles = range(min(min_column, max_column), max(min_column, max_column) + 1)
-    if min_tile > max_tile:
-        min_tile, max_tile = max_tile, min_tile
-        tiles = reversed(tiles)
-
-    for column in tiles:
-        expected_tile_number = min(constants.MISEQ_TILE_COUNT,
-                                   max(1, int(round(column * normalization_factor, 0)))) + min_tile - 1
-        tile_map[column].append(format_tile_number(expected_tile_number))
-        # pad one tile in either direction, unless we're at the edge
-        if expected_tile_number > min_tile:
-            tile_map[column].append(format_tile_number(expected_tile_number - 1))
-        if expected_tile_number < max_tile:
-            tile_map[column].append(format_tile_number(expected_tile_number + 1))
+    left_tiles = [int(tile.key[-4:]) for tile in left_tiles]
+    right_tiles = [int(tile.key[-4:]) for tile in right_tiles]
+    min_tile = min(itertools.chain(left_tiles, right_tiles))
+    max_tile = max(itertools.chain(left_tiles, right_tiles))
+    if min_tile not in left_tiles:
+        reverse = True
+    else:
+        reverse = False
+    normalization_factor = float(abs(max_tile - min_tile) + 1) / float(max_column - min_column)
+    for column in range(min_column, max_column + 1):
+        expected = int(round(normalization_factor * column)) - 1
+        expected = min(constants.MISEQ_TILE_COUNT, max(0, expected)) + min_tile
+        tile_map_column = column if not reverse else max_column - column
+        tile_map[tile_map_column].append(format_tile_number(expected))
+        # print(expected, min_tile, max_tile, reverse)
+        if expected < max_tile:
+            tile_map[tile_map_column].append(format_tile_number(expected + 1))
+        if expected > min_tile:
+            tile_map[tile_map_column].append(format_tile_number(expected - 1))
     return tile_map
+
+    #     tile_map[column].append(format_tile_number(expected_tile_number))
+    #     # pad one tile in either direction, unless we're at the edge
+    #     if expected_tile_number > min_tile:
+    #         tile_map[column].append(format_tile_number(expected_tile_number - 1))
+    #     if expected_tile_number < max_tile:
+    #         tile_map[column].append(format_tile_number(expected_tile_number + 1))
+    # return tile_map
 
 
 def format_tile_number(number):
