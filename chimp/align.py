@@ -51,22 +51,23 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
     image, possible_tile_keys, base_name = image_data
     log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
     # first get the correlation to random tiles, so we can distinguish signal from noise
-    fia = process_fig(alignment_parameters, base_name, alignment_tile_data,  um_per_pixel,
-                      experiment, image, possible_tile_keys)
+    fia = process_alignment_image(alignment_parameters, base_name, alignment_tile_data,  um_per_pixel,
+                                  experiment, image, possible_tile_keys)
     if fia.hitting_tiles:
         # The image data aligned with FastQ reads!
         fia.precision_align_only(hit_type=('exclusive', 'good_mutual'),
                                  min_hits=alignment_parameters.min_hits)
         write_output(image.index, base_name, fia, experiment, alignment_tile_data)
     # The garbage collector takes its sweet time for some reason, so we have to manually delete
-    # these objects or memory usage blows up
+    # these objects or memory usage blows up.
     del fia
     del image
 
 
 def iterate_all_images(h5_filenames, end_tiles, channel):
-    # To allow full parallel processing of data, we need to be able to iterate over every image
-    # The order doesn't really matter since alignment can be done independently
+    # We need an iterator over all images to feed the parallel processes. Since each image is
+    # processed independently and in no particular order, we need to return information in addition
+    # to the image itself that allow files to be written in the correct place and such
     for h5_filename in h5_filenames:
         base_name = os.path.splitext(h5_filename)[0]
         with h5py.File(h5_filename) as h5:
@@ -84,7 +85,7 @@ def find_boundary_columns(channel, alignment_parameters, alignment_tile_data, um
         grid = GridImages(h5, channel)
 
         # We need to call process_fig() several times with almost the same parameters
-        figure_processor = functools.partial(process_fig, alignment_parameters, base_name,
+        figure_processor = functools.partial(process_alignment_image, alignment_parameters, base_name,
                                              alignment_tile_data, um_per_pixel, experiment)
 
         # Find the outermost columns of image data where we overlap with FastQ tile reads
@@ -183,7 +184,7 @@ def find_end_tile(figure_processor, images, possible_tiles):
             log.debug("%s did not align to any tiles." % image.index)
 
 
-def process_fig(alignment_parameters, base_name, tile_data,
+def process_alignment_image(alignment_parameters, base_name, tile_data,
                 um_per_pixel, experiment, image, possible_tile_keys):
     for directory in (experiment.figure_directory, experiment.results_directory):
         full_directory = os.path.join(directory, base_name)
@@ -196,12 +197,12 @@ def process_fig(alignment_parameters, base_name, tile_data,
     fic.set_sexcat_from_file(sexcat_fpath)
     fic.rough_align(possible_tile_keys,
                     alignment_parameters.rotation_estimate,
-                    alignment_parameters.fq_w_est,
+                    alignment_parameters.fastq_tile_width_estimate,
                     snr_thresh=alignment_parameters.snr_threshold)
     return fic
 
 
-def process_second_fig(alignment_parameters, base_name, tile_data, um_per_pixel, experiment, image):
+def process_data_image(alignment_parameters, base_name, tile_data, um_per_pixel, experiment, image):
     sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
     stats_filepath = os.path.join(experiment.results_directory,
                                   base_name,

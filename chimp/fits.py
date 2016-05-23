@@ -116,7 +116,6 @@ def create_fits_files(h5_base_name):
         grid = GridImages(h5, channel)
         for n, image in enumerate(grid):
             xyz_file = XYZFile(image)
-            # TODO: The exact format of the filename will change, John has something figured out
             xyz_path = "%s.xyz" % os.path.join(h5_base_name, image.index)
             with open(xyz_path, "w+") as f:
                 f.write(str(xyz_file))

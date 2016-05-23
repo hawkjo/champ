@@ -111,7 +111,8 @@ class AlignmentParameters(object):
         return 'mapped_reads/unclassified'
 
     @property
-    def fq_w_est(self):
+    def fastq_tile_width_estimate(self):
+        # width of a tile of Illumina data, in microns
         return 935.0
 
     @property
