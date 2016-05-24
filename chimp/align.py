@@ -74,7 +74,7 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
     # to the image itself that allow files to be written in the correct place and such
     for h5_filename in h5_filenames:
         # TODO: Delete next two lines
-        if '10_nm' not in h5_filename:
+        if '10_nM' not in h5_filename:
             continue
         base_name = os.path.splitext(h5_filename)[0]
         with h5py.File(h5_filename) as h5:
