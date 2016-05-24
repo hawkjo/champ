@@ -10,6 +10,7 @@ from collections import defaultdict
 import multiprocessing
 from multiprocessing import Manager
 import sys
+from pprint import pprint
 
 log = logging.getLogger(__name__)
 
@@ -48,7 +49,12 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, experiment, um_
 def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_tile_data, image_data):
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
+    print(image_data)
     image, possible_tile_keys, base_name = image_data
+    print(image)
+    print(possible_tile_keys)
+    print(base_name)
+    pprint(image.__dict__)
     log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
     # first get the correlation to random tiles, so we can distinguish signal from noise
     fia = process_alignment_image(alignment_parameters, base_name, alignment_tile_data,  um_per_pixel,
@@ -113,9 +119,10 @@ def find_ends(grid, figure_processor):
     right_side_tiles = [format_tile_number(2100 + num) for num in range(1, 11)]
     left_side_tiles = [format_tile_number(2100 + num) for num in reversed(range(11, 20))]
 
-    left_tiles, left_column = find_end_tile(figure_processor, grid.left_iter(), left_side_tiles)
-    right_tiles, right_column = find_end_tile(figure_processor, grid.right_iter(), right_side_tiles)
-
+    # left_tiles, left_column = find_end_tile(figure_processor, grid.left_iter(), left_side_tiles)
+    # right_tiles, right_column = find_end_tile(figure_processor, grid.right_iter(), right_side_tiles)
+    left_tiles, left_column = ['lane1tile2114'], 58
+    right_tiles, right_column = ['lane1tile2104'], 0
     # do full alignment for images
     # skip end tile finding for make fast
     tile_map = get_expected_tile_map(left_tiles,
