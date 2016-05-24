@@ -91,7 +91,7 @@ def find_boundary_columns(channel, alignment_parameters, alignment_tile_data, um
         # Find the outermost columns of image data where we overlap with FastQ tile reads
         # We do this so we can skip any images that are definitely not going to be useful to us
         left_column, right_column, tile_map = find_ends(grid, figure_processor)
-        end_tiles[base_name] = left_column, right_column, tile_map
+        end_tiles[h5_filename] = left_column, right_column, tile_map
 
 
 def load_read_names(file_path):
