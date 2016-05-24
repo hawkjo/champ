@@ -51,7 +51,9 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
     # FastQ reads to disk
     print(image_data)
     image, possible_tile_keys, base_name = image_data
-    print(image)
+    print(image.index)
+    print(image.column)
+    print(image.row)
     print(possible_tile_keys)
     print(base_name)
     pprint(image.__dict__)

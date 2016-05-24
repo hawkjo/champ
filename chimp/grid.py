@@ -11,6 +11,7 @@ class Image(np.ndarray):
         return np.asarray(array).view(cls)
 
     def __init__(self, array, row, column, channel):
+        print("i'm an image and my row is %s" % row)
         self.row = row
         self.column = column
         self.channel = channel
