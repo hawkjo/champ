@@ -73,9 +73,6 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
     # processed independently and in no particular order, we need to return information in addition
     # to the image itself that allow files to be written in the correct place and such
     for h5_filename in h5_filenames:
-        # TODO: Delete next two lines
-        if '10_nM' not in h5_filename:
-            continue
         base_name = os.path.splitext(h5_filename)[0]
         with h5py.File(h5_filename) as h5:
             grid = GridImages(h5, channel)
@@ -106,7 +103,6 @@ def find_boundary_columns(channel, alignment_parameters, alignment_tile_data, um
 
 def load_read_names(file_path):
     # reads a FastQ file with Illumina read names
-    # TODO: Does this add the read name and sequence to the value?
     with open(file_path) as f:
         tiles = defaultdict(set)
         for line in f:
