@@ -119,10 +119,9 @@ def find_ends(grid, figure_processor):
     right_side_tiles = [format_tile_number(2100 + num) for num in range(1, 11)]
     left_side_tiles = [format_tile_number(2100 + num) for num in reversed(range(11, 20))]
 
-    # left_tiles, left_column = find_end_tile(figure_processor, grid.left_iter(), left_side_tiles)
-    # right_tiles, right_column = find_end_tile(figure_processor, grid.right_iter(), right_side_tiles)
-    left_tiles, left_column = ['lane1tile2114'], 58
-    right_tiles, right_column = ['lane1tile2104'], 0
+    left_tiles, left_column = find_end_tile(figure_processor, grid.left_iter(), left_side_tiles)
+    right_tiles, right_column = find_end_tile(figure_processor, grid.right_iter(), right_side_tiles)
+
     # do full alignment for images
     # skip end tile finding for make fast
     tile_map = get_expected_tile_map(left_tiles,
