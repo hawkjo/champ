@@ -10,7 +10,7 @@ with open('requirements.txt') as f:
 if __name__ == '__main__':
     setup(
         name='chimp',
-        packages=['chimp', 'chimp.controller', 'chimp.model'],
+        packages=['chimp', 'chimp.controller'],
         install_requires=requirements,
         version=VERSION,
         entry_points={
