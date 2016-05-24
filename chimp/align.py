@@ -10,7 +10,6 @@ from collections import defaultdict
 import multiprocessing
 from multiprocessing import Manager
 import sys
-from pprint import pprint
 
 log = logging.getLogger(__name__)
 
@@ -54,13 +53,6 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
         image = grid.get(row, column)
-    print(type(image))
-    print(image.index)
-    print(image.column)
-    print(image.row)
-    print(possible_tile_keys)
-    print(base_name)
-    pprint(image.__dict__)
     log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
     # first get the correlation to random tiles, so we can distinguish signal from noise
     fia = process_alignment_image(alignment_parameters, base_name, alignment_tile_data,  um_per_pixel,
@@ -81,6 +73,9 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
     # processed independently and in no particular order, we need to return information in addition
     # to the image itself that allow files to be written in the correct place and such
     for h5_filename in h5_filenames:
+        # TODO: Delete next two lines
+        if '10_nm' not in h5_filename:
+            continue
         base_name = os.path.splitext(h5_filename)[0]
         with h5py.File(h5_filename) as h5:
             grid = GridImages(h5, channel)
