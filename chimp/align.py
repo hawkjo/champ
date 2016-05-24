@@ -49,8 +49,11 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, experiment, um_
 def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_tile_data, image_data):
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
-    print(image_data)
-    image, possible_tile_keys, base_name = image_data
+    row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
+    # image, possible_tile_keys, base_name = image_data
+    with h5py.File(h5_filename) as h5:
+        grid = GridImages(h5, channel)
+        image = grid.get(row, column)
     print(type(image))
     print(image.index)
     print(image.column)
@@ -82,8 +85,11 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
         with h5py.File(h5_filename) as h5:
             grid = GridImages(h5, channel)
             left_column, right_column, tile_map = end_tiles[h5_filename]
-            for image in grid.bounded_iter(left_column, right_column):
-                yield image, tile_map[image.column], base_name
+            for column in range(left_column, right_column):
+                for row in range(grid._height):
+                    image = grid.get(row, column)
+                    if image is not None:
+                        yield row, column, channel, h5_filename, tile_map[image.column], base_name
 
 
 def find_boundary_columns(channel, alignment_parameters, alignment_tile_data, um_per_pixel,
