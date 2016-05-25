@@ -20,8 +20,8 @@ def main(clargs):
     phix_tile_data = align.load_read_names(alignment_parameters.aligning_read_names_filepath)
     all_tile_data = align.load_read_names(alignment_parameters.all_read_names_filepath)
     all_tile_data.update(phix_tile_data)
-    print(len(phix_tile_data))
-    print(len(all_tile_data))
+    print(sum([len(val) for val in phix_tile_data.values()]))
+    print(sum([len(val) for val in all_tile_data.values()]))
     exit()
     log.debug("Tile data loaded.")
     align.run(h5_filenames, alignment_parameters, phix_tile_data, all_tile_data, experiment,
