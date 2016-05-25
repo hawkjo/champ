@@ -12,6 +12,7 @@ log = logging.getLogger(__name__)
 def main(clargs):
     h5_filenames = list(filter(lambda x: x.endswith('.h5'), os.listdir(clargs.image_directory)))
     h5_filenames = [os.path.join(clargs.image_directory, filename) for filename in h5_filenames]
+    h5_filenames = [f for f in h5_filenames if '10_nM' in f]
     experiment = Experiment(clargs.project_name)
     um_per_pixel = 0.2666666666
     alignment_parameters = AlignmentParameters(clargs)
