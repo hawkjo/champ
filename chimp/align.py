@@ -105,17 +105,13 @@ def find_boundary_columns(channel, alignment_parameters, alignment_tile_data, um
 
 def load_read_names(file_path):
     # reads a FastQ file with Illumina read names
-    print("load read names")
     with open(file_path) as f:
-        print(file_path, "opened")
         tiles = defaultdict(set)
         for line in f:
             lane, tile = line.strip().rsplit(':', 4)[1:3]
             key = 'lane{0}tile{1}'.format(lane, tile)
             tiles[key].add(line.strip())
-            print(key, line.strip())
     del f
-    print("done loading read names")
     return {key: list(values) for key, values in tiles.items()}
 
 
