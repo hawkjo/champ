@@ -14,7 +14,8 @@ import sys
 log = logging.getLogger(__name__)
 
 
-def run(h5_filenames, alignment_parameters, alignment_tile_data, experiment, um_per_pixel, channel):
+def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data,
+        experiment, um_per_pixel, channel):
     # Each process will work on a single concentration and find which Illumina tiles we have data for
     # To combine the results into a single dictionary we use a multiprocessing Manager dictionary
     end_tiles = Manager().dict()
@@ -38,14 +39,15 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, experiment, um_
     num_processes = multiprocessing.cpu_count()
     log.debug("Aligning all images with %d cores" % num_processes)
     alignment_func = functools.partial(perform_alignment, alignment_parameters, um_per_pixel,
-                                       experiment, alignment_tile_data)
+                                       experiment, alignment_tile_data, all_tile_data)
     pool = multiprocessing.Pool(num_processes)
     pool.map_async(alignment_func,
                    iterate_all_images(h5_filenames, end_tiles, channel)).get(timeout=sys.maxint)
     log.debug("Done aligning!")
 
 
-def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_tile_data, image_data):
+def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_tile_data,
+                      all_tile_data, image_data):
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
     row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
@@ -61,7 +63,7 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
         # The image data aligned with FastQ reads!
         fia.precision_align_only(hit_type=('exclusive', 'good_mutual'),
                                  min_hits=alignment_parameters.min_hits)
-        write_output(image.index, base_name, fia, experiment, alignment_tile_data)
+        write_output(image.index, base_name, fia, experiment, all_tile_data)
     # The garbage collector takes its sweet time for some reason, so we have to manually delete
     # these objects or memory usage blows up.
     del fia
