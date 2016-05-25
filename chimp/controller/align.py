@@ -21,7 +21,7 @@ def main(clargs):
     print(sum([len(v) for v in phix_tile_data.values()]))
     unclassified_tile_data = align.load_read_names(alignment_parameters.all_read_names_filepath)
     print(sum([len(v) for v in unclassified_tile_data.values()]))
-    all_tile_data = {key: phix_tile_data.get(key, []) + unclassified_tile_data.get(key, [])
+    all_tile_data = {key: list(set(phix_tile_data.get(key, []) + unclassified_tile_data.get(key, [])))
                      for key in list(unclassified_tile_data.keys()) + list(phix_tile_data.keys())}
     print(sum([len(v) for v in all_tile_data.values()]))
     log.debug("Tile data loaded.")
