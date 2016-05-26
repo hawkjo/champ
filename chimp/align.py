@@ -25,19 +25,19 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     num_processes = len(h5_filenames)
     pool = multiprocessing.Pool(num_processes)
 
-    first_file = h5_filenames[0]
-    grid = GridImages(first_file, channel)
-    # find columns/tiles on the left side
+    with h5py.File(h5_filenames[0]) as first_file:
+        grid = GridImages(first_file, channel)
+        # find columns/tiles on the left side
 
-    base_column_checker = functools.partial(check_column_for_alignment, channel, alignment_parameters,
-                                            alignment_tile_data, um_per_pixel, experiment)
-    right_side_tiles = [format_tile_number(2100 + num) for num in range(1, 11)]
-    left_side_tiles = [format_tile_number(2100 + num) for num in reversed(range(11, 20))]
+        base_column_checker = functools.partial(check_column_for_alignment, channel, alignment_parameters,
+                                                alignment_tile_data, um_per_pixel, experiment)
+        right_side_tiles = [format_tile_number(2100 + num) for num in range(1, 11)]
+        left_side_tiles = [format_tile_number(2100 + num) for num in reversed(range(11, 20))]
 
-    left_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, grid.columns, left_side_tiles)
-    right_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), right_side_tiles)
-    print("Done with end finding")
-    exit()
+        left_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, grid.columns, left_side_tiles)
+        right_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), right_side_tiles)
+        print("Done with end finding")
+        exit()
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk

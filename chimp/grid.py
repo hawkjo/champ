@@ -47,6 +47,8 @@ class GridImages(object):
         regex = re.compile('''^\(Major, minor\) = \((?P<column>\d+), (?P<row>\d+)\)$''')
         max_row = 0
         max_column = 0
+        print(self._h5)
+        print(self._channel)
         for key in self._h5[self._channel].keys():
             match = regex.search(key)
             if match:
