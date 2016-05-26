@@ -35,8 +35,6 @@ class FastqImageAligner(object):
     def load_reads(self, tile_data, valid_keys=None):
         for tile_key, read_names in tile_data.items():
             if valid_keys is None or tile_key in valid_keys:
-                print(tile_key)
-                print(len(read_names))
                 self.fastq_tiles[tile_key] = FastqTileRCs(tile_key, read_names)
         self.fastq_tiles_list = [tile for tile_key, tile in sorted(self.fastq_tiles.items())]
 
@@ -299,7 +297,6 @@ class FastqImageAligner(object):
             offset = np.array([x_offset, y_offset])
             theta = np.arctan2(beta, alpha)
             lbda = alpha / np.cos(theta)
-            print("Alignment:", lbda, theta, offset)
             tile.set_aligned_rcs_given_transform(lbda, theta, offset)
             tile.set_correlation(self.image_data.image)
             if hasattr(self, 'control_corr'):
