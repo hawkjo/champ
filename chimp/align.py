@@ -23,13 +23,15 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     # usually finds a result in the first image or two, it's not going to deliver any practical benefits
     num_processes = len(h5_filenames)
     pool = multiprocessing.Pool(num_processes)
+    fia = fastqimagealigner.FastqImageAligner(experiment)
+    fia.load_reads(alignment_tile_data)
 
     with h5py.File(h5_filenames[0]) as first_file:
         grid = GridImages(first_file, channel)
         # find columns/tiles on the left side
 
         base_column_checker = functools.partial(check_column_for_alignment, channel, alignment_parameters,
-                                                alignment_tile_data, um_per_pixel, experiment)
+                                                alignment_tile_data, um_per_pixel, experiment, fia)
         right_side_tiles = [format_tile_number(2100 + num) for num in range(1, 11)]
         left_side_tiles = [format_tile_number(2100 + num) for num in reversed(range(11, 20))]
 
@@ -63,13 +65,14 @@ def get_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_k
 
 
 def check_column_for_alignment(channel, alignment_parameters, alignment_tile_data, um_per_pixel,
-                               experiment, end_tiles, column, possible_tile_keys, h5_filename):
+                               experiment, fia, end_tiles, column, possible_tile_keys, h5_filename):
     base_name = os.path.splitext(h5_filename)[0]
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
         image = grid.get(3, column)
         fia = process_alignment_image(alignment_parameters, base_name, alignment_tile_data,
-                                      um_per_pixel, experiment, image, possible_tile_keys)
+                                      um_per_pixel, experiment, image, possible_tile_keys,
+                                      preloaded_fia=fia)
         if fia.hitting_tiles:
             log.debug("%s aligned to at least one tile!" % image.index)
             # because of the way we iterate through the images, if we find one that aligns,
@@ -225,14 +228,17 @@ def format_tile_number(number):
 
 
 def process_alignment_image(alignment_parameters, base_name, tile_data,
-                um_per_pixel, experiment, image, possible_tile_keys):
+                um_per_pixel, experiment, image, possible_tile_keys, preloaded_fia=None):
     for directory in (experiment.figure_directory, experiment.results_directory):
         full_directory = os.path.join(directory, base_name)
         if not os.path.exists(full_directory):
             os.makedirs(full_directory)
     sexcat_fpath = os.path.join(base_name, '%s.cat' % image.index)
-    fia = fastqimagealigner.FastqImageAligner(experiment)
-    fia.load_reads(tile_data)
+    if preloaded_fia is None:
+        fia = fastqimagealigner.FastqImageAligner(experiment)
+        fia.load_reads(tile_data)
+    else:
+        fia = preloaded_fia
     fia.set_image_data(image, um_per_pixel)
     fia.set_sexcat_from_file(sexcat_fpath)
     fia.rough_align(possible_tile_keys,
