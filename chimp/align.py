@@ -75,7 +75,7 @@ def check_column_for_alignment(channel, alignment_parameters, alignment_tile_dat
             # because of the way we iterate through the images, if we find one that aligns,
             # we can just stop because that gives us the outermost column of images and the
             # outermost FastQ tile
-            end_tiles[h5_filename] = list(fia.hitting_tiles.keys()), image.column
+            end_tiles[h5_filename] = [tile.key for tile in fia.hitting_tiles], image.column
 
 
 def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_tile_data,
