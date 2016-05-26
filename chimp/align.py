@@ -31,8 +31,11 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
 
     base_column_checker = functools.partial(check_column_for_alignment, channel, alignment_parameters,
                                             alignment_tile_data, um_per_pixel, experiment)
-    left_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, grid.columns)
-    right_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns))
+    right_side_tiles = [format_tile_number(2100 + num) for num in range(1, 11)]
+    left_side_tiles = [format_tile_number(2100 + num) for num in reversed(range(11, 20))]
+
+    left_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, grid.columns, left_side_tiles)
+    right_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), right_side_tiles)
     print("Done with end finding")
     exit()
 
@@ -48,10 +51,10 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     # log.debug("Done aligning!")
 
 
-def get_bounds(pool, h5_filenames, base_column_checker, columns):
+def get_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_keys):
     end_tiles = Manager().dict()
     for column in columns:
-        column_checker = functools.partial(base_column_checker, column)
+        column_checker = functools.partial(base_column_checker, end_tiles, column, possible_tile_keys)
         print("Checking column %s" % column)
         pool.map_async(column_checker, h5_filenames)
         print("Done checking column %s" % column)
@@ -61,6 +64,23 @@ def get_bounds(pool, h5_filenames, base_column_checker, columns):
             return end_tiles
     print("No end tiles were found!!!!")
     return False
+
+
+def check_column_for_alignment(channel, alignment_parameters, alignment_tile_data, um_per_pixel,
+                               experiment, end_tiles, column, possible_tile_keys, h5_filename):
+    base_name = os.path.splitext(h5_filename)[0]
+    with h5py.File(h5_filename) as h5:
+        grid = GridImages(h5, channel)
+        image = grid.get(3, column)
+    fia = process_alignment_image(alignment_parameters, base_name, alignment_tile_data,  um_per_pixel,
+                                  experiment, image, possible_tile_keys)
+    if fia.hitting_tiles:
+        log.debug("%s aligned to at least one tile!" % image.index)
+        # because of the way we iterate through the images, if we find one that aligns,
+        # we can just stop because that gives us the outermost column of images and the
+        # outermost FastQ tile
+        end_tiles[h5_filename] = fia.hitting_tiles, image.column
+
 
 def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_tile_data,
                       all_tile_data, image_data):
