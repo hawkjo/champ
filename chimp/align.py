@@ -10,7 +10,6 @@ from collections import defaultdict
 import multiprocessing
 from multiprocessing import Manager
 import sys
-from chimp.end import *
 
 log = logging.getLogger(__name__)
 
@@ -37,6 +36,8 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         left_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, grid.columns, left_side_tiles)
         right_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), right_side_tiles)
         print("Done with end finding")
+        print(left_end_tiles)
+        print(right_end_tiles)
         exit()
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
