@@ -69,17 +69,23 @@ def get_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_k
 def check_column_for_alignment(channel, alignment_parameters, alignment_tile_data, um_per_pixel,
                                experiment, end_tiles, column, possible_tile_keys, h5_filename):
     base_name = os.path.splitext(h5_filename)[0]
+    print("ccfa", h5_filename)
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
         image = grid.get(3, column)
+    print("pai for ccfa", h5_filename)
     fia = process_alignment_image(alignment_parameters, base_name, alignment_tile_data,  um_per_pixel,
                                   experiment, image, possible_tile_keys)
+    print("done PAIing")
+
     if fia.hitting_tiles:
         log.debug("%s aligned to at least one tile!" % image.index)
         # because of the way we iterate through the images, if we find one that aligns,
         # we can just stop because that gives us the outermost column of images and the
         # outermost FastQ tile
         end_tiles[h5_filename] = fia.hitting_tiles, image.column
+    else:
+        print("No align", h5_filename)
 
 
 def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_tile_data,
@@ -230,20 +236,26 @@ def format_tile_number(number):
 
 def process_alignment_image(alignment_parameters, base_name, tile_data,
                 um_per_pixel, experiment, image, possible_tile_keys):
+    print("making dirs")
     for directory in (experiment.figure_directory, experiment.results_directory):
         full_directory = os.path.join(directory, base_name)
         if not os.path.exists(full_directory):
             os.makedirs(full_directory)
     sexcat_fpath = os.path.join(base_name, '%s.cat' % image.index)
-    fic = fastqimagealigner.FastqImageAligner(experiment)
-    fic.load_reads(tile_data)
-    fic.set_image_data(image, um_per_pixel)
-    fic.set_sexcat_from_file(sexcat_fpath)
-    fic.rough_align(possible_tile_keys,
+    print("building fic")
+    fia = fastqimagealigner.FastqImageAligner(experiment)
+    print("loading reads")
+    fia.load_reads(tile_data)
+    print("setting image data")
+    fia.set_image_data(image, um_per_pixel)
+    print("setting sexcat")
+    fia.set_sexcat_from_file(sexcat_fpath)
+    print("rough aligning")
+    fia.rough_align(possible_tile_keys,
                     alignment_parameters.rotation_estimate,
                     alignment_parameters.fastq_tile_width_estimate,
                     snr_thresh=alignment_parameters.snr_threshold)
-    return fic
+    return fia
 
 
 def process_data_image(alignment_parameters, base_name, tile_data, um_per_pixel, experiment, image):
