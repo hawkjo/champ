@@ -37,21 +37,31 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
 
         left_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, grid.columns, left_side_tiles)
         right_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), right_side_tiles)
-        print("Done with end finding")
-        print(left_end_tiles)
-        print(right_end_tiles)
-        exit()
+
+    # TODO: Decide what the default should be.
+    # It should be the most common tile/column for the respective side
+
+    # Now build up the end tile data structure
+    for filename in left_end_tiles:
+        try:
+            left_tiles, left_column = left_end_tiles[filename]
+            right_tiles, right_column = right_end_tiles[filename]
+        except KeyError:
+            # use default
+
+    get_expected_tile_map(left_tiles, right_tiles, min_column, max_column)
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
-    # num_processes = multiprocessing.cpu_count()
-    # log.debug("Aligning all images with %d cores" % num_processes)
-    # alignment_func = functools.partial(perform_alignment, alignment_parameters, um_per_pixel,
-    #                                    experiment, alignment_tile_data, all_tile_data)
-    # pool = multiprocessing.Pool(num_processes)
-    # pool.map_async(alignment_func,
-    #                iterate_all_images(h5_filenames, end_tiles, channel)).get(timeout=sys.maxint)
-    # log.debug("Done aligning!")
+    num_processes = multiprocessing.cpu_count()
+    log.debug("Aligning all images with %d cores" % num_processes)
+    alignment_func = functools.partial(perform_alignment, alignment_parameters, um_per_pixel,
+                                       experiment, alignment_tile_data, all_tile_data)
+    pool = multiprocessing.Pool(num_processes)
+    pool.map_async(alignment_func,
+                   iterate_all_images(h5_filenames, left_end_tiles,
+                                      right_end_tiles, channel)).get(timeout=sys.maxint)
+    log.debug("Done aligning!")
 
 
 def get_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_keys):
@@ -105,7 +115,7 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
     del image
 
 
-def iterate_all_images(h5_filenames, end_tiles, channel):
+def iterate_all_images(h5_filenames, left_end_tiles, right_end_tiles, channel):
     # We need an iterator over all images to feed the parallel processes. Since each image is
     # processed independently and in no particular order, we need to return information in addition
     # to the image itself that allow files to be written in the correct place and such
