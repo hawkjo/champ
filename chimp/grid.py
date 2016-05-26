@@ -56,6 +56,10 @@ class GridImages(object):
         self._height = max_row + 1
         self._width = max_column + 1
 
+    @property
+    def columns(self):
+        return [column for column in range(self._width)]
+
     def bounded_iter(self, min_column, max_column):
         """
         Iterates over all images between two columns (inclusive)
