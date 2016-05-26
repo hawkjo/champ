@@ -56,7 +56,7 @@ def get_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_k
     for column in columns:
         column_checker = functools.partial(base_column_checker, end_tiles, column, possible_tile_keys)
         print("Checking column %s" % column)
-        pool.map_async(column_checker, h5_filenames)
+        pool.map_async(column_checker, h5_filenames).get(sys.maxint)
         print("Done checking column %s" % column)
         if end_tiles:
             print("We found end tiles")
