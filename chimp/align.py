@@ -1,14 +1,14 @@
 from chimp import constants
-import itertools
-import fastqimagealigner
 from chimp.grid import GridImages
+from collections import Counter, defaultdict
+import fastqimagealigner
 import functools
-import os
-import logging
 import h5py
-from collections import defaultdict
+import itertools
+import logging
 import multiprocessing
 from multiprocessing import Manager
+import os
 import sys
 
 log = logging.getLogger(__name__)
@@ -38,18 +38,22 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         left_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, grid.columns, left_side_tiles)
         right_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), right_side_tiles)
 
-    # TODO: Decide what the default should be.
-    # It should be the most common tile/column for the respective side
-
+    default_left_tile, default_left_column = decide_default_tiles_and_columns(left_end_tiles)
+    default_right_tile, default_right_column = decide_default_tiles_and_columns(right_end_tiles)
+    end_tiles = {}
     # Now build up the end tile data structure
     for filename in left_end_tiles:
         try:
             left_tiles, left_column = left_end_tiles[filename]
+        except KeyError:
+            left_tiles, left_column = [default_left_tile], default_left_column
+        try:
             right_tiles, right_column = right_end_tiles[filename]
         except KeyError:
-            # use default
-
-    get_expected_tile_map(left_tiles, right_tiles, min_column, max_column)
+            right_tiles, right_column = [default_right_tile], default_right_column
+        min_column, max_column = min(left_column, right_column), max(left_column, right_column)
+        tile_map = get_expected_tile_map(left_tiles, right_tiles, min_column, max_column)
+        end_tiles[filename] = min_column, max_column, tile_map
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
@@ -59,9 +63,18 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
                                        experiment, alignment_tile_data, all_tile_data)
     pool = multiprocessing.Pool(num_processes)
     pool.map_async(alignment_func,
-                   iterate_all_images(h5_filenames, left_end_tiles,
-                                      right_end_tiles, channel)).get(timeout=sys.maxint)
+                   iterate_all_images(h5_filenames, end_tiles, channel)).get(timeout=sys.maxint)
     log.debug("Done aligning!")
+
+
+def decide_default_tiles_and_columns(end_tiles):
+    all_tiles = []
+    columns = []
+    for tiles, column in end_tiles.items():
+        for tile in tiles:
+            all_tiles.append(tile)
+        columns.append(column)
+    return Counter(all_tiles).most_common(1)[0][1], Counter(columns).most_common(1)[0][1]
 
 
 def get_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_keys):
@@ -115,7 +128,7 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
     del image
 
 
-def iterate_all_images(h5_filenames, left_end_tiles, right_end_tiles, channel):
+def iterate_all_images(h5_filenames, end_tiles, channel):
     # We need an iterator over all images to feed the parallel processes. Since each image is
     # processed independently and in no particular order, we need to return information in addition
     # to the image itself that allow files to be written in the correct place and such
@@ -123,8 +136,8 @@ def iterate_all_images(h5_filenames, left_end_tiles, right_end_tiles, channel):
         base_name = os.path.splitext(h5_filename)[0]
         with h5py.File(h5_filename) as h5:
             grid = GridImages(h5, channel)
-            left_column, right_column, tile_map = end_tiles[h5_filename]
-            for column in range(left_column, right_column):
+            min_column, max_column, tile_map = end_tiles[h5_filename]
+            for column in range(min_column, max_column):
                 for row in range(grid._height):
                     image = grid.get(row, column)
                     if image is not None:
