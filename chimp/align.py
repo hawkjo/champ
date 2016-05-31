@@ -75,7 +75,11 @@ def decide_default_tiles_and_columns(end_tiles):
         for tile in tiles:
             all_tiles.append(tile)
         columns.append(column)
-    return Counter(all_tiles).most_common(1)[0][1], Counter(columns).most_common(1)[0][1]
+    print("all_tiles", all_tiles)
+    print("columns", columns)
+    a, b = Counter(all_tiles).most_common(1), Counter(columns).most_common(1)
+    return a[0][1], b[0][1]
+    # return Counter(all_tiles).most_common(1)[0][1], Counter(columns).most_common(1)[0][1]
 
 
 def get_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_keys):
