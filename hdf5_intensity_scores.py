@@ -179,13 +179,13 @@ class IntensityScores(object):
             ax.legend()
 
     def print_reads_per_channel(self):
-        reads_per_channel = Counter()
+        reads_in_channel = defaultdict(set)
         for h5_fpath in self.h5_fpaths:
             for channel in self.scores[h5_fpath].keys():
                 for score_given_read_name in self.scores[h5_fpath][channel].values():
-                    reads_per_channel[channel] += len(score_given_read_name)
-        for channel, num_reads in sorted(reads_per_channel.items()):
-            print 'All reads found in channel {}: {:,d}'.format(channel, num_reads)
+                    reads_in_channel[channel].update(score_given_read_name.keys())
+        for channel, read_names in sorted(reads_in_channel.items()):
+            print 'All reads found in channel {}: {:,d}'.format(channel, len(read_names))
 
     def build_good_read_names(self, good_num_ims_cutoff):
         pos_tups_given_read_name = defaultdict(set)
