@@ -51,6 +51,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
             right_tiles, right_column = right_end_tiles[filename]
         except KeyError:
             right_tiles, right_column = [default_right_tile], default_right_column
+
         min_column, max_column = min(left_column, right_column), max(left_column, right_column)
         tile_map = get_expected_tile_map(left_tiles, right_tiles, min_column, max_column)
         end_tiles[filename] = min_column, max_column, tile_map
