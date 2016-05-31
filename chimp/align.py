@@ -17,6 +17,8 @@ log = logging.getLogger(__name__)
 def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment,
         um_per_pixel, channel):
     assert len(h5_filenames) > 0
+    right_side_tiles = [format_tile_number(2100 + num) for num in range(1, 11)]
+    left_side_tiles = [format_tile_number(2100 + num) for num in reversed(range(11, 20))]
 
     # We use one process per concentration. We could theoretically speed this up since our machine
     # has significantly more cores than the typical number of concentration points, but since it
@@ -32,8 +34,6 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
 
         base_column_checker = functools.partial(check_column_for_alignment, channel, alignment_parameters,
                                                 alignment_tile_data, um_per_pixel, experiment, fia)
-        right_side_tiles = [format_tile_number(2100 + num) for num in range(1, 11)]
-        left_side_tiles = [format_tile_number(2100 + num) for num in reversed(range(11, 20))]
 
         left_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, grid.columns, left_side_tiles)
         right_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), right_side_tiles)
@@ -44,7 +44,6 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     # Now build up the end tile data structure
     for filename in left_end_tiles:
         print("filename", filename)
-
         try:
             left_tiles, left_column = left_end_tiles[filename]
         except KeyError:
@@ -53,11 +52,13 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
             right_tiles, right_column = right_end_tiles[filename]
         except KeyError:
             right_tiles, right_column = [default_right_tile], default_right_column
-
+        print("picked everything for %s", filename)
         min_column, max_column = min(left_column, right_column), max(left_column, right_column)
+        print("columns min and max", min_column, max_column, filename)
         tile_map = get_expected_tile_map(left_tiles, right_tiles, min_column, max_column)
+        print("got tile map", filename)
         end_tiles[filename] = min_column, max_column, tile_map
-
+        print("end tiles", filename)
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
     num_processes = multiprocessing.cpu_count()
@@ -78,6 +79,8 @@ def decide_default_tiles_and_columns(end_tiles):
             all_tiles.append(tile)
         columns.append(column)
     a, b = Counter(all_tiles).most_common(1), Counter(columns).most_common(1)
+    print("a", a)
+    print("b", b)
     return a[0][1], b[0][1]
     # return Counter(all_tiles).most_common(1)[0][1], Counter(columns).most_common(1)[0][1]
 
