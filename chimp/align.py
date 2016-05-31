@@ -35,8 +35,8 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         base_column_checker = functools.partial(check_column_for_alignment, channel, alignment_parameters,
                                                 alignment_tile_data, um_per_pixel, experiment, fia)
 
-        left_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, grid.columns, left_side_tiles)
-        right_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), right_side_tiles)
+        left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, left_side_tiles))
+        right_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), right_side_tiles))
 
     default_left_tile, default_left_column = decide_default_tiles_and_columns(left_end_tiles)
     default_right_tile, default_right_column = decide_default_tiles_and_columns(right_end_tiles)
