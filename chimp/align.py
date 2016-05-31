@@ -59,10 +59,10 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         print("picked everything for %s", filename)
         min_column, max_column = min(left_column, right_column), max(left_column, right_column)
         print("columns min and max", min_column, max_column, filename)
-        # tile_map = get_expected_tile_map(left_tiles, right_tiles, min_column, max_column)
-        # print("got tile map", filename)
-        # end_tiles[filename] = min_column, max_column, tile_map
-        # print("end tiles", filename)
+        tile_map = get_expected_tile_map(left_tiles, right_tiles, min_column, max_column)
+        print("got tile map", filename)
+        end_tiles[filename] = min_column, max_column, tile_map
+        print("end tiles", filename)
 
     print("GOT PAST LET LOOP")
     exit()
@@ -213,6 +213,7 @@ def get_expected_tile_map(left_tiles, right_tiles, min_column, max_column):
 
     # We gets lists of tiles, so we have to work out the minimum and maximum number in a slightly
     # complicated way
+    print(left_tiles, right_tiles, min_column, max_column)
     left_tiles = [int(tile.key[-4:]) for tile in left_tiles]
     right_tiles = [int(tile.key[-4:]) for tile in right_tiles]
     min_tile = min(itertools.chain(left_tiles, right_tiles))
