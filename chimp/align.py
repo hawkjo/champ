@@ -71,7 +71,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
 def decide_default_tiles_and_columns(end_tiles):
     all_tiles = []
     columns = []
-    for tiles, column in end_tiles.items():
+    for filename, (tiles, column) in end_tiles.items():
         for tile in tiles:
             all_tiles.append(tile)
         columns.append(column)
