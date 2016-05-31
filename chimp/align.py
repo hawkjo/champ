@@ -38,13 +38,13 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         left_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, grid.columns, left_side_tiles)
         right_end_tiles = get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), right_side_tiles)
 
-    print("going in")
     default_left_tile, default_left_column = decide_default_tiles_and_columns(left_end_tiles)
     default_right_tile, default_right_column = decide_default_tiles_and_columns(right_end_tiles)
-    print("out")
+
     end_tiles = {}
     # Now build up the end tile data structure
-
+    print("L.E.T.")
+    print(left_end_tiles)
     for filename in left_end_tiles:
         print("filename", filename)
         try:
@@ -82,9 +82,7 @@ def decide_default_tiles_and_columns(end_tiles):
             all_tiles.append(tile)
         columns.append(column)
     a, b = Counter(all_tiles).most_common(1), Counter(columns).most_common(1)
-    print("about to best")
     best_tile, best_column = a[0][0], b[0][0]
-    print("got here")
     return best_tile, best_column
 
 
