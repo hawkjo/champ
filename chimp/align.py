@@ -43,6 +43,8 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     end_tiles = {}
     # Now build up the end tile data structure
     for filename in left_end_tiles:
+        print("filename", filename)
+
         try:
             left_tiles, left_column = left_end_tiles[filename]
         except KeyError:
@@ -75,8 +77,6 @@ def decide_default_tiles_and_columns(end_tiles):
         for tile in tiles:
             all_tiles.append(tile)
         columns.append(column)
-    print("all_tiles", all_tiles)
-    print("columns", columns)
     a, b = Counter(all_tiles).most_common(1), Counter(columns).most_common(1)
     return a[0][1], b[0][1]
     # return Counter(all_tiles).most_common(1)[0][1], Counter(columns).most_common(1)[0][1]
