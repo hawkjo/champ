@@ -81,7 +81,7 @@ def decide_default_tiles_and_columns(end_tiles):
     a, b = Counter(all_tiles).most_common(1), Counter(columns).most_common(1)
     print("a", a)
     print("b", b)
-    return a[0][1], b[0][1]
+    return a[0][0], b[0][0]
     # return Counter(all_tiles).most_common(1)[0][1], Counter(columns).most_common(1)[0][1]
 
 
