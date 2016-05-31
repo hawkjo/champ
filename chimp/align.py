@@ -43,7 +43,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
 
     end_tiles = {}
     # Now build up the end tile data structure
-    for filename in itertools.chain(left_end_tiles.keys(), right_end_tiles.keys()):
+    for filename in h5_filenames:
         try:
             left_tiles, left_column = left_end_tiles[filename]
         except KeyError:
