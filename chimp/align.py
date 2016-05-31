@@ -65,7 +65,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         print("end tiles", filename)
 
     print("GOT PAST LET LOOP")
-    exit()
+
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
     num_processes = multiprocessing.cpu_count()
@@ -214,8 +214,8 @@ def get_expected_tile_map(left_tiles, right_tiles, min_column, max_column):
     # We gets lists of tiles, so we have to work out the minimum and maximum number in a slightly
     # complicated way
     print(left_tiles, right_tiles, min_column, max_column)
-    left_tiles = [int(tile.key[-4:]) for tile in left_tiles]
-    right_tiles = [int(tile.key[-4:]) for tile in right_tiles]
+    left_tiles = [int(tile[-4:]) for tile in left_tiles]
+    right_tiles = [int(tile[-4:]) for tile in right_tiles]
     min_tile = min(itertools.chain(left_tiles, right_tiles))
     max_tile = max(itertools.chain(left_tiles, right_tiles))
 
