@@ -82,7 +82,6 @@ def decide_default_tiles_and_columns(end_tiles):
     print("a", a)
     print("b", b)
     return a[0][0], b[0][0]
-    # return Counter(all_tiles).most_common(1)[0][1], Counter(columns).most_common(1)[0][1]
 
 
 def get_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_keys):
