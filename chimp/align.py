@@ -45,7 +45,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     # Now build up the end tile data structure
     print("L.E.T.")
     print(left_end_tiles)
-    for filename in left_end_tiles:
+    for filename in left_end_tiles.keys():
         print("filename", filename)
 
         # try:
