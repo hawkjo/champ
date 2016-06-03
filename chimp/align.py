@@ -122,9 +122,13 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
                                   experiment, image, possible_tile_keys)
     if fia.hitting_tiles:
         # The image data aligned with FastQ reads!
-        fia.precision_align_only(hit_type=('exclusive', 'good_mutual'),
-                                 min_hits=alignment_parameters.min_hits)
-        write_output(image.index, base_name, fia, experiment, all_tile_data)
+        try:
+            fia.precision_align_only(hit_type=('exclusive', 'good_mutual'),
+                                     min_hits=alignment_parameters.min_hits)
+        except AssertionError:
+            log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
+        else:
+            write_output(image.index, base_name, fia, experiment, all_tile_data)
     # The garbage collector takes its sweet time for some reason, so we have to manually delete
     # these objects or memory usage blows up.
     del fia
