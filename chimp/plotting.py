@@ -58,7 +58,7 @@ def plot_all_hits(fia, ax=None, im_kwargs={}, line_kwargs={}, fqpt_kwargs={}, se
 
     kwargs = {'alpha': 0.6, 'color': 'darkgoldenrod'}
     kwargs.update(sext_kwargs)
-    plot_ellipses(ax, **kwargs)
+    plot_ellipses(fia, ax, **kwargs)
 
     plot_hits(fia, fia.non_mutual_hits, 'grey', ax, line_kwargs)
     plot_hits(fia, fia.bad_mutual_hits, 'b', ax, line_kwargs)
