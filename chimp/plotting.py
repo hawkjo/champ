@@ -50,7 +50,7 @@ def plot_all_hits(fia, ax=None, im_kwargs={}, line_kwargs={}, fqpt_kwargs={}, se
 
     kwargs = {'cmap': plt.get_cmap('Blues')}
     kwargs.update(im_kwargs)
-    ax.matshow(fia.image_data.imageage, **kwargs)
+    ax.matshow(fia.image_data.image, **kwargs)
 
     kwargs = {'color': 'k', 'alpha': 0.3, 'linestyle': '', 'marker': 'o', 'markersize': 3}
     kwargs.update(fqpt_kwargs)
