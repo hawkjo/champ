@@ -1,5 +1,6 @@
 from chimp import constants
 from chimp.grid import GridImages
+from chimp import plotting
 from collections import Counter, defaultdict
 import fastqimagealigner
 import functools
@@ -300,6 +301,12 @@ def write_output(image_index, base_name, fastq_image_aligner, experiment, tile_d
                                   base_name, '{}_stats.txt'.format(image_index))
     all_read_rcs_filepath = os.path.join(experiment.results_directory,
                                          base_name, '{}_all_read_rcs.txt'.format(image_index))
+
+    ax = plotting.plot_all_hits(fastq_image_aligner)
+    ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_all_hits.pdf'.format(image_index)))
+
+    ax = plotting.plot_hit_hists(fastq_image_aligner)
+    ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_hit_hists.pdf'.format(image_index)))
 
     fastq_image_aligner.output_intensity_results(intensity_filepath)
     fastq_image_aligner.write_alignment_stats(stats_filepath)
