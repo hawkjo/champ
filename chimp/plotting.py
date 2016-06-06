@@ -58,12 +58,12 @@ def plot_all_hits(fia, ax=None, im_kwargs={}, line_kwargs={}, fqpt_kwargs={}, se
 
     kwargs = {'alpha': 0.6, 'color': 'darkgoldenrod'}
     kwargs.update(sext_kwargs)
-    fia.plot_ellipses(ax, **kwargs)
+    plot_ellipses(ax, **kwargs)
 
-    fia.plot_hits(fia.non_mutual_hits, 'grey', ax, line_kwargs)
-    fia.plot_hits(fia.bad_mutual_hits, 'b', ax, line_kwargs)
-    fia.plot_hits(fia.good_mutual_hits, 'magenta', ax, line_kwargs)
-    fia.plot_hits(fia.exclusive_hits, 'r', ax, line_kwargs)
+    plot_hits(fia, fia.non_mutual_hits, 'grey', ax, line_kwargs)
+    plot_hits(fia, fia.bad_mutual_hits, 'b', ax, line_kwargs)
+    plot_hits(fia, fia.good_mutual_hits, 'magenta', ax, line_kwargs)
+    plot_hits(fia, fia.exclusive_hits, 'r', ax, line_kwargs)
     ax.set_title('All Hits: %s vs. %s %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s, SNR: %s'
             % (fia.image_data.fname,
                fia.experiment.project_name,
