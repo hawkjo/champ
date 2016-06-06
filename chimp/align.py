@@ -18,8 +18,8 @@ log = logging.getLogger(__name__)
 def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment,
         um_per_pixel, channel):
     assert len(h5_filenames) > 0
-    left_side_tiles = [format_tile_number(2100 + num) for num in range(1, 11)]
-    right_side_tiles = [format_tile_number(2100 + num) for num in reversed(range(11, 20))]
+    right_side_tiles = [format_tile_number(2100 + num) for num in range(1, 11)]
+    left_side_tiles = [format_tile_number(2100 + num) for num in reversed(range(11, 20))]
 
     # We use one process per concentration. We could theoretically speed this up since our machine
     # has significantly more cores than the typical number of concentration points, but since it
