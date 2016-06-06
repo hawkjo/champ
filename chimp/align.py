@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 from chimp import constants
 from chimp.grid import GridImages
 from chimp import plotting
