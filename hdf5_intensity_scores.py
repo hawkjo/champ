@@ -9,6 +9,8 @@ import misctools
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict, Counter
+from sklearn.neighbors import KernelDensity
+from scipy.optimize import minimize
 
 class IntensityScores(object):
     def __init__(self, h5_fpaths):
@@ -71,15 +73,29 @@ class IntensityScores(object):
                         self.scores[h5_fpath][channel][pos_tup][read_name] = score
             if verbose: print
 
-    def normalize_scores(self, reference_read_names, verbose=True):
+    def normalize_scores(self, verbose=True):
         """Normalizes scores. The normalizing constant for each image is determined by
             
             Z = median(reference read scores bounded below) / median(all medians in h5_fpath)
 
         where 'bounded below' means read scores are artificially set to 1 if otherwise lower.
         """
-        if not isinstance(reference_read_names, set):
-            reference_read_names = set(reference_read_names)
+        def get_mode(im):
+            w = 200
+            hw = w/2
+            rmid, cmid = int(im.shape[0]/2), int(im.shape[1]/2)
+            vmin, vmax = im.min(), im.max()
+            bandwidth = (vmax - vmin)/200
+            kdf = KernelDensity(bandwidth=bandwidth)
+            # remove saturation
+            pct95 = vmin + 0.95 * (vmax - vmin)
+            vals = [v for v in im[rmid-hw:rmid+hw, cmid-hw:cmid+hw].flatten() if v < pct95]
+            kdf.fit(np.array(vals).reshape(len(vals), 1))
+            def neg_kdf(x):
+                return -kdf.score(x)
+            res = minimize(neg_kdf, x0=np.median(im.flatten()), method='Nelder-Mead')
+            assert res.success, res
+            return res.x
 
         self.scores = {
             h5_fpath: {channel: {} for channel in hdf5_tools.get_channel_names(h5_fpath)}
@@ -93,23 +109,17 @@ class IntensityScores(object):
             if verbose: print os.path.basename(h5_fpath)
             for channel in self.scores[h5_fpath].keys():
                 if verbose: misctools.dot()
-                median_given_pos_tup = {}
+                mode_given_pos_tup = {}
                 for pos_tup in self.raw_scores[h5_fpath][channel].keys():
-                    reference_read_names_in_image = (
-                        self.get_read_names_in_image(h5_fpath, channel, pos_tup) & reference_read_names
-                    )
-                    if len(reference_read_names_in_image) < 10:
-                        print 'Warning: 10 > {} reference reads in Channel {} Pos {}'.format(
-                            len(reference_read_names_in_image), channel, pos_tup
-                        )
-                    median_given_pos_tup[pos_tup]  = np.median(
-                        [self.raw_scores[h5_fpath][channel][pos_tup][read_name]
-                         for read_name in reference_read_names_in_image]
-                    )
+                    pos_key = hdf5_tools.dset_name_given_coords(*pos_tup)
+                    with h5py.File(h5_fpath) as f:
+                        im = np.array(f[channel][pos_key])
+
+                    mode_given_pos_tup[pos_tup]  = get_mode(im)
     
-                median_of_medians = np.median(median_given_pos_tup.values())
-                for pos_tup in median_given_pos_tup.keys():
-                    Z = median_given_pos_tup[pos_tup] / float(median_of_medians)
+                median_of_modes = np.median(mode_given_pos_tup.values())
+                for pos_tup in mode_given_pos_tup.keys():
+                    Z = mode_given_pos_tup[pos_tup] / float(median_of_modes)
                     self.normalizing_constants[h5_fpath][channel][pos_tup] = Z
                     im_scores = self.raw_scores[h5_fpath][channel][pos_tup]
                     self.scores[h5_fpath][channel][pos_tup] = {
