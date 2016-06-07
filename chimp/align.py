@@ -154,23 +154,6 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
                         yield row, column, channel, h5_filename, tile_map[image.column], base_name
 
 
-# def find_boundary_columns(channel, alignment_parameters, alignment_tile_data, um_per_pixel,
-#                           experiment, end_tiles, h5_filename):
-#     # Align image data to FastQ reads and write the aligned FastQ reads to disk
-#     base_name = os.path.splitext(h5_filename)[0]
-#     with h5py.File(h5_filename) as h5:
-#         grid = GridImages(h5, channel)
-#
-#         # We need to call process_fig() several times with almost the same parameters
-#         figure_processor = functools.partial(process_alignment_image, alignment_parameters, base_name,
-#                                              alignment_tile_data, um_per_pixel, experiment)
-#
-#         # Find the outermost columns of image data where we overlap with FastQ tile reads
-#         # We do this so we can skip any images that are definitely not going to be useful to us
-#         left_column, right_column, tile_map = find_ends(grid, figure_processor)
-#         end_tiles[h5_filename] = left_column, right_column, tile_map
-
-
 def load_read_names(file_path):
     # reads a FastQ file with Illumina read names
     with open(file_path) as f:
@@ -181,25 +164,6 @@ def load_read_names(file_path):
             tiles[key].add(line.strip())
     del f
     return {key: list(values) for key, values in tiles.items()}
-
-
-# def find_ends(grid, figure_processor):
-#     # Determines which tiles we have image data from, for left and right sides of the chip.
-#     log.info("Finding end tiles")
-#     right_side_tiles = [format_tile_number(2100 + num) for num in range(1, 11)]
-#     left_side_tiles = [format_tile_number(2100 + num) for num in reversed(range(11, 20))]
-#
-#     left_tiles, left_column = find_end_tile(figure_processor, grid.left_iter(), left_side_tiles)
-#     right_tiles, right_column = find_end_tile(figure_processor, grid.right_iter(), right_side_tiles)
-#
-#     # do full alignment for images
-#     # skip end tile finding for make fast
-#     tile_map = get_expected_tile_map(left_tiles,
-#                                      right_tiles,
-#                                      left_column,
-#                                      right_column)
-#
-#     return left_column, right_column, tile_map
 
 
 def get_expected_tile_map(left_tiles, right_tiles, min_column, max_column):
@@ -241,23 +205,6 @@ def format_tile_number(number):
     # this definitely looks like a temporary hack that will end up becoming the most enduring
     # part of this codebase
     return 'lane1tile{0}'.format(number)
-
-
-# def find_end_tile(figure_processor, images, possible_tiles):
-#     # Figures out which FastQ tile and column of image data are the furthest to the left or right
-#     # of the chip. By doing this we don't have to waste time aligning images with tiles that can't
-#     # possibly go together
-#     for image in images:
-#         # first get the correlation to random tiles, so we can distinguish signal from noise
-#         fia = figure_processor(image, possible_tiles)
-#         if fia.hitting_tiles:
-#             log.debug("%s aligned to at least one tile!" % image.index)
-#             # because of the way we iterate through the images, if we find one that aligns,
-#             # we can just stop because that gives us the outermost column of images and the
-#             # outermost FastQ tile
-#             return fia.hitting_tiles, image.column
-#         else:
-#             log.debug("%s did not align to any tiles." % image.index)
 
 
 def process_alignment_image(alignment_parameters, base_name, tile_data,
