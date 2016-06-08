@@ -5,7 +5,7 @@ Usage:
   chimp convert TIF_DIRECTORIES ... [--flipud] [--fliplr] [-v | -vv | -vvv]
   chimp preprocess IMAGE_DIRECTORY [-v | -vv | -vvv ]
   chimp map FASTQ_DIRECTORY PATHS_TO_BAMFILES ... [-v | -vv | -vvv]
-  chimp align ALIGNMENT_CHANNEL IMAGE_DIRECTORY PROJECT_NAME [--min-hits] [--snr-threshold] [-v | -vv | -vvv]
+  chimp align ALIGNMENT_CHANNEL IMAGE_DIRECTORY PROJECT_NAME [--min-hits] [--snr-threshold] [--make-pdfs] [-v | -vv | -vvv]
 
 Options:
   -h --help     Show this screen.

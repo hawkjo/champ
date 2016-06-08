@@ -111,7 +111,7 @@ def check_column_for_alignment(channel, alignment_parameters, alignment_tile_dat
 
 
 def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_tile_data,
-                      all_tile_data, image_data):
+                      all_tile_data, image_data, make_pdfs):
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
     row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
@@ -131,7 +131,7 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
         except AssertionError:
             log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
         else:
-            write_output(image.index, base_name, fia, experiment, all_tile_data)
+            write_output(image.index, base_name, fia, experiment, all_tile_data, make_pdfs)
     # The garbage collector takes its sweet time for some reason, so we have to manually delete
     # these objects or memory usage blows up.
     del fia
@@ -243,7 +243,7 @@ def process_data_image(alignment_parameters, base_name, tile_data, um_per_pixel,
     write_output(image.index, base_name, fastq_image_aligner, experiment, tile_data)
 
 
-def write_output(image_index, base_name, fastq_image_aligner, experiment, tile_data):
+def write_output(image_index, base_name, fastq_image_aligner, experiment, tile_data, make_pdfs):
     intensity_filepath = os.path.join(experiment.results_directory,
                                       base_name, '{}_intensities.txt'.format(image_index))
     stats_filepath = os.path.join(experiment.results_directory,
@@ -251,11 +251,11 @@ def write_output(image_index, base_name, fastq_image_aligner, experiment, tile_d
     all_read_rcs_filepath = os.path.join(experiment.results_directory,
                                          base_name, '{}_all_read_rcs.txt'.format(image_index))
 
-    ax = plotting.plot_all_hits(fastq_image_aligner)
-    ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_all_hits.pdf'.format(image_index)))
-
-    ax = plotting.plot_hit_hists(fastq_image_aligner)
-    ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_hit_hists.pdf'.format(image_index)))
+    if make_pdfs:
+        ax = plotting.plot_all_hits(fastq_image_aligner)
+        ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_all_hits.pdf'.format(image_index)))
+        ax = plotting.plot_hit_hists(fastq_image_aligner)
+        ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_hit_hists.pdf'.format(image_index)))
 
     fastq_image_aligner.output_intensity_results(intensity_filepath)
     fastq_image_aligner.write_alignment_stats(stats_filepath)

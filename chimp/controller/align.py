@@ -38,8 +38,7 @@ def main(clargs):
 #     log.debug("Using %d processes for alignment" % processes)
 #     pool = multiprocessing.Pool(processes=processes)
 #
-#     align.process_second_fig(alignment_parameters, base_name, tile_data, um_per_pixel,
-#                              experiment, image)
+#     align.process_data_image(alignment_parameters, base_name, tile_data, um_per_pixel, experiment, image)
 #     alignment_function = functools.partial(align.run,
 #                                            alignment_parameters,
 #                                            tile_data,

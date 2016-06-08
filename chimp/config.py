@@ -66,6 +66,10 @@ class CommandLineArguments(object):
         return int(self._arguments['--min-hits'])
 
     @property
+    def make_pdfs(self):
+        return self._arguments['--make-pdfs']
+
+    @property
     def flipud(self):
         # flip images across the horizontal axis
         return self._arguments['--flipud']
