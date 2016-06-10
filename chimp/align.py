@@ -53,7 +53,7 @@ def load_aligned_stats_files(h5_filenames, channel, experiment):
 
 
 def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment, make_pdfs, channel,
-                       h5_filename, base_name, stats_filepath, row, column):
+                       (h5_filename, base_name, stats_filepath, row, column)):
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
         image = grid.get(row, column)
