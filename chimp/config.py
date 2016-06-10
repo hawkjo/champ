@@ -66,10 +66,6 @@ class CommandLineArguments(object):
         return float(self._arguments['--snr-threshold'])
 
     @property
-    def second_channel(self):
-        return self._arguments['--second-channel']
-
-    @property
     def min_hits(self):
         return int(self._arguments['--min-hits'])
 

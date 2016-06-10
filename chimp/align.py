@@ -29,7 +29,6 @@ def run_second_channel(h5_filenames, alignment_parameters, all_tile_data,
         except ValueError:
             log.warn("Invalid stats file: %s" % str(stats_filepath))
             continue
-        print("opening", h5_filename)
         with h5py.File(h5_filename) as h5:
             grid = GridImages(h5, channel)
             image = grid.get(row, column)
