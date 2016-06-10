@@ -54,6 +54,7 @@ def load_aligned_stats_files(h5_filenames, channel, experiment):
 
 def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment, make_pdfs, base_name, image, stats_filepath):
     sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
+    stats_filepath = os.path.join(experiment.results_directory, base_name, stats_filepath)
     fastq_image_aligner = fastqimagealigner.FastqImageAligner(experiment)
     fastq_image_aligner.load_reads(tile_data)
     fastq_image_aligner.set_image_data(image, um_per_pixel)
