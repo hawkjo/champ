@@ -40,7 +40,7 @@ def run_second_channel(h5_filenames, alignment_parameters, all_tile_data,
 def extract_rc_info(stats_file):
     match = stats_regex.match(stats_file)
     if match:
-        return match.group('row'), match.group('column')
+        return int(match.group('row')), int(match.group('column'))
     raise ValueError("Invalid stats file: %s" % str(stats_file))
 
 
