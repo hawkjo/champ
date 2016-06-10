@@ -21,8 +21,8 @@ class CommandLineArguments(object):
         return log_level.get(self._arguments['-v'], logging.FATAL)
 
     @property
-    def alignment_channel(self):
-        return self._arguments['ALIGNMENT_CHANNEL']
+    def channel(self):
+        return self._arguments['CHANNEL']
 
     @property
     def image_directory(self):
@@ -60,6 +60,10 @@ class CommandLineArguments(object):
     @property
     def snr_threshold(self):
         return float(self._arguments['--snr-threshold'])
+
+    @property
+    def second_channel(self):
+        return self._arguments['--second-channel']
 
     @property
     def min_hits(self):

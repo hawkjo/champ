@@ -17,6 +17,18 @@ import sys
 log = logging.getLogger(__name__)
 
 
+def run_second_channel(h5_filenames, alignment_parameters, all_tile_data,
+                       experiment, um_per_pixel, channel):
+    num_processes = multiprocessing.cpu_count()
+    log.debug("Aligning all images with %d cores" % num_processes)
+    alignment_func = functools.partial(process_data_image, alignment_parameters, base_name, tile_data,
+                                       um_per_pixel, experiment, image, make_pdfs)
+    pool = multiprocessing.Pool(num_processes)
+    pool.map_async(alignment_func,
+                   iterate_all_images(h5_filenames, end_tiles, channel)).get(timeout=sys.maxint)
+    log.debug("Done aligning!")
+
+
 def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment,
         um_per_pixel, channel):
     assert len(h5_filenames) > 0
@@ -228,7 +240,7 @@ def process_alignment_image(alignment_parameters, base_name, tile_data,
     return fia
 
 
-def process_data_image(alignment_parameters, base_name, tile_data, um_per_pixel, experiment, image):
+def process_data_image(alignment_parameters, base_name, tile_data, um_per_pixel, experiment, image, make_pdfs):
     sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
     stats_filepath = os.path.join(experiment.results_directory,
                                   base_name,
@@ -239,8 +251,7 @@ def process_data_image(alignment_parameters, base_name, tile_data, um_per_pixel,
     fastq_image_aligner.set_sexcat_from_file(sexcat_filepath)
     fastq_image_aligner.alignment_from_alignment_file(stats_filepath)
     fastq_image_aligner.precision_align_only(min_hits=alignment_parameters.min_hits)
-
-    write_output(image.index, base_name, fastq_image_aligner, experiment, tile_data)
+    write_output(image.index, base_name, fastq_image_aligner, experiment, tile_data, make_pdfs)
 
 
 def write_output(image_index, base_name, fastq_image_aligner, experiment, tile_data, make_pdfs):
