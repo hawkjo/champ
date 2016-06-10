@@ -16,7 +16,7 @@ import sys
 import re
 
 log = logging.getLogger(__name__)
-stats_regex = re.compile(r'''^(w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
+stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 
 
 def run_second_channel(h5_filenames, alignment_parameters, all_tile_data,
