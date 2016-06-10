@@ -23,13 +23,14 @@ def run_second_channel(h5_filenames, alignment_parameters, all_tile_data,
                        experiment, um_per_pixel, channel, alignment_channel, make_pdfs):
     num_processes = multiprocessing.cpu_count()
     log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
-    for base_name, stats_filepath in load_aligned_stats_files(h5_filenames, alignment_channel, experiment):
+    for h5_filename, base_name, stats_filepath in load_aligned_stats_files(h5_filenames, alignment_channel, experiment):
         try:
             row, column = extract_rc_info(stats_filepath)
         except ValueError:
             log.warn("Invalid stats file: %s" % str(stats_filepath))
             continue
-        with h5py.File(base_name + ".h5") as h5:
+        print("opening", h5_filename)
+        with h5py.File(h5_filename) as h5:
             grid = GridImages(h5, channel)
             image = grid.get(row, column)
             process_data_image(alignment_parameters, all_tile_data, um_per_pixel, experiment,
@@ -48,9 +49,8 @@ def load_aligned_stats_files(h5_filenames, channel, experiment):
     for h5_filename in h5_filenames:
         base_name = os.path.splitext(h5_filename)[0]
         for f in os.listdir(os.path.join(experiment.results_directory, base_name)):
-            print("f", f, type(f))
             if f.endswith('_stats.txt') and channel in f:
-                yield base_name, f
+                yield h5_filename, base_name, f
 
 
 def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment, make_pdfs, base_name, image, stats_filepath):
