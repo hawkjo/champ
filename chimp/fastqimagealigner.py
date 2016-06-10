@@ -281,7 +281,8 @@ class FastqImageAligner(object):
 
             # Reminder: All indices are in the order (sexcat_idx, in_frame_idx)
             hits = self.remove_longest_hits(get_hits(hit_type), pct_thresh)
-            assert len(hits) > min_hits, 'Too few hits for least squares mapping: {0}'.format(len(hits))
+            if len(hits) > min_hits:
+                raise ValueError('Too few hits for least squares mapping: {0}'.format(len(hits)))
             A = np.zeros((2 * len(hits), 4))
             b = np.zeros((2 * len(hits),))
             for i, (sexcat_idx, in_frame_idx) in enumerate(hits):

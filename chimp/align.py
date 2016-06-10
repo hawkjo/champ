@@ -60,9 +60,13 @@ def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment
     fastq_image_aligner.set_image_data(image, um_per_pixel)
     fastq_image_aligner.set_sexcat_from_file(sexcat_filepath)
     fastq_image_aligner.alignment_from_alignment_file(stats_filepath)
-    fastq_image_aligner.precision_align_only(min_hits=alignment_parameters.min_hits)
-    log.debug("Processed 2nd channel for %s" % image.index)
-    write_output(image.index, base_name, fastq_image_aligner, experiment, tile_data, make_pdfs)
+    try:
+        fastq_image_aligner.precision_align_only(min_hits=alignment_parameters.min_hits)
+        log.debug("Processed 2nd channel for %s" % image.index)
+    except ValueError:
+        log.debug("Could not precision align %s" % image.index)
+    else:
+        write_output(image.index, base_name, fastq_image_aligner, experiment, tile_data, make_pdfs)
 
 
 def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment,
@@ -176,7 +180,7 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
         try:
             fia.precision_align_only(hit_type=('exclusive', 'good_mutual'),
                                      min_hits=alignment_parameters.min_hits)
-        except AssertionError:
+        except ValueError:
             log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
         else:
             write_output(image.index, base_name, fia, experiment, all_tile_data, make_pdfs)
