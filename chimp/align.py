@@ -23,17 +23,11 @@ def run_second_channel(h5_filenames, alignment_parameters, all_tile_data,
                        experiment, um_per_pixel, channel, alignment_channel, make_pdfs):
     num_processes = multiprocessing.cpu_count()
     log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
-    for h5_filename, base_name, stats_filepath in load_aligned_stats_files(h5_filenames, alignment_channel, experiment):
-        try:
-            row, column = extract_rc_info(stats_filepath)
-        except ValueError:
-            log.warn("Invalid stats file: %s" % str(stats_filepath))
-            continue
-        with h5py.File(h5_filename) as h5:
-            grid = GridImages(h5, channel)
-            image = grid.get(row, column)
-            process_data_image(alignment_parameters, all_tile_data, um_per_pixel, experiment,
-                               make_pdfs, base_name, image, stats_filepath)
+    second_processor = functools.partial(process_data_image, alignment_parameters, all_tile_data,
+                                         um_per_pixel, experiment, make_pdfs, channel)
+    pool = multiprocessing.Pool(num_processes)
+    pool.map_async(second_processor,
+                   load_aligned_stats_files(h5_filenames, alignment_channel, experiment)).get(sys.maxint)
     log.debug("Done aligning!")
 
 
@@ -49,10 +43,20 @@ def load_aligned_stats_files(h5_filenames, channel, experiment):
         base_name = os.path.splitext(h5_filename)[0]
         for f in os.listdir(os.path.join(experiment.results_directory, base_name)):
             if f.endswith('_stats.txt') and channel in f:
-                yield h5_filename, base_name, f
+                try:
+                    row, column = extract_rc_info(f)
+                except ValueError:
+                    log.warn("Invalid stats file: %s" % str(f))
+                    continue
+                else:
+                    yield h5_filename, base_name, f, row, column
 
 
-def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment, make_pdfs, base_name, image, stats_filepath):
+def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment, make_pdfs, channel,
+                       h5_filename, base_name, stats_filepath, row, column):
+    with h5py.File(h5_filename) as h5:
+        grid = GridImages(h5, channel)
+        image = grid.get(row, column)
     sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
     stats_filepath = os.path.join(experiment.results_directory, base_name, stats_filepath)
     fastq_image_aligner = fastqimagealigner.FastqImageAligner(experiment)
