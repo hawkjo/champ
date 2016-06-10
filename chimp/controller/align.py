@@ -24,4 +24,5 @@ def main(clargs):
                   um_per_pixel, clargs.alignment_channel)
     else:
         align.run_second_channel(h5_filenames, alignment_parameters, all_tile_data, experiment,
-                                 um_per_pixel, clargs.channel)
+                                 um_per_pixel, clargs.second_channel,
+                                 clargs.alignment_channel, clargs.make_pdfs)

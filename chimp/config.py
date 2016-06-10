@@ -21,8 +21,12 @@ class CommandLineArguments(object):
         return log_level.get(self._arguments['-v'], logging.FATAL)
 
     @property
-    def channel(self):
-        return self._arguments['CHANNEL']
+    def alignment_channel(self):
+        return self._arguments['ALIGNMENT_CHANNEL']
+
+    @property
+    def second_channel(self):
+        return self._arguments['SECOND_CHANNEL_NAME']
 
     @property
     def image_directory(self):
