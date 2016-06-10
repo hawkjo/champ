@@ -21,7 +21,7 @@ stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 
 def run_second_channel(h5_filenames, alignment_parameters, all_tile_data,
                        experiment, um_per_pixel, channel, alignment_channel, make_pdfs):
-    num_processes = multiprocessing.cpu_count()
+    num_processes = 8  #multiprocessing.cpu_count()
     log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
     second_processor = functools.partial(process_data_image, alignment_parameters, all_tile_data,
                                          um_per_pixel, experiment, make_pdfs, channel)
