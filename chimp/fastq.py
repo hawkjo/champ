@@ -123,7 +123,8 @@ class FastqReadClassifier(object):
         return self._run(command)
 
     def _run(self, command):
-        with open('/dev/null', 'w+') as devnull:
+        # TODO: ELIMINATE THIS HARD CODED PATH
+        with open('/mnt/marble/hdd/home/shared/chimp.log', 'w+') as devnull:
             kwargs = dict(shell=True, stderr=devnull, stdout=devnull)
             subprocess.call(' '.join(command), **kwargs)
             sam_command = 'samtools view -bS /tmp/chimp.sam | samtools sort - /tmp/final'
