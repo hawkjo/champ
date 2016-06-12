@@ -114,8 +114,8 @@ class FastqReadClassifier(object):
     def paired_call(self, fastq_file_1, fastq_file_2):
         command = self._common_command + ('-1 ' + fastq_file_1,
                                           '-2 ' + fastq_file_2,
-                                          '-S /tmp/chimp.sam',
-                                          '2>&1 | tee /tmp/error.txt')
+                                          '-S chimp.sam',
+                                          '2>&1 | tee error.txt')
         return self._run(command)
 
     def single_call(self, fastq_file):
@@ -127,10 +127,10 @@ class FastqReadClassifier(object):
         with open('/mnt/marble/hdd/home/shared/chimp.log', 'w+') as devnull:
             kwargs = dict(shell=True, stderr=devnull, stdout=devnull)
             subprocess.call(' '.join(command), **kwargs)
-            sam_command = 'samtools view -bS /tmp/chimp.sam | samtools sort - /tmp/final'
+            sam_command = 'samtools view -bS chimp.sam | samtools sort - final'
             subprocess.call(sam_command, **kwargs)
-            subprocess.call('samtools index /tmp/final.bam', **kwargs)
-            for r in pysam.Samfile('/tmp/final.bam'):
+            subprocess.call('samtools index final.bam', **kwargs)
+            for r in pysam.Samfile('final.bam'):
                 yield r.qname
 
 
