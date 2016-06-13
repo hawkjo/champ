@@ -1,5 +1,6 @@
 import os
 import logging
+from chip import Miseq, Hiseq
 
 
 class CommandLineArguments(object):
@@ -45,6 +46,10 @@ class CommandLineArguments(object):
         return self._arguments['HDF5_FILE_PATH']
 
     @property
+    def microns_per_pixel(self):
+        return float(self._arguments['MICRONS_PER_PIXEL'])
+
+    @property
     def tif_directories(self):
         return self._arguments['TIF_DIRECTORIES']
 
@@ -62,12 +67,19 @@ class CommandLineArguments(object):
                 return possible_command
 
     @property
+    def chip(self):
+        chip = self._arguments.get('CHIP_TYPE', 'miseq')
+        chips = {'miseq': Miseq,
+                 'hiseq': Hiseq}
+        return chips[chip](self._arguments['--ports-on-left'])
+
+    @property
     def snr_threshold(self):
-        return float(self._arguments['--snr-threshold'])
+        return float(self._arguments.get('SNR', 1.2))
 
     @property
     def min_hits(self):
-        return int(self._arguments['--min-hits'])
+        return int(self._arguments.get('MIN_HITS', 15))
 
     @property
     def make_pdfs(self):
@@ -121,11 +133,12 @@ class AlignmentParameters(object):
     @property
     def fastq_tile_width_estimate(self):
         # width of a tile of Illumina data, in microns
+        #
         return 935.0
 
     @property
     def min_hits(self):
-        return 15
+        return self._args.min_hits
 
     @property
     def rotation_estimate(self):
@@ -133,4 +146,4 @@ class AlignmentParameters(object):
 
     @property
     def snr_threshold(self):
-        return 1.2
+        return self._args.snr_threshold

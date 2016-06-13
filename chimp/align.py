@@ -1,13 +1,11 @@
 import matplotlib
 matplotlib.use('Agg')
-from chimp import constants
 from chimp.grid import GridImages
 from chimp import plotting
 from collections import Counter, defaultdict
 import fastqimagealigner
 import functools
 import h5py
-import itertools
 import logging
 import multiprocessing
 from multiprocessing import Manager
@@ -19,19 +17,18 @@ log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 
 
-def run_second_channel(h5_filenames, alignment_parameters, all_tile_data,
-                       experiment, um_per_pixel, channel, alignment_channel, make_pdfs):
+def run_second_channel(h5_filenames, alignment_parameters, all_tile_data, experiment, clargs):
     num_processes = multiprocessing.cpu_count()
     log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
     fastq_image_aligner = fastqimagealigner.FastqImageAligner(experiment)
     fastq_image_aligner.load_reads(all_tile_data)
-    print("Loaded FIA")
     second_processor = functools.partial(process_data_image, alignment_parameters, all_tile_data,
-                                         um_per_pixel, experiment, make_pdfs, channel, fastq_image_aligner)
+                                         clargs.microns_per_pixel, experiment, clargs.make_pdfs,
+                                         clargs.second_channel, fastq_image_aligner)
 
     pool = multiprocessing.Pool(num_processes)
     pool.map_async(second_processor,
-                   load_aligned_stats_files(h5_filenames, alignment_channel, experiment)).get(sys.maxint)
+                   load_aligned_stats_files(h5_filenames, clargs.alignment_channel, experiment)).get(sys.maxint)
     log.debug("Done aligning!")
 
 
@@ -75,12 +72,12 @@ def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment
         write_output(image.index, base_name, fastq_image_aligner, experiment, tile_data, make_pdfs)
 
 
-def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment,
-        um_per_pixel, channel):
-    assert len(h5_filenames) > 0
-    right_side_tiles = [format_tile_number(2100 + num) for num in range(1, 11)]
-    left_side_tiles = [format_tile_number(2100 + num) for num in reversed(range(11, 20))]
-
+def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, clargs):
+    if len(h5_filenames) == 0:
+        raise ValueError("There were no HDF5 files to process. "
+                         "Either they just don't exist, or you didn't provide the correct path.")
+    channel = clargs.alignment_channel
+    chip = clargs.chip
     # We use one process per concentration. We could theoretically speed this up since our machine
     # has significantly more cores than the typical number of concentration points, but since it
     # usually finds a result in the first image or two, it's not going to deliver any practical benefits
@@ -94,10 +91,10 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         # find columns/tiles on the left side
 
         base_column_checker = functools.partial(check_column_for_alignment, channel, alignment_parameters,
-                                                alignment_tile_data, um_per_pixel, experiment, fia)
+                                                alignment_tile_data, clargs.microns_per_pixel, experiment, fia)
 
-        left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, left_side_tiles))
-        right_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), right_side_tiles))
+        left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, chip.left_side_tiles))
+        right_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), chip.right_side_tiles))
 
     default_left_tile, default_left_column = decide_default_tiles_and_columns(left_end_tiles)
     default_right_tile, default_right_column = decide_default_tiles_and_columns(right_end_tiles)
@@ -114,14 +111,14 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         except KeyError:
             right_tiles, right_column = [default_right_tile], default_right_column
         min_column, max_column = min(left_column, right_column), max(left_column, right_column)
-        tile_map = get_expected_tile_map(left_tiles, right_tiles, min_column, max_column)
+        tile_map = chip.get_expected_tile_map(left_tiles, right_tiles, min_column, max_column)
         end_tiles[filename] = min_column, max_column, tile_map
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
     num_processes = multiprocessing.cpu_count()
     log.debug("Aligning all images with %d cores" % num_processes)
-    alignment_func = functools.partial(perform_alignment, alignment_parameters, um_per_pixel,
+    alignment_func = functools.partial(perform_alignment, alignment_parameters, clargs.microns_per_pixel,
                                        experiment, alignment_tile_data, all_tile_data)
     pool = multiprocessing.Pool(num_processes)
     pool.map_async(alignment_func,
@@ -211,6 +208,7 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
                     if image is not None:
                         yield row, column, channel, h5_filename, tile_map[image.column], base_name
 
+
 def load_read_names(file_path):
     # reads a FastQ file with Illumina read names
     with open(file_path) as f:
@@ -221,47 +219,6 @@ def load_read_names(file_path):
             tiles[key].add(line.strip())
     del f
     return {key: list(values) for key, values in tiles.items()}
-
-
-def get_expected_tile_map(left_tiles, right_tiles, min_column, max_column):
-    # Creates a dictionary that relates each column of microscope images to its expected tile, +/- 1.
-    # Works regardless of whether everything is flipped upsidedown (i.e. the lower tile is on the
-    # right side)
-    tile_map = defaultdict(list)
-
-    # We gets lists of tiles, so we have to work out the minimum and maximum number in a slightly
-    # complicated way
-    left_tiles = [int(tile[-4:]) for tile in left_tiles]
-    right_tiles = [int(tile[-4:]) for tile in right_tiles]
-    min_tile = min(itertools.chain(left_tiles, right_tiles))
-    max_tile = max(itertools.chain(left_tiles, right_tiles))
-
-    # Keep track of whether we'll have to invert all the associations of tiles and columns
-    invert_map = True if min_tile not in left_tiles else False
-
-    # Find the "tiles per column" factor so we can map a column to a tile
-    normalization_factor = float(abs(max_tile - min_tile) + 1) / float(max_column - min_column)
-
-    # Build up the map
-    for column in range(min_column, max_column + 1):
-        expected = int(round(normalization_factor * column)) - 1
-        expected = min(constants.MISEQ_TILE_COUNT, max(0, expected)) + min_tile
-        tile_map_column = column if not invert_map else max_column - column
-        # We definitely need to check the predicted tile
-        tile_map[tile_map_column].append(format_tile_number(expected))
-        # If we're at a boundary, we just want to check the adjacent tile towards the middle
-        # If we're in the middle, we want to check the tiles on either side
-        if expected < max_tile:
-            tile_map[tile_map_column].append(format_tile_number(expected + 1))
-        if expected > min_tile:
-            tile_map[tile_map_column].append(format_tile_number(expected - 1))
-    return tile_map
-
-
-def format_tile_number(number):
-    # this definitely looks like a temporary hack that will end up becoming the most enduring
-    # part of this codebase
-    return 'lane1tile{0}'.format(number)
 
 
 def process_alignment_image(alignment_parameters, base_name, tile_data,

@@ -10,19 +10,15 @@ def main(clargs):
     h5_filenames = list(filter(lambda x: x.endswith('.h5'), os.listdir(clargs.image_directory)))
     h5_filenames = [os.path.join(clargs.image_directory, filename) for filename in h5_filenames]
     experiment = Experiment(clargs.project_name)
-    um_per_pixel = 0.2666666666
     alignment_parameters = AlignmentParameters(clargs)
     log.debug("Loading tile data.")
-    phix_tile_data = align.load_read_names(alignment_parameters.aligning_read_names_filepath)
+    alignment_tile_data = align.load_read_names(alignment_parameters.aligning_read_names_filepath)
     unclassified_tile_data = align.load_read_names(alignment_parameters.all_read_names_filepath)
-    all_tile_data = {key: list(set(phix_tile_data.get(key, []) + unclassified_tile_data.get(key, [])))
-                     for key in list(unclassified_tile_data.keys()) + list(phix_tile_data.keys())}
+    all_tile_data = {key: list(set(alignment_tile_data.get(key, []) + unclassified_tile_data.get(key, [])))
+                     for key in list(unclassified_tile_data.keys()) + list(alignment_tile_data.keys())}
     log.debug("Tile data loaded.")
 
     if not clargs.second_channel:
-        align.run(h5_filenames, alignment_parameters, phix_tile_data, all_tile_data, experiment,
-                  um_per_pixel, clargs.alignment_channel)
+        align.run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, clargs)
     else:
-        align.run_second_channel(h5_filenames, alignment_parameters, all_tile_data, experiment,
-                                 um_per_pixel, clargs.second_channel,
-                                 clargs.alignment_channel, clargs.make_pdfs)
+        align.run_second_channel(h5_filenames, alignment_parameters, all_tile_data, experiment, clargs)
