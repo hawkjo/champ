@@ -123,8 +123,7 @@ class FastqReadClassifier(object):
         return self._run(command)
 
     def _run(self, command):
-        # TODO: ELIMINATE THIS HARD CODED PATH
-        with open('/mnt/marble/hdd/home/shared/chimp.log', 'w+') as devnull:
+        with open('/dev/null', 'w+') as devnull:
             kwargs = dict(shell=True, stderr=devnull, stdout=devnull)
             subprocess.call(' '.join(command), **kwargs)
             sam_command = 'samtools view -bS chimp.sam | samtools sort - final'
@@ -132,6 +131,9 @@ class FastqReadClassifier(object):
             subprocess.call('samtools index final.bam', **kwargs)
             for r in pysam.Samfile('final.bam'):
                 yield r.qname
+        os.unlink('chimp.sam')
+        os.unlink('final.bam')
+        os.unlink('error.txt')
 
 
 def classify_fastq_reads(classifier_path, fastq_files):
@@ -174,7 +176,7 @@ def load_unclassified_reads(fastq_files, all_classified_reads):
         all_unclassified_reads.update(all_read_names.difference(all_classified_reads))
     return all_unclassified_reads
 
-        
+
 def save_classified_reads(name, reads, out_directory):
     with open(os.path.join(out_directory, name), 'w+') as f:
         for read in reads:

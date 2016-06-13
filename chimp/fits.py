@@ -22,11 +22,6 @@ class ImageFiles(object):
     def __len__(self):
         return len(self._filenames)
 
-    # @property
-    # def filenames(self):
-    #     for f in self._filenames:
-    #         yield os.path.join(self._image_directory, f)
-
     @property
     def directories(self):
         for f in self._filenames:
