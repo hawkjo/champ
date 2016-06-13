@@ -124,16 +124,19 @@ class FastqReadClassifier(object):
 
     def _run(self, command):
         with open('/dev/null', 'w+') as devnull:
-            kwargs = dict(shell=True, stderr=devnull, stdout=devnull)
-            subprocess.call(' '.join(command), **kwargs)
+            shell_options = dict(shell=True, stderr=devnull, stdout=devnull)
+            subprocess.call(' '.join(command), **shell_options)
             sam_command = 'samtools view -bS chimp.sam | samtools sort - final'
-            subprocess.call(sam_command, **kwargs)
-            subprocess.call('samtools index final.bam', **kwargs)
+            subprocess.call(sam_command, **shell_options)
+            subprocess.call('samtools index final.bam', **shell_options)
             for r in pysam.Samfile('final.bam'):
                 yield r.qname
-        os.unlink('chimp.sam')
-        os.unlink('final.bam')
-        os.unlink('error.txt')
+        for temp_file in ('chimp.sam', 'final.bam', 'error.txt', 'final.bam.bai'):
+            try:
+                os.unlink(temp_file)
+            except (OSError, IOError):
+                log.warn("Unable to delete temp file: %s. "
+                         "Was it not created? You may be missing FASTQ reads." % temp_file)
 
 
 def classify_fastq_reads(classifier_path, fastq_files):
