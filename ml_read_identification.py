@@ -109,9 +109,19 @@ def isint(a):
         return False
 
 if __name__ == '__main__':
-    usage_fmt = '{} <min_len> <max_len> <max_ham> <out_fpath> <log_p_fpath> <fastq_fpaths>'.format(sys.argv[0])
+    usage_fmt = '{} <min_len> <max_len> <max_mismatch> <out_fpath> <log_p_fpath> <fastq_fpaths>'.format(sys.argv[0])
     if len(sys.argv) < len(usage_fmt.split()):
-        sys.exit(usage_fmt)
+        helpstr = """
+Usage: {}
+
+    min_len:            Minimum allowed overlap
+    max_len:            Maximum allowed overlap
+    max_mismatch:       Maximum allowed mismatch between reads
+    out_fpath:          Location to write output file
+    log_p_fpath:        Location of pickle file with probability struct
+    fastq_fpaths:       List of all fastq files in run
+""".format(usage_fmt)
+        sys.exit(helpstr)
 
     assert all(map(isint, sys.argv[1:4])), 'Min and Max lens and hams must be integers'
     min_len, max_len, max_ham = map(int, sys.argv[1:4])

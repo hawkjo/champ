@@ -131,7 +131,7 @@ def process_im(im,
     all_read_rcs_fpath = os.path.join(results_dir, '{}_all_read_rcs.txt'.format(im_bname))
 
     if os.path.isfile(all_read_rcs_fpath):
-        print im_bname, 'already done.'
+        sys.exit('{} already done.'.format(im_bname)) 
 
     project_name, aligning_read_names_fpath, all_read_names_fpath, objective, rotation_est, fq_w_est, \
             min_tile_num, max_tile_num, strategy, snr_thresh, min_hits = get_align_params(align_param_fpath)

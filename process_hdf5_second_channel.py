@@ -98,7 +98,7 @@ def process_im(im,
     aligned_stats_fpath = os.path.join(results_dir, '{}_stats.txt'.format(aligned_im_bname))
 
     if os.path.isfile(all_read_rcs_fpath):
-        print im_bname, 'already done.'
+        sys.exit('{} already done.'.format(im_bname)) 
     if not os.path.isfile(aligned_stats_fpath):
         sys.exit('{}: No previous alignment.'.format(im_bname))
 

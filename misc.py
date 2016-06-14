@@ -107,13 +107,13 @@ class AlignmentStats:
 
 
 def pM_concentration_given_fpath(fpath, convention='steve'):
-    pattern = '[-_]([0-9_.]+)([pn]M)'
+    pattern = '[-_]([0-9_.]+)([pn][Mm])'
     m = re.search(pattern, fpath)
     assert m, fpath
     conc = float(m.group(1).replace('_', '.'))
-    if m.group(2) == 'pM':
+    if m.group(2) in ['pM', 'pm']:
         return conc
-    elif m.group(2) == 'nM':
+    elif m.group(2) in ['nM', 'nm']:
         return conc * 1000
     else:
         raise ValueError('Can only handle pM and nM at the moment.')

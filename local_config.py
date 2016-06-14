@@ -12,6 +12,15 @@ data_dir = os.path.join(base_dir, 'data')
 fourier_data_dir = os.path.join(data_dir, 'from_fourierseq')
 results_dir = os.path.join(base_dir, 'results')
 
+targets = {
+    'A': 'AAGGCCGAATTCTCACCGGCCCCAAGGTATTCAAG',
+    'A-Csy': 'ACCGCCGAATTCTCACCGGCCCCAAGGTATTCAAG',
+    'B': 'AAGTCGGCTCCTGTTTAGTTACGAGCGACATTGCT',
+    'C': 'AAGCCAGTGATAAGTGGAATGCCATGTGGGCTGTC',
+    'D': 'TTTAGTGATAAGTGGAATGCCATGTGG',
+    'E': 'TTTAGACGCATAAAGATGAGACGCTGG'
+}
+
 def phiX_read_names_given_project_name(project_name):
     fpath = os.path.join(
             data_dir,
