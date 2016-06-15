@@ -85,7 +85,7 @@ class IntensityScores(object):
             hw = w/2
             rmid, cmid = int(im.shape[0]/2), int(im.shape[1]/2)
             vmin, vmax = im.min(), im.max()
-            bandwidth = (vmax - vmin)/200
+            bandwidth = (vmax - vmin)/100
             kdf = KernelDensity(bandwidth=bandwidth)
             # remove saturation
             pct95 = vmin + 0.95 * (vmax - vmin)
