@@ -6,6 +6,7 @@ Usage:
   chimp preprocess IMAGE_DIRECTORY [-v | -vv | -vvv ]
   chimp map FASTQ_DIRECTORY PATHS_TO_BAMFILES ... [-v | -vv | -vvv]
   chimp align ALIGNMENT_CHANNEL IMAGE_DIRECTORY PROJECT_NAME MICRONS_PER_PIXEL [--chip=miseq] [--second-channel SECOND_CHANNEL_NAME] [--ports-on-right] [--min-hits MIN_HITS] [--snr-threshold SNR] [--make-pdfs] [-v | -vv | -vvv]
+  chimp intensity
 
 Options:
   -h --help     Show this screen.
@@ -17,6 +18,8 @@ Commands:
   preprocess    defines where points are in the microscope image data
   align         maps reads from the high-throughput sequencer to fluorescent
                 points in microscope image data
+  intensity     determines boundaries of clusters and assigns intensities to sequences
+
 """
 from chimp.controller import align, preprocess, mapreads, convert
 from docopt import docopt
