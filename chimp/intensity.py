@@ -1,13 +1,12 @@
 import os
 import glob
-import string
 import re
 import h5py
 import misc
-import misctools
+import hdf5tools
 import matplotlib.pyplot as plt
 import numpy as np
-from collections import defaultdict, Counter
+from collections import defaultdict
 from sklearn.neighbors import KernelDensity
 from scipy.optimize import minimize
 
@@ -20,7 +19,7 @@ class IntensityScores(object):
         """
         self.h5_fpaths = h5_fpaths
         self.raw_scores = {
-            h5_fpath: {channel: {} for channel in hdf5_tools.get_channel_names(h5_fpath)}
+            h5_fpath: {channel: {} for channel in hdf5tools.get_channel_names(h5_fpath)}
             for h5_fpath in h5_fpaths
             }
         self.scores = self.raw_scores
@@ -55,9 +54,8 @@ class IntensityScores(object):
                 m = im_loc_re.match(rfname)
                 channel = m.group(1)
                 pos_tup = tuple(int(m.group(i)) for i in (2, 3))
-                pos_key = hdf5_tools.dset_name_given_coords(*pos_tup)
+                pos_key = hdf5tools.dset_name_given_coords(*pos_tup)
                 self.scores[h5_fpath][channel][pos_tup] = {}
-                if verbose: misctools.dot()
 
                 with h5py.File(h5_fpath) as f:
                     im = np.array(f[channel][pos_key])
@@ -102,20 +100,19 @@ class IntensityScores(object):
             return res.x
 
         self.scores = {
-            h5_fpath: {channel: {} for channel in hdf5_tools.get_channel_names(h5_fpath)}
+            h5_fpath: {channel: {} for channel in hdf5tools.get_channel_names(h5_fpath)}
             for h5_fpath in self.h5_fpaths
             }
         self.normalizing_constants = {
-            h5_fpath: {channel: {} for channel in hdf5_tools.get_channel_names(h5_fpath)}
+            h5_fpath: {channel: {} for channel in hdf5tools.get_channel_names(h5_fpath)}
             for h5_fpath in self.h5_fpaths
             }
         for h5_fpath in self.h5_fpaths:
             if verbose: print os.path.basename(h5_fpath)
             for channel in self.scores[h5_fpath].keys():
-                if verbose: misctools.dot()
                 mode_given_pos_tup = {}
                 for pos_tup in self.raw_scores[h5_fpath][channel].keys():
-                    pos_key = hdf5_tools.dset_name_given_coords(*pos_tup)
+                    pos_key = hdf5tools.dset_name_given_coords(*pos_tup)
                     with h5py.File(h5_fpath) as f:
                         im = np.array(f[channel][pos_key])
 
@@ -137,25 +134,22 @@ class IntensityScores(object):
 
     def build_score_given_read_name_given_channel(self):
         self.score_given_read_name_in_channel = {
-            h5_fpath: {channel: {} for channel in hdf5_tools.get_channel_names(h5_fpath)}
+            h5_fpath: {channel: {} for channel in hdf5tools.get_channel_names(h5_fpath)}
             for h5_fpath in self.h5_fpaths
             }
         for h5_fpath in self.h5_fpaths:
             print h5_fpath
-            i = 0
             for channel in self.scores[h5_fpath].keys():
                 score_given_read_name = self.score_given_read_name_in_channel[h5_fpath][channel]
                 for pos_tup in self.scores[h5_fpath][channel].keys():
                     for read_name, score in self.scores[h5_fpath][channel][pos_tup].items():
-                        if i % 100000 == 0:
-                            misctools.dot()
                         score_given_read_name[read_name] = score
-                        i += 1
+
             print
 
     def plot_normalization_constants(self):
         for h5_fpath in self.h5_fpaths:
-            nMajor_pos, nminor_pos = hdf5_tools.get_nMajor_nminor_pos(h5_fpath)
+            nMajor_pos, nminor_pos = hdf5tools.get_nMajor_nminor_pos(h5_fpath)
             for channel in sorted(self.scores[h5_fpath].keys()):
                 M = np.empty((nminor_pos, nMajor_pos))
                 M[:] = None
@@ -186,7 +180,7 @@ class IntensityScores(object):
                 ax.plot(cs, rs, marker, color=color, alpha=0.4, label=channel)
 
             ax.set_title('Aligned images in {}'.format(os.path.basename(h5_fpath)))
-            nMajor_pos, nminor_pos = hdf5_tools.get_nMajor_nminor_pos(h5_fpath)
+            nMajor_pos, nminor_pos = hdf5tools.get_nMajor_nminor_pos(h5_fpath)
             ax.set_ylim((nminor_pos, -1))
             ax.set_xlim((-1, 1.15 * nMajor_pos))  # Add room for legend
             ax.set_aspect(1)
