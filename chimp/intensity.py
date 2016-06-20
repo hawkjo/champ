@@ -9,6 +9,9 @@ import numpy as np
 from collections import defaultdict
 from sklearn.neighbors import KernelDensity
 from scipy.optimize import minimize
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class IntensityScores(object):
@@ -28,7 +31,6 @@ class IntensityScores(object):
                        results_dirs,
                        lda_weights_fpath,
                        side_px=3,
-                       verbose=True,
                        important_read_names='all'):
 
         # Set cluster skip test
@@ -47,7 +49,7 @@ class IntensityScores(object):
         im_loc_re = re.compile('Channel_(.+)_Pos_(\d+)_(\d+)_')
         for h5_fpath, results_dir in zip(self.h5_fpaths, results_dirs):
             results_fpaths = glob.glob(os.path.join(results_dir, '*_all_read_rcs.txt'))
-            if verbose: print 'Num results files:', len(results_fpaths)
+            log.debug('Num results files: %d' % len(results_fpaths))
 
             for i, rfpath in enumerate(results_fpaths):
                 rfname = os.path.basename(rfpath)
@@ -70,7 +72,6 @@ class IntensityScores(object):
                         x = im[r - side_px:r + side_px + 1, c - side_px:c + side_px + 1].astype(np.float)
                         score = np.multiply(lda_weights, x).sum()
                         self.scores[h5_fpath][channel][pos_tup][read_name] = score
-            if verbose: print
 
     def normalize_scores(self, verbose=True):
         """Normalizes scores. The normalizing constant for each image is determined by
@@ -108,7 +109,7 @@ class IntensityScores(object):
             for h5_fpath in self.h5_fpaths
             }
         for h5_fpath in self.h5_fpaths:
-            if verbose: print os.path.basename(h5_fpath)
+            log.debug(os.path.basename(h5_fpath))
             for channel in self.scores[h5_fpath].keys():
                 mode_given_pos_tup = {}
                 for pos_tup in self.raw_scores[h5_fpath][channel].keys():
@@ -127,7 +128,6 @@ class IntensityScores(object):
                         read_name: im_scores[read_name] / Z
                         for read_name in self.get_read_names_in_image(h5_fpath, channel, pos_tup)
                         }
-            if verbose: print
 
     def get_read_names_in_image(self, h5_fpath, channel, pos_tup):
         return set(self.raw_scores[h5_fpath][channel][pos_tup].keys())
@@ -138,14 +138,12 @@ class IntensityScores(object):
             for h5_fpath in self.h5_fpaths
             }
         for h5_fpath in self.h5_fpaths:
-            print h5_fpath
+            log.debug(h5_fpath)
             for channel in self.scores[h5_fpath].keys():
                 score_given_read_name = self.score_given_read_name_in_channel[h5_fpath][channel]
                 for pos_tup in self.scores[h5_fpath][channel].keys():
                     for read_name, score in self.scores[h5_fpath][channel][pos_tup].items():
                         score_given_read_name[read_name] = score
-
-            print
 
     def plot_normalization_constants(self):
         for h5_fpath in self.h5_fpaths:
@@ -160,7 +158,7 @@ class IntensityScores(object):
 
                 fig, ax = plt.subplots(figsize=(20, 1))
                 ms = ax.matshow(M)
-                cbar = plt.colorbar(ms)
+                plt.colorbar(ms)
 
                 ax.set_title('Normalizing constants in {} Channel {}'.format(os.path.basename(h5_fpath), channel))
                 ax.set_aspect(1)
@@ -193,7 +191,7 @@ class IntensityScores(object):
                 for score_given_read_name in self.scores[h5_fpath][channel].values():
                     reads_in_channel[channel].update(score_given_read_name.keys())
         for channel, read_names in sorted(reads_in_channel.items()):
-            print 'All reads found in channel {}: {:,d}'.format(channel, len(read_names))
+            log.debug('All reads found in channel {}: {:,d}'.format(channel, len(read_names)))
 
     def build_good_read_names(self, good_num_ims_cutoff):
         pos_tups_given_read_name = defaultdict(set)
