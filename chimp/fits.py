@@ -97,7 +97,7 @@ def get_base_file_names(h5_filename):
 def source_extract(base_file):
     command = '/usr/bin/sextractor {base_file}.fits -PARAMETERS_NAME spot.param -CATALOG_NAME {base_file}.cat -CHECKIMAGE_TYPE OBJECTS -CHECKIMAGE_NAME {base_file}.model'
     # Don't print any output
-    with open('/dev/null', 'w') as devnull:
+    with open('chimp.log', 'w') as devnull:
         command = command.format(base_file=base_file).split(' ')
         subprocess.call(command, stdout=devnull, stderr=devnull)
 
@@ -115,6 +115,7 @@ def create_fits_files(h5_base_name):
             with open(xyz_path, "w+") as f:
                 f.write(str(xyz_file))
             fits_path = '%s.fits' % os.path.join(h5_base_name, image.index)
+            log.debug("Calling %s" % " ".join(['fitsify', xyz_path, fits_path, '1', '2', '3']))
             subprocess.call(['fitsify', xyz_path, fits_path, '1', '2', '3'])
     log.info("Done creating fits files for %s" % h5_base_name)
 
