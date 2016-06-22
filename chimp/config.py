@@ -14,12 +14,12 @@ class CommandLineArguments(object):
 
     @property
     def log_level(self):
-        log_level = {0: logging.FATAL,
+        log_level = {0: logging.ERROR,
                      1: logging.WARN,
                      2: logging.INFO,
                      3: logging.DEBUG}
         # default to silent if the user supplies no verbosity setting
-        return log_level.get(self._arguments['-v'], logging.FATAL)
+        return log_level.get(self._arguments['-v'], logging.ERROR)
 
     @property
     def alignment_channel(self):
@@ -94,6 +94,10 @@ class CommandLineArguments(object):
     def fliplr(self):
         # flip images across the horizontal axis
         return self._arguments['--fliplr']
+
+    @property
+    def force(self):
+        return self._arguments['--force']
 
 
 class Experiment(object):

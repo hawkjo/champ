@@ -14,7 +14,7 @@ def main(clargs):
 
     """
     # hardcode the output directory for mapped reads
-    out_directory = 'mapped_reads'
+    out_directory = os.path.join(clargs.fastq_directory, 'mapped_reads')
     # validate and/or create directories
     if not os.path.isdir(clargs.fastq_directory):
         error.fail("The given fastq directory does not exist.")
@@ -25,6 +25,11 @@ def main(clargs):
 
     fastq_files = FastqFiles(filenames)
     all_classified_reads = set()
+
+    if not clargs.force:
+        if not fastq.safe_to_classify(clargs.bamfiles, out_directory):
+            error.fail("Some or all reads have already been mapped. If you want to force the read mapping "
+                       "to be redone, rerun the last command with --force")
 
     classified_reads = fastq.classify_all_reads(clargs.bamfiles, fastq_files)
     for name, reads in classified_reads.items():

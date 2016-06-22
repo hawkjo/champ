@@ -6,7 +6,6 @@ import os
 import pysam
 import subprocess
 
-
 log = logging.getLogger(__name__)
 
 
@@ -139,8 +138,7 @@ class FastqReadClassifier(object):
                          "Was it not created? You may be missing FASTQ reads." % temp_file)
 
 
-def classify_fastq_reads(classifier_path, fastq_files):
-    classifier = FastqReadClassifier(classifier_path)
+def classify_fastq_reads(classifier, fastq_files):
     log.info('Searching reads for %s. This will take a while!' % classifier.name)
 
     current = 0
@@ -159,10 +157,22 @@ def classify_fastq_reads(classifier_path, fastq_files):
 def classify_all_reads(classifier_paths, fastq_files):
     classified_reads = {}
     for path in classifier_paths:
-        name, reads = classify_fastq_reads(path, fastq_files)
+        classifier = FastqReadClassifier(path)
+        name, reads = classify_fastq_reads(classifier, fastq_files)
         assert name != 'unclassified', '"unclassified" cannot be used as a fastq read classifier name'
         classified_reads[name] = reads
     return classified_reads
+
+
+def safe_to_classify(classifier_paths, out_directory):
+    # Will we overwrite existing classifications? If so, we're probably doing redundant work unless
+    # the classification process was halted before it finished
+    for path in classifier_paths:
+        classifier = FastqReadClassifier(path)
+        filename = os.path.join(out_directory, classifier.name)
+        if os.path.isfile(filename):
+            return False
+    return True
 
 
 def stream_all_read_names(fastq_files):

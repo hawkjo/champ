@@ -4,7 +4,7 @@ Chip-Hybridized Interaction Mapping Platform
 Usage:
   chimp convert TIF_DIRECTORIES ... [--flipud] [--fliplr] [-v | -vv | -vvv]
   chimp preprocess IMAGE_DIRECTORY [-v | -vv | -vvv ]
-  chimp map FASTQ_DIRECTORY PATHS_TO_BAMFILES ... [-v | -vv | -vvv]
+  chimp map FASTQ_DIRECTORY PATHS_TO_BAMFILES ... [--force] [-v | -vv | -vvv]
   chimp align ALIGNMENT_CHANNEL IMAGE_DIRECTORY PROJECT_NAME MICRONS_PER_PIXEL [--chip=miseq] [--second-channel SECOND_CHANNEL_NAME] [--ports-on-right] [--min-hits MIN_HITS] [--snr-threshold SNR] [--make-pdfs] [-v | -vv | -vvv]
   chimp intensity
 
