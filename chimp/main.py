@@ -21,7 +21,7 @@ Commands:
   intensity     determines boundaries of clusters and assigns intensities to sequences
 
 """
-from chimp.controller import align, preprocess, mapreads, convert
+from chimp.controller import align, preprocess, mapreads, convert, intensity
 from docopt import docopt
 import logging
 from chimp.config import CommandLineArguments
@@ -40,12 +40,13 @@ def main(**kwargs):
     for _ in range(2):
         log.info('')
 
-    commands = {'align': align.main,
-                'preprocess': preprocess.main,
-                'map': mapreads.main,
-                'convert': convert.main
-                }
-    commands[arguments.command](arguments)
+    commands = {'align': align,
+                'preprocess': preprocess,
+                'map': mapreads,
+                'convert': convert,
+                'intensity': intensity}
+
+    commands[arguments.command].main(arguments)
 
 
 if __name__ == '__main__':
