@@ -107,17 +107,18 @@ class AlignmentStats:
         self.numtiles = len(self.tile)
 
 
-# def pM_concentration_given_fpath(fpath, convention='steve'):
-#     pattern = '[-_]([0-9_.]+)([pn]M)'
-#     m = re.search(pattern, fpath)
-#     assert m, fpath
-#     conc = float(m.group(1).replace('_', '.'))
-#     if m.group(2) == 'pM':
-#         return conc
-#     elif m.group(2) == 'nM':
-#         return conc * 1000
-#     else:
-#         raise ValueError('Can only handle pM and nM at the moment.')
+def parse_concentration(filename):
+    pattern = '[-_]([0-9_.]+)([pn]M)'
+    m = re.search(pattern, filename)
+    if m is None:
+        raise ValueError("The concentration cannot be parsed from the filename: %s" % filename)
+    conc = float(m.group(1).replace('_', '.'))
+    if m.group(2) == 'pM':
+        return conc
+    elif m.group(2) == 'nM':
+        return conc * 1000
+    else:
+        raise ValueError('Can only handle pM and nM at the moment.')
 
 #
 # def fold_radial_symmetry(x, with_max=False):

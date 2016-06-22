@@ -1,28 +1,16 @@
-import os
-import glob
 import re
 import h5py
-import misc
-from chimp import hdf5tools
-import matplotlib.pyplot as plt
-import numpy as np
-from collections import defaultdict
+from chimp import hdf5tools, constants, error
 from sklearn.neighbors import KernelDensity
-from scipy.optimize import minimize
 import logging
 import os
-import sys
 import glob
 import numpy as np
 import matplotlib.pyplot as plt
-import tifffile
 import random
 import itertools
 import misc
-from collections import defaultdict, Counter
-from Bio import SeqIO
-import time
-from matplotlib import animation
+from collections import defaultdict
 from scipy.optimize import minimize, curve_fit
 from matplotlib.ticker import MultipleLocator
 import functools
@@ -303,6 +291,55 @@ def write_kds(Kds, Kd_error, filename):
         out.write('\n'.join(['%s\t%f\t%f' % (seq, Kds[seq], Kd_error[seq]) for seq in sorted(Kds.keys())]))
 
 
+def plot_good_ham_reads(counts, bins, zoom_in, hamming_distance):
+    if zoom_in:
+        fig, ax = plt.subplots()
+    else:
+        fig, ax = plt.subplots(figsize=(15, 6))
+    ax.hist(counts, bins, histtype='step')
+    ax.set_title('Good Ham=%d Reads Found' % hamming_distance)
+    ax.set_xlabel('Read Counts')
+    ax.set_ylabel('Number of Seqs')
+    if zoom_in:
+        ax.set_xlim((0, 50))
+    return fig
+
+
+def delta_G(Kd):
+    """Takes a Kd in pM and return delta_G in J/mol"""
+    return constants.R * 333 * np.log(Kd / 10 ** 12)
+
+
+def delta_delta_G(Kd, ref_delta_G):
+    """Returns delta_delta_G in J/mol"""
+    return delta_G(Kd) - ref_delta_G
+
+
+def calculate_ddg(close_reads, ref_delta_G, fobs_func):
+    seq_Kds, seq_Kd_error, seq_ddGs, seq_ddG_error = {}, {}, {}, {}
+    for seq, read_names in close_reads.items():
+        if len(read_names) < 5:
+            continue
+        read_names = list(read_names)
+        popt = curve_fit_Fobs_fixed_curve_given_read_names(read_names, fobs_func)
+        seq_Kds[seq] = popt[0]
+        seq_ddGs[seq] = delta_delta_G(popt[0], ref_delta_G)
+
+        bootstrap_Kds, bootstrap_ddGs = [], []
+        for i in range(50):
+            resamp_read_names = np.random.choice(read_names, size=len(read_names), replace=True)
+            try:
+                popt = curve_fit_Fobs_fixed_curve_given_read_names(resamp_read_names, fobs_func)
+            except:
+                log.error("%s, Read name length: %d, Resample read names length: %d" % (seq, len(read_names), len(resamp_read_names)))
+                curve_fit_Fobs_fixed_curve_given_read_names(resamp_read_names, fobs_func)
+                error.fail("Error calculating ddG")
+            bootstrap_Kds.append(popt[0])
+            bootstrap_ddGs.append(delta_delta_G(popt[0], ref_delta_G))
+        seq_Kd_error[seq] = np.std(bootstrap_Kds)
+        seq_ddG_error[seq] = np.std(bootstrap_ddGs)
+    return seq_Kds, seq_Kd_error, seq_ddGs, seq_ddG_error
+
 
 date = '20160609'
 project_name = 'SA16105'
@@ -336,9 +373,9 @@ while i < len(h5_fpaths):
         h5_fpaths.pop(i)
     else:
         i += 1
-h5_fpaths.sort(key=misc.pM_concentration_given_fpath)
+h5_fpaths.sort(key=misc.parse_concentration)
 for fpath in h5_fpaths:
-    print misc.pM_concentration_given_fpath(fpath), fpath
+    print misc.parse_concentration(fpath), fpath
 
 
 results_dir_name = date
@@ -350,11 +387,11 @@ results_dirs = [
 ]
 
 
-print 'Loading data...'
+log.debug('Loading data...')
 nonneg_lda_weights_fpath = '/home/hawkjo/IlyaProjects/miseq_alignment/results/20150528-SA15097_before/bLDA_coef_nonneg.txt'
 int_scores = IntensityScores(h5_fpaths)
 int_scores.get_LDA_scores(results_dirs, nonneg_lda_weights_fpath)
-print 'Normalizing data...'
+log.debug('Normalizing data...')
 int_scores.normalize_scores()
 int_scores.plot_aligned_images('br', 'o*')
 int_scores.plot_normalization_constants()
@@ -363,13 +400,13 @@ good_num_ims_cutoff = len(h5_fpaths) - 1
 int_scores.build_good_read_names(good_num_ims_cutoff)
 good_read_names = int_scores.good_read_names
 good_perfect_read_names = perfect_target_read_names & good_read_names
-print 'Good Perfect Reads:', len(good_perfect_read_names)
-bases = 'ACGT'
+log.debug('Good Perfect Reads: %d' % len(good_perfect_read_names))
+
 
 def get_sequences_given_ref_and_hamming_distance(ref_seq, ham):
     seqs = []
     for idxs in itertools.combinations(range(len(ref_seq)), ham):
-        mm_bases = [bases.replace(ref_seq[idx], '') for idx in idxs]
+        mm_bases = ['ACGT'.replace(ref_seq[idx], '') for idx in idxs]
         for new_bases in itertools.product(*mm_bases):
             new_seq = ref_seq[:idxs[0]]
             for i, new_base in enumerate(new_bases[:-1]):
@@ -385,6 +422,11 @@ close_seqs = [target] + single_ham_seqs + double_ham_seqs
 
 close_reads = {seq: set() for seq in close_seqs}
 read_names_by_seq_fpath = os.path.join(read_name_dir, 'read_names_by_seq.txt')
+
+single_counts = [len(close_reads[seq]) for seq in single_ham_seqs]
+double_counts = [len(close_reads[seq]) for seq in double_ham_seqs]
+
+
 for line in open(read_names_by_seq_fpath):
     words = line.strip().split()
     seq = words[0]
@@ -394,45 +436,6 @@ for line in open(read_names_by_seq_fpath):
             close_reads[close_seq].update(rn for rn in read_names if rn in good_read_names)
             break
 
-
-
-single_counts = [len(close_reads[seq]) for seq in single_ham_seqs]
-
-fig, ax = plt.subplots(figsize=(15, 6))
-ax.hist(single_counts, 50, histtype='step')
-ax.set_title('Good Ham=1 Reads Found')
-ax.set_xlabel('Read Counts')
-ax.set_ylabel('Number of Seqs')
-
-fig, ax = plt.subplots()
-ax.hist(single_counts, 50, histtype='step')
-ax.set_title('Good Ham=1 Reads Found')
-ax.set_xlabel('Read Counts')
-ax.set_ylabel('Number of Seqs')
-ax.set_xlim((0, 50))
-
-
-
-
-double_counts = [len(close_reads[seq]) for seq in double_ham_seqs]
-
-fig, ax = plt.subplots(figsize=(15, 6))
-ax.hist(double_counts, 200, histtype='step')
-ax.set_title('Good Ham=2 Reads Found')
-ax.set_xlabel('Read Counts')
-ax.set_ylabel('Number of Seqs')
-
-fig, ax = plt.subplots()
-ax.hist(double_counts, 200, histtype='step')
-ax.set_title('Good Ham=2 Reads Found')
-ax.set_xlabel('Read Counts')
-ax.set_ylabel('Number of Seqs')
-ax.set_xlim((0, 50))
-
-
-custom_fig_dir = os.path.join(local_config.fig_dir, date, 'custom')
-if not os.path.isdir(custom_fig_dir):
-    os.makedirs(custom_fig_dir)
 
 
 int_scores.build_score_given_read_name_given_channel()
@@ -447,7 +450,7 @@ for line in open(read_names_by_seq_fpath):
 
 cascade_channel = 'Alexa488_blue'
 for h5_fpath in h5_fpaths:
-    pM_conc = misc.pM_concentration_given_fpath(h5_fpath)
+    pM_conc = misc.parse_concentration(h5_fpath)
     if cascade_channel not in int_scores.score_given_read_name_in_channel[h5_fpath]:
         continue
     score_dict = int_scores.score_given_read_name_in_channel[h5_fpath][cascade_channel]
@@ -458,12 +461,11 @@ for h5_fpath in h5_fpaths:
     if intensities:
         break
 Fmin = np.average(intensities)
-print 'Fmin:', Fmin
-
 
 
 def Fobs(x, Kd, Fmax):
     return Fmax / (1.0 + (float(Kd)/x)) + Fmin
+
 
 def make_Fobs_sq_error(concentrations, intensities):
     def Fobs_sq_error(params):
@@ -471,111 +473,88 @@ def make_Fobs_sq_error(concentrations, intensities):
         return sum((Fobs(conc, Kd, Fmax) - obs_avg)**2 for conc, obs_avg in zip(concentrations, intensities))
     return Fobs_sq_error
 
-def fit_curve_given_read_names(read_names):
+
+def fit_curve_given_read_names(protein_channel, read_names, h5_fpaths):
     all_pM_concentrations = []
     all_intensities = []
     for h5_fpath in h5_fpaths:
-        pM_conc = misc.pM_concentration_given_fpath(h5_fpath)
-        if cascade_channel not in int_scores.score_given_read_name_in_channel[h5_fpath]:
+        pM_conc = misc.parse_concentration(h5_fpath)
+        if protein_channel not in int_scores.score_given_read_name_in_channel[h5_fpath]:
             continue
-        score_dict = int_scores.score_given_read_name_in_channel[h5_fpath][cascade_channel]
+        score_dict = int_scores.score_given_read_name_in_channel[h5_fpath][protein_channel]
         for read_name in read_names:
             if read_name in score_dict:
                 all_pM_concentrations.append(pM_conc)
                 all_intensities.append(score_dict[read_name])
-    return minimize(make_Fobs_sq_error(all_pM_concentrations, all_intensities), (500, 1), bounds=((0, None), (0, None)))
+    return minimize(make_Fobs_sq_error(all_pM_concentrations, all_intensities),
+                    (500, 1),
+                    bounds=((0, None), (0, None)))
 
 
 sample_size = min(2000, len(good_perfect_read_names))
 
-In[32]:
+all_res = fit_curve_given_read_names(cascade_channel,
+                                     random.sample(good_perfect_read_names, sample_size),
+                                     h5_fpaths)
+Kd, Fmax = all_res.x
 
-all_res = fit_curve_given_read_names(random.sample(good_perfect_read_names, sample_size))
-
-In[33]:
-
-concentrations = [misc.pM_concentration_given_fpath(h5_fpath) for h5_fpath in h5_fpaths]
+concentrations = [misc.parse_concentration(h5_fpath) for h5_fpath in h5_fpaths]
 nM_concentrations = [conc / 1000.0 for conc in concentrations]
 print concentrations
 
-[100.0, 300.0, 1000.0, 3000.0, 10000.0, 30000.0, 100000.0]
-
-In[34]:
-
-xx = np.logspace(1, 5, 200)
-yy = Fobs(xx, *all_res.x)
-
-fig, ax = plt.subplots(figsize=(10, 7))
-if True:
-    for read_name in random.sample(good_perfect_read_names, sample_size):
-        intensities = [int_scores.score_given_read_name_in_channel[h5_fpath][cascade_channel][read_name]
-                       if cascade_channel in int_scores.score_given_read_name_in_channel[h5_fpath]
-                          and read_name in int_scores.score_given_read_name_in_channel[h5_fpath][cascade_channel]
-                       else None
-                       for h5_fpath in h5_fpaths]
-        ax.plot(nM_concentrations, intensities, 'b', alpha=0.01)
-ax.plot(xx / 1000, yy, 'r', label='Fit Curve', linewidth=2.5)
-ax.set_xscale('log')
-ax.grid(False)
-Kd, Fmax = all_res.x
-Kd /= 1000
-
-ax.set_title('Fluorescence vs Concentration Curve')
-ax.set_xlabel('Concentration (nM)')
-ax.set_ylabel('Intensity')
-xlim, ylim = ax.get_xlim(), ax.get_ylim()
-
-inc = (ylim[1] - ylim[0]) / 3
-oom = int(np.log10(inc))
-inc -= inc % max(1, int(0.05 * 10 ** oom))
-ax.yaxis.set_major_locator(MultipleLocator(inc))
-
-ax.text(0.2, sum(ax.get_ylim()) / 2, '$K_d = %.2f$ nM\n$F_{max} = %.1f$\n$F_{min} = %.1f$' % (Kd, Fmax, Fmin),
-        fontsize=20, va='center')
-for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
-                 ax.get_xticklabels() + ax.get_yticklabels()):
-    item.set_fontsize(18)
-
-ax.set_axis_bgcolor('white')
-fig.savefig(os.path.join(custom_fig_dir, 'Kd_curve_fit.png'))
+intensities = []
+for read_name in random.sample(good_perfect_read_names, sample_size):
+    intensity = [int_scores.score_given_read_name_in_channel[h5_fpath][cascade_channel][read_name]
+                   if cascade_channel in int_scores.score_given_read_name_in_channel[h5_fpath]
+                      and read_name in int_scores.score_given_read_name_in_channel[h5_fpath][cascade_channel]
+                   else None
+                   for h5_fpath in h5_fpaths]
+    intensities.append(intensity)
 
 
-def Fobs_fixed(x, Kd):
-    return all_res.x[1] / (1.0 + (float(Kd) / x)) + Fmin
+def plot_fluorescence_vs_concentration(intensities, solution):
+    xx = np.logspace(1, 5, 200)
+    yy = Fobs(xx, *solution)
+
+    fig, ax = plt.subplots(figsize=(10, 7))
+    for intensity in intensities:
+        ax.plot(nM_concentrations, intensity, 'b', alpha=0.01)
+    ax.plot(xx / 1000, yy, 'r', label='Fit Curve', linewidth=2.5)
+    ax.set_xscale('log')
+    ax.grid(False)
+    Kd, Fmax = solution
+    Kd /= 1000
+
+    ax.set_title('Fluorescence vs Concentration Curve')
+    ax.set_xlabel('Concentration (nM)')
+    ax.set_ylabel('Intensity')
+    xlim, ylim = ax.get_xlim(), ax.get_ylim()
+
+    inc = (ylim[1] - ylim[0]) / 3
+    oom = int(np.log10(inc))
+    inc -= inc % max(1, int(0.05 * 10 ** oom))
+    ax.yaxis.set_major_locator(MultipleLocator(inc))
+
+    ax.text(0.2, sum(ax.get_ylim()) / 2, '$K_d = %.2f$ nM\n$F_{max} = %.1f$\n$F_{min} = %.1f$' % (Kd, Fmax, Fmin),
+            fontsize=20, va='center')
+    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+        item.set_fontsize(18)
+
+    ax.set_axis_bgcolor('white')
+    # fig.savefig(os.path.join(custom_fig_dir, 'Kd_curve_fit.png'))
+    return fig
 
 
-In[36]:
-
-def make_Fobs_fixed_sq_error(concentrations, intensities):
-    def Fobs_sq_error(Kd):
-        return sum((Fobs_fixed(conc, Kd) - obs_avg) ** 2 for conc, obs_avg in zip(concentrations, intensities))
-
-    return Fobs_sq_error
+def fob_fix(fmin, fmax, x, Kd):
+    return fmax / (1.0 + (float(Kd) / x)) + fmin
+Fobs_fixed = functools.partial(fob_fix, Fmin, Fmax)
 
 
-In[37]:
-
-def fit_Fobs_fixed_curve_given_read_names(read_names):
-    all_pM_concentrations = []
-    all_intensities = []
-    for nd2 in nd2s:
-        pM_conc = misc.pM_concentration_given_fpath(nd2._filename)
-        if cascade_channel_idx not in int_scores.score_given_read_name_in_channel[nd2]:
-            continue
-        score_dict = int_scores.score_given_read_name_in_channel[nd2][cascade_channel_idx]
-        for read_name in read_names:
-            all_pM_concentrations.append(pM_conc)
-            all_intensities.append(score_dict[read_name])
-    return minimize(make_Fobs_fixed_sq_error(all_pM_concentrations, all_intensities), (500,), bounds=((0, None),))
-
-
-In[38]:
-
-def curve_fit_Fobs_fixed_curve_given_read_names(read_names, verbose=False):
+def curve_fit_Fobs_fixed_curve_given_read_names(read_names, fobs_func):
     all_pM_concentrations = []
     all_intensities = []
     for h5_fpath in h5_fpaths:
-        pM_conc = misc.pM_concentration_given_fpath(h5_fpath)
+        pM_conc = misc.parse_concentration(h5_fpath)
         if cascade_channel not in int_scores.score_given_read_name_in_channel[h5_fpath]:
             continue
         score_dict = int_scores.score_given_read_name_in_channel[h5_fpath][cascade_channel]
@@ -583,66 +562,21 @@ def curve_fit_Fobs_fixed_curve_given_read_names(read_names, verbose=False):
             if read_name in score_dict:
                 all_pM_concentrations.append(pM_conc)
                 all_intensities.append(float(score_dict[read_name]))
-    if verbose:
-        print all_pM_concentrations
-        print all_intensities
-    else:
-        return curve_fit(Fobs_fixed, all_pM_concentrations, all_intensities)
+    log.debug("all pM concentrations: {}".format(all_pM_concentrations))
+    log.debug("all intensities: {}".format(all_intensities))
+    return curve_fit(fobs_func, all_pM_concentrations, all_intensities)[0]
 
 
-R = 8.3144598
+ref_delta_G = delta_G(Kd)
 
-def delta_G(Kd):
-    """Takes a Kd in pM and return delta_G in J/mol"""
-    return R * 333 * np.log(Kd / 10 ** 12)
+log.info("Good read names: %d" % len(good_read_names))
 
+plot_good_ham_reads(single_counts, 50, False, 2)
+plot_good_ham_reads(single_counts, 50, True, 2)
+plot_good_ham_reads(double_counts, 200, False, 2)
+plot_good_ham_reads(double_counts, 200, True, 2)
 
-ref_delta_G = delta_G(all_res.x[0])
-
-
-def delta_delta_G(Kd, Kd_ref=None):
-    """Returns delta_delta_G in J/mol"""
-    if Kd_ref is None:
-        return delta_G(Kd) - ref_delta_G
-    else:
-        return R * 333 * (np.log(Kd) - np.log(Kd_ref))
-
-len(good_read_names)
-
-seq_Kds = {}
-seq_Kd_error = {}
-seq_ddGs = {}
-seq_ddG_error = {}
-for i, (seq, read_names) in enumerate(close_reads.items()):
-    if i % 100 == 0:
-        misctools.dot()
-    if len(read_names) < 5:
-        continue
-    read_names = list(read_names)
-    popt, pcov = curve_fit_Fobs_fixed_curve_given_read_names(read_names)
-    seq_Kds[seq] = popt[0]
-    seq_ddGs[seq] = delta_delta_G(popt[0])
-
-    bootstrap_Kds, bootstrap_ddGs = [], []
-    for _ in range(50):
-        resamp_read_names = np.random.choice(read_names, size=len(read_names), replace=True)
-        try:
-            popt, pcov = curve_fit_Fobs_fixed_curve_given_read_names(resamp_read_names)
-        except:
-            curve_fit_Fobs_fixed_curve_given_read_names(resamp_read_names)
-            print seq, len(read_names), len(resamp_read_names)
-            raise
-        bootstrap_Kds.append(popt[0])
-        bootstrap_ddGs.append(delta_delta_G(popt[0]))
-    seq_Kd_error[seq] = np.std(bootstrap_Kds)
-    seq_ddG_error[seq] = np.std(bootstrap_ddGs)
-
-
-
-custom_results_dir = os.path.join(local_config.results_dir, results_dir_name, 'custom')
-if not os.path.isdir(custom_results_dir):
-    os.makedirs(custom_results_dir)
-
+seq_Kds, seq_Kd_error, seq_ddGs, seq_ddG_error = calculate_ddg(close_reads, ref_delta_G, Fobs_fixed)
 
 write_kds(seq_Kds, seq_Kd_error, 'target{}_close_seq_Kds_and_errors.txt'.format(target_name))
 write_ddgs(seq_ddGs, seq_ddG_error, 'target{}_close_seq_ddGs_and_errors.txt'.format(target_name))
