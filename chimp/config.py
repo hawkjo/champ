@@ -54,6 +54,10 @@ class CommandLineArguments(object):
         return self._arguments['TIF_DIRECTORIES']
 
     @property
+    def output_directory(self):
+        return self._arguments['OUTPUT_DIRECTORY']
+
+    @property
     def bamfiles(self):
         return self._arguments['PATHS_TO_BAMFILES']
 
