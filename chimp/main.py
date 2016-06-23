@@ -32,12 +32,13 @@ import os
 
 
 def main(**kwargs):
-    arguments = CommandLineArguments(docopt(__doc__, version=VERSION), os.getcwd())
+    dargs = docopt(__doc__, version=VERSION)
+    arguments = CommandLineArguments(dargs, os.getcwd())
 
     log = logging.getLogger()
     log.addHandler(logging.StreamHandler())
     log.setLevel(arguments.log_level)
-    log.debug(str(arguments.__dict__))
+    log.debug(str(dargs))
 
     # make some space to distinguish log messages from command prompt
     for _ in range(2):
