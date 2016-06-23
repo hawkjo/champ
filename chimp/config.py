@@ -35,7 +35,7 @@ class CommandLineArguments(object):
 
     @property
     def project_name(self):
-        return self._arguments['PROJECT_NAME']
+        return self._arguments['EXPERIMENT_DATE']
 
     @property
     def fastq_directory(self):
@@ -123,6 +123,11 @@ class Experiment(object):
     @property
     def results_directory(self):
         return 'results'
+
+    @property
+    def intensity_directory(self):
+        return os.path.join(self.figure_directory, '{}_intensity' % self.project_name)
+
 
 
 class AlignmentParameters(object):
