@@ -37,7 +37,7 @@ def main(**kwargs):
     log = logging.getLogger()
     log.addHandler(logging.StreamHandler())
     log.setLevel(arguments.log_level)
-    log.debug(str(arguments))
+    log.debug(str(arguments.__dict__))
 
     # make some space to distinguish log messages from command prompt
     for _ in range(2):
