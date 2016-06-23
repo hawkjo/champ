@@ -66,7 +66,9 @@ class CommandLineArguments(object):
         for possible_command in ('align',
                                  'preprocess',
                                  'map',
-                                 'convert'):
+                                 'convert',
+                                 'intensity',
+                                 'info'):
             if self._arguments[possible_command]:
                 return possible_command
 
