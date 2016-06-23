@@ -34,10 +34,6 @@ class CommandLineArguments(object):
         return self._arguments['IMAGE_DIRECTORY']
 
     @property
-    def project_name(self):
-        return self._arguments['EXPERIMENT_DATE']
-
-    @property
     def fastq_directory(self):
         return self._arguments['FASTQ_DIRECTORY']
 
@@ -56,6 +52,10 @@ class CommandLineArguments(object):
     @property
     def output_directory(self):
         return self._arguments['OUTPUT_DIRECTORY']
+
+    @property
+    def read_directory(self):
+        return self._arguments['PROCESSED_READS_DIRECTORY']
 
     @property
     def bamfiles(self):
@@ -107,29 +107,24 @@ class CommandLineArguments(object):
 
 
 class Experiment(object):
-    def __init__(self, project_name):
-        self.project_name = project_name
+    def __init__(self, image_data_directory):
+        self._image_data_directory = image_data_directory
 
     @property
     def figure_directory(self):
-        return 'figs'
+        return os.path.join(self._image_data_directory, 'figs')
 
     @property
     def data_directory(self):
-        return 'data'
-
-    @property
-    def alignment_file(self):
-        return os.path.join(self.results_directory, 'align')
+        return self._image_data_directory
 
     @property
     def results_directory(self):
-        return 'results'
+        return os.path.join(self._image_data_directory, 'results')
 
     @property
     def intensity_directory(self):
-        return os.path.join(self.figure_directory, '{}_intensity' % self.project_name)
-
+        return os.path.join(self.figure_directory, 'intensity')
 
 
 class AlignmentParameters(object):

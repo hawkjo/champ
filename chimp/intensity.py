@@ -498,39 +498,26 @@ def calculate_nM_concentrations(h5_filepaths):
 
 
 def main(clargs):
-    date = '20160609'
-    project_name = 'SA16105'
     target_name = 'E'
     target = 'TTTAGACGCATAAAGATGAGACGCTGG'
     off_target = 'AAGTCGGCTCCTGTTTAGTTACGAGCGACATTGCT'
-    datadir = clargs.data_directory
-    figdir = os.path.join(local_config.fig_dir, date + '_ML')
-    print 'Image Collection Date:', date
-    print 'Sequencing Project Name:', project_name
+    print('Sequencing Project Name:', clargs.chip_name)
     print 'Target "{}":'.format(target_name), target
     print 'Off target:', off_target
 
-
-    read_name_dir = os.path.join(local_config.fourier_data_dir, project_name, 'read_names')
-    read_names_by_seq_fpath = os.path.join(read_name_dir, 'read_names_by_seq.txt')
-    all_read_name_fpath = os.path.join(read_name_dir, 'all_read_names.txt')
-    target_read_name_fpath = os.path.join(read_name_dir, 'target_{}_read_names.txt'.format(target_name.lower()))
-    perfect_target_read_name_fpath = os.path.join(read_name_dir, 'perfect_target_{}_read_names.txt'.format(target_name.lower()))
-    phiX_read_name_fpath = os.path.join(local_config.fourier_data_dir, project_name, 'phiX_mappings', 'phiX_read_names.txt')
+    read_names_by_seq_fpath = os.path.join(clargs.read_directory, 'read_names_by_seq.txt')
+    all_read_name_fpath = os.path.join(clargs.read_directory, 'all_read_names.txt')
+    target_read_name_fpath = os.path.join(clargs.read_directory, 'target_{}_read_names.txt'.format(target_name.lower()))
+    perfect_target_read_name_fpath = os.path.join(clargs.read_directory, 'perfect_target_{}_read_names.txt'.format(target_name.lower()))
+    phiX_read_name_fpath = os.path.join(clargs.read_directory, 'phix')
 
     all_read_names = set(line.strip() for line in open(all_read_name_fpath))
     target_read_names = set(line.strip() for line in open(target_read_name_fpath))
     perfect_target_read_names = set(line.strip() for line in open(perfect_target_read_name_fpath))
     phiX_read_names = set(line.strip() for line in open(phiX_read_name_fpath))
-    h5_filepaths = sort_h5_files(datadir)
-
-
-    results_dirs = [
-        os.path.join(local_config.results_dir,
-                     date,
-                     os.path.splitext(os.path.basename(h5_fpath))[0])
-        for h5_fpath in h5_filepaths
-    ]
+    h5_filepaths = sort_h5_files(clargs.data_directory)
+    results_dirs = [os.path.join(clargs.image_directory, os.path.splitext(os.path.basename(h5_fpath))[0])
+                    for h5_fpath in h5_filepaths]
 
 
     log.debug('Loading data...')

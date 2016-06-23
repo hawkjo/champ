@@ -242,8 +242,6 @@ def process_alignment_image(alignment_parameters, base_name, tile_data,
     return fia
 
 
-
-
 def write_output(image_index, base_name, fastq_image_aligner, experiment, tile_data, make_pdfs):
     intensity_filepath = os.path.join(experiment.results_directory,
                                       base_name, '{}_intensities.txt'.format(image_index))
