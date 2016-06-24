@@ -6,7 +6,7 @@ Usage:
   chimp preprocess IMAGE_DIRECTORY [-v | -vv | -vvv ]
   chimp map FASTQ_DIRECTORY OUTPUT_DIRECTORY PATHS_TO_BAMFILES ... [--force] [-v | -vv | -vvv]
   chimp align ALIGNMENT_CHANNEL IMAGE_DIRECTORY CHIP_NAME MICRONS_PER_PIXEL [--chip=miseq] [--second-channel SECOND_CHANNEL_NAME] [--ports-on-right] [--min-hits MIN_HITS] [--snr-threshold SNR] [--make-pdfs] [-v | -vv | -vvv]
-  chimp intensity IMAGE_DIRECTORY PROCESSED_READS_DIRECTORY CHIP_NAME [-v | -vv | -vvv]
+  chimp intensity IMAGE_DIRECTORY PROCESSED_READS_DIRECTORY CHIP_NAME TARGET_DATA TARGET OFF_TARGET [-v | -vv | -vvv]
   chimp info IMAGE_DIRECTORY [-v | -vv | -vvv]
 
 Options:

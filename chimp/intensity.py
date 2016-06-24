@@ -259,7 +259,7 @@ def plot_single_mismatch_ddgs(seq_ddGs, seq_ddG_error, target, reference_sequenc
     return fig
 
 
-def plot_kd_list(ham_seqs, hamming_distance):
+def plot_kd_list(seq_Kds, ham_seqs, hamming_distance):
     assert hamming_distance >= 0
     kd_list = np.array([seq_Kds[seq]/1000.0 for seq in ham_seqs if seq in seq_Kds])
     kd_list.sort()
@@ -367,7 +367,7 @@ def plot_fluorescence_vs_concentration(intensities, kd, fmax, fmin, fobs_func, n
     return fig
 
 
-def curve_fit_Fobs_fixed_curve_given_read_names(h5_filepaths, read_names, fobs_func):
+def curve_fit_Fobs_fixed_curve_given_read_names(int_scores, h5_filepaths, read_names, fobs_func):
     all_pM_concentrations = []
     all_intensities = []
     for h5_fpath in h5_filepaths:
@@ -384,7 +384,7 @@ def curve_fit_Fobs_fixed_curve_given_read_names(h5_filepaths, read_names, fobs_f
     return curve_fit(fobs_func, all_pM_concentrations, all_intensities)[0]
 
 
-def fit_curve_given_read_names(protein_channel, read_names, h5_filepaths):
+def fit_curve_given_read_names(int_scores, protein_channel, read_names, h5_filepaths):
     all_pM_concentrations = []
     all_intensities = []
     for h5_fpath in h5_filepaths:
@@ -498,32 +498,26 @@ def calculate_nM_concentrations(h5_filepaths):
 
 
 def main(clargs):
-    target_name = 'E'
-    target = 'TTTAGACGCATAAAGATGAGACGCTGG'
-    off_target = 'AAGTCGGCTCCTGTTTAGTTACGAGCGACATTGCT'
-    print('Sequencing Project Name:', clargs.chip_name)
-    print 'Target "{}":'.format(target_name), target
-    print 'Off target:', off_target
+    # target_name = 'E'
+    # target = 'TTTAGACGCATAAAGATGAGACGCTGG'
+    # off_target = 'AAGTCGGCTCCTGTTTAGTTACGAGCGACATTGCT'
+
+    # print('Sequencing Project Name:', clargs.chip_name)
+    # print 'Target "{}":'.format(target_name), target
+    # print 'Off target:', off_target
 
     read_names_by_seq_fpath = os.path.join(clargs.read_directory, 'read_names_by_seq.txt')
-    all_read_name_fpath = os.path.join(clargs.read_directory, 'all_read_names.txt')
-    target_read_name_fpath = os.path.join(clargs.read_directory, 'target_{}_read_names.txt'.format(target_name.lower()))
-    perfect_target_read_name_fpath = os.path.join(clargs.read_directory, 'perfect_target_{}_read_names.txt'.format(target_name.lower()))
-    phiX_read_name_fpath = os.path.join(clargs.read_directory, 'phix')
+    perfect_target_read_name_fpath = os.path.join(clargs.read_directory,
+                                                  'perfect_target_{}_read_names.txt'.format(target_name.lower()))
 
-    all_read_names = set(line.strip() for line in open(all_read_name_fpath))
-    target_read_names = set(line.strip() for line in open(target_read_name_fpath))
     perfect_target_read_names = set(line.strip() for line in open(perfect_target_read_name_fpath))
-    phiX_read_names = set(line.strip() for line in open(phiX_read_name_fpath))
     h5_filepaths = sort_h5_files(clargs.data_directory)
     results_dirs = [os.path.join(clargs.image_directory, os.path.splitext(os.path.basename(h5_fpath))[0])
                     for h5_fpath in h5_filepaths]
 
-
     log.debug('Loading data...')
-    nonneg_lda_weights_fpath = 'bLDA_coef_nonneg.txt'
     int_scores = IntensityScores(h5_filepaths)
-    int_scores.get_LDA_scores(results_dirs, nonneg_lda_weights_fpath)
+    int_scores.get_LDA_scores(results_dirs, clargs.nonneg_lda_weights_fpath)
     log.debug('Normalizing data...')
     int_scores.normalize_scores()
     int_scores.plot_aligned_images('br', 'o*')
@@ -535,7 +529,6 @@ def main(clargs):
     good_perfect_read_names = perfect_target_read_names & good_read_names
     log.debug('Good Perfect Reads: %d' % len(good_perfect_read_names))
 
-
     single_ham_seqs = get_sequences_given_ref_and_hamming_distance(target, 1)
     double_ham_seqs = get_sequences_given_ref_and_hamming_distance(target, 2)
     close_seqs = [target] + single_ham_seqs + double_ham_seqs
@@ -543,17 +536,15 @@ def main(clargs):
     single_counts = [len(close_reads[seq]) for seq in single_ham_seqs]
     double_counts = [len(close_reads[seq]) for seq in double_ham_seqs]
     int_scores.build_score_given_read_name_given_channel()
-    bad_read_names = load_bad_read_names(read_names_by_seq_fpath, off_target, good_read_names)
-    Fmin = get_fmin(h5_filepaths, protein_channel, int_scores, bad_read_names)
-    sample_size = min(2000, len(good_perfect_read_names))
 
-    Kd, Fmax = fit_curve_given_read_names(protein_channel,
+    bad_read_names = load_bad_read_names(read_names_by_seq_fpath, off_target, good_read_names)
+    sample_size = min(2000, len(good_perfect_read_names))
+    Fmin = get_fmin(h5_filepaths, protein_channel, int_scores, bad_read_names)
+    Kd, Fmax = fit_curve_given_read_names(int_scores,
+                                          protein_channel,
                                           random.sample(good_perfect_read_names, sample_size),
                                           h5_filepaths)
-
-
     Fobs_fixed = functools.partial(fob_fix, Fmin, Fmax)
-
     nM_concentrations = calculate_nM_concentrations(h5_filepaths)
     ref_delta_G = delta_G(Kd)
 
@@ -568,9 +559,9 @@ def main(clargs):
 
     write_kds(seq_Kds, seq_Kd_error, 'target{}_close_seq_Kds_and_errors.txt'.format(target_name))
     write_ddgs(seq_ddGs, seq_ddG_error, 'target{}_close_seq_ddGs_and_errors.txt'.format(target_name))
-    single_ham_seqs_fig = plot_kd_list(single_ham_seqs, 1)
+    single_ham_seqs_fig = plot_kd_list(seq_Kds, single_ham_seqs, 1)
     single_ham_seqs_fig.savefig(output_directory('single_ham_seqs.png'))
-    double_ham_seqs_fig = plot_kd_list(double_ham_seqs, 2)
+    double_ham_seqs_fig = plot_kd_list(seq_Kds, double_ham_seqs, 2)
     double_ham_seqs_fig.savefig(output_directory('double_ham_seqs.png'))
     single_mismatch_ddgs_fig = plot_single_mismatch_ddgs(seq_ddGs, seq_ddG_error, target, 'Target %s' % target, fs=16)
     single_mismatch_ddgs_fig.savefig(output_directory('single_mismatch_ddgs.png'))

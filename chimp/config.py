@@ -26,6 +26,10 @@ class CommandLineArguments(object):
         return self._arguments['ALIGNMENT_CHANNEL']
 
     @property
+    def nonneg_lda_weights_path(self):
+        return 'bLDA_coef_nonneg.txt'
+
+    @property
     def second_channel(self):
         return self._arguments['SECOND_CHANNEL_NAME']
 
