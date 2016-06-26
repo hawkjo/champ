@@ -20,7 +20,7 @@ Commands:
   info          brief summary of the data
 
 """
-from chimp.controller import align, preprocess, mapreads, convert, intensity, info
+from chimp.controller import align, init, mapreads, kd, info
 from docopt import docopt
 import logging
 from chimp.config import CommandLineArguments
@@ -42,10 +42,9 @@ def main(**kwargs):
         log.info('')
 
     commands = {'align': align,
-                'preprocess': preprocess,
+                'init': init,
                 'map': mapreads,
-                'convert': convert,
-                'intensity': intensity,
+                'kd': kd,
                 'info': info}
 
     commands[arguments.command].main(arguments)

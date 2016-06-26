@@ -50,16 +50,8 @@ class CommandLineArguments(object):
         return float(self._arguments['MICRONS_PER_PIXEL'])
 
     @property
-    def tif_directories(self):
-        return self._arguments['TIF_DIRECTORIES']
-
-    @property
     def output_directory(self):
         return self._arguments['OUTPUT_DIRECTORY']
-
-    @property
-    def read_directory(self):
-        return self._arguments['PROCESSED_READS_DIRECTORY']
 
     @property
     def bamfiles(self):
@@ -67,13 +59,12 @@ class CommandLineArguments(object):
 
     @property
     def command(self):
-        for possible_command in ('align',
-                                 'preprocess',
-                                 'map',
-                                 'convert',
-                                 'intensity',
+        for possible_command in ('map',
+                                 'init',
+                                 'align',
+                                 'kd',
                                  'info'):
-            if self._arguments[possible_command]:
+            if self._arguments.get(possible_command):
                 return possible_command
 
     @property
