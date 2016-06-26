@@ -77,7 +77,7 @@ def sanitize_name(name):
 def build_tif_axes(tif_file_paths):
     # we need to know the major and minor axis of each tif file, since we assume everywhere else in the codebase that
     # the Illumina tiles are arranged from left-to-right. However, depending on how you acquired your images, it could
-    # be long up and down, or left to right. We build up a dictionary of each tif file and its axes, guaranteeing
+    # be long up and down instead. We build up a dictionary of each tif file and its axes, guaranteeing
     # that the major axis comes first.
     tif_axes = {}
     best_first = 0
