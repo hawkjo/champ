@@ -1,25 +1,22 @@
 """
-Chip-Hybridized Interaction Mapping Platform
+Chip-Hybridized Affinity Mapping Platform
 
 Usage:
-  chimp convert TIF_DIRECTORIES ... [--flipud] [--fliplr] [-v | -vv | -vvv]
-  chimp preprocess IMAGE_DIRECTORY [-v | -vv | -vvv ]
-  chimp map FASTQ_DIRECTORY OUTPUT_DIRECTORY PATHS_TO_BAMFILES ... [--force] [-v | -vv | -vvv]
-  chimp align ALIGNMENT_CHANNEL IMAGE_DIRECTORY CHIP_NAME MICRONS_PER_PIXEL [--chip=miseq] [--second-channel SECOND_CHANNEL_NAME] [--ports-on-right] [--min-hits MIN_HITS] [--snr-threshold SNR] [--make-pdfs] [-v | -vv | -vvv]
-  chimp intensity IMAGE_DIRECTORY PROCESSED_READS_DIRECTORY CHIP_NAME TARGET_DATA TARGET OFF_TARGET [-v | -vv | -vvv]
-  chimp info IMAGE_DIRECTORY [-v | -vv | -vvv]
+  champ map FASTQ_DIRECTORY OUTPUT_DIRECTORY PATHS_TO_BAMFILES ... [--force] [-v | -vv | -vvv]
+  champ init MAPPED_READS IMAGE_DIRECTORY [--microns-per-pixel=0.266666666] [--chip=miseq] [--ports-on-right] [--flipud] [--fliplr] [-v | -vv | -vvv ]
+  champ align ALIGNMENT_CHANNEL [--second-channel SECOND_CHANNEL_NAME] [--min-hits MIN_HITS] [--snr-threshold SNR] [--make-pdfs] [-v | -vv | -vvv]
+  champ kd IMAGE_DIRECTORY PROCESSED_READS_DIRECTORY CHIP_NAME TARGET_DATA TARGET OFF_TARGET [-v | -vv | -vvv]
+  champ info IMAGE_DIRECTORY [-v | -vv | -vvv]
 
 Options:
   -h --help     Show this screen.
   --version     Show version.
 
 Commands:
-  convert       creates an HDF5-formatted file from OME-TIFF files
-  map           maps all the reads in the fastq files, typically for separating phiX
-  preprocess    defines where points are in the microscope image data
-  align         maps reads from the high-throughput sequencer to fluorescent
-                points in microscope image data
-  intensity     determines boundaries of clusters and assigns intensities to sequences
+  map           Maps all the reads in the fastq files. This needs to be done before any other processing
+  init          Configures and preprocesses a directory of image data for analysis
+  align         Determines the sequence of fluorescent points in the microscope data
+  kd            Determines boundaries of clusters, assigns intensities to sequences and derives the apparent Kd's
   info          brief summary of the data
 
 """
