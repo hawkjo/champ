@@ -130,7 +130,6 @@ class TifsPerConcentration(BaseTifStack):
                     all_pages[page.micromanager_metadata['PositionName']].append((channel, page))
 
                 for position_text, channel_pages in all_pages.items():
-                    assert len(channel_pages) == 11  # TODO: Delete this line, it won't always be true in the future
                     major_axis_position, minor_axis_position = self.axes[file_path][position_text]
                     dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_position, minor_axis_position)
                     summed_images = defaultdict(lambda *x: np.zeros((height, width), dtype=np.int))
