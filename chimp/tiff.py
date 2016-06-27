@@ -4,11 +4,13 @@ import re
 import tifffile
 from collections import defaultdict
 import numpy as np
+import logging
 
+log = logging.getLogger(__name__)
 
 whitespace_regex = re.compile('[\s]+')
 special_chars_regex = re.compile('[\W]+')
-name_regex = re.compile('Pos_(\d+)_(\d+)\D')
+name_regex = re.compile(r"""[\w-]+Pos_(\d+)_(\d+)""")
 
 
 def sanitize_name(name):
@@ -84,7 +86,62 @@ class TifsPerFieldOfView(BaseTifStack):
 
 class TifsPerConcentration(BaseTifStack):
     # the new format from microscope 4
-    pass
+    @property
+    def axes(self):
+        if not self._axes:
+            best_first = 0
+            best_second = 0
+            for file_path in self._filenames:
+                tif_axes = {}
+                log.debug("Loading position list from %s" % file_path)
+                with tifffile.TiffFile(file_path) as tif_stack:
+                    for tif in tif_stack:
+                        position_text = tif.micromanager_metadata['PositionName']
+                        axis_positions = name_regex.search(position_text)
+                        if not axis_positions:
+                            print("FAIL: %s" % position_text)
+                        else:
+                            first = int(axis_positions.group(1))
+                            second = int(axis_positions.group(2))
+                            best_first = max(first, best_first)
+                            best_second = max(second, best_second)
+                            tif_axes[position_text] = (first, second)
+                if best_second > best_first:
+                    # the second thing is the major axis, so we need to invert them
+                    tif_axes = {position_text: (second, first) for position_text, (first, second) in tif_axes.items()}
+                # no need to invert, just return the values we already have
+                self._axes[file_path] = tif_axes
+        return self._axes
+
+    def __iter__(self):
+        for file_path in self._filenames:
+            all_pages = defaultdict(list)
+            with tifffile.TiffFile(file_path) as tif:
+                summary = tif.micromanager_metadata['summary']
+                # Find channel names and assert unique
+                channel_names = [sanitize_name(name) for name in summary['ChNames']]
+                assert summary['Channels'] == len(channel_names) == len(set(channel_names)), channel_names
+                # channel_idxs map tif pages to channels
+                channels = [channel_names[i] for i in tif.micromanager_metadata['index_map']['channel']]
+                # Setup defaultdict
+                height, width = summary['Height'], summary['Width']
+
+                for channel, page in zip(channels, tif):
+                    all_pages[page.micromanager_metadata['PositionName']].append((channel, page))
+
+                for position_text, channel_pages in all_pages.items():
+                    assert len(channel_pages) == 11  # TODO: Delete this line, it won't always be true in the future
+                    major_axis_position, minor_axis_position = self.axes[file_path][position_text]
+                    dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_position, minor_axis_position)
+                    summed_images = defaultdict(lambda *x: np.zeros((height, width), dtype=np.int))
+
+                    # Add images
+                    for channel, page in channel_pages:
+                        image = page.asarray()
+                        for adjustment in self._adjustments:
+                            image = adjustment(image)
+                        summed_images[channel] += image
+                    yield TIFSingleFieldOfView(summed_images, dataset_name)
 
 
 class TIFSingleFieldOfView(object):
