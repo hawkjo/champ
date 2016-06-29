@@ -15,6 +15,10 @@ def Major_pos_given_dset_name(dset_name):
 
 def bname_given_channel_and_dset_name(channel, dset_name):
     Major_pos, minor_pos = coords_given_dset_name(dset_name)
+    return bname_given_channel_and_coords(channel, Major_pos, minor_pos)
+
+
+def bname_given_channel_and_coords(channel, Major_pos, minor_pos):
     return 'Channel_{}_Pos_{}_{}'.format(channel, Major_pos, minor_pos)
 
 
