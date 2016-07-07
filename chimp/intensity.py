@@ -309,13 +309,13 @@ def delta_delta_G(Kd, ref_delta_G):
     return delta_G(Kd) - ref_delta_G
 
 
-def calculate_ddg(h5_filepaths, close_reads, ref_delta_G, fobs_func):
+def calculate_ddg(h5_filepaths, int_scores, close_reads, ref_delta_G, fobs_func):
     seq_Kds, seq_Kd_error, seq_ddGs, seq_ddG_error = {}, {}, {}, {}
     for seq, read_names in close_reads.items():
         if len(read_names) < 5:
             continue
         read_names = list(read_names)
-        popt = curve_fit_Fobs_fixed_curve_given_read_names(h5_filepaths, read_names, fobs_func)
+        popt = curve_fit_Fobs_fixed_curve_given_read_names(int_scores, h5_filepaths, read_names, fobs_func)
         seq_Kds[seq] = popt[0]
         seq_ddGs[seq] = delta_delta_G(popt[0], ref_delta_G)
 
@@ -323,7 +323,7 @@ def calculate_ddg(h5_filepaths, close_reads, ref_delta_G, fobs_func):
         for _ in range(50):
             resamp_read_names = np.random.choice(read_names, size=len(read_names), replace=True)
             try:
-                popt = curve_fit_Fobs_fixed_curve_given_read_names(h5_filepaths, resamp_read_names, fobs_func)
+                popt = curve_fit_Fobs_fixed_curve_given_read_names(int_scores, h5_filepaths, resamp_read_names, fobs_func)
             except:
                 log.error("%s, Read name length: %d, Resample read names length: %d" % (seq, len(read_names), len(resamp_read_names)))
                 error.fail("Error calculating ddG")
@@ -451,6 +451,7 @@ def get_fmin(h5_filepaths, protein_channel, int_scores, bad_read_names):
                 intensities.append(score_dict[read_name])
         if intensities:
             break
+            # TODO: Move return statement here?
     return np.average(intensities)
 
 
@@ -497,15 +498,7 @@ def calculate_nM_concentrations(h5_filepaths):
     return [misc.parse_concentration(h5_fpath) / 1000.0 for h5_fpath in h5_filepaths]
 
 
-def main(clargs):
-    # target_name = 'E'
-    # target = 'TTTAGACGCATAAAGATGAGACGCTGG'
-    # off_target = 'AAGTCGGCTCCTGTTTAGTTACGAGCGACATTGCT'
-
-    # print('Sequencing Project Name:', clargs.chip_name)
-    # print 'Target "{}":'.format(target_name), target
-    # print 'Off target:', off_target
-
+def main(clargs, target_name, target_sequence, off_target_sequence):
     read_names_by_seq_fpath = os.path.join(clargs.read_directory, 'read_names_by_seq.txt')
     perfect_target_read_name_fpath = os.path.join(clargs.read_directory,
                                                   'perfect_target_{}_read_names.txt'.format(target_name.lower()))
@@ -529,15 +522,15 @@ def main(clargs):
     good_perfect_read_names = perfect_target_read_names & good_read_names
     log.debug('Good Perfect Reads: %d' % len(good_perfect_read_names))
 
-    single_ham_seqs = get_sequences_given_ref_and_hamming_distance(target, 1)
-    double_ham_seqs = get_sequences_given_ref_and_hamming_distance(target, 2)
-    close_seqs = [target] + single_ham_seqs + double_ham_seqs
+    single_ham_seqs = get_sequences_given_ref_and_hamming_distance(target_sequence, 1)
+    double_ham_seqs = get_sequences_given_ref_and_hamming_distance(target_sequence, 2)
+    close_seqs = [target_sequence] + single_ham_seqs + double_ham_seqs
     close_reads = load_close_reads(read_names_by_seq_fpath, close_seqs, good_read_names)
     single_counts = [len(close_reads[seq]) for seq in single_ham_seqs]
     double_counts = [len(close_reads[seq]) for seq in double_ham_seqs]
     int_scores.build_score_given_read_name_given_channel()
 
-    bad_read_names = load_bad_read_names(read_names_by_seq_fpath, off_target, good_read_names)
+    bad_read_names = load_bad_read_names(read_names_by_seq_fpath, off_target_sequence, good_read_names)
     sample_size = min(2000, len(good_perfect_read_names))
     Fmin = get_fmin(h5_filepaths, protein_channel, int_scores, bad_read_names)
     Kd, Fmax = fit_curve_given_read_names(int_scores,
@@ -555,7 +548,7 @@ def main(clargs):
     plot_good_ham_reads(double_counts, 200, False, 2)
     plot_good_ham_reads(double_counts, 200, True, 2)
 
-    seq_Kds, seq_Kd_error, seq_ddGs, seq_ddG_error = calculate_ddg(h5_filepaths, close_reads, ref_delta_G, Fobs_fixed)
+    seq_Kds, seq_Kd_error, seq_ddGs, seq_ddG_error = calculate_ddg(h5_filepaths, int_scores, close_reads, ref_delta_G, Fobs_fixed)
 
     write_kds(seq_Kds, seq_Kd_error, 'target{}_close_seq_Kds_and_errors.txt'.format(target_name))
     write_ddgs(seq_ddGs, seq_ddG_error, 'target{}_close_seq_ddGs_and_errors.txt'.format(target_name))
@@ -563,7 +556,8 @@ def main(clargs):
     single_ham_seqs_fig.savefig(output_directory('single_ham_seqs.png'))
     double_ham_seqs_fig = plot_kd_list(seq_Kds, double_ham_seqs, 2)
     double_ham_seqs_fig.savefig(output_directory('double_ham_seqs.png'))
-    single_mismatch_ddgs_fig = plot_single_mismatch_ddgs(seq_ddGs, seq_ddG_error, target, 'Target %s' % target, fs=16)
+    single_mismatch_ddgs_fig = plot_single_mismatch_ddgs(seq_ddGs, seq_ddG_error, target_sequence,
+                                                         'Target %s' % target_name, fs=16)
     single_mismatch_ddgs_fig.savefig(output_directory('single_mismatch_ddgs.png'))
 
     intensities = calculate_intensities(good_perfect_read_names, sample_size, int_scores, protein_channel, h5_filepaths)

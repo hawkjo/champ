@@ -3,10 +3,12 @@ Chip-Hybridized Affinity Mapping Platform
 
 Usage:
   champ map FASTQ_DIRECTORY OUTPUT_DIRECTORY PATHS_TO_BAMFILES ... [--force] [-v | -vv | -vvv]
-  champ init MAPPED_READS IMAGE_DIRECTORY [--microns-per-pixel=0.266666666] [--chip=miseq] [--ports-on-right] [--flipud] [--fliplr] [-v | -vv | -vvv ]
-  champ align ALIGNMENT_CHANNEL [--second-channel SECOND_CHANNEL_NAME] [--min-hits MIN_HITS] [--snr-threshold SNR] [--make-pdfs] [-v | -vv | -vvv]
-  champ kd IMAGE_DIRECTORY PROCESSED_READS_DIRECTORY CHIP_NAME TARGET_DATA TARGET OFF_TARGET [-v | -vv | -vvv]
+  champ init IMAGE_DIRECTORY CHIP_NAME MAPPED_READS ALIGNMENT_CHANNEL [--microns-per-pixel=0.266666666] [--chip=miseq] [--ports-on-right] [--flipud] [--fliplr] [-v | -vv | -vvv ]
   champ info IMAGE_DIRECTORY [-v | -vv | -vvv]
+  champ preprocess IMAGE_DIRECTORY [-v | -vv | -vvv]
+  champ align [--second-channel SECOND_CHANNEL_NAME] [--min-hits MIN_HITS] [--snr-threshold SNR] [--make-pdfs] [-v | -vv | -vvv]
+  champ kd IMAGE_DIRECTORY TARGET_DATA TARGET_LABEL OFF_TARGET_LABEL [-v | -vv | -vvv]
+
 
 Options:
   -h --help     Show this screen.
