@@ -9,8 +9,9 @@ log = logging.getLogger(__name__)
 
 def main(clargs):
     """
-    Parses fastq files and creates text files containing read names that belong to each source
-    Typically this is just used to separate phiX reads from everything else.
+    Parses fastq files and creates text files containing read names, with one file per source
+    For example, all reads that are part of the phiX genome will go into a file called "phix"
+    These sources are provided by the user, in the form of a list of BAM files.
 
     """
     # validate and/or create directories
