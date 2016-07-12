@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
 from scipy.optimize import minimize
+from scipy.ndimage.filters import gaussian_filter
 import misc 
 
 
@@ -13,11 +14,12 @@ class FastqTileRCs(object):
         self.read_names = read_names
         self.rcs = np.array([map(int, name.split(':')[-2:]) for name in self.read_names])
 
-    def set_fastq_image_data(self, offset, scale, scaled_dims, w, force=False, verbose=True):
+    def set_fastq_image_data(self, offset, scale, scaled_dims, w, um_per_pixel, force=False, verbose=True):
         self.offset = offset
         self.scale = scale
         self.image_shape = scaled_dims
         self.w = w  # width in um
+        self.um_per_pixel = um_per_pixel
         self.mapped_rcs = scale * (self.rcs + np.tile(offset, (self.rcs.shape[0], 1)))
         self.rotation_degrees = 0
 
@@ -31,6 +33,8 @@ class FastqTileRCs(object):
     def image(self):
         image = np.zeros(self.image_shape)
         image[self.mapped_rcs.astype(np.int)[:,0], self.mapped_rcs.astype(np.int)[:,1]] = 1
+        sigma = 0.25 / self.um_per_pixel  # Clusters have stdev ~= 0.25 um
+        image = gaussian_filter(image, sigma)
         return image
 
     def fft_align_with_im(self, image_data):

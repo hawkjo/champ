@@ -116,6 +116,7 @@ class FastqImageCorrelator(object):
                                       self.fq_im_scale,
                                       self.fq_im_scaled_dims,
                                       self.fq_w,
+                                      self.image_data.um_per_pixel,
                                       verbose=verbose)
 
     def rotate_all_fastq_data(self, degrees):
