@@ -68,7 +68,8 @@ class CommandLineArguments(object):
                                  'init',
                                  'align',
                                  'kd',
-                                 'info'):
+                                 'info',
+                                 'preprocess'):
             if self._arguments.get(possible_command):
                 return possible_command
 
