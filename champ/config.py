@@ -42,6 +42,10 @@ class CommandLineArguments(object):
         return self._arguments['FASTQ_DIRECTORY']
 
     @property
+    def mapped_reads(self):
+        return self._arguments['MAPPED_READS']
+
+    @property
     def hdf5_file_path(self):
         return self._arguments['HDF5_FILE_PATH']
 
