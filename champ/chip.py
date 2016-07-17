@@ -60,7 +60,7 @@ class Miseq(BaseChip):
         self.tile_width = 935.0
         self.rotation_estimate = 180.0
 
-    def __repr__(self):
+    def __str__(self):
         return 'miseq'
 
     @property
@@ -77,5 +77,5 @@ class Hiseq(BaseChip):
         super(Hiseq, self).__init__(100)
         raise NotImplementedError("We haven't implemented hiseq chips yet.")
 
-    def __repr__(self):
+    def __str__(self):
         return 'hiseq'
