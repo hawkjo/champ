@@ -1,5 +1,5 @@
 import logging
-from chimp import initialize
+from champ import initialize
 
 
 log = logging.getLogger(__name__)

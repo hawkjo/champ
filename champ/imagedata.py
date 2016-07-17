@@ -1,5 +1,5 @@
 import numpy as np
-from chimp import misc
+from champ import misc
 
 
 class ImageData(object):

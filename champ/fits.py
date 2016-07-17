@@ -1,4 +1,4 @@
-from chimp.grid import GridImages
+from champ.grid import GridImages
 import functools
 import logging
 import multiprocessing

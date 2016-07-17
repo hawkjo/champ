@@ -1,7 +1,7 @@
 import matplotlib
 matplotlib.use('Agg')
-from chimp.grid import GridImages
-from chimp import plotting, error
+from champ.grid import GridImages
+from champ import plotting, error
 from collections import Counter, defaultdict
 import fastqimagealigner
 import functools

@@ -1,6 +1,6 @@
 import re
 import h5py
-from chimp import hdf5tools, constants, error
+from champ import hdf5tools, constants, error
 from sklearn.neighbors import KernelDensity
 import logging
 import os

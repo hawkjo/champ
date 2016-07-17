@@ -22,11 +22,11 @@ Commands:
   info          View the metadata associated with an experiment
 
 """
-from chimp.controller import align, initialize, mapreads, kd, info, preprocess
+from champ.controller import align, initialize, mapreads, kd, info, preprocess
 from docopt import docopt
 import logging
-from chimp.config import CommandLineArguments
-from chimp.constants import VERSION
+from champ.config import CommandLineArguments
+from champ.constants import VERSION
 import os
 
 

@@ -76,6 +76,10 @@ class CommandLineArguments(object):
         return chips[chip](self._arguments['--ports-on-left'])
 
     @property
+    def chip_name(self):
+        return self._arguments['CHIP_NAME']
+
+    @property
     def snr_threshold(self):
         return float(self._arguments.get('SNR', 1.2))
 

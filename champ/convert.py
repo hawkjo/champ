@@ -1,7 +1,7 @@
 import tifffile
 import os
 import numpy as np
-from chimp.tiff import TifsPerConcentration, TifsPerFieldOfView
+from champ.tiff import TifsPerConcentration, TifsPerFieldOfView
 from collections import defaultdict
 import h5py
 import logging

@@ -1,7 +1,7 @@
-from chimp.config import AlignmentParameters, Experiment
+from champ.config import AlignmentParameters, Experiment
 import os
 import logging
-from chimp import align
+from champ import align
 
 log = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-from chimp import convert, fits, initialize
+from champ import convert, fits, initialize
 import logging
 
 
