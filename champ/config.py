@@ -80,6 +80,10 @@ class CommandLineArguments(object):
         return chips[chip](self._arguments['--ports-on-right'])
 
     @property
+    def ports_on_right(self):
+        return self._arguments['--ports-on-right']
+
+    @property
     def chip_name(self):
         return self._arguments['CHIP_NAME']
 
