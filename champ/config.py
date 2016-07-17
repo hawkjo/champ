@@ -51,7 +51,7 @@ class CommandLineArguments(object):
 
     @property
     def microns_per_pixel(self):
-        return float(self._arguments.get('--microns-per-pixel') or 0.2666666666666666666)
+        return float(self._arguments['--microns-per-pixel'] or 0.2666666666666666666)
 
     @property
     def output_directory(self):
