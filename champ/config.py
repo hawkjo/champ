@@ -77,7 +77,7 @@ class CommandLineArguments(object):
         chip = self._arguments.get('CHIP_TYPE', 'miseq')
         chips = {'miseq': Miseq,
                  'hiseq': Hiseq}
-        return chips[chip](self._arguments['--ports-on-left'])
+        return chips[chip](self._arguments['--ports-on-right'])
 
     @property
     def chip_name(self):

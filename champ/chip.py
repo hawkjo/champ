@@ -51,26 +51,31 @@ class BaseChip(object):
 
 
 class Miseq(BaseChip):
-    def __init__(self, ports_on_left):
+    def __init__(self, ports_on_right):
         # ports_on_left means that when imaging, the two fluid inlet ports are towards the left
         super(Miseq, self).__init__(19)
         self._lower_tiles = [self._format_tile_number(2100 + num) for num in range(1, 11)]
         self._higher_tiles = [self._format_tile_number(2100 + num) for num in reversed(range(11, 20))]
-        self._ports_on_left = ports_on_left
+        self._ports_on_right = ports_on_right
         self.tile_width = 935.0
         self.rotation_estimate = 180.0
 
+    def __str__(self):
+        return 'miseq'
+
     @property
     def right_side_tiles(self):
-        return self._higher_tiles if self._ports_on_left else self._lower_tiles
+        return self._higher_tiles if not self._ports_on_right else self._lower_tiles
 
     @property
     def left_side_tiles(self):
-        return self._lower_tiles if self._ports_on_left else self._higher_tiles
-
+        return self._lower_tiles if not self._ports_on_right else self._higher_tiles
 
 
 class Hiseq(BaseChip):
     def __init__(self, ports_on_right):
         super(Hiseq, self).__init__(100)
         raise NotImplementedError("We haven't implemented hiseq chips yet.")
+
+    def __str__(self):
+        return 'hiseq'
