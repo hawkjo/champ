@@ -97,7 +97,7 @@ def get_base_file_names(h5_filename):
 def source_extract(base_file):
     command = '/usr/bin/sextractor {base_file}.fits -PARAMETERS_NAME spot.param -CATALOG_NAME {base_file}.cat -CHECKIMAGE_TYPE OBJECTS -CHECKIMAGE_NAME {base_file}.model'
     # Don't print any output
-    with open('chimp.log', 'w') as devnull:
+    with open('/dev/null', 'w') as devnull:
         command = command.format(base_file=base_file).split(' ')
         subprocess.call(command, stdout=devnull, stderr=devnull)
 
