@@ -55,6 +55,7 @@ class CommandLineArguments(object):
 
     @property
     def bamfiles(self):
+        # TODO: Auto-expand user directories or convert these to absolute paths or something
         return self._arguments['PATHS_TO_BAMFILES']
 
     @property

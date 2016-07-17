@@ -1,7 +1,7 @@
 import matplotlib
 matplotlib.use('Agg')
 from chimp.grid import GridImages
-from chimp import plotting
+from chimp import plotting, error
 from collections import Counter, defaultdict
 import fastqimagealigner
 import functools
@@ -74,8 +74,8 @@ def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment
 
 def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, clargs):
     if len(h5_filenames) == 0:
-        raise ValueError("There were no HDF5 files to process. "
-                         "Either they just don't exist, or you didn't provide the correct path.")
+        error.fail("There were no HDF5 files to process. "
+                   "Either they just don't exist, or you didn't provide the correct path.")
     channel = clargs.alignment_channel
     chip = clargs.chip
     # We use one process per concentration. We could theoretically speed this up since our machine

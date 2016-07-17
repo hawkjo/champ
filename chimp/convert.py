@@ -27,7 +27,7 @@ def get_all_tif_paths(root_directory):
         if not filenames:
             continue
         for filename in filenames:
-            if not filename.endswith('.ome.tif'):
+            if not filename.endswith('.tif'):
                 continue
             paths[directory].add(os.path.join(directory, filename))
     return paths

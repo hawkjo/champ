@@ -4,10 +4,10 @@ Chip-Hybridized Affinity Mapping Platform
 Usage:
   champ map FASTQ_DIRECTORY OUTPUT_DIRECTORY PATHS_TO_BAMFILES ... [--force] [-v | -vv | -vvv]
   champ init IMAGE_DIRECTORY CHIP_NAME MAPPED_READS ALIGNMENT_CHANNEL [--microns-per-pixel=0.266666666] [--chip=miseq] [--ports-on-right] [--flipud] [--fliplr] [-v | -vv | -vvv ]
-  champ info IMAGE_DIRECTORY [-v | -vv | -vvv]
   champ align IMAGE_DIRECTORY [--phix-only] [--min-hits MIN_HITS] [--snr-threshold SNR] [--make-pdfs] [-v | -vv | -vvv]
   champ kd IMAGE_DIRECTORY TARGET_DATA_FILE TARGET_LABEL OFF_TARGET_LABEL [-v | -vv | -vvv]
   champ preprocess IMAGE_DIRECTORY [-v | -vv | -vvv]
+  champ info IMAGE_DIRECTORY
 
 Options:
   -h --help     Show this screen.
@@ -19,10 +19,10 @@ Commands:
   preprocess    Convert TIFs to HDF5 and prepare microscope data for alignment. Only needed for development.
   align         Determines the sequence of fluorescent points in the microscope data. Preprocesses images if not already done.
   kd            Determines boundaries of clusters, assigns intensities to sequences and derives the apparent Kd's
-  info          brief summary of the data
+  info          View the metadata associated with an experiment
 
 """
-from chimp.controller import align, init, mapreads, kd, info, preprocess
+from chimp.controller import align, initialize, mapreads, kd, info, preprocess
 from docopt import docopt
 import logging
 from chimp.config import CommandLineArguments
@@ -44,7 +44,7 @@ def main(**kwargs):
 
     commands = {'align': align,
                 'preprocess': preprocess,
-                'init': init,
+                'init': initialize,
                 'map': mapreads,
                 'kd': kd,
                 'info': info}
