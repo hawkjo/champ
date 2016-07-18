@@ -72,12 +72,12 @@ def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment
         write_output(image.index, base_name, fastq_image_aligner, experiment, tile_data, make_pdfs)
 
 
-def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, clargs):
+def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata):
     if len(h5_filenames) == 0:
         error.fail("There were no HDF5 files to process. "
                    "Either they just don't exist, or you didn't provide the correct path.")
-    channel = clargs.alignment_channel
-    chip = clargs.chip
+    channel = metadata['alignment_channel']
+    chip = metadata['chip']
     # We use one process per concentration. We could theoretically speed this up since our machine
     # has significantly more cores than the typical number of concentration points, but since it
     # usually finds a result in the first image or two, it's not going to deliver any practical benefits
@@ -91,7 +91,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         # find columns/tiles on the left side
 
         base_column_checker = functools.partial(check_column_for_alignment, channel, alignment_parameters,
-                                                alignment_tile_data, clargs.microns_per_pixel, experiment, fia)
+                                                alignment_tile_data, metadata['microns_per_pixel'], experiment, fia)
 
         left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, chip.left_side_tiles))
         right_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), chip.right_side_tiles))
@@ -118,7 +118,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     # align, do a precision alignment and write the mapped FastQ reads to disk
     num_processes = multiprocessing.cpu_count()
     log.debug("Aligning all images with %d cores" % num_processes)
-    alignment_func = functools.partial(perform_alignment, alignment_parameters, clargs.microns_per_pixel,
+    alignment_func = functools.partial(perform_alignment, alignment_parameters, metadata['microns_per_pixel'],
                                        experiment, alignment_tile_data, all_tile_data)
     pool = multiprocessing.Pool(num_processes)
     pool.map_async(alignment_func,

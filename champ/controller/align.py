@@ -1,7 +1,7 @@
 from champ.config import AlignmentParameters, Experiment
 import os
 import logging
-from champ import align
+from champ import align, initialize
 
 log = logging.getLogger(__name__)
 
@@ -12,10 +12,11 @@ def main(clargs):
     # We know which channel phix is in from the YAML file
     # TODO: if --phix-only, don't proceed with 2nd channels
     # TODO: add auto-elbow-grease, a technique to align images with an abnormally low number of clusters
+    metadata = initialize.load(clargs.image_directory)
     h5_filenames = list(filter(lambda x: x.endswith('.h5'), os.listdir(clargs.image_directory)))
     h5_filenames = [os.path.join(clargs.image_directory, filename) for filename in h5_filenames]
-    experiment = Experiment(clargs.chip_name)
-    alignment_parameters = AlignmentParameters(clargs)
+    experiment = Experiment(clargs.image_directory)
+    alignment_parameters = AlignmentParameters(clargs, metadata['mapped_reads'])
     log.debug("Loading tile data.")
     alignment_tile_data = align.load_read_names(alignment_parameters.aligning_read_names_filepath)
     unclassified_tile_data = align.load_read_names(alignment_parameters.all_read_names_filepath)
@@ -24,6 +25,6 @@ def main(clargs):
     log.debug("Tile data loaded.")
 
     if not clargs.second_channel:
-        align.run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, clargs)
+        align.run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata)
     else:
         align.run_second_channel(h5_filenames, alignment_parameters, all_tile_data, experiment, clargs)

@@ -138,26 +138,26 @@ class Experiment(object):
 
 class AlignmentParameters(object):
     """ Parses user-provided alignment parameters and provides a default in case no value was given. """
-    def __init__(self, command_line_args):
-        self._args = command_line_args
+    def __init__(self, clargs, mapped_reads):
+        self._clargs = clargs
+        self._mapped_reads = mapped_reads
 
     @property
     def aligning_read_names_filepath(self):
-        return 'mapped_reads/phix'
+        return os.path.join(self._mapped_reads, 'phix')
 
     @property
     def all_read_names_filepath(self):
-        return 'mapped_reads/unclassified'
+        return os.path.join(self._mapped_reads, 'unclassified')
 
     @property
     def fastq_tile_width_estimate(self):
         # width of a tile of Illumina data, in microns
-        #
         return 935.0
 
     @property
     def min_hits(self):
-        return self._args.min_hits
+        return self._clargs.min_hits
 
     @property
     def rotation_estimate(self):
@@ -165,4 +165,4 @@ class AlignmentParameters(object):
 
     @property
     def snr_threshold(self):
-        return self._args.snr_threshold
+        return self._clargs.snr
