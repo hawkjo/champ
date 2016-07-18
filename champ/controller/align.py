@@ -14,7 +14,7 @@ def main(clargs):
     # TODO: add auto-elbow-grease, a technique to align images with an abnormally low number of clusters
     h5_filenames = list(filter(lambda x: x.endswith('.h5'), os.listdir(clargs.image_directory)))
     h5_filenames = [os.path.join(clargs.image_directory, filename) for filename in h5_filenames]
-    experiment = Experiment(clargs.project_name)
+    experiment = Experiment(clargs.chip_name)
     alignment_parameters = AlignmentParameters(clargs)
     log.debug("Loading tile data.")
     alignment_tile_data = align.load_read_names(alignment_parameters.aligning_read_names_filepath)
