@@ -116,6 +116,7 @@ class FastqImageCorrelator(object):
                                       self.fq_im_scale,
                                       self.fq_im_scaled_dims,
                                       self.fq_w,
+                                      self.image_data.um_per_pixel,
                                       verbose=verbose)
 
     def rotate_all_fastq_data(self, degrees):
@@ -126,10 +127,6 @@ class FastqImageCorrelator(object):
         for tile in self.fastq_tiles_list:
             tile.image_shape = self.fq_im_scaled_dims
 
-
-    def imreg_align(self):
-        for key, tile in sorted(self.fastq_tiles.items()):
-            tile.imreg_align_with_im(self.image_data.im)
 
     def fft_align_tile(self, tile):
         return tile.fft_align_with_im(self.image_data)
@@ -595,7 +592,7 @@ class FastqImageCorrelator(object):
                 label='Fastq Points: %d' % (len(self.aligned_rcs_in_frame)))
         handles = [grey_line, blue_line, magenta_line, red_line, sexcat_line, fastq_line]
         legend = ax.legend(handles=handles, **legend_kwargs)
-        legend.get_frame().set_color('white')
+        #legend.get_frame().set_color('white')
         return ax
 
     def plot_hit_vectors(self, hit_types=['exclusive'], ax=None):

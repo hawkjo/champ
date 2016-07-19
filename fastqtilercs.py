@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
 from scipy.optimize import minimize
-import imreg
+from scipy.ndimage.filters import gaussian_filter
 import misc 
 
 
@@ -14,11 +14,12 @@ class FastqTileRCs(object):
         self.read_names = read_names
         self.rcs = np.array([map(int, name.split(':')[-2:]) for name in self.read_names])
 
-    def set_fastq_image_data(self, offset, scale, scaled_dims, w, force=False, verbose=True):
+    def set_fastq_image_data(self, offset, scale, scaled_dims, w, um_per_pixel, force=False, verbose=True):
         self.offset = offset
         self.scale = scale
         self.image_shape = scaled_dims
         self.w = w  # width in um
+        self.um_per_pixel = um_per_pixel
         self.mapped_rcs = scale * (self.rcs + np.tile(offset, (self.rcs.shape[0], 1)))
         self.rotation_degrees = 0
 
@@ -32,28 +33,9 @@ class FastqTileRCs(object):
     def image(self):
         image = np.zeros(self.image_shape)
         image[self.mapped_rcs.astype(np.int)[:,0], self.mapped_rcs.astype(np.int)[:,1]] = 1
+        sigma = 0.25 / self.um_per_pixel  # Clusters have stdev ~= 0.25 um
+        image = gaussian_filter(image, sigma)
         return image
-
-    def imreg_align_with_im(self, im):
-        fq_image = self.image()
-        edge_len = misc.next_power_of_2(np.r_[fq_image.shape, im.shape].max())
-        sq_fq_im = misc.pad_to_size(fq_image, (edge_len, edge_len))
-
-        self.max_score = float('-inf')
-        for flip in [False, True]:
-            if flip:
-                im = np.fliplr(im)
-            sq_im = misc.pad_to_size(im, (edge_len, edge_len))
-            fq_match_im, scale, rot, tr = imreg.similarity(sq_im, sq_fq_im)
-            score = (sq_im * fq_match_im).sum()
-
-            if score > self.max_score:
-                self.max_score = score
-                self.best_match_im = fq_match_im
-                self.align_scale = scale
-                self.align_rot = rot
-                self.align_tr = tr
-        print self.key, score, scale, rot, tr
 
     def fft_align_with_im(self, image_data):
         im_data_im_shapes = set(a.shape for a in image_data.all_ffts.values())

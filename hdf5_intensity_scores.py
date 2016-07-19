@@ -45,15 +45,26 @@ class IntensityScores(object):
         # Read scores
         lda_weights = np.loadtxt(lda_weights_fpath)
         im_loc_re = re.compile('Channel_(.+)_Pos_(\d+)_(\d+)_')
+        jim_im_loc_re = re.compile('^(.+)_(\d+)_(\d+)_')
         for h5_fpath, results_dir in zip(self.h5_fpaths, results_dirs):
             results_fpaths = glob.glob(os.path.join(results_dir, '*_all_read_rcs.txt'))
             if verbose: print 'Num results files:', len(results_fpaths)
         
             for i, rfpath in enumerate(results_fpaths):
                 rfname = os.path.basename(rfpath)
-                m = im_loc_re.match(rfname)
-                channel = m.group(1)
-                pos_tup = tuple(int(m.group(i)) for i in (2, 3))
+                try:
+                    m = im_loc_re.match(rfname)
+                    channel = m.group(1)
+                    pos_tup = tuple(int(m.group(i)) for i in (2, 3))
+                except:
+                    try:
+                        m = jim_im_loc_re.match(rfname)
+                        channel = m.group(1)
+                        pos_tup = tuple(int(m.group(i)) for i in (2, 3))
+                    except:
+                        print rfname
+                        raise
+
                 pos_key = hdf5_tools.dset_name_given_coords(*pos_tup)
                 self.scores[h5_fpath][channel][pos_tup] = {}
                 if verbose: misctools.dot()
@@ -191,7 +202,10 @@ class IntensityScores(object):
             print
 
     def plot_normalization_constants(self):
-        for h5_fpath in self.h5_fpaths:
+        n = len(self.h5_fpaths)
+        fig, axes = plt.subplots(n, 1, figsize=(10, n))
+
+        for h5_fpath, ax in zip(self.h5_fpaths, axes):
             nMajor_pos, nminor_pos = hdf5_tools.get_nMajor_nminor_pos(h5_fpath)
             for channel in sorted(self.scores[h5_fpath].keys()):
                 M = np.empty((nminor_pos+1, nMajor_pos+1))
@@ -201,17 +215,19 @@ class IntensityScores(object):
                     col, row = pos_tup
                     M[row, col] = self.normalizing_constants[h5_fpath][channel][pos_tup]
 
-                fig, ax = plt.subplots(figsize=(20, 1))
                 ms = ax.matshow(M)
                 cbar = plt.colorbar(ms)
 
                 ax.set_title('Normalizing constants in {} Channel {}'.format(os.path.basename(h5_fpath), channel))
                 ax.set_aspect(1)
                 ax.xaxis.set_ticks_position('bottom')
+        return fig, axes
 
-    def plot_aligned_images(self, colors, markers):
-        for h5_fpath in self.h5_fpaths:
-            fig, ax = plt.subplots(figsize=(10, 7))
+    def plot_aligned_images(self, colors='rgbcmyk', markers='o*^sv+x'):
+        n = len(self.h5_fpaths)
+        fig, axes = plt.subplots(n, 1, figsize=(10, n))
+
+        for h5_fpath, ax in zip(self.h5_fpaths, axes):
             for channel, color, marker in zip(
                     sorted(self.scores[h5_fpath].keys()), colors, markers
             ):
@@ -228,6 +244,7 @@ class IntensityScores(object):
             ax.set_xlim((-1, 1.15 * nMajor_pos))  # Add room for legend
             ax.set_aspect(1)
             ax.legend()
+        return fig, axes
 
     def print_reads_per_channel(self):
         reads_in_channel = defaultdict(set)
