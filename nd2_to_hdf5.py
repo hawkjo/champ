@@ -13,7 +13,7 @@ from collections import defaultdict
 
 def nd2_dir_to_hdf5(h5_fpath, nd2_fpath, channel_idxs):
     nd2 = nd2reader.Nd2(nd2_fpath)
-    channel_names = [nd2.channel[idx] for idx in channel_idxs]
+    channel_names = [nd2.channels[idx] for idx in channel_idxs]
     assert len(channel_names) == len(set(channel_names)), 'Non-unique channel names in channels of interest.'
 
     coord_info, xs, ys, zs, pos_names, rows, cols = nd2tools.get_nd2_image_coord_info(nd2)
