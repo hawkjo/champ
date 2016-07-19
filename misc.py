@@ -107,16 +107,18 @@ class AlignmentStats:
 
 
 def pM_concentration_given_fpath(fpath, convention='steve'):
-    pattern = '[-_]([0-9_.]+)([pn][Mm])'
+    pattern = '[-_]([0-9_.-]+)([pnu][Mm])'
     m = re.search(pattern, fpath)
     assert m, fpath
-    conc = float(m.group(1).replace('_', '.'))
+    conc = float(m.group(1).replace('_', '.').replace('-', '.'))
     if m.group(2) in ['pM', 'pm']:
         return conc
     elif m.group(2) in ['nM', 'nm']:
         return conc * 1000
+    elif m.group(2) in ['uM', 'um']:
+        return conc * 1000000
     else:
-        raise ValueError('Can only handle pM and nM at the moment.')
+        raise ValueError('Can only handle pM, nM, and uM at the moment.')
 
 
 def fold_radial_symmetry(x, with_max=False):
