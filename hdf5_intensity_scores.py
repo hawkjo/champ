@@ -202,12 +202,10 @@ class IntensityScores(object):
             print
 
     def plot_normalization_constants(self):
-        n = len(self.h5_fpaths)
-        fig, axes = plt.subplots(n, 1, figsize=(10, n))
-
-        for h5_fpath, ax in zip(self.h5_fpaths, axes):
+        for h5_fpath in self.h5_fpaths:
             nMajor_pos, nminor_pos = hdf5_tools.get_nMajor_nminor_pos(h5_fpath)
             for channel in sorted(self.scores[h5_fpath].keys()):
+                fig, ax = plt.subplots(figsize=(10, 1))
                 M = np.empty((nminor_pos+1, nMajor_pos+1))
                 M[:] = None
 
@@ -221,7 +219,6 @@ class IntensityScores(object):
                 ax.set_title('Normalizing constants in {} Channel {}'.format(os.path.basename(h5_fpath), channel))
                 ax.set_aspect(1)
                 ax.xaxis.set_ticks_position('bottom')
-        return fig, axes
 
     def plot_aligned_images(self, colors='rgbcmyk', markers='o*^sv+x'):
         n = len(self.h5_fpaths)
