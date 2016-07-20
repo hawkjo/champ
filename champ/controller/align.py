@@ -7,6 +7,7 @@ log = logging.getLogger(__name__)
 
 
 def main(clargs):
+    # TODO: KeyError: 'SECOND_CHANNEL_NAME'
     # TODO: Check if preprocessing is done, if not, run the preprocessing command
     # TODO: for each channel, determine if alignment is complete, and if not, align that channel, starting with phix first
     # We know which channel phix is in from the YAML file
