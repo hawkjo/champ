@@ -3,6 +3,7 @@ A space for miscellaneous useful functions.
 """
 import numpy as np
 import re
+from sklearn.neighbors import KernelDensity
 
 
 def next_power_of_2(x):
@@ -239,3 +240,14 @@ def read_names_and_points_given_rcs_fpath(rcs_fpath):
         read_names.append(var[0])
         points.append(map(float, var[1:]))
     return read_names, np.array(points)
+
+
+def get_mode(vals):
+    bandwidth = (vmax - vmin)/100
+    kdf = KernelDensity(bandwidth=bandwidth)
+    kdf.fit(np.array(vals).reshape(len(vals), 1))
+    def neg_kdf(x):
+        return -kdf.score(x)
+    res = minimize(neg_kdf, x0=np.median(vals), method='Nelder-Mead')
+    assert res.success, res
+    return res.x

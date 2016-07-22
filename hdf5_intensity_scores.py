@@ -9,7 +9,6 @@ import misctools
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict, Counter
-from sklearn.neighbors import KernelDensity
 from scipy.optimize import minimize
 
 class IntensityScores(object):
@@ -48,7 +47,9 @@ class IntensityScores(object):
         jim_im_loc_re = re.compile('^(.+)_(\d+)_(\d+)_')
         for h5_fpath, results_dir in zip(self.h5_fpaths, results_dirs):
             results_fpaths = glob.glob(os.path.join(results_dir, '*_all_read_rcs.txt'))
-            if verbose: print 'Num results files:', len(results_fpaths)
+            if verbose: 
+                print h5_fpath
+                print 'Num results files:', len(results_fpaths)
         
             for i, rfpath in enumerate(results_fpaths):
                 rfname = os.path.basename(rfpath)
@@ -80,7 +81,7 @@ class IntensityScores(object):
                     if (side_px <= r < im.shape[0] - side_px - 1
                         and side_px <= c < im.shape[0] - side_px - 1):
                         x = im[r-side_px:r+side_px+1, c-side_px:c+side_px+1].astype(np.float)
-                        score = np.multiply(lda_weights, x).sum()
+                        score = float(np.multiply(lda_weights, x).sum())
                         self.scores[h5_fpath][channel][pos_tup][read_name] = score
             if verbose: print
 
@@ -89,22 +90,15 @@ class IntensityScores(object):
             
             Z = mode(pixel values) / median(all modes in h5_fpath)
         """
-        def get_mode(im):
+        def get_mode_in_im(im):
             w = 200
             hw = w/2
             rmid, cmid = int(im.shape[0]/2), int(im.shape[1]/2)
             vmin, vmax = im.min(), im.max()
-            bandwidth = (vmax - vmin)/100
-            kdf = KernelDensity(bandwidth=bandwidth)
             # remove saturation
             pct95 = vmin + 0.95 * (vmax - vmin)
             vals = [v for v in im[rmid-hw:rmid+hw, cmid-hw:cmid+hw].flatten() if v < pct95]
-            kdf.fit(np.array(vals).reshape(len(vals), 1))
-            def neg_kdf(x):
-                return -kdf.score(x)
-            res = minimize(neg_kdf, x0=np.median(im.flatten()), method='Nelder-Mead')
-            assert res.success, res
-            return res.x
+            return misc.get_mode(vals)
 
         self.scores = {
             h5_fpath: {channel: {} for channel in hdf5_tools.get_channel_names(h5_fpath)}
