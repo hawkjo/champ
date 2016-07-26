@@ -30,10 +30,6 @@ class CommandLineArguments(object):
         return 'bLDA_coef_nonneg.txt'
 
     @property
-    def second_channel(self):
-        return self._arguments['SECOND_CHANNEL_NAME']
-
-    @property
     def image_directory(self):
         return self._arguments['IMAGE_DIRECTORY']
 
@@ -79,6 +75,10 @@ class CommandLineArguments(object):
         chips = {'miseq': Miseq,
                  'hiseq': Hiseq}
         return chips[chip](self._arguments['--ports-on-right'])
+
+    @property
+    def phix_only(self):
+        return self._arguments['--phix-only']
 
     @property
     def ports_on_right(self):
