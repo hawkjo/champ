@@ -71,7 +71,7 @@ class CommandLineArguments(object):
 
     @property
     def chip(self):
-        chip = load(self._arguments.get('CHIP_TYPE', 'miseq'))
+        chip = load(self._arguments.get('--chip') or 'miseq')
         return chip(self._arguments['--ports-on-right'])
 
     @property
@@ -88,7 +88,7 @@ class CommandLineArguments(object):
 
     @property
     def min_hits(self):
-        return int(self._arguments.get('MIN_HITS', 15))
+        return int(self._arguments.get('--min-hits') or 15)
 
     @property
     def make_pdfs(self):
