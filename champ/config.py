@@ -1,6 +1,6 @@
 import os
 import logging
-from chip import Miseq, Hiseq
+from chip import Miseq, Hiseq, load
 
 
 class CommandLineArguments(object):
@@ -28,10 +28,6 @@ class CommandLineArguments(object):
     @property
     def nonneg_lda_weights_path(self):
         return 'bLDA_coef_nonneg.txt'
-
-    @property
-    def second_channel(self):
-        return self._arguments['SECOND_CHANNEL_NAME']
 
     @property
     def image_directory(self):
@@ -75,10 +71,12 @@ class CommandLineArguments(object):
 
     @property
     def chip(self):
-        chip = self._arguments.get('CHIP_TYPE', 'miseq')
-        chips = {'miseq': Miseq,
-                 'hiseq': Hiseq}
-        return chips[chip](self._arguments['--ports-on-right'])
+        chip = load(self._arguments.get('CHIP_TYPE', 'miseq'))
+        return chip(self._arguments['--ports-on-right'])
+
+    @property
+    def phix_only(self):
+        return self._arguments['--phix-only']
 
     @property
     def ports_on_right(self):
@@ -87,10 +85,6 @@ class CommandLineArguments(object):
     @property
     def chip_name(self):
         return self._arguments['CHIP_NAME']
-
-    @property
-    def snr_threshold(self):
-        return float(self._arguments.get('SNR', 1.2))
 
     @property
     def min_hits(self):
@@ -113,6 +107,10 @@ class CommandLineArguments(object):
     @property
     def force(self):
         return self._arguments['--force']
+
+    @property
+    def snr(self):
+        return self._arguments.get('-snr')
 
 
 class Experiment(object):
@@ -138,31 +136,33 @@ class Experiment(object):
 
 class AlignmentParameters(object):
     """ Parses user-provided alignment parameters and provides a default in case no value was given. """
-    def __init__(self, command_line_args):
-        self._args = command_line_args
+    def __init__(self, clargs, mapped_reads):
+        self._clargs = clargs
+        self._mapped_reads = mapped_reads
 
     @property
     def aligning_read_names_filepath(self):
-        return 'mapped_reads/phix'
+        return os.path.join(self._mapped_reads, 'phix')
 
     @property
     def all_read_names_filepath(self):
-        return 'mapped_reads/unclassified'
+        return os.path.join(self._mapped_reads, 'unclassified')
 
     @property
     def fastq_tile_width_estimate(self):
         # width of a tile of Illumina data, in microns
-        #
+        # TODO: This should be stored in the Chip class
         return 935.0
 
     @property
     def min_hits(self):
-        return self._args.min_hits
+        return self._clargs.min_hits
 
     @property
     def rotation_estimate(self):
+        # TODO: This should be stored in the Chip class
         return 180.0
 
     @property
-    def snr_threshold(self):
-        return self._args.snr_threshold
+    def snr(self):
+        return float(self._clargs.snr or 1.2)

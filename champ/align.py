@@ -1,7 +1,7 @@
 import matplotlib
 matplotlib.use('Agg')
 from champ.grid import GridImages
-from champ import plotting, error
+from champ import plotting, error, chip
 from collections import Counter, defaultdict
 import fastqimagealigner
 import functools
@@ -72,12 +72,12 @@ def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment
         write_output(image.index, base_name, fastq_image_aligner, experiment, tile_data, make_pdfs)
 
 
-def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, clargs):
+def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata, make_pdfs):
     if len(h5_filenames) == 0:
         error.fail("There were no HDF5 files to process. "
                    "Either they just don't exist, or you didn't provide the correct path.")
-    channel = clargs.alignment_channel
-    chip = clargs.chip
+    channel = metadata['alignment_channel']
+    experiment_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
     # We use one process per concentration. We could theoretically speed this up since our machine
     # has significantly more cores than the typical number of concentration points, but since it
     # usually finds a result in the first image or two, it's not going to deliver any practical benefits
@@ -89,12 +89,11 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     with h5py.File(h5_filenames[0]) as first_file:
         grid = GridImages(first_file, channel)
         # find columns/tiles on the left side
-
         base_column_checker = functools.partial(check_column_for_alignment, channel, alignment_parameters,
-                                                alignment_tile_data, clargs.microns_per_pixel, experiment, fia)
+                                                alignment_tile_data, metadata['microns_per_pixel'], experiment, fia)
 
-        left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, chip.left_side_tiles))
-        right_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), chip.right_side_tiles))
+        left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, experiment_chip.left_side_tiles))
+        right_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), experiment_chip.right_side_tiles))
 
     default_left_tile, default_left_column = decide_default_tiles_and_columns(left_end_tiles)
     default_right_tile, default_right_column = decide_default_tiles_and_columns(right_end_tiles)
@@ -111,15 +110,15 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         except KeyError:
             right_tiles, right_column = [default_right_tile], default_right_column
         min_column, max_column = min(left_column, right_column), max(left_column, right_column)
-        tile_map = chip.get_expected_tile_map(left_tiles, right_tiles, min_column, max_column)
+        tile_map = experiment_chip.expected_tile_map(left_tiles, right_tiles, min_column, max_column)
         end_tiles[filename] = min_column, max_column, tile_map
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
     num_processes = multiprocessing.cpu_count()
     log.debug("Aligning all images with %d cores" % num_processes)
-    alignment_func = functools.partial(perform_alignment, alignment_parameters, clargs.microns_per_pixel,
-                                       experiment, alignment_tile_data, all_tile_data)
+    alignment_func = functools.partial(perform_alignment, alignment_parameters, metadata['microns_per_pixel'],
+                                       experiment, alignment_tile_data, all_tile_data, make_pdfs)
     pool = multiprocessing.Pool(num_processes)
     pool.map_async(alignment_func,
                    iterate_all_images(h5_filenames, end_tiles, channel)).get(timeout=sys.maxint)
@@ -166,7 +165,7 @@ def check_column_for_alignment(channel, alignment_parameters, alignment_tile_dat
 
 
 def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_tile_data,
-                      all_tile_data, image_data, make_pdfs):
+                      all_tile_data, make_pdfs, image_data):
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
     row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
@@ -238,7 +237,7 @@ def process_alignment_image(alignment_parameters, base_name, tile_data,
     fia.rough_align(possible_tile_keys,
                     alignment_parameters.rotation_estimate,
                     alignment_parameters.fastq_tile_width_estimate,
-                    snr_thresh=alignment_parameters.snr_threshold)
+                    snr_thresh=alignment_parameters.snr)
     return fia
 
 

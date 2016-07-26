@@ -79,3 +79,9 @@ class Hiseq(BaseChip):
 
     def __str__(self):
         return 'hiseq'
+
+
+def load(chip_name):
+    chips = {'miseq': Miseq,
+             'hiseq': Hiseq}
+    return chips[chip_name]

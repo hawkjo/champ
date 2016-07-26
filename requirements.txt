@@ -14,3 +14,4 @@ scipy==0.16.1
 six==1.10.0
 tifffile==0.9.0
 tqdm==4.4.3
+PyYAML==3.11
