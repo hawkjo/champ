@@ -87,10 +87,6 @@ class CommandLineArguments(object):
         return self._arguments['CHIP_NAME']
 
     @property
-    def snr(self):
-        return float(self._arguments.get('--snr') or 1.2)
-
-    @property
     def min_hits(self):
         return int(self._arguments.get('MIN_HITS', 15))
 
@@ -162,3 +158,7 @@ class AlignmentParameters(object):
     def rotation_estimate(self):
         # TODO: This should be stored in the Chip class
         return 180.0
+
+    @property
+    def snr(self):
+        return float(self._clargs.get('--snr') or 1.2)
