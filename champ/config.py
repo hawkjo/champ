@@ -108,6 +108,10 @@ class CommandLineArguments(object):
     def force(self):
         return self._arguments['--force']
 
+    @property
+    def snr(self):
+        return self._arguments.get('-snr')
+
 
 class Experiment(object):
     def __init__(self, image_data_directory):
@@ -161,4 +165,4 @@ class AlignmentParameters(object):
 
     @property
     def snr(self):
-        return float(self._clargs.get('--snr') or 1.2)
+        return float(self._clargs.snr or 1.2)
