@@ -87,8 +87,8 @@ class CommandLineArguments(object):
         return self._arguments['CHIP_NAME']
 
     @property
-    def snr_threshold(self):
-        return float(self._arguments.get('SNR', 1.2))
+    def snr(self):
+        return float(self._arguments.get('--snr') or 1.2)
 
     @property
     def min_hits(self):
@@ -151,6 +151,7 @@ class AlignmentParameters(object):
     @property
     def fastq_tile_width_estimate(self):
         # width of a tile of Illumina data, in microns
+        # TODO: This should be stored in the Chip class
         return 935.0
 
     @property
@@ -159,8 +160,5 @@ class AlignmentParameters(object):
 
     @property
     def rotation_estimate(self):
+        # TODO: This should be stored in the Chip class
         return 180.0
-
-    @property
-    def snr_threshold(self):
-        return self._clargs.snr

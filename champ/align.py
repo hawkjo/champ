@@ -237,7 +237,7 @@ def process_alignment_image(alignment_parameters, base_name, tile_data,
     fia.rough_align(possible_tile_keys,
                     alignment_parameters.rotation_estimate,
                     alignment_parameters.fastq_tile_width_estimate,
-                    snr_thresh=alignment_parameters.snr_threshold)
+                    snr_thresh=alignment_parameters.snr)
     return fia
 
 
