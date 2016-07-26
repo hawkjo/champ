@@ -23,6 +23,6 @@ def main(clargs):
                      for key in list(unclassified_tile_data.keys()) + list(alignment_tile_data.keys())}
     log.debug("Tile data loaded.")
 
-    align.run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata)
+    align.run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata, clargs.make_pdfs)
     # if not clargs.phix_only:
     #     align.run_second_channel(h5_filenames, alignment_parameters, all_tile_data, experiment, clargs)

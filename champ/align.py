@@ -72,7 +72,7 @@ def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment
         write_output(image.index, base_name, fastq_image_aligner, experiment, tile_data, make_pdfs)
 
 
-def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata):
+def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata, make_pdfs):
     if len(h5_filenames) == 0:
         error.fail("There were no HDF5 files to process. "
                    "Either they just don't exist, or you didn't provide the correct path.")
@@ -118,7 +118,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     num_processes = multiprocessing.cpu_count()
     log.debug("Aligning all images with %d cores" % num_processes)
     alignment_func = functools.partial(perform_alignment, alignment_parameters, metadata['microns_per_pixel'],
-                                       experiment, alignment_tile_data, all_tile_data)
+                                       experiment, alignment_tile_data, all_tile_data, make_pdfs)
     pool = multiprocessing.Pool(num_processes)
     pool.map_async(alignment_func,
                    iterate_all_images(h5_filenames, end_tiles, channel)).get(timeout=sys.maxint)
@@ -165,7 +165,7 @@ def check_column_for_alignment(channel, alignment_parameters, alignment_tile_dat
 
 
 def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_tile_data,
-                      all_tile_data, image_data, make_pdfs):
+                      all_tile_data, make_pdfs, image_data):
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
     row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
