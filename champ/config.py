@@ -1,6 +1,6 @@
 import os
 import logging
-from chip import Miseq, Hiseq
+from chip import Miseq, Hiseq, load
 
 
 class CommandLineArguments(object):
@@ -71,10 +71,8 @@ class CommandLineArguments(object):
 
     @property
     def chip(self):
-        chip = self._arguments.get('CHIP_TYPE', 'miseq')
-        chips = {'miseq': Miseq,
-                 'hiseq': Hiseq}
-        return chips[chip](self._arguments['--ports-on-right'])
+        chip = load(self._arguments.get('CHIP_TYPE', 'miseq'))
+        return chip(self._arguments['--ports-on-right'])
 
     @property
     def phix_only(self):

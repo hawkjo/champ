@@ -1,7 +1,7 @@
 import matplotlib
 matplotlib.use('Agg')
 from champ.grid import GridImages
-from champ import plotting, error
+from champ import plotting, error, chip
 from collections import Counter, defaultdict
 import fastqimagealigner
 import functools
@@ -77,7 +77,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         error.fail("There were no HDF5 files to process. "
                    "Either they just don't exist, or you didn't provide the correct path.")
     channel = metadata['alignment_channel']
-    chip = metadata['chip']
+    experiment_chip = chip.load(metadata['chip'])(metadata['ports_on_right'])
     # We use one process per concentration. We could theoretically speed this up since our machine
     # has significantly more cores than the typical number of concentration points, but since it
     # usually finds a result in the first image or two, it's not going to deliver any practical benefits
@@ -93,8 +93,8 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         base_column_checker = functools.partial(check_column_for_alignment, channel, alignment_parameters,
                                                 alignment_tile_data, metadata['microns_per_pixel'], experiment, fia)
 
-        left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, chip.left_side_tiles))
-        right_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), chip.right_side_tiles))
+        left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, experiment_chip.left_side_tiles))
+        right_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), experiment_chip.right_side_tiles))
 
     default_left_tile, default_left_column = decide_default_tiles_and_columns(left_end_tiles)
     default_right_tile, default_right_column = decide_default_tiles_and_columns(right_end_tiles)
@@ -111,7 +111,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         except KeyError:
             right_tiles, right_column = [default_right_tile], default_right_column
         min_column, max_column = min(left_column, right_column), max(left_column, right_column)
-        tile_map = chip.get_expected_tile_map(left_tiles, right_tiles, min_column, max_column)
+        tile_map = experiment_chip.get_expected_tile_map(left_tiles, right_tiles, min_column, max_column)
         end_tiles[filename] = min_column, max_column, tile_map
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
