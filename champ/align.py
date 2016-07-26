@@ -77,7 +77,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         error.fail("There were no HDF5 files to process. "
                    "Either they just don't exist, or you didn't provide the correct path.")
     channel = metadata['alignment_channel']
-    experiment_chip = chip.load(metadata['chip_name'])(metadata['ports_on_right'])
+    experiment_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
     # We use one process per concentration. We could theoretically speed this up since our machine
     # has significantly more cores than the typical number of concentration points, but since it
     # usually finds a result in the first image or two, it's not going to deliver any practical benefits
@@ -89,7 +89,6 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     with h5py.File(h5_filenames[0]) as first_file:
         grid = GridImages(first_file, channel)
         # find columns/tiles on the left side
-
         base_column_checker = functools.partial(check_column_for_alignment, channel, alignment_parameters,
                                                 alignment_tile_data, metadata['microns_per_pixel'], experiment, fia)
 
