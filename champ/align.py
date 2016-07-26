@@ -110,7 +110,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         except KeyError:
             right_tiles, right_column = [default_right_tile], default_right_column
         min_column, max_column = min(left_column, right_column), max(left_column, right_column)
-        tile_map = experiment_chip.get_expected_tile_map(left_tiles, right_tiles, min_column, max_column)
+        tile_map = experiment_chip.expected_tile_map(left_tiles, right_tiles, min_column, max_column)
         end_tiles[filename] = min_column, max_column, tile_map
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
