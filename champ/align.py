@@ -153,6 +153,7 @@ def check_column_for_alignment(channel, alignment_parameters, alignment_tile_dat
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
         image = grid.get(3, column)
+        log.debug("Aligning %s Row 3 Column %d against PhiX" % (base_name, column))
         fia = process_alignment_image(alignment_parameters, base_name, alignment_tile_data,
                                       um_per_pixel, experiment, image, possible_tile_keys,
                                       preloaded_fia=fia)
