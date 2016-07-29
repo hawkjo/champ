@@ -33,7 +33,7 @@ class GridImages(object):
         images taken over the surface of an Illumina chip.
 
         """
-        print("INIT CHANNEL", channel)
+        print("INIT CHANNEL", channel)  # OK
         self._h5 = h5
         self._rows = None
         self._columns = None
@@ -45,12 +45,16 @@ class GridImages(object):
             yield image
 
     def _parse_grid(self):
-        print("parse grid channel", self._channel)
+        print("parse grid channel", self._channel)  # OK
         regex = re.compile('''^\(Major, minor\) = \((?P<column>\d+), (?P<row>\d+)\)$''')
         max_row = 0
         max_column = 0
+        print("H5 KEYS", [key for key in self._h5.keys()])
+        print("Channel just before the fall", self._channel)
         for key in self._h5[self._channel].keys():
+            print("KEY", key)
             match = regex.search(key)
+            print("match", match)
             if match:
                 column, row = match.group('column'), match.group('row')
                 max_column = max(max_column, int(column))

@@ -77,7 +77,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         error.fail("There were no HDF5 files to process. "
                    "Either they just don't exist, or you didn't provide the correct path.")
     channel = metadata['alignment_channel']
-    print("ALIGNMENT CHANNEL: %s" % channel)
+    print("ALIGNMENT CHANNEL: %s" % channel)  # OK
     experiment_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
     # We use one process per concentration. We could theoretically speed this up since our machine
     # has significantly more cores than the typical number of concentration points, but since it
