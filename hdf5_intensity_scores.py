@@ -24,13 +24,7 @@ class IntensityScores(object):
         }
         self.scores = self.raw_scores
 
-    def get_LDA_scores(self,
-                       results_dirs,
-                       lda_weights_fpath,
-                       side_px=3,
-                       verbose=True,
-                       important_read_names='all'):
-
+    def _make_isimportant_function(self, important_read_names):
         # Set cluster skip test
         if important_read_names == 'all':
             def isimportant(*args):
@@ -40,6 +34,67 @@ class IntensityScores(object):
                 important_read_names = set(important_read_names)
             def isimportant(read_name):
                 return read_name in important_read_names
+        return isimportant
+
+    def get_gaussian_scores(self,
+                            results_dirs,
+                            verbose=True,
+                            important_read_names='all'):
+        """
+        The gaussian fit output gives the fit as
+
+            read_name   bg  A   sigma   mu_r    mu_c
+
+        We calculate volume as the sum of the gaussian and bg, where bg is the cylinder under the
+        circle of raduis 2*sigma:
+
+            V_g = 2 A pi sigma**2
+            V_bg = 4 bg pi sigma**2
+            V_total = V_g + V_bg
+        """
+        isimportant = self._make_isimportant_function(important_read_names)
+        im_loc_re = re.compile('Channel_(.+)_Pos_(\d+)_(\d+)_')
+        jim_im_loc_re = re.compile('^(.+)_(\d+)_(\d+)_')
+        for h5_fpath, results_dir in zip(self.h5_fpaths, results_dirs):
+            results_fpaths = glob.glob(os.path.join(results_dir, '*_gaussian_intensities.txt'))
+            if verbose: 
+                print h5_fpath
+                print 'Num results files:', len(results_fpaths)
+        
+            for i, rfpath in enumerate(results_fpaths):
+                rfname = os.path.basename(rfpath)
+                try:
+                    m = im_loc_re.match(rfname)
+                    channel = m.group(1)
+                    pos_tup = tuple(int(m.group(i)) for i in (2, 3))
+                except:
+                    try:
+                        m = jim_im_loc_re.match(rfname)
+                        channel = m.group(1)
+                        pos_tup = tuple(int(m.group(i)) for i in (2, 3))
+                    except:
+                        print rfname
+                        raise
+
+                self.scores[h5_fpath][channel][pos_tup] = {}
+                if verbose: misctools.dot()
+        
+                for line in open(rfpath):
+                    read_name, bg, A, sigma, mu_r, mu_c = line.strip().split()
+                    if bg == '-' or not isimportant(read_name):
+                        continue
+                    bg, A, sigma, mu_r, mu_c = map(float, (bg, A, sigma, mu_r, mu_c))
+                    score = np.pi * sigma**2 * (2*A + 4*h)
+                    self.scores[h5_fpath][channel][pos_tup][read_name] = score
+            if verbose: print
+
+    def get_LDA_scores(self,
+                       results_dirs,
+                       lda_weights_fpath,
+                       side_px=3,
+                       verbose=True,
+                       important_read_names='all'):
+        isimportant = self._make_isimportant_function(important_read_names)
 
         # Read scores
         lda_weights = np.loadtxt(lda_weights_fpath)
@@ -118,7 +173,7 @@ class IntensityScores(object):
                     with h5py.File(h5_fpath) as f:
                         im = np.array(f[channel][pos_key])
 
-                    mode_given_pos_tup[pos_tup]  = get_mode(im)
+                    mode_given_pos_tup[pos_tup]  = get_mode_in_im(im)
     
                 median_of_modes = np.median(mode_given_pos_tup.values())
                 for pos_tup in mode_given_pos_tup.keys():
