@@ -111,11 +111,6 @@ def process_hdf5(align_run_name, hdf5_fpath, align_param_fpath, channel, im_idx)
         process_im_wrapper((dset_name, im, im_idx))
 
         return 
-#        input_params = [(dset_name, np.array(g[dset_name]), tile_data, all_tile_data) for dset_name in g.keys()]
-#        print 'Processing images...'
-#        p = ProcessingPool(num_threads)
-#        p.map(process_im_wrapper, input_params[:20]).get(1234567)
-#        p.close()
 
         
 def process_im(im,

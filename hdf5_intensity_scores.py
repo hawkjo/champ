@@ -87,9 +87,7 @@ class IntensityScores(object):
     def normalize_scores(self, verbose=True):
         """Normalizes scores. The normalizing constant for each image is determined by
             
-            Z = median(reference read scores bounded below) / median(all medians in h5_fpath)
-
-        where 'bounded below' means read scores are artificially set to 1 if otherwise lower.
+            Z = mode(pixel values) / median(all modes in h5_fpath)
         """
         def get_mode(im):
             w = 200
@@ -139,6 +137,49 @@ class IntensityScores(object):
                     }
             if verbose: print
         
+    def normalize_scores_by_ref_read_names(self, ref_read_names_given_channel, verbose=True):
+        """Normalizes scores. The normalizing constant for each image is determined by
+            
+            Z = median(reference read scores) / 100
+        """
+        self.scores = {
+            h5_fpath: {channel: {} for channel in hdf5_tools.get_channel_names(h5_fpath)}
+            for h5_fpath in self.h5_fpaths
+        }
+        self.normalizing_constants = {
+            h5_fpath: {channel: {} for channel in hdf5_tools.get_channel_names(h5_fpath)}
+            for h5_fpath in self.h5_fpaths
+        }
+        for h5_fpath in self.h5_fpaths:
+            if verbose: print os.path.basename(h5_fpath)
+            for channel in self.scores[h5_fpath].keys():
+                ref_read_names = ref_read_names_given_channel[channel]
+                if verbose: misctools.dot()
+                for pos_tup in self.raw_scores[h5_fpath][channel].keys():
+                    pos_key = hdf5_tools.dset_name_given_coords(*pos_tup)
+                    ref_read_names_in_image = (
+                        self.get_read_names_in_image(h5_fpath, channel, pos_tup)
+                        & ref_read_names
+                    )
+                    if len(ref_read_names_in_image) < 10:
+                        print 'Warning: 10 > {} reference reads in im_idx {}'.format(
+                            len(ref_read_names_in_image), (h5_fpath, channel, pos_tup)
+                        )
+
+                    med = np.median(
+                        [self.raw_scores[h5_fpath][channel][pos_tup][read_name]
+                         for read_name in ref_read_names_in_image]
+                    )
+    
+                    Z = med / 100.0
+                    self.normalizing_constants[h5_fpath][channel][pos_tup] = Z
+                    im_scores = self.raw_scores[h5_fpath][channel][pos_tup]
+                    self.scores[h5_fpath][channel][pos_tup] = {
+                        read_name: im_scores[read_name] / Z
+                        for read_name in self.get_read_names_in_image(h5_fpath, channel, pos_tup)
+                    }
+            if verbose: print
+            
     def get_read_names_in_image(self, h5_fpath, channel, pos_tup):
         return set(self.raw_scores[h5_fpath][channel][pos_tup].keys())
 
@@ -167,7 +208,7 @@ class IntensityScores(object):
         for h5_fpath, ax in zip(self.h5_fpaths, axes):
             nMajor_pos, nminor_pos = hdf5_tools.get_nMajor_nminor_pos(h5_fpath)
             for channel in sorted(self.scores[h5_fpath].keys()):
-                M = np.empty((nminor_pos, nMajor_pos))
+                M = np.empty((nminor_pos+1, nMajor_pos+1))
                 M[:] = None
 
                 for pos_tup in self.scores[h5_fpath][channel].keys():
@@ -214,7 +255,7 @@ class IntensityScores(object):
         for channel, read_names in sorted(reads_in_channel.items()):
             print 'All reads found in channel {}: {:,d}'.format(channel, len(read_names))
 
-    def build_good_read_names(self, good_num_ims_cutoff):
+    def build_good_read_names(self, good_num_ims_cutoff, pos_tups_cutoff=1):
         pos_tups_given_read_name = defaultdict(set)
         h5_fpaths_given_read_name = defaultdict(set)
         for h5_fpath in self.h5_fpaths:
@@ -224,7 +265,7 @@ class IntensityScores(object):
                         pos_tups_given_read_name[read_name].add(pos_tup)
                         h5_fpaths_given_read_name[read_name].add(h5_fpath)
         self.good_read_names = set(
-            read_name for read_name, pos_names in pos_tups_given_read_name.items()
-            if len(pos_names) == 1
-            and len(h5_fpaths_given_read_name[read_name]) >= good_num_ims_cutoff
+            read_name for read_name, pos_tups in pos_tups_given_read_name.items()
+            if len(h5_fpaths_given_read_name[read_name]) >= good_num_ims_cutoff
+            #and len(pos_tups) == pos_tups_cutoff
         )
