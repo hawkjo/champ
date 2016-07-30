@@ -562,3 +562,4 @@ def main(clargs, target_name, target_sequence, off_target_sequence):
 
     intensities = calculate_intensities(good_perfect_read_names, sample_size, int_scores, protein_channel, h5_filepaths)
     fl_vs_conc_fig = plot_fluorescence_vs_concentration(intensities, Kd, Fmax, Fmin, Fobs_fixed, nM_concentrations)
+    fl_vs_conc_fig.savefig(output_directory('fl_vs_conc.png'))

@@ -1,4 +1,5 @@
 import yaml
+from champ import intensity
 
 
 class TargetInfo(object):
@@ -13,3 +14,7 @@ class TargetInfo(object):
 
     def off_target(self):
         pass
+
+
+def main(clargs):
+    intensity.main(clargs, target_name, target_sequence, off_target_sequence)
