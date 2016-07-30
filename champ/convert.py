@@ -53,7 +53,6 @@ def main(paths, flipud, fliplr, enhance_contrast):
                     else:
                         group = h5[channel]
                     dataset = group.create_dataset(t.dataset_name, image.shape, dtype=image.dtype)
-                    p2, p98 = np.percentile(image, (2, 98))
-                    img_rescale = exposure.rescale_intensity(image, in_range=(p2, p98))
+                    img_rescale = exposure.equalize_adapthist(image, clip_limit=0.03)
                     dataset[...] = img_rescale
         log.debug("Done with %s" % hdf5_filename)
