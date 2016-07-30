@@ -1,5 +1,5 @@
 import yaml
-from champ import intensity
+from champ import intensity, initialize
 
 
 class TargetInfo(object):
@@ -17,4 +17,6 @@ class TargetInfo(object):
 
 
 def main(clargs):
-    intensity.main(clargs, target_name, target_sequence, off_target_sequence)
+    metadata = initialize.load(clargs.image_directory)
+    target_info = TargetInfo(clargs.target_data_file, clargs.target_label, clargs.off_target_label)
+    intensity.main(metadata, clargs.image_directory, target_info)

@@ -498,19 +498,19 @@ def calculate_nM_concentrations(h5_filepaths):
     return [misc.parse_concentration(h5_fpath) / 1000.0 for h5_fpath in h5_filepaths]
 
 
-def main(clargs, target_name, target_sequence, off_target_sequence):
-    read_names_by_seq_fpath = os.path.join(clargs.read_directory, 'read_names_by_seq.txt')
-    perfect_target_read_name_fpath = os.path.join(clargs.read_directory,
+def main(metadata, image_directory, target_info):
+    read_names_by_seq_fpath = os.path.join(metadata.read_directory, 'read_names_by_seq.txt')
+    perfect_target_read_name_fpath = os.path.join(metadata.read_directory,
                                                   'perfect_target_{}_read_names.txt'.format(target_name.lower()))
 
     perfect_target_read_names = set(line.strip() for line in open(perfect_target_read_name_fpath))
-    h5_filepaths = sort_h5_files(clargs.data_directory)
-    results_dirs = [os.path.join(clargs.image_directory, os.path.splitext(os.path.basename(h5_fpath))[0])
+    h5_filepaths = sort_h5_files(image_directory)
+    results_dirs = [os.path.join(image_directory, os.path.splitext(os.path.basename(h5_fpath))[0])
                     for h5_fpath in h5_filepaths]
 
     log.debug('Loading data...')
     int_scores = IntensityScores(h5_filepaths)
-    int_scores.get_LDA_scores(results_dirs, clargs.nonneg_lda_weights_fpath)
+    int_scores.get_LDA_scores(results_dirs, metadata['lda_weights'])
     log.debug('Normalizing data...')
     int_scores.normalize_scores()
     int_scores.plot_aligned_images('br', 'o*')

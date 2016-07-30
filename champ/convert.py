@@ -5,7 +5,6 @@ from champ.tiff import TifsPerConcentration, TifsPerFieldOfView
 from collections import defaultdict
 import h5py
 import logging
-from skimage import exposure
 
 
 log = logging.getLogger(__name__)
@@ -35,7 +34,7 @@ def get_all_tif_paths(root_directory):
     return paths
 
 
-def main(paths, flipud, fliplr, enhance_contrast):
+def main(paths, flipud, fliplr):
     image_adjustments = []
     if flipud:
         image_adjustments.append(lambda x: np.flipud(x))
@@ -53,8 +52,5 @@ def main(paths, flipud, fliplr, enhance_contrast):
                     else:
                         group = h5[channel]
                     dataset = group.create_dataset(t.dataset_name, image.shape, dtype=image.dtype)
-                    if enhance_contrast:
-                        image[image < 200] = 0
-                        image = exposure.equalize_adapthist(image, clip_limit=0.01)
                     dataset[...] = image
         log.debug("Done with %s" % hdf5_filename)

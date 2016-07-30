@@ -17,6 +17,22 @@ class CommandLineArguments(object):
         return self._arguments['--enhance-contrast']
 
     @property
+    def target_data_file(self):
+        return self._arguments['TARGET_DATA_FILE']
+
+    @property
+    def nonneg_lda_weights_path(self):
+        return self._arguments['LDA_WEIGHTS']
+
+    @property
+    def target_label(self):
+        return self._arguments['TARGET_LABEL']
+
+    @property
+    def off_target_label(self):
+        return self._arguments['OFF_TARGET_LABEL']
+
+    @property
     def log_level(self):
         log_level = {0: logging.ERROR,
                      1: logging.WARN,
@@ -44,6 +60,10 @@ class CommandLineArguments(object):
     @property
     def mapped_reads(self):
         return self._arguments['MAPPED_READS']
+
+    @property
+    def parsed_reads(self):
+        return self._arguments['PARSED_READS']
 
     @property
     def hdf5_file_path(self):
