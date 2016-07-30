@@ -55,6 +55,6 @@ def main(paths, flipud, fliplr, enhance_contrast):
                     dataset = group.create_dataset(t.dataset_name, image.shape, dtype=image.dtype)
                     if enhance_contrast:
                         image[image < 200] = 0
-                        image = exposure.equalize_adapthist(image, clip_limit=0.03)
+                        image = exposure.equalize_adapthist(image, clip_limit=0.01)
                     dataset[...] = image
         log.debug("Done with %s" % hdf5_filename)
