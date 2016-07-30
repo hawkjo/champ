@@ -13,6 +13,10 @@ class CommandLineArguments(object):
         self._current_directory = current_directory
 
     @property
+    def enhance_contrast(self):
+        return self._arguments['--enhance-contrast']
+
+    @property
     def log_level(self):
         log_level = {0: logging.ERROR,
                      1: logging.WARN,
