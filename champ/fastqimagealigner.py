@@ -200,7 +200,6 @@ class FastqImageAligner(object):
             good_hit_threshold = 5
         else:
             good_hit_threshold = np.percentile(self.hit_dists(exclusive_hits), 95)
-        print("GOOD HIT THRESH: %s" % good_hit_threshold)
         second_neighbor_thresh = 2 * good_hit_threshold
 
         exclusive_hits = set(hit for hit in exclusive_hits
@@ -282,13 +281,9 @@ class FastqImageAligner(object):
 
             # Reminder: All indices are in the order (sexcat_idx, in_frame_idx)
             raw_hits = get_hits(hit_type)
-            print("RAW HITS: %s" % len(raw_hits))
             hits = self.remove_longest_hits(raw_hits, pct_thresh)
-            print("FILTERED HITS: %s" % len(hits))
-            print("MIN HITS", min_hits)
-            if len(hits) > min_hits:
+            if len(hits) < min_hits:
                 raise ValueError('Too few hits for least squares mapping: {0}'.format(len(hits)))
-            print("hits okay")
             A = np.zeros((2 * len(hits), 4))
             b = np.zeros((2 * len(hits),))
             for i, (sexcat_idx, in_frame_idx) in enumerate(hits):

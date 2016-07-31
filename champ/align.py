@@ -73,7 +73,7 @@ def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment
 
 
 def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata, make_pdfs):
-    print("alignment_parameters min hits", alignment_parameters.min_hits)
+
     if len(h5_filenames) == 0:
         error.fail("There were no HDF5 files to process. "
                    "Either they just don't exist, or you didn't provide the correct path.")
@@ -184,8 +184,7 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
         try:
             fia.precision_align_only(hit_type=('exclusive', 'good_mutual'),
                                      min_hits=alignment_parameters.min_hits)
-        except ValueError as e:
-            print(e)
+        except ValueError:
             log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
         else:
             write_output(image.index, base_name, fia, experiment, all_tile_data, make_pdfs)
