@@ -184,7 +184,8 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
         try:
             fia.precision_align_only(hit_type=('exclusive', 'good_mutual'),
                                      min_hits=alignment_parameters.min_hits)
-        except ValueError:
+        except ValueError as e:
+            print(e)
             log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
         else:
             write_output(image.index, base_name, fia, experiment, all_tile_data, make_pdfs)
