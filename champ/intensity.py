@@ -554,8 +554,8 @@ def main(metadata, image_directory, target_info):
         plot_good_ham_reads(double_counts, 200, False, 2).savefig("{}_good_ham_reads_200.png")
         plot_good_ham_reads(double_counts, 200, True, 2).savefig("{}_good_ham_reads_200_zoomed.png")
 
-        seq_Kds, seq_Kd_error, seq_ddGs, seq_ddG_error = calculate_ddg(h5_filepaths, int_scores, close_reads, ref_delta_G,
-                                                                       protein_channel, Fobs_fixed)
+        seq_Kds, seq_Kd_error, seq_ddGs, seq_ddG_error = calculate_ddg(h5_filepaths, int_scores, close_reads,
+                                                                       ref_delta_G, protein_channel, Fobs_fixed)
 
         write_kds(seq_Kds, seq_Kd_error,
                   'target{}_{}_close_seq_Kds_and_errors.txt'.format(target_info.on_target_label, protein_channel))
