@@ -64,9 +64,9 @@ def plot_all_hits(fia, ax=None, im_kwargs={}, line_kwargs={}, fqpt_kwargs={}, se
     plot_hits(fia, fia.bad_mutual_hits, 'b', ax, line_kwargs)
     plot_hits(fia, fia.good_mutual_hits, 'magenta', ax, line_kwargs)
     plot_hits(fia, fia.exclusive_hits, 'r', ax, line_kwargs)
-    ax.set_title('All Hits: %s vs. %s %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s, SNR: %s'
+    ax.set_title('All Hits: %s vs. %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s, SNR: %s'
             % (fia.image_data.fname,
-               fia.experiment.project_name,
+
                ','.join(tile.key for tile in fia.hitting_tiles),
                ','.join('%.2f' % tile.rotation_degrees for tile in fia.hitting_tiles),
                ','.join('%.2f' % tile.width for tile in fia.hitting_tiles),
