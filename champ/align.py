@@ -73,6 +73,7 @@ def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment
 
 
 def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata, make_pdfs):
+    print("alignment_parameters min hits", alignment_parameters.min_hits)
     if len(h5_filenames) == 0:
         error.fail("There were no HDF5 files to process. "
                    "Either they just don't exist, or you didn't provide the correct path.")
