@@ -17,6 +17,63 @@ log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 
 
+def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata, make_pdfs):
+
+    if len(h5_filenames) == 0:
+        error.fail("There were no HDF5 files to process. "
+                   "Either they just don't exist, or you didn't provide the correct path.")
+    channel = metadata['alignment_channel']
+    experiment_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
+    # We use one process per concentration. We could theoretically speed this up since our machine
+    # has significantly more cores than the typical number of concentration points, but since it
+    # usually finds a result in the first image or two, it's not going to deliver any practical benefits
+    num_processes = len(h5_filenames)
+    pool = multiprocessing.Pool(num_processes)
+    fia = fastqimagealigner.FastqImageAligner(experiment)
+    fia.load_reads(alignment_tile_data)
+
+    with h5py.File(h5_filenames[0]) as first_file:
+        grid = GridImages(first_file, channel)
+        # find columns/tiles on the left side
+        base_column_checker = functools.partial(check_column_for_alignment, channel, alignment_parameters,
+                                                alignment_tile_data, metadata['microns_per_pixel'], experiment, fia)
+
+        left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, experiment_chip.left_side_tiles))
+        right_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), experiment_chip.right_side_tiles))
+
+    default_left_tile, default_left_column = decide_default_tiles_and_columns(left_end_tiles)
+    default_right_tile, default_right_column = decide_default_tiles_and_columns(right_end_tiles)
+
+    end_tiles = {}
+    # Now build up the end tile data structure
+    for filename in h5_filenames:
+        try:
+            left_tiles, left_column = left_end_tiles[filename]
+        except KeyError:
+            left_tiles, left_column = [default_left_tile], default_left_column
+        try:
+            right_tiles, right_column = right_end_tiles[filename]
+        except KeyError:
+            right_tiles, right_column = [default_right_tile], default_right_column
+        min_column, max_column = min(left_column, right_column), max(left_column, right_column)
+        tile_map = experiment_chip.expected_tile_map(left_tiles, right_tiles, min_column, max_column)
+        end_tiles[filename] = min_column, max_column, tile_map
+
+    # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
+    # align, do a precision alignment and write the mapped FastQ reads to disk
+    # num_processes = multiprocessing.cpu_count()
+    # log.debug("Aligning all images with %d cores" % num_processes)
+    # alignment_func = functools.partial(perform_alignment, alignment_parameters, metadata['microns_per_pixel'],
+    #                                    experiment, alignment_tile_data, all_tile_data, make_pdfs)
+    # pool = multiprocessing.Pool(num_processes)
+    # pool.map_async(alignment_func,
+    #                iterate_all_images(h5_filenames, end_tiles, channel)).get(timeout=sys.maxint)
+    for image_data in iterate_all_images(h5_filenames, end_tiles, channel):
+        perform_alignment(alignment_parameters, metadata['microns_per_pixel'], experiment, alignment_tile_data,
+                          all_tile_data, make_pdfs, image_data)
+    log.debug("Done aligning!")
+
+
 def run_second_channel(h5_filenames, alignment_parameters, all_tile_data, experiment, clargs):
     num_processes = multiprocessing.cpu_count()
     log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
@@ -70,60 +127,6 @@ def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment
         log.debug("Could not precision align %s" % image.index)
     else:
         write_output(image.index, base_name, fastq_image_aligner, experiment, tile_data, make_pdfs)
-
-
-def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata, make_pdfs):
-
-    if len(h5_filenames) == 0:
-        error.fail("There were no HDF5 files to process. "
-                   "Either they just don't exist, or you didn't provide the correct path.")
-    channel = metadata['alignment_channel']
-    experiment_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
-    # We use one process per concentration. We could theoretically speed this up since our machine
-    # has significantly more cores than the typical number of concentration points, but since it
-    # usually finds a result in the first image or two, it's not going to deliver any practical benefits
-    num_processes = len(h5_filenames)
-    pool = multiprocessing.Pool(num_processes)
-    fia = fastqimagealigner.FastqImageAligner(experiment)
-    fia.load_reads(alignment_tile_data)
-
-    with h5py.File(h5_filenames[0]) as first_file:
-        grid = GridImages(first_file, channel)
-        # find columns/tiles on the left side
-        base_column_checker = functools.partial(check_column_for_alignment, channel, alignment_parameters,
-                                                alignment_tile_data, metadata['microns_per_pixel'], experiment, fia)
-
-        left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, experiment_chip.left_side_tiles))
-        right_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), experiment_chip.right_side_tiles))
-
-    default_left_tile, default_left_column = decide_default_tiles_and_columns(left_end_tiles)
-    default_right_tile, default_right_column = decide_default_tiles_and_columns(right_end_tiles)
-
-    end_tiles = {}
-    # Now build up the end tile data structure
-    for filename in h5_filenames:
-        try:
-            left_tiles, left_column = left_end_tiles[filename]
-        except KeyError:
-            left_tiles, left_column = [default_left_tile], default_left_column
-        try:
-            right_tiles, right_column = right_end_tiles[filename]
-        except KeyError:
-            right_tiles, right_column = [default_right_tile], default_right_column
-        min_column, max_column = min(left_column, right_column), max(left_column, right_column)
-        tile_map = experiment_chip.expected_tile_map(left_tiles, right_tiles, min_column, max_column)
-        end_tiles[filename] = min_column, max_column, tile_map
-
-    # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
-    # align, do a precision alignment and write the mapped FastQ reads to disk
-    num_processes = multiprocessing.cpu_count()
-    log.debug("Aligning all images with %d cores" % num_processes)
-    alignment_func = functools.partial(perform_alignment, alignment_parameters, metadata['microns_per_pixel'],
-                                       experiment, alignment_tile_data, all_tile_data, make_pdfs)
-    pool = multiprocessing.Pool(num_processes)
-    pool.map_async(alignment_func,
-                   iterate_all_images(h5_filenames, end_tiles, channel)).get(timeout=sys.maxint)
-    log.debug("Done aligning!")
 
 
 def decide_default_tiles_and_columns(end_tiles):
