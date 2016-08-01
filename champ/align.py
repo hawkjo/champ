@@ -61,12 +61,13 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
-    num_processes = multiprocessing.cpu_count()
+    # num_processes = multiprocessing.cpu_count()
+    num_processes = 8
     log.debug("Aligning all images with %d cores" % num_processes)
     alignment_func = functools.partial(perform_alignment, alignment_parameters, metadata['microns_per_pixel'],
                                        experiment, alignment_tile_data, all_tile_data, make_pdfs)
-    pool = multiprocessing.Pool(8)
-    pool.map_async(alignment_func, iterate_all_images(h5_filenames, end_tiles, channel), chunksize=16).get(timeout=sys.maxint)
+    pool = multiprocessing.Pool(num_processes)
+    pool.map_async(alignment_func, iterate_all_images(h5_filenames, end_tiles, channel), chunksize=8).get(timeout=sys.maxint)
     log.debug("Done aligning!")
 
 
@@ -206,6 +207,7 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
                 for row in range(grid._height):
                     image = grid.get(row, column)
                     if image is not None:
+                        print("iterate all images!", h5_filename, row, column, channel)
                         yield row, column, channel, h5_filename, tile_map[image.column], base_name
 
 
