@@ -65,8 +65,10 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     log.debug("Aligning all images with %d cores" % num_processes)
     alignment_func = functools.partial(perform_alignment, alignment_parameters, metadata['microns_per_pixel'],
                                        experiment, alignment_tile_data, all_tile_data, make_pdfs, fia)
-    pool = multiprocessing.Pool(num_processes)
-    pool.map_async(alignment_func, iterate_all_images(h5_filenames, end_tiles, channel)).get(timeout=sys.maxint)
+    for h5_filename in h5_filenames:
+        pool = multiprocessing.Pool(num_processes)
+        pool.map_async(alignment_func, iterate_all_images([h5_filename], end_tiles, channel)).get(timeout=sys.maxint)
+        log.debug("\n\n\n\n\n\nDone with %s\n\n\n\n\n" % h5_filename)
     log.debug("Done aligning!")
 
 
@@ -154,9 +156,8 @@ def check_column_for_alignment(channel, alignment_parameters, alignment_tile_dat
         grid = GridImages(h5, channel)
         image = grid.get(3, column)
         log.debug("Aligning %s Row 3 Column %d against PhiX" % (base_name, column))
-        fia = process_alignment_image(alignment_parameters, base_name, alignment_tile_data,
-                                      um_per_pixel, experiment, image, possible_tile_keys,
-                                      preloaded_fia=deepcopy(fia))
+        fia = process_alignment_image(alignment_parameters, base_name, um_per_pixel, experiment, image,
+                                      possible_tile_keys, deepcopy(fia))
         if fia.hitting_tiles:
             log.debug("%s aligned to at least one tile!" % image.index)
             # because of the way we iterate through the images, if we find one that aligns,
@@ -175,8 +176,8 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
         image = grid.get(row, column)
     log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
     # first get the correlation to random tiles, so we can distinguish signal from noise
-    fia = process_alignment_image(alignment_parameters, base_name, alignment_tile_data,  um_per_pixel,
-                                  experiment, image, possible_tile_keys, preloaded_fia=deepcopy(preloaded_fia))
+    fia = process_alignment_image(alignment_parameters, base_name, um_per_pixel, experiment, image,
+                                  possible_tile_keys, deepcopy(preloaded_fia))
     if fia.hitting_tiles:
         # The image data aligned with FastQ reads!
         try:
@@ -220,18 +221,12 @@ def load_read_names(file_path):
     return {key: list(values) for key, values in tiles.items()}
 
 
-def process_alignment_image(alignment_parameters, base_name, tile_data,
-                um_per_pixel, experiment, image, possible_tile_keys, preloaded_fia=None):
+def process_alignment_image(alignment_parameters, base_name, um_per_pixel, experiment, image, possible_tile_keys, fia):
     for directory in (experiment.figure_directory, experiment.results_directory):
         full_directory = os.path.join(directory, base_name)
         if not os.path.exists(full_directory):
             os.makedirs(full_directory)
     sexcat_fpath = os.path.join(base_name, '%s.cat' % image.index)
-    if preloaded_fia is None:
-        fia = fastqimagealigner.FastqImageAligner(experiment)
-        fia.load_reads(tile_data)
-    else:
-        fia = preloaded_fia
     fia.set_image_data(image, um_per_pixel)
     fia.set_sexcat_from_file(sexcat_fpath)
     fia.rough_align(possible_tile_keys,
