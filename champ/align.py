@@ -65,10 +65,9 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     log.debug("Aligning all images with %d cores" % num_processes)
     alignment_func = functools.partial(perform_alignment, alignment_parameters, metadata['microns_per_pixel'],
                                        experiment, alignment_tile_data, all_tile_data, make_pdfs, fia)
-    for h5_filename in h5_filenames:
-        pool = multiprocessing.Pool(num_processes)
-        pool.map_async(alignment_func, iterate_all_images([h5_filename], end_tiles, channel)).get(timeout=sys.maxint)
-        log.debug("\n\n\n\n\n\nDone with %s\n\n\n\n\n" % h5_filename)
+
+    pool = multiprocessing.Pool(num_processes)
+    pool.map_async(alignment_func, iterate_all_images(h5_filenames, end_tiles, channel), chunksize=96).get(timeout=sys.maxint)
     log.debug("Done aligning!")
 
 
