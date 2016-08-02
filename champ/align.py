@@ -13,6 +13,7 @@ import os
 import sys
 import re
 import time
+from copy import deepcopy
 
 log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
@@ -30,9 +31,10 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     # usually finds a result in the first image or two, it's not going to deliver any practical benefits
     num_processes = len(h5_filenames)
     pool = multiprocessing.Pool(num_processes)
+    start = time.time()
     fia = fastqimagealigner.FastqImageAligner(experiment)
     fia.load_reads(alignment_tile_data)
-
+    print("took %s seconds to load FIA" % (time.time() - start))
     with h5py.File(h5_filenames[0]) as first_file:
         grid = GridImages(first_file, channel)
         # find columns/tiles on the left side
@@ -66,8 +68,6 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     num_processes = 4
     log.debug("Aligning all images with %d cores" % num_processes)
     start = time.time()
-    fia = fastqimagealigner.FastqImageAligner(experiment)
-    fia.load_reads(alignment_tile_data)
     alignment_func = functools.partial(perform_alignment, alignment_parameters, metadata['microns_per_pixel'],
                                        experiment, alignment_tile_data, all_tile_data, make_pdfs, fia)
     print("%s seconds to create alignment_func" % (time.time() - start))
@@ -168,7 +168,7 @@ def check_column_for_alignment(channel, alignment_parameters, alignment_tile_dat
         log.debug("Aligning %s Row 3 Column %d against PhiX" % (base_name, column))
         fia = process_alignment_image(alignment_parameters, base_name, alignment_tile_data,
                                       um_per_pixel, experiment, image, possible_tile_keys,
-                                      preloaded_fia=fia)
+                                      preloaded_fia=deepcopy(fia))
         if fia.hitting_tiles:
             log.debug("%s aligned to at least one tile!" % image.index)
             # because of the way we iterate through the images, if we find one that aligns,
@@ -178,7 +178,7 @@ def check_column_for_alignment(channel, alignment_parameters, alignment_tile_dat
 
 
 def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_tile_data,
-                      all_tile_data, make_pdfs, fia, image_data):
+                      all_tile_data, make_pdfs, preloaded_fia, image_data):
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
     row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
@@ -192,7 +192,7 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
     # first get the correlation to random tiles, so we can distinguish signal from noise
     start = time.time()
     fia = process_alignment_image(alignment_parameters, base_name, alignment_tile_data,  um_per_pixel,
-                                  experiment, image, possible_tile_keys, preloaded_fia=fia)
+                                  experiment, image, possible_tile_keys, preloaded_fia=deepcopy(preloaded_fia))
     print("%s seconds to process_alignment_image in perform_alignment" % (time.time() - start))
     if fia.hitting_tiles:
         # The image data aligned with FastQ reads!
