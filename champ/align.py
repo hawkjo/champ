@@ -70,7 +70,13 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
                                        experiment, alignment_tile_data, all_tile_data, make_pdfs)
     print("%s seconds to create alignment_func" % (time.time() - start))
     pool = multiprocessing.Pool(num_processes)
-    pool.map_async(alignment_func, iterate_all_images(h5_filenames, end_tiles, channel), chunksize=4).get(timeout=sys.maxint)
+    sys.stdout.flush()
+    image_data = iterate_all_images(h5_filenames, end_tiles, channel)
+    while True:
+        start = time.time()
+        image_data_slice = [next(image_data) for _ in range(8)]
+        pool.apply_async(alignment_func, image_data_slice).get(timeout=sys.maxint)
+        print("image data slice took %s seconds" % (time.time() - start))
     log.debug("Done aligning!")
 
 
@@ -199,6 +205,7 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
             print("%s seconds to write output in perform_alignment" % (time.time() - start))
     # The garbage collector takes its sweet time for some reason, so we have to manually delete
     # these objects or memory usage blows up.
+    sys.stdout.flush()
     del fia
     del image
 
@@ -220,6 +227,7 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
                     if image is not None:
                         i += 1
                         print("%s seconds to yield an image" % (time.time() - start))
+                        sys.stdout.flush()
                         start = time.time()
                         yield row, column, channel, h5_filename, tile_map[image.column], base_name
 
