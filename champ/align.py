@@ -64,8 +64,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
-    # num_processes = multiprocessing.cpu_count()
-    num_processes = 4
+    num_processes = multiprocessing.cpu_count()
     log.debug("Aligning all images with %d cores" % num_processes)
     start = time.time()
     alignment_func = functools.partial(perform_alignment, alignment_parameters, metadata['microns_per_pixel'],
@@ -75,7 +74,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     image_data = iterate_all_images(h5_filenames, end_tiles, channel)
     while True:
         start = time.time()
-        image_data_slice = (next(image_data) for _ in range(8))
+        image_data_slice = (next(image_data) for _ in range(num_processes))
         # image_data_slice[0] is a 6-member tuple
         pool.map_async(alignment_func, image_data_slice).get(timeout=sys.maxint)
         print("image data slice took %s seconds" % (time.time() - start))
