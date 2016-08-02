@@ -12,7 +12,6 @@ from multiprocessing import Manager
 import os
 import sys
 import re
-import time
 from copy import deepcopy
 
 log = logging.getLogger(__name__)
@@ -171,18 +170,13 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
     row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
-    # image, possible_tile_keys, base_name = image_data
-    start = time.time()
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
         image = grid.get(row, column)
-    print("%s seconds to get the image in perform_alignment" % (time.time() - start))
     log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
     # first get the correlation to random tiles, so we can distinguish signal from noise
-    start = time.time()
     fia = process_alignment_image(alignment_parameters, base_name, alignment_tile_data,  um_per_pixel,
                                   experiment, image, possible_tile_keys, preloaded_fia=deepcopy(preloaded_fia))
-    print("%s seconds to process_alignment_image in perform_alignment" % (time.time() - start))
     if fia.hitting_tiles:
         # The image data aligned with FastQ reads!
         try:
@@ -191,9 +185,7 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
         except ValueError:
             log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
         else:
-            start = time.time()
             write_output(image.index, base_name, fia, experiment, all_tile_data, make_pdfs)
-            print("%s seconds to write output in perform_alignment" % (time.time() - start))
     # The garbage collector takes its sweet time for some reason, so we have to manually delete
     # these objects or memory usage blows up.
     del fia
