@@ -74,11 +74,9 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     image_data = iterate_all_images(h5_filenames, end_tiles, channel)
     while True:
         start = time.time()
-        image_data_slice = [next(image_data) for _ in range(8)]
-        print(image_data_slice[0])
-        print("----")
-        print(image_data_slice)
-        pool.apply_async(alignment_func, image_data_slice).get(timeout=sys.maxint)
+        image_data_slice = (next(image_data) for _ in range(8))
+        # image_data_slice[0] is a 6-member tuple
+        pool.map_async(alignment_func, image_data_slice).get(timeout=sys.maxint)
         print("image data slice took %s seconds" % (time.time() - start))
     log.debug("Done aligning!")
 
