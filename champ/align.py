@@ -66,11 +66,12 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     num_processes = 4
     log.debug("Aligning all images with %d cores" % num_processes)
     start = time.time()
+    fia = fastqimagealigner.FastqImageAligner(experiment)
+    fia.load_reads(alignment_tile_data)
     alignment_func = functools.partial(perform_alignment, alignment_parameters, metadata['microns_per_pixel'],
-                                       experiment, alignment_tile_data, all_tile_data, make_pdfs)
+                                       experiment, alignment_tile_data, all_tile_data, make_pdfs, fia)
     print("%s seconds to create alignment_func" % (time.time() - start))
     pool = multiprocessing.Pool(num_processes)
-    sys.stdout.flush()
     image_data = iterate_all_images(h5_filenames, end_tiles, channel)
     while True:
         start = time.time()
@@ -177,7 +178,7 @@ def check_column_for_alignment(channel, alignment_parameters, alignment_tile_dat
 
 
 def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_tile_data,
-                      all_tile_data, make_pdfs, image_data):
+                      all_tile_data, make_pdfs, fia, image_data):
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
     row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
@@ -191,7 +192,7 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
     # first get the correlation to random tiles, so we can distinguish signal from noise
     start = time.time()
     fia = process_alignment_image(alignment_parameters, base_name, alignment_tile_data,  um_per_pixel,
-                                  experiment, image, possible_tile_keys)
+                                  experiment, image, possible_tile_keys, preloaded_fia=fia)
     print("%s seconds to process_alignment_image in perform_alignment" % (time.time() - start))
     if fia.hitting_tiles:
         # The image data aligned with FastQ reads!
@@ -206,7 +207,6 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
             print("%s seconds to write output in perform_alignment" % (time.time() - start))
     # The garbage collector takes its sweet time for some reason, so we have to manually delete
     # these objects or memory usage blows up.
-    sys.stdout.flush()
     del fia
     del image
 
@@ -228,7 +228,6 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
                     if image is not None:
                         i += 1
                         print("%s seconds to yield an image" % (time.time() - start))
-                        sys.stdout.flush()
                         start = time.time()
                         yield row, column, channel, h5_filename, tile_map[image.column], base_name
 
