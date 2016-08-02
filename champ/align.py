@@ -12,6 +12,7 @@ from multiprocessing import Manager
 import os
 import sys
 import re
+import time
 
 log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
@@ -62,12 +63,14 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
     # num_processes = multiprocessing.cpu_count()
-    num_processes = 8
+    num_processes = 4
     log.debug("Aligning all images with %d cores" % num_processes)
+    start = time.time()
     alignment_func = functools.partial(perform_alignment, alignment_parameters, metadata['microns_per_pixel'],
                                        experiment, alignment_tile_data, all_tile_data, make_pdfs)
+    print("%s seconds to create alignment_func" % (time.time() - start))
     pool = multiprocessing.Pool(num_processes)
-    pool.map_async(alignment_func, iterate_all_images(h5_filenames, end_tiles, channel), chunksize=8).get(timeout=sys.maxint)
+    pool.map_async(alignment_func, iterate_all_images(h5_filenames, end_tiles, channel), chunksize=4).get(timeout=sys.maxint)
     log.debug("Done aligning!")
 
 
@@ -172,13 +175,17 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
     # FastQ reads to disk
     row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
     # image, possible_tile_keys, base_name = image_data
+    start = time.time()
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
         image = grid.get(row, column)
+    print("%s seconds to get the image in perform_alignment" % (time.time() - start))
     log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
     # first get the correlation to random tiles, so we can distinguish signal from noise
+    start = time.time()
     fia = process_alignment_image(alignment_parameters, base_name, alignment_tile_data,  um_per_pixel,
                                   experiment, image, possible_tile_keys)
+    print("%s seconds to process_alignment_image in perform_alignment" % (time.time() - start))
     if fia.hitting_tiles:
         # The image data aligned with FastQ reads!
         try:
@@ -187,7 +194,9 @@ def perform_alignment(alignment_parameters, um_per_pixel, experiment, alignment_
         except ValueError:
             log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
         else:
+            start = time.time()
             write_output(image.index, base_name, fia, experiment, all_tile_data, make_pdfs)
+            print("%s seconds to write output in perform_alignment" % (time.time() - start))
     # The garbage collector takes its sweet time for some reason, so we have to manually delete
     # these objects or memory usage blows up.
     del fia
@@ -198,6 +207,8 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
     # We need an iterator over all images to feed the parallel processes. Since each image is
     # processed independently and in no particular order, we need to return information in addition
     # to the image itself that allow files to be written in the correct place and such
+    i = 0
+    start = time.time()
     for h5_filename in h5_filenames:
         base_name = os.path.splitext(h5_filename)[0]
         with h5py.File(h5_filename) as h5:
@@ -207,7 +218,9 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
                 for row in range(grid._height):
                     image = grid.get(row, column)
                     if image is not None:
-                        print("iterate all images!", h5_filename, row, column, channel)
+                        i += 1
+                        print("%s seconds to yield an image" % (time.time() - start))
+                        start = time.time()
                         yield row, column, channel, h5_filename, tile_map[image.column], base_name
 
 
