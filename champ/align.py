@@ -31,10 +31,8 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     # usually finds a result in the first image or two, it's not going to deliver any practical benefits
     num_processes = len(h5_filenames)
     pool = multiprocessing.Pool(num_processes)
-    start = time.time()
     fia = fastqimagealigner.FastqImageAligner(experiment)
     fia.load_reads(alignment_tile_data)
-    print("took %s seconds to load FIA" % (time.time() - start))
     with h5py.File(h5_filenames[0]) as first_file:
         grid = GridImages(first_file, channel)
         # find columns/tiles on the left side
@@ -66,18 +64,10 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     # align, do a precision alignment and write the mapped FastQ reads to disk
     num_processes = multiprocessing.cpu_count()
     log.debug("Aligning all images with %d cores" % num_processes)
-    start = time.time()
     alignment_func = functools.partial(perform_alignment, alignment_parameters, metadata['microns_per_pixel'],
                                        experiment, alignment_tile_data, all_tile_data, make_pdfs, fia)
-    print("%s seconds to create alignment_func" % (time.time() - start))
     pool = multiprocessing.Pool(num_processes)
-    image_data = iterate_all_images(h5_filenames, end_tiles, channel)
-    while True:
-        start = time.time()
-        image_data_slice = (next(image_data) for _ in range(num_processes))
-        # image_data_slice[0] is a 6-member tuple
-        pool.map_async(alignment_func, image_data_slice).get(timeout=sys.maxint)
-        print("image data slice took %s seconds" % (time.time() - start))
+    pool.map_async(alignment_func, iterate_all_images(h5_filenames, end_tiles, channel)).get(timeout=sys.maxint)
     log.debug("Done aligning!")
 
 
@@ -214,8 +204,6 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
     # We need an iterator over all images to feed the parallel processes. Since each image is
     # processed independently and in no particular order, we need to return information in addition
     # to the image itself that allow files to be written in the correct place and such
-    i = 0
-    start = time.time()
     for h5_filename in h5_filenames:
         base_name = os.path.splitext(h5_filename)[0]
         with h5py.File(h5_filename) as h5:
@@ -225,9 +213,6 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
                 for row in range(grid._height):
                     image = grid.get(row, column)
                     if image is not None:
-                        i += 1
-                        print("%s seconds to yield an image" % (time.time() - start))
-                        start = time.time()
                         yield row, column, channel, h5_filename, tile_map[image.column], base_name
 
 
