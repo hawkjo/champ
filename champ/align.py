@@ -106,7 +106,12 @@ def extract_rc_info(stats_file):
 def load_aligned_stats_files(h5_filenames, channel, experiment):
     for h5_filename in h5_filenames:
         base_name = os.path.splitext(h5_filename)[0]
+        print("base name", base_name)
         for f in os.listdir(os.path.join(experiment.results_directory, base_name)):
+            if f is None:
+                print("f is None")
+                print(experiment.results_directory, base_name)
+                continue
             if f.endswith('_stats.txt') and channel in f:
                 try:
                     row, column = extract_rc_info(f)
