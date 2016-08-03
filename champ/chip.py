@@ -65,11 +65,11 @@ class Miseq(BaseChip):
 
     @property
     def right_side_tiles(self):
-        return self._lower_tiles if not self._ports_on_right else self._higher_tiles
+        return self._higher_tiles if not self._ports_on_right else self._lower_tiles
 
     @property
     def left_side_tiles(self):
-        return self._higher_tiles if not self._ports_on_right else self._lower_tiles
+        return self._lower_tiles if not self._ports_on_right else self._higher_tiles
 
 
 class Hiseq(BaseChip):
