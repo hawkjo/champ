@@ -30,7 +30,7 @@ def tif_dir_to_hdf5(Major_axis_idx, h5_bname, tif_fpaths):
 
             # channel_idxs map tif pages to channels
             channel_idxs = tif.micromanager_metadata['index_map']['channel']
-            frame_idxs = tif.micromanager_metadata['frame']
+            frame_idxs = tif.micromanager_metadata['index_map']['frame']
 
             # Setup summed_images
             h, w = summary['Height'], summary['Width']
