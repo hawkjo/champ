@@ -42,10 +42,6 @@ def main(**kwargs):
     log.addHandler(handler)
     log.setLevel(arguments.log_level)
 
-    # make some space to distinguish log messages from command prompt
-    for _ in range(2):
-        log.info('')
-
     commands = {'align': align,
                 'preprocess': preprocess,
                 'init': initialize,
