@@ -109,10 +109,10 @@ def load_aligned_stats_files(h5_filenames, channel, experiment):
         print("base name", base_name)
         files = os.listdir(os.path.join(experiment.results_directory, base_name))
         print(len(files))
+        print(experiment.results_directory, base_name)
         for f in os.listdir(os.path.join(experiment.results_directory, base_name)):
             if f is None:
                 print("f is None")
-                print(experiment.results_directory, base_name)
                 continue
             if f.endswith('_stats.txt') and channel in f:
                 try:
