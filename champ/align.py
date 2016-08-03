@@ -88,7 +88,6 @@ def run_data_channel(h5_filenames, channel_name, alignment_parameters, all_tile_
     second_processor = functools.partial(process_data_image, alignment_parameters, all_tile_data,
                                          clargs.microns_per_pixel, experiment, clargs.make_pdfs,
                                          channel_name, fastq_image_aligner)
-    print("second_processor created")
     pool = multiprocessing.Pool(num_processes)
     log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
     pool.map_async(second_processor,
@@ -106,8 +105,7 @@ def extract_rc_info(stats_file):
 def load_aligned_stats_files(h5_filenames, alignment_channel, experiment):
     for h5_filename in h5_filenames:
         base_name = os.path.splitext(h5_filename)[0]
-        files = os.listdir(os.path.join(experiment.results_directory, base_name))
-        for filename in files:
+        for filename in os.listdir(os.path.join(experiment.results_directory, base_name)):
             if filename.endswith('_stats.txt') and alignment_channel in filename:
                 try:
                     row, column = extract_rc_info(filename)

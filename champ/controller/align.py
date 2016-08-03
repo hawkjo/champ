@@ -19,10 +19,6 @@ def main(clargs):
     experiment = Experiment(clargs.image_directory)
     alignment_parameters = AlignmentParameters(clargs, metadata['mapped_reads'])
 
-    for i in align.load_aligned_stats_files(h5_filenames, "NGS_red", experiment):
-        print("ok")
-    exit()
-
     log.debug("Loading tile data.")
     alignment_tile_data = align.load_read_names(alignment_parameters.aligning_read_names_filepath)
     unclassified_tile_data = align.load_read_names(alignment_parameters.all_read_names_filepath)
@@ -33,7 +29,7 @@ def main(clargs):
     # align.run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata, clargs.make_pdfs)
     if not clargs.phix_only:
         protein_channels = [channel for channel in projectinfo.load_channels(clargs.image_directory) if channel != metadata['alignment_channel']]
-        log.debug("Determined that protein channels are: %s" % ", ".join(protein_channels))
+        log.debug("Protein channels found: %s" % ", ".join(protein_channels))
         for channel_name in protein_channels:
             log.debug("Aligning protein channel: %s" % channel_name)
             align.run_data_channel(h5_filenames, channel_name, alignment_parameters, all_tile_data, experiment, metadata, clargs)
