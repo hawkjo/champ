@@ -19,8 +19,8 @@ def main(clargs):
     experiment = Experiment(clargs.image_directory)
     alignment_parameters = AlignmentParameters(clargs, metadata['mapped_reads'])
 
-    for i in align.load_aligned_stats_files(h5_filenames, "NGS_blue", experiment):
-        print(i)
+    for i in align.load_aligned_stats_files(h5_filenames, "NGS_red", experiment):
+        print("ok")
     exit()
 
     log.debug("Loading tile data.")
