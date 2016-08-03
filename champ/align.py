@@ -78,12 +78,11 @@ def build_end_tiles(h5_filenames, experiment_chip, left_end_tiles, default_left_
     return end_tiles
 
 
-def run_data_channel(h5_filenames, channel_name, alignment_parameters, alignment_tile_data,
-                     all_tile_data, experiment, metadata, clargs):
+def run_data_channel(h5_filenames, channel_name, alignment_parameters, all_tile_data, experiment, metadata, clargs):
     num_processes = multiprocessing.cpu_count()
     log.debug("Loading reads into FASTQ Image Aligner.")
     fastq_image_aligner = fastqimagealigner.FastqImageAligner(experiment)
-    fastq_image_aligner.load_reads(alignment_tile_data)
+    fastq_image_aligner.load_reads(all_tile_data)
     log.debug("Reads loaded.")
     second_processor = functools.partial(process_data_image, alignment_parameters, all_tile_data,
                                          clargs.microns_per_pixel, experiment, clargs.make_pdfs,
