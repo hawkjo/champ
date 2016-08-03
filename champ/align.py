@@ -108,8 +108,8 @@ def load_aligned_stats_files(h5_filenames, alignment_channel, experiment):
         base_name = os.path.splitext(h5_filename)[0]
         files = os.listdir(os.path.join(experiment.results_directory, base_name))
         for filename in files:
+            print(filename)
             if filename.endswith('_stats.txt') and alignment_channel in filename:
-                print(filename)
                 try:
                     row, column = extract_rc_info(filename)
                 except ValueError:
