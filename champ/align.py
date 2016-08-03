@@ -153,6 +153,7 @@ def get_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_k
         pool.map_async(column_checker, h5_filenames).get(sys.maxint)
         if end_tiles:
             return end_tiles
+    # TODO: Returning false will crash things as its cast to a dict
     return False
 
 
