@@ -123,20 +123,23 @@ def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment
         image = grid.get(row, column)
     sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
     stats_filepath = os.path.join(experiment.results_directory, base_name, stats_filepath)
+    print(sexcat_filepath)
+    print(stats_filepath)
+    my_fia = deepcopy(fastq_image_aligner)
     log.debug("Loading FASTQ Image Aligner for %s %s" % (h5_filename, image.index))
-    fastq_image_aligner.set_image_data(image, um_per_pixel)
-    fastq_image_aligner.set_sexcat_from_file(sexcat_filepath)
-    fastq_image_aligner.alignment_from_alignment_file(stats_filepath)
+    my_fia.set_image_data(image, um_per_pixel)
+    my_fia.set_sexcat_from_file(sexcat_filepath)
+    my_fia.alignment_from_alignment_file(stats_filepath)
     log.debug("Done loading FIA for %s" % image.index)
     try:
-        fastq_image_aligner.precision_align_only(min_hits=alignment_parameters.min_hits)
+        my_fia.precision_align_only(min_hits=alignment_parameters.min_hits)
     except ValueError:
         log.debug("Could not precision align %s" % image.index)
     except Exception as e:
         print("Unexpected error!", e)
     else:
         log.debug("Processed 2nd channel for %s" % image.index)
-        write_output(image.index, base_name, fastq_image_aligner, experiment, tile_data, make_pdfs)
+        write_output(image.index, base_name, my_fia, experiment, tile_data, make_pdfs)
 
 
 def decide_default_tiles_and_columns(end_tiles):
