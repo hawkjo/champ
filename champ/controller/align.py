@@ -22,8 +22,12 @@ def main(clargs):
     log.debug("Loading tile data.")
     alignment_tile_data = align.load_read_names(alignment_parameters.aligning_read_names_filepath)
     unclassified_tile_data = align.load_read_names(alignment_parameters.all_read_names_filepath)
+    print("Found %d unclassified reads" % len(unclassified_tile_data))
     all_tile_data = {key: list(set(alignment_tile_data.get(key, []) + unclassified_tile_data.get(key, [])))
                      for key in list(unclassified_tile_data.keys()) + list(alignment_tile_data.keys())}
+    print("all tile data keys")
+    print(list(all_tile_data.keys()))
+    exit()
     log.debug("Tile data loaded.")
 
     # align.run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata, clargs.make_pdfs)

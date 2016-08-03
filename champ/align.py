@@ -123,8 +123,6 @@ def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment
         image = grid.get(row, column)
     sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
     stats_filepath = os.path.join(experiment.results_directory, base_name, stats_filepath)
-    print(sexcat_filepath)
-    print(stats_filepath)
     my_fia = deepcopy(fastq_image_aligner)
     log.debug("Loading FASTQ Image Aligner for %s %s" % (h5_filename, image.index))
     my_fia.set_image_data(image, um_per_pixel)
@@ -133,10 +131,8 @@ def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment
     log.debug("Done loading FIA for %s" % image.index)
     try:
         my_fia.precision_align_only(min_hits=alignment_parameters.min_hits)
-    except ValueError:
+    except (IndexError, ValueError):
         log.debug("Could not precision align %s" % image.index)
-    except Exception as e:
-        print("Unexpected error!", e)
     else:
         log.debug("Processed 2nd channel for %s" % image.index)
         write_output(image.index, base_name, my_fia, experiment, tile_data, make_pdfs)
