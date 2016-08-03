@@ -71,14 +71,8 @@ def build_end_tiles(h5_filenames, experiment_chip, left_end_tiles, default_left_
     end_tiles = {}
     # Now build up the end tile data structure
     for filename in h5_filenames:
-        try:
-            left_tiles, left_column = left_end_tiles[filename]
-        except KeyError:
-            left_tiles, left_column = [default_left_tile], default_left_column
-        try:
-            right_tiles, right_column = right_end_tiles[filename]
-        except KeyError:
-            right_tiles, right_column = [default_right_tile], default_right_column
+        left_tiles, left_column = left_end_tiles.get(filename, ([default_left_tile], default_left_column))
+        right_tiles, right_column = right_end_tiles.get(filename, ([default_right_tile], default_right_column))
         min_column, max_column = min(left_column, right_column), max(left_column, right_column)
         tile_map = experiment_chip.expected_tile_map(left_tiles, right_tiles, min_column, max_column)
         end_tiles[filename] = min_column, max_column, tile_map
