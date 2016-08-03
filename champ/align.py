@@ -81,14 +81,16 @@ def build_end_tiles(h5_filenames, experiment_chip, left_end_tiles, default_left_
 
 def run_data_channel(h5_filenames, channel_name, alignment_parameters, all_tile_data, experiment, clargs):
     num_processes = multiprocessing.cpu_count()
-    log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
+    log.debug("Loading tile data.")
     fastq_image_aligner = fastqimagealigner.FastqImageAligner(experiment)
     fastq_image_aligner.load_reads(all_tile_data)
+    log.debug("Tile data loaded.")
     second_processor = functools.partial(process_data_image, alignment_parameters, all_tile_data,
                                          clargs.microns_per_pixel, experiment, clargs.make_pdfs,
                                          channel_name, fastq_image_aligner)
-
+    print("second_processor created")
     pool = multiprocessing.Pool(num_processes)
+    log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
     pool.map_async(second_processor,
                    load_aligned_stats_files(h5_filenames, clargs.alignment_channel, experiment)).get(sys.maxint)
     log.debug("Done aligning!")
@@ -122,15 +124,17 @@ def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment
         image = grid.get(row, column)
     sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
     stats_filepath = os.path.join(experiment.results_directory, base_name, stats_filepath)
+    log.debug("Loading FASTQ Image Aligner for %s" % image.index)
     fastq_image_aligner.set_image_data(image, um_per_pixel)
     fastq_image_aligner.set_sexcat_from_file(sexcat_filepath)
     fastq_image_aligner.alignment_from_alignment_file(stats_filepath)
+    log.debug("Done loading FIA for %s" % image.index)
     try:
         fastq_image_aligner.precision_align_only(min_hits=alignment_parameters.min_hits)
-        log.debug("Processed 2nd channel for %s" % image.index)
     except ValueError:
         log.debug("Could not precision align %s" % image.index)
     else:
+        log.debug("Processed 2nd channel for %s" % image.index)
         write_output(image.index, base_name, fastq_image_aligner, experiment, tile_data, make_pdfs)
 
 
