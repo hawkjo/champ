@@ -107,6 +107,8 @@ def load_aligned_stats_files(h5_filenames, channel, experiment):
     for h5_filename in h5_filenames:
         base_name = os.path.splitext(h5_filename)[0]
         print("base name", base_name)
+        files = os.listdir(os.path.join(experiment.results_directory, base_name))
+        print(len(files))
         for f in os.listdir(os.path.join(experiment.results_directory, base_name)):
             if f is None:
                 print("f is None")
