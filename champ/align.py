@@ -105,6 +105,7 @@ def extract_rc_info(stats_file):
 
 def load_aligned_stats_files(h5_filenames, alignment_channel, experiment):
     print(alignment_channel)
+    exit()
     for h5_filename in h5_filenames:
         base_name = os.path.splitext(h5_filename)[0]
         files = os.listdir(os.path.join(experiment.results_directory, base_name))
