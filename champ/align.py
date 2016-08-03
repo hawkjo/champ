@@ -79,7 +79,7 @@ def build_end_tiles(h5_filenames, experiment_chip, left_end_tiles, default_left_
     return end_tiles
 
 
-def run_data_channel(h5_filenames, channel_name, alignment_parameters, all_tile_data, experiment, clargs):
+def run_data_channel(h5_filenames, channel_name, alignment_parameters, all_tile_data, experiment, metadata, clargs):
     num_processes = multiprocessing.cpu_count()
     log.debug("Loading tile data.")
     fastq_image_aligner = fastqimagealigner.FastqImageAligner(experiment)
@@ -92,7 +92,7 @@ def run_data_channel(h5_filenames, channel_name, alignment_parameters, all_tile_
     pool = multiprocessing.Pool(num_processes)
     log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
     pool.map_async(second_processor,
-                   load_aligned_stats_files(h5_filenames, clargs.alignment_channel, experiment)).get(sys.maxint)
+                   load_aligned_stats_files(h5_filenames, metadata['alignment_channel'], experiment)).get(sys.maxint)
     log.debug("Done aligning!")
 
 

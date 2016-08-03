@@ -36,4 +36,4 @@ def main(clargs):
         log.debug("Determined that protein channels are: %s" % ", ".join(protein_channels))
         for channel_name in protein_channels:
             log.debug("Aligning protein channel: %s" % channel_name)
-            align.run_data_channel(h5_filenames, channel_name, alignment_parameters, all_tile_data, experiment, clargs)
+            align.run_data_channel(h5_filenames, channel_name, alignment_parameters, all_tile_data, experiment, metadata, clargs)
