@@ -2,6 +2,7 @@ from champ.config import AlignmentParameters, Experiment
 import os
 import logging
 from champ import align, initialize
+from champ import projectinfo
 
 log = logging.getLogger(__name__)
 
@@ -24,5 +25,9 @@ def main(clargs):
     log.debug("Tile data loaded.")
 
     align.run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata, clargs.make_pdfs)
-    # if not clargs.phix_only:
-    #     align.run_second_channel(h5_filenames, alignment_parameters, all_tile_data, experiment, clargs)
+    if not clargs.phix_only:
+        protein_channels = [channel for channel in projectinfo.load_channels(clargs.image_directory) if channel != metadata['alignment_channel']]
+        log.debug("Determined that protein channels are: %s" % protein_channels)
+        for channel_name in protein_channels:
+            log.debug("Aligning protein channel: %s" % channel_name)
+            align.run_data_channel(h5_filenames, channel_name, alignment_parameters, all_tile_data, experiment, clargs)

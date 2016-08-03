@@ -79,7 +79,7 @@ def build_end_tiles(h5_filenames, experiment_chip, left_end_tiles, default_left_
     return end_tiles
 
 
-def run_second_channel(h5_filenames, channel_name, alignment_parameters, all_tile_data, experiment, clargs):
+def run_data_channel(h5_filenames, channel_name, alignment_parameters, all_tile_data, experiment, clargs):
     num_processes = multiprocessing.cpu_count()
     log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
     fastq_image_aligner = fastqimagealigner.FastqImageAligner(experiment)
