@@ -103,25 +103,20 @@ def extract_rc_info(stats_file):
     raise ValueError("Invalid stats file: %s" % str(stats_file))
 
 
-def load_aligned_stats_files(h5_filenames, channel, experiment):
+def load_aligned_stats_files(h5_filenames, alignment_channel, experiment):
     for h5_filename in h5_filenames:
         base_name = os.path.splitext(h5_filename)[0]
-        print("base name", base_name)
         files = os.listdir(os.path.join(experiment.results_directory, base_name))
-        print(len(files))
-        print(experiment.results_directory, base_name)
-        for f in os.listdir(os.path.join(experiment.results_directory, base_name)):
-            if f is None:
-                print("f is None")
-                continue
-            if f.endswith('_stats.txt') and channel in f:
+        for filename in files:
+            if filename.endswith('_stats.txt') and alignment_channel in filename:
+                print(filename)
                 try:
-                    row, column = extract_rc_info(f)
+                    row, column = extract_rc_info(filename)
                 except ValueError:
-                    log.warn("Invalid stats file: %s" % str(f))
+                    log.warn("Invalid stats file: %s" % str(filename))
                     continue
                 else:
-                    yield h5_filename, base_name, f, row, column
+                    yield h5_filename, base_name, filename, row, column
 
 
 def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment, make_pdfs, channel, fastq_image_aligner,
