@@ -37,7 +37,7 @@ def main(**kwargs):
 
     log = logging.getLogger()
     handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s", "%Y-%m-%d %H:%M:%S")
+    formatter = logging.Formatter("%(asctime)s   %(message)s", "%Y-%m-%d %H:%M:%S")
     handler.setFormatter(formatter)
     log.addHandler(handler)
     log.setLevel(arguments.log_level)
