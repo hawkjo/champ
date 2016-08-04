@@ -14,10 +14,6 @@ class CommandLineArguments(object):
         self._current_directory = current_directory
 
     @property
-    def enhance_contrast(self):
-        return self._arguments['--enhance-contrast']
-
-    @property
     def target_data_file(self):
         return self._arguments['TARGET_DATA_FILE']
 
@@ -61,10 +57,6 @@ class CommandLineArguments(object):
     @property
     def parsed_reads(self):
         return self._arguments['PARSED_READS']
-
-    @property
-    def hdf5_file_path(self):
-        return self._arguments['HDF5_FILE_PATH']
 
     @property
     def microns_per_pixel(self):
@@ -127,35 +119,23 @@ class CommandLineArguments(object):
 
     @property
     def snr(self):
-        return self._arguments.get('-snr')
+        return float(self._arguments.get('-snr') or 1.2)
 
 
-class Experiment(object):
-    def __init__(self, image_data_directory):
-        self._image_data_directory = image_data_directory
+class OutputParameters(object):
+    # TODO: The name of this is bad, it's input and output
+    """ Parses user-provided alignment parameters and provides a default in case no value was given. """
+    def __init__(self, image_directory, mapped_reads):
+        self._image_directory = image_directory
+        self._mapped_reads = mapped_reads
 
     @property
     def figure_directory(self):
-        return os.path.join(self._image_data_directory, 'figs')
-
-    @property
-    def data_directory(self):
-        return self._image_data_directory
+        return os.path.join(self._image_directory, 'figs')
 
     @property
     def results_directory(self):
-        return os.path.join(self._image_data_directory, 'results')
-
-    @property
-    def intensity_directory(self):
-        return os.path.join(self.figure_directory, 'intensity')
-
-
-class AlignmentParameters(object):
-    """ Parses user-provided alignment parameters and provides a default in case no value was given. """
-    def __init__(self, clargs, mapped_reads):
-        self._clargs = clargs
-        self._mapped_reads = mapped_reads
+        return os.path.join(self._image_directory, 'results')
 
     @property
     def aligning_read_names_filepath(self):
@@ -164,11 +144,3 @@ class AlignmentParameters(object):
     @property
     def all_read_names_filepath(self):
         return os.path.join(self._mapped_reads, 'unclassified')
-
-    @property
-    def min_hits(self):
-        return self._clargs.min_hits
-
-    @property
-    def snr(self):
-        return float(self._clargs.snr or 1.2)

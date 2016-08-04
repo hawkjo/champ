@@ -1,22 +1,21 @@
+import logging
+import time
 from copy import deepcopy
+from itertools import izip
+
+import numpy as np
+import sextraction
 from fastqtilercs import FastqTileRCs
 from imagedata import ImageData
-from itertools import izip
-import logging
 from misc import AlignmentStats
-import numpy as np
 from scipy.spatial import KDTree
-import time
-import sextraction
-
 
 log = logging.getLogger(__name__)
 
 
 class FastqImageAligner(object):
     """A class to find the alignment of fastq data and image data."""
-    def __init__(self, experiment):
-        self.experiment = experiment
+    def __init__(self):
         self.fastq_tiles = {}
         self.fastq_tiles_list = []
         self.fastq_tiles_keys = []
