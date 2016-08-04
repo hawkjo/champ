@@ -1,20 +1,20 @@
-import re
-import h5py
-from champ import hdf5tools, constants, error, projectinfo
-from sklearn.neighbors import KernelDensity
-import logging
-import os
-import glob
-import numpy as np
-import matplotlib.pyplot as plt
-import random
-import itertools
-import misc
-from collections import defaultdict
-from scipy.optimize import minimize, curve_fit
-from matplotlib.ticker import MultipleLocator
 import functools
+import glob
+import itertools
+import logging
+import random
+from collections import defaultdict
 
+import h5py
+import matplotlib.pyplot as plt
+import misc
+import numpy as np
+import os
+import re
+from champ import hdf5tools, constants, error, projectinfo
+from matplotlib.ticker import MultipleLocator
+from scipy.optimize import minimize, curve_fit
+from sklearn.neighbors import KernelDensity
 
 log = logging.getLogger(__name__)
 
@@ -504,8 +504,8 @@ def determine_protein_channels(image_directory, metadata):
 def main(metadata, image_directory, target_info):
     output_directory = functools.partial(os.path.join, 'figures')
     protein_channels = determine_protein_channels(image_directory, metadata)
-    read_names_by_seq_fpath = os.path.join(metadata.read_directory, 'read_names_by_seq.txt')
-    perfect_target_read_name_fpath = os.path.join(metadata.read_directory,
+    read_names_by_seq_fpath = os.path.join(metadata['parsed_reads'], 'read_names_by_seq.txt')
+    perfect_target_read_name_fpath = os.path.join(metadata['parsed_reads'],
                                                   'perfect_target_{}_read_names.txt'.format(target_info.on_target_label))
     perfect_target_read_names = set(line.strip() for line in open(perfect_target_read_name_fpath))
     h5_filepaths = sort_h5_files(image_directory)
