@@ -1,4 +1,5 @@
 import os
+
 import yaml
 from error import fail
 
@@ -16,8 +17,16 @@ def save(clargs):
                 'alignment_channel': clargs.alignment_channel,
                 'flipud': clargs.flipud,
                 'perfect_target': clargs.perfect_target,
-                'fliplr': clargs.fliplr}
+                'fliplr': clargs.fliplr,
+                'phix_aligned': False,
+                'protein_channels_aligned': []}
         yaml.dump(data, f)
+
+
+def update(image_directory, metadata):
+    filename = os.path.join(image_directory, 'champ.yaml')
+    with open(filename, 'w+') as f:
+        yaml.dump(metadata, f)
 
 
 def load(image_directory):

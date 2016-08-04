@@ -2,7 +2,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from champ.grid import GridImages
-from champ import plotting, error, chip, fastqimagealigner
+from champ import plotting, fastqimagealigner
 from collections import Counter, defaultdict
 import functools
 import h5py
@@ -18,20 +18,7 @@ log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 
 
-def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata, make_pdfs):
-    if len(h5_filenames) == 0:
-        error.fail("There were no HDF5 files to process. "
-                   "Either they just don't exist, or you didn't provide the correct path.")
-    channel = metadata['alignment_channel']
-    sequencing_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
-    # We use one process per concentration. We could theoretically speed this up since our machine
-    # has significantly more cores than the typical number of concentration points, but since it
-    # usually finds a result in the first image or two, it's not going to deliver any practical benefits
-    num_processes = len(h5_filenames)
-    pool = multiprocessing.Pool(num_processes)
-    fia = fastqimagealigner.FastqImageAligner(experiment)
-    fia.load_reads(alignment_tile_data)
-
+def get_end_tiles(h5_filenames, experiment, alignment_parameters, alignment_channel, metadata, sequencing_chip, fia):
     for h5_filename in h5_filenames:
         base_name = os.path.splitext(h5_filename)[0]
         for directory in (experiment.figure_directory, experiment.results_directory):
@@ -40,10 +27,12 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
                 os.makedirs(full_directory)
 
     with h5py.File(h5_filenames[0]) as first_file:
-        grid = GridImages(first_file, channel)
+        grid = GridImages(first_file, alignment_channel)
         # find columns/tiles on the left side
 
-        base_column_checker = functools.partial(check_column_for_alignment, sequencing_chip, channel, alignment_parameters,
+        num_processes = len(h5_filenames)
+        pool = multiprocessing.Pool(num_processes)
+        base_column_checker = functools.partial(check_column_for_alignment, sequencing_chip, alignment_channel, alignment_parameters,
                                                 metadata['microns_per_pixel'], fia)
 
         left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, sequencing_chip.left_side_tiles))
@@ -53,6 +42,10 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     default_right_tile, default_right_column = decide_default_tiles_and_columns(right_end_tiles)
     end_tiles = build_end_tiles(h5_filenames, sequencing_chip, left_end_tiles, default_left_tile, right_end_tiles,
                                 default_right_tile, default_left_column, default_right_column)
+    return end_tiles
+
+
+def run(h5_filenames, alignment_parameters, fia, end_tiles, alignment_channel, all_tile_data, experiment, metadata, make_pdfs):
 
     # Leave at least two processors free so we don't totally hammer the server
     num_processes = max(multiprocessing.cpu_count() - 2, 1)
@@ -64,7 +57,8 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
                                        experiment, all_tile_data, make_pdfs, fia)
 
     pool = multiprocessing.Pool(num_processes)
-    pool.map_async(alignment_func, iterate_all_images(h5_filenames, end_tiles, channel), chunksize=96).get(timeout=sys.maxint)
+    pool.map_async(alignment_func,
+                   iterate_all_images(h5_filenames, end_tiles, alignment_channel), chunksize=96).get(timeout=sys.maxint)
     log.debug("Done aligning!")
 
 
