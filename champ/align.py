@@ -53,10 +53,12 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     end_tiles = build_end_tiles(h5_filenames, experiment_chip, left_end_tiles, default_left_tile, right_end_tiles,
                                 default_right_tile, default_left_column, default_right_column)
 
+    # Leave at least two processors free so we don't totally hammer the server
+    num_processes = max(multiprocessing.cpu_count() - 2, 1)
+    log.debug("Aligning all images with %d cores" % num_processes)
+
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
-    num_processes = multiprocessing.cpu_count()
-    log.debug("Aligning all images with %d cores" % num_processes)
     alignment_func = functools.partial(perform_alignment, alignment_parameters, metadata['microns_per_pixel'],
                                        experiment, all_tile_data, make_pdfs, fia)
 
