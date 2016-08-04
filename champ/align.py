@@ -1,5 +1,6 @@
 import matplotlib
 matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 from champ.grid import GridImages
 from champ import plotting, error, chip, fastqimagealigner
 from collections import Counter, defaultdict
@@ -256,8 +257,10 @@ def write_output(image_index, base_name, fastq_image_aligner, experiment, all_ti
     if make_pdfs:
         ax = plotting.plot_all_hits(fastq_image_aligner)
         ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_all_hits.pdf'.format(image_index)))
+        plt.close()
         ax = plotting.plot_hit_hists(fastq_image_aligner)
         ax.figure.savefig(os.path.join(experiment.figure_directory, '{}_hit_hists.pdf'.format(image_index)))
+        plt.close()
 
     fastq_image_aligner.output_intensity_results(intensity_filepath)
     fastq_image_aligner.write_alignment_stats(stats_filepath)

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse
-import numpy as np
 
 
 def plot_hit_hists(fia, ax=None):
@@ -43,10 +43,10 @@ def plot_ellipses(fia, ax, alpha=1.0, color=(1, 0, 0)):
         e.set_facecolor(color)
 
 
-def plot_all_hits(fia, ax=None, im_kwargs={}, line_kwargs={}, fqpt_kwargs={}, sext_kwargs={},
+def plot_all_hits(fia, im_kwargs={}, line_kwargs={}, fqpt_kwargs={}, sext_kwargs={},
                  title_kwargs={}, legend_kwargs={}):
-    if ax is None:
-        fig, ax = plt.subplots(figsize=(15, 15))
+
+    fig, ax = plt.subplots(figsize=(15, 15))
 
     kwargs = {'cmap': plt.get_cmap('Blues')}
     kwargs.update(im_kwargs)
