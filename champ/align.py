@@ -1,9 +1,8 @@
 import matplotlib
 matplotlib.use('Agg')
 from champ.grid import GridImages
-from champ import plotting, error, chip
+from champ import plotting, error, chip, fastqimagealigner
 from collections import Counter, defaultdict
-import fastqimagealigner
 import functools
 import h5py
 import logging
@@ -54,10 +53,12 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
     end_tiles = build_end_tiles(h5_filenames, experiment_chip, left_end_tiles, default_left_tile, right_end_tiles,
                                 default_right_tile, default_left_column, default_right_column)
 
+    # Leave at least two processors free so we don't totally hammer the server
+    num_processes = max(multiprocessing.cpu_count() - 2, 1)
+    log.debug("Aligning all images with %d cores" % num_processes)
+
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
-    num_processes = multiprocessing.cpu_count()
-    log.debug("Aligning all images with %d cores" % num_processes)
     alignment_func = functools.partial(perform_alignment, alignment_parameters, metadata['microns_per_pixel'],
                                        experiment, all_tile_data, make_pdfs, fia)
 
@@ -79,18 +80,20 @@ def build_end_tiles(h5_filenames, experiment_chip, left_end_tiles, default_left_
     return end_tiles
 
 
-def run_second_channel(h5_filenames, channel_name, alignment_parameters, all_tile_data, experiment, clargs):
+def run_data_channel(h5_filenames, channel_name, alignment_parameters, alignment_tile_data, all_tile_data,
+                     experiment, metadata, clargs):
     num_processes = multiprocessing.cpu_count()
-    log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
+    log.debug("Loading reads into FASTQ Image Aligner.")
     fastq_image_aligner = fastqimagealigner.FastqImageAligner(experiment)
-    fastq_image_aligner.load_reads(all_tile_data)
+    fastq_image_aligner.load_reads(alignment_tile_data)
+    log.debug("Reads loaded.")
     second_processor = functools.partial(process_data_image, alignment_parameters, all_tile_data,
                                          clargs.microns_per_pixel, experiment, clargs.make_pdfs,
                                          channel_name, fastq_image_aligner)
-
     pool = multiprocessing.Pool(num_processes)
+    log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
     pool.map_async(second_processor,
-                   load_aligned_stats_files(h5_filenames, clargs.alignment_channel, experiment)).get(sys.maxint)
+                   load_aligned_stats_files(h5_filenames, metadata['alignment_channel'], experiment)).get(sys.maxint)
     log.debug("Done aligning!")
 
 
@@ -101,37 +104,40 @@ def extract_rc_info(stats_file):
     raise ValueError("Invalid stats file: %s" % str(stats_file))
 
 
-def load_aligned_stats_files(h5_filenames, channel, experiment):
+def load_aligned_stats_files(h5_filenames, alignment_channel, experiment):
     for h5_filename in h5_filenames:
         base_name = os.path.splitext(h5_filename)[0]
-        for f in os.listdir(os.path.join(experiment.results_directory, base_name)):
-            if f.endswith('_stats.txt') and channel in f:
+        for filename in os.listdir(os.path.join(experiment.results_directory, base_name)):
+            if filename.endswith('_stats.txt') and alignment_channel in filename:
                 try:
-                    row, column = extract_rc_info(f)
+                    row, column = extract_rc_info(filename)
                 except ValueError:
-                    log.warn("Invalid stats file: %s" % str(f))
+                    log.warn("Invalid stats file: %s" % str(filename))
                     continue
                 else:
-                    yield h5_filename, base_name, f, row, column
+                    yield h5_filename, base_name, filename, row, column
 
 
-def process_data_image(alignment_parameters, tile_data, um_per_pixel, experiment, make_pdfs, channel, fastq_image_aligner,
-                       (h5_filename, base_name, stats_filepath, row, column)):
+def process_data_image(alignment_parameters, all_tile_data, um_per_pixel, experiment, make_pdfs, channel,
+                       fastq_image_aligner, (h5_filename, base_name, stats_filepath, row, column)):
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
         image = grid.get(row, column)
     sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
     stats_filepath = os.path.join(experiment.results_directory, base_name, stats_filepath)
-    fastq_image_aligner.set_image_data(image, um_per_pixel)
-    fastq_image_aligner.set_sexcat_from_file(sexcat_filepath)
-    fastq_image_aligner.alignment_from_alignment_file(stats_filepath)
+    local_fia = deepcopy(fastq_image_aligner)
+    log.debug("Loading FASTQ Image Aligner for %s %s" % (h5_filename, image.index))
+    local_fia.set_image_data(image, um_per_pixel)
+    local_fia.set_sexcat_from_file(sexcat_filepath)
+    local_fia.alignment_from_alignment_file(stats_filepath)
+    log.debug("Done loading FIA for %s" % image.index)
     try:
-        fastq_image_aligner.precision_align_only(min_hits=alignment_parameters.min_hits)
-        log.debug("Processed 2nd channel for %s" % image.index)
-    except ValueError:
+        local_fia.precision_align_only(min_hits=alignment_parameters.min_hits)
+    except (IndexError, ValueError):
         log.debug("Could not precision align %s" % image.index)
     else:
-        write_output(image.index, base_name, fastq_image_aligner, experiment, tile_data, make_pdfs)
+        log.debug("Processed 2nd channel for %s" % image.index)
+        write_output(image.index, base_name, local_fia, experiment, all_tile_data, make_pdfs)
 
 
 def decide_default_tiles_and_columns(end_tiles):
@@ -239,7 +245,7 @@ def process_alignment_image(alignment_parameters, base_name, um_per_pixel, image
     return fia
 
 
-def write_output(image_index, base_name, fastq_image_aligner, experiment, tile_data, make_pdfs):
+def write_output(image_index, base_name, fastq_image_aligner, experiment, all_tile_data, make_pdfs):
     intensity_filepath = os.path.join(experiment.results_directory,
                                       base_name, '{}_intensities.txt'.format(image_index))
     stats_filepath = os.path.join(experiment.results_directory,
@@ -256,5 +262,5 @@ def write_output(image_index, base_name, fastq_image_aligner, experiment, tile_d
     fastq_image_aligner.output_intensity_results(intensity_filepath)
     fastq_image_aligner.write_alignment_stats(stats_filepath)
     all_fastq_image_aligner = fastqimagealigner.FastqImageAligner(experiment)
-    all_fastq_image_aligner.all_reads_fic_from_aligned_fic(fastq_image_aligner, tile_data)
+    all_fastq_image_aligner.all_reads_fic_from_aligned_fic(fastq_image_aligner, all_tile_data)
     all_fastq_image_aligner.write_read_names_rcs(all_read_rcs_filepath)

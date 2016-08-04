@@ -1,7 +1,9 @@
-from champ.config import AlignmentParameters, Experiment
-import os
 import logging
+
+import os
 from champ import align, initialize
+from champ import projectinfo
+from champ.config import AlignmentParameters, Experiment
 
 log = logging.getLogger(__name__)
 
@@ -16,6 +18,7 @@ def main(clargs):
     h5_filenames = [os.path.join(clargs.image_directory, filename) for filename in h5_filenames]
     experiment = Experiment(clargs.image_directory)
     alignment_parameters = AlignmentParameters(clargs, metadata['mapped_reads'])
+
     log.debug("Loading tile data.")
     alignment_tile_data = align.load_read_names(alignment_parameters.aligning_read_names_filepath)
     unclassified_tile_data = align.load_read_names(alignment_parameters.all_read_names_filepath)
@@ -24,5 +27,11 @@ def main(clargs):
     log.debug("Tile data loaded.")
 
     align.run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata, clargs.make_pdfs)
-    # if not clargs.phix_only:
-    #     align.run_second_channel(h5_filenames, alignment_parameters, all_tile_data, experiment, clargs)
+    if not clargs.phix_only:
+        protein_channels = [channel for channel in projectinfo.load_channels(clargs.image_directory)
+                            if channel != metadata['alignment_channel']]
+        log.debug("Protein channels found: %s" % ", ".join(protein_channels))
+        for channel_name in protein_channels:
+            log.debug("Aligning protein channel: %s" % channel_name)
+            align.run_data_channel(h5_filenames, channel_name, alignment_parameters, alignment_tile_data,
+                                   all_tile_data, experiment, metadata, clargs)

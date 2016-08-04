@@ -22,12 +22,13 @@ Commands:
   info          View the metadata associated with an experiment
 
 """
-from champ.controller import align, initialize, mapreads, kd, info, preprocess
-from docopt import docopt
 import logging
+
+import os
 from champ.config import CommandLineArguments
 from champ.constants import VERSION
-import os
+from champ.controller import align, initialize, mapreads, kd, info, preprocess
+from docopt import docopt
 
 
 def main(**kwargs):
@@ -35,12 +36,11 @@ def main(**kwargs):
     arguments = CommandLineArguments(docopt_args, os.getcwd())
 
     log = logging.getLogger()
-    log.addHandler(logging.StreamHandler())
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("%(asctime)s   %(message)s", "%Y-%m-%d %H:%M:%S")
+    handler.setFormatter(formatter)
+    log.addHandler(handler)
     log.setLevel(arguments.log_level)
-
-    # make some space to distinguish log messages from command prompt
-    for _ in range(2):
-        log.info('')
 
     commands = {'align': align,
                 'preprocess': preprocess,

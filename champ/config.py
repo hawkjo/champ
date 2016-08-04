@@ -1,6 +1,7 @@
-import os
 import logging
-from chip import Miseq, Hiseq, load
+
+import os
+from chip import load
 
 
 class CommandLineArguments(object):

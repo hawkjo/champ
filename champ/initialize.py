@@ -1,5 +1,5 @@
-import yaml
 import os
+import yaml
 from error import fail
 
 
@@ -15,6 +15,7 @@ def save(clargs):
                 'ports_on_right': clargs.ports_on_right,
                 'alignment_channel': clargs.alignment_channel,
                 'flipud': clargs.flipud,
+                'perfect_target': clargs.perfect_target,
                 'fliplr': clargs.fliplr}
         yaml.dump(data, f)
 
