@@ -26,7 +26,7 @@ def main(clargs):
                      for key in list(unclassified_tile_data.keys()) + list(alignment_tile_data.keys())}
     log.debug("Tile data loaded.")
 
-    # align.run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata, clargs.make_pdfs)
+    align.run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, experiment, metadata, clargs.make_pdfs)
     if not clargs.phix_only:
         protein_channels = [channel for channel in projectinfo.load_channels(clargs.image_directory)
                             if channel != metadata['alignment_channel']]
