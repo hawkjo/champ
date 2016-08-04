@@ -96,10 +96,6 @@ class CommandLineArguments(object):
         return chip(self._arguments['--ports-on-right'])
 
     @property
-    def phix_only(self):
-        return self._arguments['--phix-only']
-
-    @property
     def ports_on_right(self):
         return self._arguments['--ports-on-right']
 
