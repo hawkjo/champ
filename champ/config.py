@@ -171,8 +171,7 @@ class AlignmentParameters(object):
 
     @property
     def all_read_names_filepath(self):
-        # return os.path.join(self._mapped_reads, 'unclassified')
-        return "/mnt/marble/hdd/home/shared/SA16105/read_names/perfect_target_d_read_names.txt"
+        return os.path.join(self._mapped_reads, 'unclassified')
 
     @property
     def fastq_tile_width_estimate(self):
