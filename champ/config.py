@@ -1,6 +1,6 @@
 import logging
-
 import os
+
 from chip import load
 
 
@@ -45,10 +45,6 @@ class CommandLineArguments(object):
     @property
     def alignment_channel(self):
         return self._arguments['ALIGNMENT_CHANNEL']
-
-    @property
-    def nonneg_lda_weights_path(self):
-        return 'bLDA_coef_nonneg.txt'
 
     @property
     def image_directory(self):
@@ -174,19 +170,8 @@ class AlignmentParameters(object):
         return os.path.join(self._mapped_reads, 'unclassified')
 
     @property
-    def fastq_tile_width_estimate(self):
-        # width of a tile of Illumina data, in microns
-        # TODO: This should be stored in the Chip class
-        return 935.0
-
-    @property
     def min_hits(self):
         return self._clargs.min_hits
-
-    @property
-    def rotation_estimate(self):
-        # TODO: This should be stored in the Chip class
-        return 180.0
 
     @property
     def snr(self):
