@@ -23,7 +23,7 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         error.fail("There were no HDF5 files to process. "
                    "Either they just don't exist, or you didn't provide the correct path.")
     channel = metadata['alignment_channel']
-    experiment_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
+    sequencing_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
     # We use one process per concentration. We could theoretically speed this up since our machine
     # has significantly more cores than the typical number of concentration points, but since it
     # usually finds a result in the first image or two, it's not going to deliver any practical benefits
@@ -43,15 +43,15 @@ def run(h5_filenames, alignment_parameters, alignment_tile_data, all_tile_data, 
         grid = GridImages(first_file, channel)
         # find columns/tiles on the left side
 
-        base_column_checker = functools.partial(check_column_for_alignment, channel, alignment_parameters,
+        base_column_checker = functools.partial(check_column_for_alignment, sequencing_chip, channel, alignment_parameters,
                                                 metadata['microns_per_pixel'], fia)
 
-        left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, experiment_chip.left_side_tiles))
-        right_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), experiment_chip.right_side_tiles))
+        left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, sequencing_chip.left_side_tiles))
+        right_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), sequencing_chip.right_side_tiles))
 
     default_left_tile, default_left_column = decide_default_tiles_and_columns(left_end_tiles)
     default_right_tile, default_right_column = decide_default_tiles_and_columns(right_end_tiles)
-    end_tiles = build_end_tiles(h5_filenames, experiment_chip, left_end_tiles, default_left_tile, right_end_tiles,
+    end_tiles = build_end_tiles(h5_filenames, sequencing_chip, left_end_tiles, default_left_tile, right_end_tiles,
                                 default_right_tile, default_left_column, default_right_column)
 
     # Leave at least two processors free so we don't totally hammer the server
@@ -127,11 +127,9 @@ def process_data_image(alignment_parameters, all_tile_data, um_per_pixel, experi
     sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
     stats_filepath = os.path.join(experiment.results_directory, base_name, stats_filepath)
     local_fia = deepcopy(fastq_image_aligner)
-    log.debug("Loading FASTQ Image Aligner for %s %s" % (h5_filename, image.index))
     local_fia.set_image_data(image, um_per_pixel)
     local_fia.set_sexcat_from_file(sexcat_filepath)
     local_fia.alignment_from_alignment_file(stats_filepath)
-    log.debug("Done loading FIA for %s" % image.index)
     try:
         local_fia.precision_align_only(min_hits=alignment_parameters.min_hits)
     except (IndexError, ValueError):
@@ -164,14 +162,14 @@ def get_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_k
     return False
 
 
-def check_column_for_alignment(channel, alignment_parameters, um_per_pixel, fia,
+def check_column_for_alignment(channel, alignment_parameters, sequencing_chip, um_per_pixel, fia,
                                end_tiles, column, possible_tile_keys, h5_filename):
     base_name = os.path.splitext(h5_filename)[0]
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
         image = grid.get(3, column)
         log.debug("Aligning %s Row 3 Column %d against PhiX" % (base_name, column))
-        fia = process_alignment_image(alignment_parameters, base_name, um_per_pixel,
+        fia = process_alignment_image(alignment_parameters, sequencing_chip, base_name, um_per_pixel,
                                       image, possible_tile_keys, deepcopy(fia))
         if fia.hitting_tiles:
             log.debug("%s aligned to at least one tile!" % image.index)
@@ -235,13 +233,13 @@ def load_read_names(file_path):
     return {key: list(values) for key, values in tiles.items()}
 
 
-def process_alignment_image(alignment_parameters, base_name, um_per_pixel, image, possible_tile_keys, fia):
+def process_alignment_image(alignment_parameters, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, fia):
     sexcat_fpath = os.path.join(base_name, '%s.cat' % image.index)
     fia.set_image_data(image, um_per_pixel)
     fia.set_sexcat_from_file(sexcat_fpath)
     fia.rough_align(possible_tile_keys,
-                    alignment_parameters.rotation_estimate,
-                    alignment_parameters.fastq_tile_width_estimate,
+                    sequencing_chip.rotation_estimate,
+                    sequencing_chip.fastq_tile_width,
                     snr_thresh=alignment_parameters.snr)
     return fia
 
