@@ -81,7 +81,7 @@ def run_data_channel(h5_filenames, channel_name, output_parameters, alignment_ti
     log.debug("Reads loaded.")
     second_processor = functools.partial(process_data_image, output_parameters, all_tile_data,
                                          clargs.microns_per_pixel, clargs.make_pdfs,
-                                         channel_name, fastq_image_aligner)
+                                         channel_name, fastq_image_aligner, clargs.min_hits)
     pool = multiprocessing.Pool(num_processes)
     log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
     pool.map_async(second_processor,
@@ -111,7 +111,7 @@ def load_aligned_stats_files(h5_filenames, alignment_channel, output_parameters)
 
 
 def process_data_image(output_parameters, all_tile_data, um_per_pixel, make_pdfs, channel,
-                       fastq_image_aligner, (h5_filename, base_name, stats_filepath, row, column)):
+                       fastq_image_aligner, min_hits, (h5_filename, base_name, stats_filepath, row, column)):
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
         image = grid.get(row, column)
@@ -122,7 +122,7 @@ def process_data_image(output_parameters, all_tile_data, um_per_pixel, make_pdfs
     local_fia.set_sexcat_from_file(sexcat_filepath)
     local_fia.alignment_from_alignment_file(stats_filepath)
     try:
-        local_fia.precision_align_only(min_hits=output_parameters.min_hits)
+        local_fia.precision_align_only(min_hits=min_hits)
     except (IndexError, ValueError):
         log.debug("Could not precision align %s" % image.index)
     else:

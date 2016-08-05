@@ -38,6 +38,7 @@ def main(clargs):
         metadata['end_tiles'] = end_tiles
         initialize.update(clargs.image_directory, metadata)
     else:
+        log.debug("End tiles already calculated.")
         end_tiles = metadata['end_tiles']
 
     if not metadata['phix_aligned']:
@@ -45,6 +46,8 @@ def main(clargs):
                   all_tile_data, metadata, clargs.make_pdfs, sequencing_chip)
         metadata['phix_aligned'] = True
         initialize.update(clargs.image_directory, metadata)
+    else:
+        log.debug("Phix already aligned.")
 
     protein_channels = [channel for channel in projectinfo.load_channels(clargs.image_directory) if channel != metadata['alignment_channel']]
     log.debug("Protein channels found: %s" % ", ".join(protein_channels))
