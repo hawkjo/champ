@@ -229,7 +229,7 @@ def process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image
     fia.set_sexcat_from_file(sexcat_fpath)
     fia.rough_align(possible_tile_keys,
                     sequencing_chip.rotation_estimate,
-                    sequencing_chip.fastq_tile_width,
+                    sequencing_chip.tile_width,
                     snr_thresh=snr)
     return fia
 
