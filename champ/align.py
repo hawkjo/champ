@@ -87,7 +87,8 @@ def run_data_channel(h5_filenames, channel_name, output_parameters, alignment_ti
     pool = multiprocessing.Pool(num_processes)
     log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
     pool.map_async(second_processor,
-                   load_aligned_stats_files(h5_filenames, metadata['alignment_channel'], output_parameters)).get(sys.maxint)
+                   load_aligned_stats_files(h5_filenames, metadata['alignment_channel'], output_parameters),
+                   chunksize=96).get(sys.maxint)
     log.debug("Done aligning!")
 
 
