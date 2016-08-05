@@ -28,12 +28,10 @@ def get_end_tiles(h5_filenames, output_parameters, alignment_channel, snr, metad
 
     with h5py.File(h5_filenames[0]) as first_file:
         grid = GridImages(first_file, alignment_channel)
-        # find columns/tiles on the left side
-
+        # no reason to use all cores yet, since we're IO bound
         num_processes = len(h5_filenames)
         pool = multiprocessing.Pool(num_processes)
         base_column_checker = functools.partial(check_column_for_alignment, alignment_channel, snr, sequencing_chip, metadata['microns_per_pixel'], fia)
-
         left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, sequencing_chip.left_side_tiles))
         right_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), sequencing_chip.right_side_tiles))
 
@@ -45,8 +43,7 @@ def get_end_tiles(h5_filenames, output_parameters, alignment_channel, snr, metad
 
 
 def run(h5_filenames, output_parameters, snr, min_hits, fia, end_tiles, alignment_channel, all_tile_data, metadata, make_pdfs, sequencing_chip):
-    # Leave at least two processors free so we don't totally hammer the server
-    num_processes = max(multiprocessing.cpu_count() - 2, 1)
+    num_processes = calculate_process_count()
     log.debug("Aligning all images with %d cores" % num_processes)
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
@@ -73,8 +70,13 @@ def build_end_tiles(h5_filenames, experiment_chip, left_end_tiles, default_left_
     return end_tiles
 
 
+def calculate_process_count():
+    # Leave at least two processors free so we don't totally hammer the server
+    return max(multiprocessing.cpu_count() - 2, 1)
+
+
 def run_data_channel(h5_filenames, channel_name, output_parameters, alignment_tile_data, all_tile_data, metadata, clargs):
-    num_processes = multiprocessing.cpu_count()
+    num_processes = calculate_process_count()
     log.debug("Loading reads into FASTQ Image Aligner.")
     fastq_image_aligner = fastqimagealigner.FastqImageAligner()
     fastq_image_aligner.load_reads(alignment_tile_data)
