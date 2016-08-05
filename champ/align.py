@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 
 
-def get_end_tiles(h5_filenames, output_parameters, alignment_channel, metadata, sequencing_chip, fia):
+def get_end_tiles(h5_filenames, output_parameters, alignment_channel, snr, metadata, sequencing_chip, fia):
     for h5_filename in h5_filenames:
         base_name = os.path.splitext(h5_filename)[0]
         for directory in (output_parameters.figure_directory, output_parameters.results_directory):
@@ -32,8 +32,7 @@ def get_end_tiles(h5_filenames, output_parameters, alignment_channel, metadata, 
 
         num_processes = len(h5_filenames)
         pool = multiprocessing.Pool(num_processes)
-        base_column_checker = functools.partial(check_column_for_alignment, sequencing_chip, alignment_channel,
-                                                output_parameters, metadata['microns_per_pixel'], fia)
+        base_column_checker = functools.partial(check_column_for_alignment, alignment_channel, snr, sequencing_chip, metadata['microns_per_pixel'], fia)
 
         left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, sequencing_chip.left_side_tiles))
         right_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), sequencing_chip.right_side_tiles))

@@ -34,7 +34,7 @@ def main(clargs):
     fia.load_reads(alignment_tile_data)
 
     if 'end_tiles' not in metadata:
-        end_tiles = align.get_end_tiles(h5_filenames, output_parameters, metadata['alignment_channel'], metadata, sequencing_chip, fia)
+        end_tiles = align.get_end_tiles(h5_filenames, output_parameters, metadata['alignment_channel'], clargs.snr, metadata, sequencing_chip, fia)
         metadata['end_tiles'] = end_tiles
         initialize.update(clargs.image_directory, metadata)
     else:
