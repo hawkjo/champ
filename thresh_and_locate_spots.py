@@ -54,4 +54,4 @@ if __name__ == '__main__':
     usage_fmt = '{} <h5_fpath>'.format(sys.argv[0])
     if len(sys.argv) != len(usage_fmt.split()):
         sys.exit(usage_fmt)
-    sextractor_hdf5(sys.argv[1])
+    thresh_and_locate_spots(sys.argv[1])
