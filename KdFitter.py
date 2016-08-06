@@ -572,8 +572,11 @@ class KdFitter(object):
 
     def write_values(self, out_fpath):
         with open(out_fpath, 'w') as out:
-            out.write('\t'.join(['# Seq', 'Kd (pM)', 'Kd error', 'ABA (kB T)', 'ABA error']) + '\n')
+            out.write('# Concentration\tImin\tImax\n')
+            for conc, Imin, Imax in zip(self.concentrations, self.Imin, self.Imax):
+                out.write('\t'.join(map(str, map(float, (conc, Imin, Imax)))) + '\n')
             out.write('# Negative Control Sequence: {}\n'.format(self.neg_control_target))
+            out.write('\t'.join(['# Seq', 'Kd (pM)', 'Kd error', 'ABA (kB T)', 'ABA error']) + '\n')
             neg_control_dG = self.dGs[self.neg_control_target]
             out.write(
                 '\n'.join(

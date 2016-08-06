@@ -315,3 +315,47 @@ class IntensityScores(object):
             if len(h5_fpaths_given_read_name[read_name]) >= good_num_ims_cutoff
             #and len(pos_tups) == pos_tups_cutoff
         )
+
+    def write_values_by_seq(self,
+                            course_trait_name,
+                            course_trait_list,
+                            h5_fpaths,
+                            attrs_dict,
+                            seqs_of_interest,
+                            read_names_given_seq,
+                            channel_of_interest,
+                            out_fpath,
+                           ):
+        """
+        Writes output in array-like format.
+
+        Params:
+            :str:   course_trait_name - description of defining trait for h5_fpaths
+            :list:  course_trait_list - list of defining trait values for each h5_fpath
+            :list:  h5_fpaths - the desired subset of IntensityScores.h5_fpaths to output
+            :dict:  attrs_dict - a dict containing additional (str) attributes of interest
+            :key:   channel of interest - key for channel of interest
+            :iter:  seqs_of_interest
+            :dict:  read_names_given_seq
+            :str:   out_fpath
+        """
+        assert len(h5_fpaths) == len(course_trait_list), (h5_fpaths, course_trait_list)
+        with open(out_fpath, 'w') as out:
+            out.write('# Defining Course Trait: {}\n'.format(course_trait_name))
+            out.write('\t'.join(map(str, course_trait_list)) + '\n')
+            out.write('# HDF5 Files\n')
+            out.write('\n'.join(h5_fpaths) + '\n')
+            out.write('# Channel: {}\n'.format(str(channel_of_interest)))
+            for k, v in sorted(attrs_dict.items()):
+                out.write('# {}: {}\n'.format(k, v))
+            for seq in seqs_of_interest:
+                out.write(seq + '\n')
+                read_names = list(read_names_given_seq[seq])
+                out.write('\t'.join(read_names) + '\n')
+                for h5_fpath in h5_fpaths:
+                    score_given_read_name = self.score_given_read_name_in_channel[h5_fpath][channel_of_interest]
+                    out.write('\t'.join(str(float(score_given_read_name[read_name]))
+                                        if read_name in score_given_read_name
+                                        else '-'
+                                        for read_name in read_names)
+                              + '\n')
