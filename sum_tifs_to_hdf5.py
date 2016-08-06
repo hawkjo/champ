@@ -36,8 +36,8 @@ def tif_dir_to_hdf5(Major_axis_idx, h5_bname, tif_fpaths):
             h, w = summary['Height'], summary['Width']
             def hw_zeros():
                 return np.zeros((h, w), dtype=np.int)
-            summed_images = {frame_idx: {channel_idx: hw_zeros() for channel_idx in channel_idxs}
-                             for frame_idx in frame_idxs}
+            summed_images = {frame_idx: {channel_idx: hw_zeros() for channel_idx in set(channel_idxs)}
+                             for frame_idx in set(frame_idxs)}
 
             # Add images
             array_lens = map(len, (channel_idxs, frame_idxs, tif.pages))
@@ -47,16 +47,16 @@ def tif_dir_to_hdf5(Major_axis_idx, h5_bname, tif_fpaths):
 
             # Add images to hdf5
             dset_name = hdf5_tools.dset_name_given_coords(Major_axis_pos, minor_axis_pos)
-            for frame_idx in frame_idxs:
+            for frame_idx in set(frame_idxs):
                 h5_fpath = '{}_f{}.h5'.format(h5_bname, frame_idx)
                 with h5py.File(h5_fpath, 'a') as f:
-                    for idx, channel_name in enumerate(channel_names):
+                    for channel_idx, channel_name in enumerate(channel_names):
                         if channel_name not in f:
                             g = f.create_group(channel_name)
                         else:
                             g = f[channel_name]
         
-                        out_im = np.flipud(summed_images[idx])
+                        out_im = np.flipud(summed_images[frame_idx][channel_idx])
                         dset = g.create_dataset(dset_name, out_im.shape, dtype=out_im.dtype)
                         dset[...] = out_im
     print
