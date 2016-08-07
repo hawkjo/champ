@@ -110,6 +110,7 @@ class IntensityScores(object):
             h5_fpath: {channel: {} for channel in hdf5tools.get_channel_names(h5_fpath)}
             for h5_fpath in h5_filepaths
             }
+        print(self.raw_scores)
         self.scores = self.raw_scores
 
     def get_LDA_scores(self, results_dirs, lda_weights_fpath, side_px=3, important_read_names='all'):
