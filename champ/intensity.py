@@ -23,7 +23,7 @@ def main(metadata, image_directory):
     off_target_label = "e"
 
 
-    output_directory = functools.partial(os.path.join, 'figures')
+    output_directory = functools.partial(os.path.join, 'figs')
     protein_channels = determine_protein_channels(image_directory, metadata)
     read_names_by_seq_fpath = os.path.join(metadata['parsed_reads'], 'read_names_by_seq.txt')
     perfect_target_read_name_fpath = os.path.join(metadata['parsed_reads'],
