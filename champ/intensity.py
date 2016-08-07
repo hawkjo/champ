@@ -42,8 +42,10 @@ def main(metadata, image_directory):
         int_scores.normalize_scores()
         for basename, fig in int_scores.plot_aligned_images('br', 'o*'):
             fig.savefig(output_directory("{}_aligned_images.png".format(os.path.splitext(basename)[0])))
+            plt.close()
         for basename, channel, fig in int_scores.plot_normalization_constants():
             fig.savefig(output_directory("{}_{}_normalization_constants.png".format(basename, channel)))
+            plt.close()
         int_scores.print_reads_per_channel()
         good_num_ims_cutoff = len(h5_filepaths) - 1
         int_scores.build_good_read_names(good_num_ims_cutoff)
@@ -252,8 +254,7 @@ class IntensityScores(object):
                     sorted(self.scores[h5_fpath].keys()), colors, markers
             ):
                 rs, cs = [], []
-                for pos_tup in self.scores[h5_fpath][channel].keys():
-                    r, c = pos_tup
+                for c, r in self.scores[h5_fpath][channel].keys():
                     rs.append(r)
                     cs.append(c)
                 ax.plot(cs, rs, marker, color=color, alpha=0.4, label=channel)
