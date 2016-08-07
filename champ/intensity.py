@@ -18,12 +18,16 @@ from sklearn.neighbors import KernelDensity
 log = logging.getLogger(__name__)
 
 
-def main(metadata, image_directory, target_info):
+def main(metadata, image_directory):
+    on_target_label = "d"
+    off_target_label = "e"
+
+
     output_directory = functools.partial(os.path.join, 'figures')
     protein_channels = determine_protein_channels(image_directory, metadata)
     read_names_by_seq_fpath = os.path.join(metadata['parsed_reads'], 'read_names_by_seq.txt')
     perfect_target_read_name_fpath = os.path.join(metadata['parsed_reads'],
-                                                  'perfect_target_{}_read_names.txt'.format(target_info.on_target_label))
+                                                  'perfect_target_{}_read_names.txt'.format(on_target_label))
     perfect_target_read_names = set(line.strip() for line in open(perfect_target_read_name_fpath))
     h5_filepaths = sort_h5_files(image_directory)
     results_dirs = [os.path.join(image_directory, os.path.splitext(os.path.basename(h5_fpath))[0])

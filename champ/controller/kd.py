@@ -21,5 +21,5 @@ class TargetInfo(object):
 
 def main(clargs):
     metadata = initialize.load(clargs.image_directory)
-    target_info = TargetInfo(clargs.target_data_file, clargs.target_label, clargs.off_target_label)
-    intensity.main(metadata, clargs.image_directory, target_info)
+    # target_info = TargetInfo(clargs.target_data_file, clargs.target_label, clargs.off_target_label)
+    intensity.main(metadata, clargs.image_directory)
