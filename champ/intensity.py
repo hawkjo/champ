@@ -190,15 +190,12 @@ class IntensityScores(object):
             for h5_fpath in self.h5_filepaths
             }
         for h5_fpath in self.h5_filepaths:
-            print(os.path.basename(h5_fpath))
             for channel in self.scores[h5_fpath].keys():
                 mode_given_pos_tup = {}
                 for pos_tup in self.raw_scores[h5_fpath][channel].keys():
                     pos_key = hdf5tools.dset_name_given_coords(*pos_tup)
-                    print(pos_key)
                     with h5py.File(h5_fpath) as f:
                         im = np.array(f[channel][pos_key])
-
                     mode_given_pos_tup[pos_tup] = self.get_mode(im)
 
                 median_of_modes = np.median(mode_given_pos_tup.values())
@@ -220,7 +217,6 @@ class IntensityScores(object):
             for h5_fpath in self.h5_filepaths
             }
         for h5_fpath in self.h5_filepaths:
-            print(h5_fpath)
             for channel in self.scores[h5_fpath].keys():
                 score_given_read_name = self.score_given_read_name_in_channel[h5_fpath][channel]
                 for pos_tup in self.scores[h5_fpath][channel].keys():
