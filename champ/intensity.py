@@ -30,9 +30,11 @@ def main(metadata, image_directory):
                                                   'perfect_target_{}_read_names.txt'.format(on_target_label))
     perfect_target_read_names = set(line.strip() for line in open(perfect_target_read_name_fpath))
     h5_filepaths = sort_h5_files(image_directory)
+    print(h5_filepaths)
     results_dirs = [os.path.join(image_directory, os.path.splitext(os.path.basename(h5_fpath))[0])
                     for h5_fpath in h5_filepaths]
-
+    print(results_dirs)
+    exit()
     print('Loading data...')
     int_scores = IntensityScores(h5_filepaths)
     int_scores.get_LDA_scores(results_dirs, metadata['lda_weights'])
