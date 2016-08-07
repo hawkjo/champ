@@ -41,7 +41,7 @@ def main(metadata, image_directory):
         print('Normalizing data...')
         int_scores.normalize_scores()
         for basename, fig in int_scores.plot_aligned_images('br', 'o*'):
-            fig.savefig(output_directory("{}_aligned_images.png".format(basename)))
+            fig.savefig(output_directory("{}_aligned_images.png".format(os.path.splitext(basename)[0])))
         for basename, channel, fig in int_scores.plot_normalization_constants():
             fig.savefig(output_directory("{}_{}_normalization_constants.png".format(basename, channel)))
         int_scores.print_reads_per_channel()
