@@ -5,6 +5,7 @@ import logging
 import os
 import random
 import re
+import warnings
 from collections import defaultdict
 
 import h5py
@@ -33,20 +34,22 @@ def main(metadata, image_directory):
     results_dirs = [os.path.join(image_directory, 'results', os.path.splitext(os.path.basename(h5_fpath))[0])
                     for h5_fpath in h5_filepaths]
     print('Loading data...')
-    int_scores = IntensityScores(h5_filepaths)
-    int_scores.get_LDA_scores(results_dirs, metadata['lda_weights'])
-    print('Normalizing data...')
-    int_scores.normalize_scores()
-    for basename, fig in int_scores.plot_aligned_images('br', 'o*'):
-        fig.savefig(output_directory("{}_aligned_images.png".format(basename)))
-    for basename, channel, fig in int_scores.plot_normalization_constants():
-        fig.savefig(output_directory("{}_{}_normalization_constants.png".format(basename, channel)))
-    int_scores.print_reads_per_channel()
-    good_num_ims_cutoff = len(h5_filepaths) - 1
-    int_scores.build_good_read_names(good_num_ims_cutoff)
-    good_read_names = int_scores.good_read_names
-    good_perfect_read_names = perfect_target_read_names & good_read_names
-    print('Good Perfect Reads: %d' % len(good_perfect_read_names))
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        int_scores = IntensityScores(h5_filepaths)
+        int_scores.get_LDA_scores(results_dirs, metadata['lda_weights'])
+        print('Normalizing data...')
+        int_scores.normalize_scores()
+        for basename, fig in int_scores.plot_aligned_images('br', 'o*'):
+            fig.savefig(output_directory("{}_aligned_images.png".format(basename)))
+        for basename, channel, fig in int_scores.plot_normalization_constants():
+            fig.savefig(output_directory("{}_{}_normalization_constants.png".format(basename, channel)))
+        int_scores.print_reads_per_channel()
+        good_num_ims_cutoff = len(h5_filepaths) - 1
+        int_scores.build_good_read_names(good_num_ims_cutoff)
+        good_read_names = int_scores.good_read_names
+        good_perfect_read_names = perfect_target_read_names & good_read_names
+        print('Good Perfect Reads: %d' % len(good_perfect_read_names))
 
     # single_ham_seqs = get_sequences_given_ref_and_hamming_distance(target_info.on_target_sequence, 1)
     # double_ham_seqs = get_sequences_given_ref_and_hamming_distance(target_info.on_target_sequence, 2)
@@ -255,7 +258,7 @@ class IntensityScores(object):
             ):
                 rs, cs = [], []
                 for pos_tup in self.scores[h5_fpath][channel].keys():
-                    c, r = pos_tup
+                    r, c = pos_tup
                     rs.append(r)
                     cs.append(c)
                 ax.plot(cs, rs, marker, color=color, alpha=0.4, label=channel)
