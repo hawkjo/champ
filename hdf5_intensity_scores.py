@@ -84,7 +84,7 @@ class IntensityScores(object):
                     if bg == '-' or not isimportant(read_name):
                         continue
                     bg, A, sigma, mu_r, mu_c = map(float, (bg, A, sigma, mu_r, mu_c))
-                    score = np.pi * sigma**2 * (2*A + 4*bG)
+                    score = np.pi * sigma**2 * (2*A + 4*bg)
                     self.scores[h5_fpath][channel][pos_tup][read_name] = score
             if verbose: print
 
