@@ -532,7 +532,8 @@ def get_fmin(h5_filepaths, protein_channel, int_scores, bad_read_names):
 
 
 def Fobs(x, Kd, Fmax, Fmin):
-    return Fmax / (1.0 + (float(Kd)/x)) + Fmin
+    print("x fmax fmin", x, Fmax, Fmin)
+    return float(Fmax) / (1.0 + (float(Kd)/float(x))) + float(Fmin)
 
 
 def make_Fobs_sq_error(concentrations, intensities, Fmin):
