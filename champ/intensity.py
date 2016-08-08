@@ -89,6 +89,7 @@ def main(metadata, image_directory):
     sample_size = min(2000, len(good_perfect_read_names))
 
     for protein_channel in protein_channels:
+        print("Processing protein channel: {}".format(protein_channel))
         Fmin = load_checkpoint("Fmin_{}".format(protein_channel))
         if not Fmin:
             Fmin = get_fmin(h5_filepaths, protein_channel, int_scores, bad_read_names)
