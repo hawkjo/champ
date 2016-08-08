@@ -311,8 +311,8 @@ def plot_single_mismatch_ddgs(seq_ddGs, seq_ddG_error, target, reference_sequenc
                 loc_ddGs.append(seq_ddGs[seq]/1000.0)
                 loc_ddG_error.append(seq_ddG_error[seq]/1000.0)
                 ticks.append(idxs[i])
-            else:
-                print(i, nucleotide, target[i])
+            # else:
+            #     print(i, nucleotide, target[i])
         ticks = np.array(ticks)
         ax.bar(ticks - 0.25 + 0.5 * j / 4.0, loc_ddGs,
                width=0.125,
@@ -403,7 +403,7 @@ def calculate_ddg(h5_filepaths, int_scores, close_reads, ref_delta_G, protein_ch
                 popt = curve_fit_Fobs_fixed_curve_given_read_names(int_scores, h5_filepaths, resamp_read_names,
                                                                    protein_channel, fobs_func)
             except:
-                log.error("%s, Read name length: %d, Resample read names length: %d" % (seq, len(read_names), len(resamp_read_names)))
+                # log.error("%s, Read name length: %d, Resample read names length: %d" % (seq, len(read_names), len(resamp_read_names)))
                 error.fail("Error calculating ddG")
             bootstrap_Kds.append(popt[0])
             bootstrap_ddGs.append(delta_delta_G(popt[0], ref_delta_G))
@@ -456,8 +456,6 @@ def curve_fit_Fobs_fixed_curve_given_read_names(int_scores, h5_filepaths, read_n
             if read_name in score_dict:
                 all_pM_concentrations.append(pM_conc)
                 all_intensities.append(float(score_dict[read_name]))
-    print("all pM concentrations: {}".format(all_pM_concentrations))
-    print("all intensities: {}".format(all_intensities))
     return curve_fit(fobs_func, all_pM_concentrations, all_intensities)[0]
 
 
