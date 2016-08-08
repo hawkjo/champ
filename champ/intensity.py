@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 def main(metadata, image_directory):
     on_target_label = "d"
     on_target_sequence = "GTGATAAGTGGAATGCCATGTGGA"
-    off_target_sequence = "GACGCATAAAGATGAGACGCTGGA"
+    off_target_sequence = "GACGCATAAAGATGAGACGCTGGA"  # target E
 
     output_directory = functools.partial(os.path.join, 'figs')
     protein_channels = determine_protein_channels(image_directory, metadata)
@@ -75,7 +75,7 @@ def main(metadata, image_directory):
                                               Fmin,
                                               random.sample(good_perfect_read_names, sample_size),
                                               h5_filepaths)
-        Fobs_fixed = functools.partial(fob_fix, Fmin, Fmax)
+        Fobs_fixed = lambda x, kd: fob_fix(x, kd, Fmin, Fmax)
         nM_concentrations = calculate_nM_concentrations(h5_filepaths)
         ref_delta_G = delta_G(Kd)
 
