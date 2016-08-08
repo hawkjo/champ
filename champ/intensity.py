@@ -21,7 +21,6 @@ log = logging.getLogger(__name__)
 
 def main(metadata, image_directory):
     on_target_label = "d"
-    off_target_label = "e"
     on_target_sequence = "GTGATAAGTGGAATGCCATGTGGA"
     off_target_sequence = "GACGCATAAAGATGAGACGCTGGA"
 
@@ -568,7 +567,7 @@ def calculate_intensities(good_perfect_read_names, sample_size, int_scores, prot
 
 
 def fob_fix(fmin, fmax, x, kd):
-    return fmax / (1.0 + (float(kd) / x)) + fmin
+    return fmax / (1.0 + (float(kd) / float(x))) + fmin
 
 
 def calculate_nM_concentrations(h5_filepaths):
