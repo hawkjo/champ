@@ -121,6 +121,9 @@ class IntensityArray(object):
         # Optionally reduce seqs
         if seqs:
             IA.seqs = list(seqs)
+            for seq in [self.target, self.neg_control_target]: # Force inclusion of targets
+                if seq not in seqs:
+                    IA.seqs.append(seq)
         else:
             IA.seqs = self.seqs
 
@@ -150,7 +153,7 @@ class IntensityArray(object):
     def stdevs_given_seq(self, seq):
         return map(np.std, self.intensity_loarr_given_seq[seq])
 
-    def all_trait_and_inten_vals_given_seq(self, seq, max_clust=None):
+    def all_trait_and_inten_vals_given_seq(self, seq, max_clust=None, bootstrap=False):
         """
         Returns all concentration/intensities pairs in read_names, return as two lists.
 
@@ -159,13 +162,30 @@ class IntensityArray(object):
             :list: all_intensities
         """
         all_trait_vals, all_intensities = [], []
-        for tval, inten_arr in zip(self.course_trait_list, self.intensity_loarr_given_seq[seq]):
-            tmp_inten = list(inten_arr[:max_clust])
+        for tval, inten_arr, inten_list in zip(self.course_trait_list,
+                                               self.intensity_loarr_given_seq[seq],
+                                               self.intensity_lol_given_seq[seq]):
+            if len(inten_arr) == 0:
+                tmp_inten = np.array([])
+            elif bootstrap:
+                tmp_idx = np.random.choice(
+                    np.arange(len(inten_list)),
+                    size=min(max_clust, len(inten_list)),
+                    replace=True
+                )
+                tmp_inten = np.array([inten_list[idx] for idx in tmp_idx if inten_list[idx] != None])
+            else:
+                tmp_inten = list(inten_arr[:max_clust])
             all_trait_vals.extend([tval]*len(tmp_inten))
             all_intensities.extend(tmp_inten)
         return all_trait_vals, all_intensities
 
-    def all_normalized_trait_and_inten_vals_given_seq(self, seq, Imin, Imax, max_clust=None):
+    def all_normalized_trait_and_inten_vals_given_seq(self,
+                                                      seq,
+                                                      Imin,
+                                                      Imax,
+                                                      max_clust=None,
+                                                      bootstrap=False):
         """
         Returns all concentration/intensities pairs in read_names, return as two lists, with the
         intensities adjusted by Imin and Imax to run typically between 0 and 1.
@@ -174,21 +194,58 @@ class IntensityArray(object):
             :list: all_concentrations
             :list: all_intensities
         """
-        def list_if_scalar(x):
-            try:
-                float(x)
-                return [x]*len(self.course_trait_list)
-            except:
-                return x
-        Imin = list_if_scalar(Imin)
-        Imax = list_if_scalar(Imax)
+        Imin = misc.list_if_scalar(Imin, self.course_len)
+        Imax = misc.list_if_scalar(Imax, self.course_len)
         assert len(Imin) == len(Imax) == len(self.course_trait_list), (Imin, Imax)
         all_trait_vals, all_intensities = [], []
-        for tval, imn, imx, inten_arr in zip(self.course_trait_list,
-                                               Imin,
-                                               Imax,
-                                               self.intensity_loarr_given_seq[seq]):
-            tmp_inten = list((inten_arr[:max_clust] - imn)/(imx - imn))
+        for tval, imn, imx, inten_arr, inten_list in zip(self.course_trait_list,
+                                                         Imin,
+                                                         Imax,
+                                                         self.intensity_loarr_given_seq[seq],
+                                                         self.intensity_lol_given_seq[seq]):
+            if len(inten_arr) == 0:
+                tmp_inten = np.array([])
+            elif bootstrap:
+                tmp_idx = np.random.choice(
+                    np.arange(len(inten_list)),
+                    size=min(max_clust, len(inten_list)),
+                    replace=True
+                )
+                tmp_inten = np.array([inten_list[idx] for idx in tmp_idx if inten_list[idx] != None])
+            else:
+                tmp_inten = np.array(list(inten_arr[:max_clust]))
+            tmp_inten = list((tmp_inten - imn)/(imx - imn))
             all_trait_vals.extend([tval]*len(tmp_inten))
             all_intensities.extend(tmp_inten)
         return all_trait_vals, all_intensities
+
+    def _path_alpha(self, nclust):
+        if nclust > 500:
+            return 0.01
+        else:
+            return 0.1
+
+    def plot_raw_intensities(self, ax, seq, max_clust=2000, xvals=None):
+        if xvals is None:
+            xvals = self.course_trait_list
+        inten_lol = self.intensity_lol_given_seq[seq]
+        nclust = min(max_clust, len(inten_lol[0]))
+        alpha = self._path_alpha(nclust)
+        for i in range(nclust):
+            path = [inten_list[i] for inten_list in inten_lol]
+            ax.plot(xvals, path, 'b', alpha=alpha)
+
+    def plot_normalized_intensities(self, ax, seq, Imin, Imax, max_clust=2000, xvals=None):
+        if xvals is None:
+            xvals = self.course_trait_list
+            
+        Imin = misc.list_if_scalar(Imin, self.course_len)
+        Imax = misc.list_if_scalar(Imax, self.course_len)
+
+        inten_lol = self.intensity_lol_given_seq[seq]
+        nclust = min(max_clust, len(inten_lol[0]))
+        alpha = self._path_alpha(nclust)
+        for i in range(nclust):
+            path = [(inten_list[i] - imn)/(imx - imn) if inten_list[i] is not None else None
+                    for inten_list, imn, imx in zip(inten_lol, Imin, Imax)]
+            ax.plot(xvals, path, 'b', alpha=alpha)
