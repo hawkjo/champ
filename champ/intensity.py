@@ -60,11 +60,8 @@ def main(metadata, image_directory):
     close_reads = load_close_reads(read_names_by_seq_fpath, close_seqs, good_read_names)
     single_counts = [len(close_reads[seq]) for seq in single_ham_seqs]
     double_counts = [len(close_reads[seq]) for seq in double_ham_seqs]
-    print("Done with counts")
     int_scores.build_score_given_read_name_given_channel()
-    print("int_scores.build_score_given_read_name_given_channel()")
     bad_read_names = load_bad_read_names(read_names_by_seq_fpath, off_target_sequence, good_read_names)
-    print("bad read names")
     sample_size = min(2000, len(good_perfect_read_names))
 
     for protein_channel in protein_channels:
