@@ -28,6 +28,7 @@ def save_checkpoint(data, name):
 def load_checkpoint(name):
     try:
         with open("{}.pickle".format(name)) as f:
+            print("Loaded checkpoint {}!!".format(name))
             return pickle.load(f)
     except IOError:
         return None
