@@ -96,7 +96,7 @@ def main(metadata, image_directory):
 
         Kd = load_checkpoint("Kd_{}".format(protein_channel))
         Fmax = load_checkpoint("Fmax_{}".format(protein_channel))
-        if not Kd and not Fmax:
+        if not Kd or not Fmax:
             Kd, Fmax = fit_curve_given_read_names(int_scores,
                                                   protein_channel,
                                                   random.sample(good_perfect_read_names, sample_size),
