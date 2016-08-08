@@ -3,7 +3,6 @@ import glob
 import itertools
 import logging
 import os
-import pickle
 import random
 import re
 import warnings
@@ -18,20 +17,6 @@ from scipy.optimize import minimize, curve_fit
 from sklearn.neighbors import KernelDensity
 
 log = logging.getLogger(__name__)
-
-
-def save_checkpoint(data, name):
-    with open("{}.pickle".format(name), "w+") as f:
-        pickle.dump(data, f)
-
-
-def load_checkpoint(name):
-    try:
-        with open("{}.pickle".format(name)) as f:
-            print("Loaded checkpoint {}!!".format(name))
-            return pickle.load(f)
-    except IOError:
-        return None
 
 
 def main(metadata, image_directory):
@@ -50,24 +35,21 @@ def main(metadata, image_directory):
     results_dirs = [os.path.join(image_directory, 'results', os.path.splitext(os.path.basename(h5_fpath))[0])
                     for h5_fpath in h5_filepaths]
     print('Loading data...')
-    int_scores = load_checkpoint("int_scores_1")
-    if not int_scores:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            int_scores = IntensityScores(h5_filepaths)
-            int_scores.get_LDA_scores(results_dirs, metadata['lda_weights'])
-            print('Normalizing data...')
-            int_scores.normalize_scores()
-            for basename, fig in int_scores.plot_aligned_images('br', 'o*'):
-                fig.savefig(output_directory("{}_aligned_images.png".format(os.path.splitext(basename)[0])))
-                plt.close()
-            for basename, channel, fig in int_scores.plot_normalization_constants():
-                fig.savefig(output_directory("{}_{}_normalization_constants.png".format(basename, channel)))
-                plt.close()
-            int_scores.print_reads_per_channel()
-            good_num_ims_cutoff = len(h5_filepaths) - 1
-            int_scores.build_good_read_names(good_num_ims_cutoff)
-        save_checkpoint(int_scores, "int_scores_1")
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        int_scores = IntensityScores(h5_filepaths)
+        int_scores.get_LDA_scores(results_dirs, metadata['lda_weights'])
+        print('Normalizing data...')
+        int_scores.normalize_scores()
+        for basename, fig in int_scores.plot_aligned_images('br', 'o*'):
+            fig.savefig(output_directory("{}_aligned_images.png".format(os.path.splitext(basename)[0])))
+            plt.close()
+        for basename, channel, fig in int_scores.plot_normalization_constants():
+            fig.savefig(output_directory("{}_{}_normalization_constants.png".format(basename, channel)))
+            plt.close()
+        int_scores.print_reads_per_channel()
+        good_num_ims_cutoff = len(h5_filepaths) - 1
+        int_scores.build_good_read_names(good_num_ims_cutoff)
 
     good_read_names = int_scores.good_read_names
     good_perfect_read_names = perfect_target_read_names & good_read_names
@@ -79,33 +61,20 @@ def main(metadata, image_directory):
     close_reads = load_close_reads(read_names_by_seq_fpath, close_seqs, good_read_names)
     single_counts = [len(close_reads[seq]) for seq in single_ham_seqs]
     double_counts = [len(close_reads[seq]) for seq in double_ham_seqs]
-
-    int_scores_2 = load_checkpoint("int_scores_2") or int_scores
-    if not int_scores_2:
-        int_scores_2.build_score_given_read_name_given_channel()
-        save_checkpoint(int_scores_2, "int_scores_2")
-    int_scores = int_scores_2
-
+    print("Done with counts")
+    int_scores.build_score_given_read_name_given_channel()
+    print("int_scores.build_score_given_read_name_given_channel()")
     bad_read_names = load_bad_read_names(read_names_by_seq_fpath, off_target_sequence, good_read_names)
+    print("bad read names")
     sample_size = min(2000, len(good_perfect_read_names))
 
     for protein_channel in protein_channels:
         print("Processing protein channel: {}".format(protein_channel))
-        Fmin = load_checkpoint("Fmin_{}".format(protein_channel))
-        if not Fmin:
-            Fmin = get_fmin(h5_filepaths, protein_channel, int_scores, bad_read_names)
-            save_checkpoint(Fmin, "Fmin_{}".format(protein_channel))
-
-        Kd = load_checkpoint("Kd_{}".format(protein_channel))
-        Fmax = load_checkpoint("Fmax_{}".format(protein_channel))
-        if not Kd or not Fmax:
-            Kd, Fmax = fit_curve_given_read_names(int_scores,
-                                                  protein_channel,
-                                                  random.sample(good_perfect_read_names, sample_size),
-                                                  h5_filepaths)
-            save_checkpoint(Kd, "Kd_{}".format(protein_channel))
-            save_checkpoint(Fmax, "Fmax_{}".format(protein_channel))
-
+        Fmin = get_fmin(h5_filepaths, protein_channel, int_scores, bad_read_names)
+        Kd, Fmax = fit_curve_given_read_names(int_scores,
+                                              protein_channel,
+                                              random.sample(good_perfect_read_names, sample_size),
+                                              h5_filepaths)
         Fobs_fixed = functools.partial(fob_fix, Fmin, Fmax)
         nM_concentrations = calculate_nM_concentrations(h5_filepaths)
         ref_delta_G = delta_G(Kd)
