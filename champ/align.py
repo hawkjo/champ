@@ -247,10 +247,10 @@ def write_output(image_index, base_name, fastq_image_aligner, output_parameters,
 
     if make_pdfs:
         ax = plotting.plot_all_hits(fastq_image_aligner)
-        ax.figure.savefig(os.path.join(output_parameters.figure_directory, '{}_all_hits.pdf'.format(image_index)))
+        ax.figure.savefig(os.path.join(output_parameters.figure_directory, base_name, '{}_all_hits.pdf'.format(image_index)))
         plt.close()
         ax = plotting.plot_hit_hists(fastq_image_aligner)
-        ax.figure.savefig(os.path.join(output_parameters.figure_directory, '{}_hit_hists.pdf'.format(image_index)))
+        ax.figure.savefig(os.path.join(output_parameters.figure_directory, base_name, '{}_hit_hists.pdf'.format(image_index)))
         plt.close()
 
     fastq_image_aligner.output_intensity_results(intensity_filepath)
