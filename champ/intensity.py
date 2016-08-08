@@ -72,6 +72,7 @@ def main(metadata, image_directory):
         Fmin = get_fmin(h5_filepaths, protein_channel, int_scores, bad_read_names)
         Kd, Fmax = fit_curve_given_read_names(int_scores,
                                               protein_channel,
+                                              Fmin,
                                               random.sample(good_perfect_read_names, sample_size),
                                               h5_filepaths)
         Fobs_fixed = functools.partial(fob_fix, Fmin, Fmax)
@@ -460,7 +461,7 @@ def curve_fit_Fobs_fixed_curve_given_read_names(int_scores, h5_filepaths, read_n
     return curve_fit(fobs_func, all_pM_concentrations, all_intensities)[0]
 
 
-def fit_curve_given_read_names(int_scores, protein_channel, read_names, h5_filepaths):
+def fit_curve_given_read_names(int_scores, protein_channel, Fmin, read_names, h5_filepaths):
     all_pM_concentrations = []
     all_intensities = []
     for h5_fpath in h5_filepaths:
@@ -472,7 +473,7 @@ def fit_curve_given_read_names(int_scores, protein_channel, read_names, h5_filep
             if read_name in score_dict:
                 all_pM_concentrations.append(pM_conc)
                 all_intensities.append(score_dict[read_name])
-    optimization_result = minimize(make_Fobs_sq_error(h5_filepaths, all_pM_concentrations, all_intensities),
+    optimization_result = minimize(make_Fobs_sq_error(all_pM_concentrations, all_intensities, Fmin),
                                    (500, 1),
                                    bounds=((0, None), (0, None)))
     # we just return 'x', the solution array
@@ -532,8 +533,7 @@ def get_fmin(h5_filepaths, protein_channel, int_scores, bad_read_names):
 
 
 def Fobs(x, Kd, Fmax, Fmin):
-    print("x fmax fmin", x, Fmax, Fmin)
-    return float(Fmax) / (1.0 + (float(Kd)/float(x))) + float(Fmin)
+    return Fmax / (1.0 + (float(Kd)/x)) + Fmin
 
 
 def make_Fobs_sq_error(concentrations, intensities, Fmin):
