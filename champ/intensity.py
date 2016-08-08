@@ -3,6 +3,7 @@ import glob
 import itertools
 import logging
 import os
+import pickle
 import random
 import re
 import warnings
@@ -19,10 +20,24 @@ from sklearn.neighbors import KernelDensity
 log = logging.getLogger(__name__)
 
 
+def save_checkpoint(data, name):
+    with open("{}.pickle".format(name), "w+") as f:
+        pickle.dump(data, f)
+
+
+def load_checkpoint(name):
+    try:
+        with open("{}.pickle".format(name)) as f:
+            return pickle.load(f)
+    except IOError:
+        return None
+
+
 def main(metadata, image_directory):
     on_target_label = "d"
     off_target_label = "e"
-
+    on_target_sequence = "GTGATAAGTGGAATGCCATGTGGA"
+    off_target_sequence = "GACGCATAAAGATGAGACGCTGGA"
 
     output_directory = functools.partial(os.path.join, 'figs')
     protein_channels = determine_protein_channels(image_directory, metadata)
@@ -34,71 +49,90 @@ def main(metadata, image_directory):
     results_dirs = [os.path.join(image_directory, 'results', os.path.splitext(os.path.basename(h5_fpath))[0])
                     for h5_fpath in h5_filepaths]
     print('Loading data...')
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        int_scores = IntensityScores(h5_filepaths)
-        int_scores.get_LDA_scores(results_dirs, metadata['lda_weights'])
-        print('Normalizing data...')
-        int_scores.normalize_scores()
-        for basename, fig in int_scores.plot_aligned_images('br', 'o*'):
-            fig.savefig(output_directory("{}_aligned_images.png".format(os.path.splitext(basename)[0])))
-            plt.close()
-        for basename, channel, fig in int_scores.plot_normalization_constants():
-            fig.savefig(output_directory("{}_{}_normalization_constants.png".format(basename, channel)))
-            plt.close()
-        int_scores.print_reads_per_channel()
-        good_num_ims_cutoff = len(h5_filepaths) - 1
-        int_scores.build_good_read_names(good_num_ims_cutoff)
-        good_read_names = int_scores.good_read_names
-        good_perfect_read_names = perfect_target_read_names & good_read_names
-        print('Good Perfect Reads: %d' % len(good_perfect_read_names))
+    int_scores = load_checkpoint("int_scores_1")
+    if not int_scores:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            int_scores = IntensityScores(h5_filepaths)
+            int_scores.get_LDA_scores(results_dirs, metadata['lda_weights'])
+            print('Normalizing data...')
+            int_scores.normalize_scores()
+            for basename, fig in int_scores.plot_aligned_images('br', 'o*'):
+                fig.savefig(output_directory("{}_aligned_images.png".format(os.path.splitext(basename)[0])))
+                plt.close()
+            for basename, channel, fig in int_scores.plot_normalization_constants():
+                fig.savefig(output_directory("{}_{}_normalization_constants.png".format(basename, channel)))
+                plt.close()
+            int_scores.print_reads_per_channel()
+            good_num_ims_cutoff = len(h5_filepaths) - 1
+            int_scores.build_good_read_names(good_num_ims_cutoff)
+        save_checkpoint(int_scores, "int_scores_1")
 
-    # single_ham_seqs = get_sequences_given_ref_and_hamming_distance(target_info.on_target_sequence, 1)
-    # double_ham_seqs = get_sequences_given_ref_and_hamming_distance(target_info.on_target_sequence, 2)
-    # close_seqs = [target_info.on_target_sequence] + single_ham_seqs + double_ham_seqs
-    # close_reads = load_close_reads(read_names_by_seq_fpath, close_seqs, good_read_names)
-    # single_counts = [len(close_reads[seq]) for seq in single_ham_seqs]
-    # double_counts = [len(close_reads[seq]) for seq in double_ham_seqs]
-    # int_scores.build_score_given_read_name_given_channel()
-    #
-    # bad_read_names = load_bad_read_names(read_names_by_seq_fpath, target_info.off_target_sequence, good_read_names)
-    # sample_size = min(2000, len(good_perfect_read_names))
-    #
-    # for protein_channel in protein_channels:
-    #     Fmin = get_fmin(h5_filepaths, protein_channel, int_scores, bad_read_names)
-    #     Kd, Fmax = fit_curve_given_read_names(int_scores,
-    #                                           protein_channel,
-    #                                           random.sample(good_perfect_read_names, sample_size),
-    #                                           h5_filepaths)
-    #     Fobs_fixed = functools.partial(fob_fix, Fmin, Fmax)
-    #     nM_concentrations = calculate_nM_concentrations(h5_filepaths)
-    #     ref_delta_G = delta_G(Kd)
-    #
-    #     log.info("Good read names in {}: {}".format(protein_channel, len(good_read_names)))
-    #
-    #     plot_good_ham_reads(single_counts, 50, False, 2).savefig(output_directory("{}_good_ham_reads_50.png"))
-    #     plot_good_ham_reads(single_counts, 50, True, 2).savefig(output_directory("{}_good_ham_reads_50_zoomed.png"))
-    #     plot_good_ham_reads(double_counts, 200, False, 2).savefig(output_directory("{}_good_ham_reads_200.png"))
-    #     plot_good_ham_reads(double_counts, 200, True, 2).savefig(output_directory("{}_good_ham_reads_200_zoomed.png"))
-    #
-    #     seq_Kds, seq_Kd_error, seq_ddGs, seq_ddG_error = calculate_ddg(h5_filepaths, int_scores, close_reads,
-    #                                                                    ref_delta_G, protein_channel, Fobs_fixed)
-    #
-    #     write_kds(seq_Kds, seq_Kd_error,
-    #               output_directory('target{}_{}_close_seq_Kds_and_errors.txt').format(target_info.on_target_label, protein_channel))
-    #     write_ddgs(seq_ddGs, seq_ddG_error,
-    #                output_directory('target{}_{}_close_seq_ddGs_and_errors.txt').format(target_info.on_target_label, protein_channel))
-    #     single_ham_seqs_fig = plot_kd_list(seq_Kds, single_ham_seqs, 1)
-    #     single_ham_seqs_fig.savefig(output_directory('{}_single_ham_seqs.png'.format(protein_channel)))
-    #     double_ham_seqs_fig = plot_kd_list(seq_Kds, double_ham_seqs, 2)
-    #     double_ham_seqs_fig.savefig(output_directory('{}_double_ham_seqs.png'.format(protein_channel)))
-    #     single_mismatch_ddgs_fig = plot_single_mismatch_ddgs(seq_ddGs, seq_ddG_error, target_info.on_target_sequence,
-    #                                                          'Target %s' % target_info.on_target_label.upper(), fs=16)
-    #     single_mismatch_ddgs_fig.savefig(output_directory('{}_single_mismatch_ddgs.png'.format(protein_channel)))
-    #
-    #     intensities = calculate_intensities(good_perfect_read_names, sample_size, int_scores, protein_channel, h5_filepaths)
-    #     fl_vs_conc_fig = plot_fluorescence_vs_concentration(intensities, Kd, Fmax, Fmin, Fobs_fixed, nM_concentrations)
-    #     fl_vs_conc_fig.savefig(output_directory('{}_fl_vs_conc.png'.format(protein_channel)))
+    good_read_names = int_scores.good_read_names
+    good_perfect_read_names = perfect_target_read_names & good_read_names
+    print('Good Perfect Reads: %d' % len(good_perfect_read_names))
+
+    single_ham_seqs = get_sequences_given_ref_and_hamming_distance(on_target_sequence, 1)
+    double_ham_seqs = get_sequences_given_ref_and_hamming_distance(on_target_sequence, 2)
+    close_seqs = [on_target_sequence] + single_ham_seqs + double_ham_seqs
+    close_reads = load_close_reads(read_names_by_seq_fpath, close_seqs, good_read_names)
+    single_counts = [len(close_reads[seq]) for seq in single_ham_seqs]
+    double_counts = [len(close_reads[seq]) for seq in double_ham_seqs]
+
+    int_scores_2 = load_checkpoint("int_scores_2") or int_scores
+    if not int_scores_2:
+        int_scores_2.build_score_given_read_name_given_channel()
+        save_checkpoint(int_scores_2, "int_scores_2")
+    int_scores = int_scores_2
+
+    bad_read_names = load_bad_read_names(read_names_by_seq_fpath, off_target_sequence, good_read_names)
+    sample_size = min(2000, len(good_perfect_read_names))
+
+    for protein_channel in protein_channels:
+        Fmin = load_checkpoint("Fmin_{}".format(protein_channel))
+        if not Fmin:
+            Fmin = get_fmin(h5_filepaths, protein_channel, int_scores, bad_read_names)
+            save_checkpoint(Fmin, "Fmin_{}".format(protein_channel))
+
+        Kd = load_checkpoint("Kd_{}".format(protein_channel))
+        Fmax = load_checkpoint("Fmax_{}".format(protein_channel))
+        if not Kd and not Fmax:
+            Kd, Fmax = fit_curve_given_read_names(int_scores,
+                                                  protein_channel,
+                                                  random.sample(good_perfect_read_names, sample_size),
+                                                  h5_filepaths)
+            save_checkpoint(Kd, "Kd_{}".format(protein_channel))
+            save_checkpoint(Fmax, "Fmax_{}".format(protein_channel))
+
+        Fobs_fixed = functools.partial(fob_fix, Fmin, Fmax)
+        nM_concentrations = calculate_nM_concentrations(h5_filepaths)
+        ref_delta_G = delta_G(Kd)
+
+        log.info("Good read names in {}: {}".format(protein_channel, len(good_read_names)))
+
+        plot_good_ham_reads(single_counts, 50, False, 2).savefig(output_directory("{}_good_ham_reads_50.png"))
+        plot_good_ham_reads(single_counts, 50, True, 2).savefig(output_directory("{}_good_ham_reads_50_zoomed.png"))
+        plot_good_ham_reads(double_counts, 200, False, 2).savefig(output_directory("{}_good_ham_reads_200.png"))
+        plot_good_ham_reads(double_counts, 200, True, 2).savefig(output_directory("{}_good_ham_reads_200_zoomed.png"))
+
+        seq_Kds, seq_Kd_error, seq_ddGs, seq_ddG_error = calculate_ddg(h5_filepaths, int_scores, close_reads,
+                                                                       ref_delta_G, protein_channel, Fobs_fixed)
+
+        write_kds(seq_Kds, seq_Kd_error,
+                  output_directory('target{}_{}_close_seq_Kds_and_errors.txt').format(on_target_label, protein_channel))
+        write_ddgs(seq_ddGs, seq_ddG_error,
+                   output_directory('target{}_{}_close_seq_ddGs_and_errors.txt').format(on_target_label, protein_channel))
+        single_ham_seqs_fig = plot_kd_list(seq_Kds, single_ham_seqs, 1)
+        single_ham_seqs_fig.savefig(output_directory('{}_single_ham_seqs.png'.format(protein_channel)))
+        double_ham_seqs_fig = plot_kd_list(seq_Kds, double_ham_seqs, 2)
+        double_ham_seqs_fig.savefig(output_directory('{}_double_ham_seqs.png'.format(protein_channel)))
+        single_mismatch_ddgs_fig = plot_single_mismatch_ddgs(seq_ddGs, seq_ddG_error, on_target_sequence,
+                                                             'Target %s' % on_target_label.upper(), fs=16)
+        single_mismatch_ddgs_fig.savefig(output_directory('{}_single_mismatch_ddgs.png'.format(protein_channel)))
+
+        intensities = calculate_intensities(good_perfect_read_names, sample_size, int_scores, protein_channel, h5_filepaths)
+        fl_vs_conc_fig = plot_fluorescence_vs_concentration(intensities, Kd, Fmax, Fmin, Fobs_fixed, nM_concentrations)
+        fl_vs_conc_fig.savefig(output_directory('{}_fl_vs_conc.png'.format(protein_channel)))
 
 
 class IntensityScores(object):
