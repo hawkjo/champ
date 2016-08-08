@@ -251,7 +251,7 @@ def get_mode(vals):
         return -kdf.score(x)
     res = minimize(neg_kdf, x0=np.median(vals), method='Nelder-Mead')
     assert res.success, res
-    return res.x
+    return float(res.x)
 
 
 def median_and_median_absolute_deviation(vals):
@@ -260,3 +260,11 @@ def median_and_median_absolute_deviation(vals):
     median = np.median(vals)
     mad = np.median(np.absolute(vals - median))
     return median, mad
+
+
+def list_if_scalar(x, list_len):
+    try:
+        float(x)
+        return [x]*list_len
+    except:
+        return x
