@@ -8,6 +8,13 @@ from adapters_cython import simple_hamming_distance
 bases='ACGT'
 
 
+def mm_names(ref, seq):
+    mms = []
+    for i, (c1, c2) in enumerate(zip(ref, seq)):
+        if c1 != c2:
+            mms.append('{}{}{}'.format(c1, i, c2))
+    return ','.join(mms)
+
 def get_deletion_seqs(seq, ndel):
     """Returns set of all sequences with ndel deletions from given seq."""
     outset = set()
