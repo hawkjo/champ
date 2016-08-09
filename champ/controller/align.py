@@ -21,8 +21,8 @@ def main(clargs):
     sequencing_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
 
     log.debug("Loading tile data.")
-    # alignment_tile_data = align.load_read_names(output_parameters.aligning_read_names_filepath)
-    alignment_tile_data = align.load_read_names("/shared/SA16105/mapped_reads/SA16105_IF153_containing_phix_reads.txt")
+    alignment_tile_data = align.load_read_names(output_parameters.aligning_read_names_filepath)
+    # alignment_tile_data = align.load_read_names("/shared/SA16105/mapped_reads/SA16105_IF153_containing_phix_reads.txt")
     unclassified_tile_data = align.load_read_names(output_parameters.all_read_names_filepath)
     all_tile_data = {key: list(set(alignment_tile_data.get(key, []) + unclassified_tile_data.get(key, [])))
                      for key in list(unclassified_tile_data.keys()) + list(alignment_tile_data.keys())}

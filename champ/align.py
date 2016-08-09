@@ -162,6 +162,9 @@ def check_column_for_alignment(channel, snr, sequencing_chip, um_per_pixel, fia,
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
         image = grid.get(3, column)
+        if image is None:
+            log.warn("Could not find an image for %s Row 3 Column %d" % (base_name, column))
+            return
         log.debug("Aligning %s Row 3 Column %d against PhiX" % (base_name, column))
         fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(fia))
         if fia.hitting_tiles:
