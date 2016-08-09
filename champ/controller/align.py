@@ -54,7 +54,7 @@ def main(clargs):
     for channel_name in protein_channels:
         if channel_name not in metadata['protein_channels_aligned']:
             log.debug("Aligning protein channel: %s" % channel_name)
-            align.run_data_channel(h5_filenames, channel_name, output_parameters, unclassified_tile_data,
-                                   unclassified_tile_data, metadata, clargs)
+            align.run_data_channel(h5_filenames, channel_name, output_parameters, alignment_tile_data,
+                                   all_tile_data, metadata, clargs)
             metadata['protein_channels_aligned'].append(channel_name)
             initialize.update(clargs.image_directory, metadata)
