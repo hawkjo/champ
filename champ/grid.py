@@ -1,5 +1,9 @@
+import logging
 import re
+
 import numpy as np
+
+log = logging.getLogger(__name__)
 
 
 class Image(np.ndarray):
@@ -86,4 +90,5 @@ class GridImages(object):
             raw_array = self._h5[self._channel]['(Major, minor) = (%d, %d)' % (column, row)].value
             return Image(raw_array, row, column, self._channel)
         except (KeyError, IndexError, AttributeError):
+            log.warn("Missing (Major, minor) = (%d, %d) in %s" % (column, row, self._channel))
             return None
