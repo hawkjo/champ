@@ -51,7 +51,12 @@ def main(clargs):
         log.debug("Phix already aligned.")
 
     protein_channels = [channel for channel in projectinfo.load_channels(clargs.image_directory) if channel != metadata['alignment_channel']]
-    log.debug("Protein channels found: %s" % ", ".join(protein_channels))
+    if protein_channels:
+        log.debug("Protein channels found: %s" % ", ".join(protein_channels))
+    else:
+        # protein is in phix channel, hopefully?
+        log.warn("No protein channels detected. Assuming protein is in phiX channel: %s" % [metadata['alignment_channel']])
+        protein_channels = [metadata['alignment_channel']]
     for channel_name in protein_channels:
         if channel_name not in metadata['protein_channels_aligned']:
             log.debug("Aligning protein channel: %s" % channel_name)
