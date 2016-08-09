@@ -154,6 +154,8 @@ class FastqImageAligner(object):
         return np.linalg.norm(self.sexcat.point_rcs[hit[0]] - self.aligned_rcs_in_frame[hit[1]])
 
     def remove_longest_hits(self, hits, pct_thresh):
+        if not hits:
+            return []
         dists = self.hit_dists(hits)
         thresh = np.percentile(dists, pct_thresh * 100)
         return [hit for hit in hits if self.single_hit_dist(hit) <= thresh]
