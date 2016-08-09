@@ -16,7 +16,6 @@ def save(clargs):
                 'ports_on_right': clargs.ports_on_right,
                 'alignment_channel': clargs.alignment_channel,
                 'flipud': clargs.flipud,
-                'perfect_target': clargs.perfect_target,
                 'fliplr': clargs.fliplr,
                 'phix_aligned': False,
                 'protein_channels_aligned': []}
