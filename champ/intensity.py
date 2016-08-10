@@ -20,10 +20,9 @@ log = logging.getLogger(__name__)
 
 
 def main(metadata, image_directory):
-    on_target_label = "d"
-    on_target_sequence = "GTGATAAGTGGAATGCCATGTGGA"
-    off_target_sequence = "GACGCATAAAGATGAGACGCTGGA"  # target E
-
+    on_target_label = "e"
+    on_target_sequence = "GACGCATAAAGATGAGACGCTGGA"
+    off_target_sequence = "GTGATAAGTGGAATGCCATGTGGA"  # target D
     output_directory = functools.partial(os.path.join, 'figs')
     protein_channels = determine_protein_channels(image_directory, metadata)
     read_names_by_seq_fpath = os.path.join(metadata['parsed_reads'], 'read_names_by_seq.txt')

@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 
 
-def get_end_tiles(h5_filenames, output_parameters, alignment_channel, snr, metadata, sequencing_chip, fia):
+def make_output_directories(h5_filenames, output_parameters):
     for h5_filename in h5_filenames:
         base_name = os.path.splitext(h5_filename)[0]
         for directory in (output_parameters.figure_directory, output_parameters.results_directory):
@@ -26,6 +26,8 @@ def get_end_tiles(h5_filenames, output_parameters, alignment_channel, snr, metad
             if not os.path.exists(full_directory):
                 os.makedirs(full_directory)
 
+
+def get_end_tiles(h5_filenames, alignment_channel, snr, metadata, sequencing_chip, fia):
     with h5py.File(h5_filenames[0]) as first_file:
         grid = GridImages(first_file, alignment_channel)
         # no reason to use all cores yet, since we're IO bound

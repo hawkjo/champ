@@ -18,11 +18,13 @@ def main(clargs):
     if len(h5_filenames) == 0:
         error.fail("There were no HDF5 files to process. "
                    "Either they just don't exist, or you didn't provide the correct path.")
-    sequencing_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
+
+    # Ensure we have the directories where output will be written
+    align.make_output_directories(h5_filenames, output_parameters)
 
     log.debug("Loading tile data.")
+    sequencing_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
     alignment_tile_data = align.load_read_names(output_parameters.aligning_read_names_filepath)
-    # alignment_tile_data = align.load_read_names("/shared/SA16105/mapped_reads/SA16105_IF153_containing_phix_reads.txt")
     unclassified_tile_data = align.load_read_names(output_parameters.all_read_names_filepath)
     all_tile_data = {key: list(set(alignment_tile_data.get(key, []) + unclassified_tile_data.get(key, [])))
                      for key in list(unclassified_tile_data.keys()) + list(alignment_tile_data.keys())}
@@ -35,7 +37,7 @@ def main(clargs):
     fia.load_reads(alignment_tile_data)
 
     if 'end_tiles' not in metadata:
-        end_tiles = align.get_end_tiles(h5_filenames, output_parameters, metadata['alignment_channel'], clargs.snr, metadata, sequencing_chip, fia)
+        end_tiles = align.get_end_tiles(h5_filenames, metadata['alignment_channel'], clargs.snr, metadata, sequencing_chip, fia)
         metadata['end_tiles'] = end_tiles
         initialize.update(clargs.image_directory, metadata)
     else:
