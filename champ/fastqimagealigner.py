@@ -5,6 +5,7 @@ from itertools import izip
 
 import numpy as np
 import sextraction
+import yaml
 from fastqtilercs import FastqTileRCs
 from imagedata import ImageData
 from misc import AlignmentStats
@@ -60,16 +61,11 @@ class FastqImageAligner(object):
         tile = self.fastq_tiles[tile_key]
         tile.set_aligned_rcs_given_transform(scale, rotation, rc_offset)
 
-    def alignment_from_alignment_file(self, fpath):
+    def alignment_from_alignment_file(self, path):
         self.hitting_tiles = []
-        astats = AlignmentStats(fpath)
-        for i in range(astats.numtiles):
-            self.set_tile_alignment(astats.tile[i],
-                                    astats.scaling[i],
-                                    astats.tile_width[i],
-                                    astats.rotation[i] * np.pi / 180,
-                                    astats.rc_offset[i]
-                                   )
+        astats = AlignmentStats().from_file(path)
+        for tile_key, scaling, tile_width, rotation, rc_offset in astats:
+            self.set_tile_alignment(tile_key, scaling, tile_width, rotation, rc_offset)
 
     def set_sexcat_from_file(self, fpath):
         with open(fpath) as f:
@@ -362,26 +358,32 @@ class FastqImageAligner(object):
             out.write('\n'.join(sorted(lines, key=lambda s: float(s.split()[3]), reverse=True)))
         del lines
 
-    def write_alignment_stats(self, out_fpath):
-        stats = [
-            'Image:                 %s' % self.image_data.fname,
-            'Objective:             %d' % int(16.0 / self.image_data.um_per_pixel),
-            'Tile:                  %s' % ','.join(tile.key for tile in self.hitting_tiles),
-            'Rotation (deg):        %s' % ','.join('%.4f' % tile.rotation_degrees for tile in self.hitting_tiles),
-            'Tile width (um):       %s' % ','.join('%.4f' % tile.width for tile in self.hitting_tiles),
-            'Scaling (px/fqu):      %s' % ','.join('%.7f' % tile.scale for tile in self.hitting_tiles),
-            'RC Offset (px):        %s' % ','.join('(%.4f,%.4f)' % tuple(tile.offset) for tile in self.hitting_tiles),
-            'Correlation:           %s' % ','.join('%.2f' % tile.best_max_corr for tile in self.hitting_tiles),
-            'Non-mutual hits:       %d' % (len(self.non_mutual_hits)),
-            'Bad mutual hits:       %d' % (len(self.bad_mutual_hits)),
-            'Good mutual hits:      %d' % (len(self.good_mutual_hits)),
-            'Exclusive hits:        %d' % (len(self.exclusive_hits)),
-            'Sextractor Ellipses:   %d' % (len(self.sexcat.point_rcs)),
-            'Fastq Points:          %d' % (len(self.aligned_rcs_in_frame)),
-            ]
-        with open(out_fpath, 'w') as out:
-            out.write('\n'.join(stats))
-        del out
+    def write_alignment_stats(self, stats_file_path):
+        astats = AlignmentStats().from_data([tile.key for tile in self.hitting_tiles],
+                                            [tile.scale for tile in self.hitting_tiles],
+                                            [tile.width for tile in self.hitting_tiles],
+                                            [tile.rotation_degrees for tile in self.hitting_tiles],
+                                            [tuple(tile.offset) for tile in self.hitting_tiles])
+        with open(stats_file_path, 'w') as out:
+            yaml.dump(astats, out)
+
+    # stats = [
+    #     'Image:                 %s' % self.image_data.fname,
+    #     'Objective:             %d' % int(16.0 / self.image_data.um_per_pixel),
+    #     'Tile:                  %s' % ','.join(tile.key for tile in self.hitting_tiles),
+    #     'Rotation (deg):        %s' % ','.join('%.4f' % tile.rotation_degrees for tile in self.hitting_tiles),
+    #     'Tile width (um):       %s' % ','.join('%.4f' % tile.width for tile in self.hitting_tiles),
+    #     'Scaling (px/fqu):      %s' % ','.join('%.7f' % tile.scale for tile in self.hitting_tiles),
+    #     'RC Offset (px):        %s' % ','.join('(%.4f,%.4f)' % tuple(tile.offset) for tile in self.hitting_tiles),
+    #     'Correlation:           %s' % ','.join('%.2f' % tile.best_max_corr for tile in self.hitting_tiles),
+    #     'Non-mutual hits:       %d' % (len(self.non_mutual_hits)),
+    #     'Bad mutual hits:       %d' % (len(self.bad_mutual_hits)),
+    #     'Good mutual hits:      %d' % (len(self.good_mutual_hits)),
+    #     'Exclusive hits:        %d' % (len(self.exclusive_hits)),
+    #     'Sextractor Ellipses:   %d' % (len(self.sexcat.point_rcs)),
+    #     'Fastq Points:          %d' % (len(self.aligned_rcs_in_frame)),
+    #     ]
+
 
     def write_read_names_rcs(self, out_fpath):
         im_shape = self.image_data.image.shape

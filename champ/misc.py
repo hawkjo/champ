@@ -1,8 +1,10 @@
 """
 A space for miscellaneous useful functions.
 """
-import numpy as np
 import re
+
+import numpy as np
+import yaml
 
 
 def next_power_of_2(x):
@@ -72,39 +74,33 @@ def stoftoi(s):
 
 
 class AlignmentStats:
-    def __init__(self, fpath):
-        for line in open(fpath):
-            name, value = line.strip().split(':')
-            if '(' in name:
-                name = name[:name.index('(')].strip()
-            name = '_'.join(name.lower().split()).replace('-', '_')
+    def __init__(self):
+        self._data = {}
 
-            value = value.strip()
-            if name == 'rc_offset':
-                pattern = '\(([-.0-9]+),([-.0-9]+)\)'
-                if value.count(',') > 1:
-                    value = [np.array([float(m.group(1)), float(m.group(2))])
-                             for m in re.finditer(pattern, value)]
-                else:
-                    m = re.match(pattern, value)
-                    value = [np.array([float(m.group(1)), float(m.group(2))])]
-            else:
-                if ',' in value:
-                    value = value.split(',')
-                    if all([strisint(v) for v in value]):
-                        value = map(int, value)
-                    elif all([strisfloat(v) for v in value]):
-                        value = map(float, value)
-                else:
-                    if strisint(value):
-                        value = [int(value)]
-                    elif strisfloat(value):
-                        value = [float(value)]
-                    else:
-                        value = [value]
-            setattr(self, name, value)
+    def from_file(self, fh):
+        self._data = yaml.load(fh)
+        return self
 
-        self.numtiles = len(self.tile)
+    def from_data(self, tile_keys, scalings, tile_widths, rotations, rc_offsets, hits):
+        assert len(tile_keys) == len(scalings) == len(tile_widths) == len(rotations) == len(rc_offsets)
+        self._data['tile_keys'] = tile_keys
+        self._data['scalings'] = scalings
+        self._data['tile_widths'] = tile_widths
+        self._data['rotations'] = [rotation * np.pi / 180 for rotation in rotations]
+        self._data['rc_offsets'] = rc_offsets
+        self._data['hits'] = hits
+        return self
+
+    def __iter__(self):
+        for tile_key, scaling, tile_width, rotation, rc_offset in zip(self._data['tile_keys'],
+                                                                      self._data['scalings'],
+                                                                      self._data['tile_widths'],
+                                                                      self._data['rotations'],
+                                                                      self._data['rc_offsets']):
+            yield tile_key, scaling, tile_width, rotation, rc_offset,
+
+    def __repr__(self):
+        return yaml.dump(self._data)
 
 
 def parse_concentration(filename):
