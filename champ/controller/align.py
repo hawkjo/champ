@@ -33,8 +33,10 @@ def main(clargs):
     # We use one process per concentration. We could theoretically speed this up since our machine
     # has significantly more cores than the typical number of concentration points, but since it
     # usually finds a result in the first image or two, it's not going to deliver any practical benefits
+    log.debug("Loading FastQImageAligner")
     fia = fastqimagealigner.FastqImageAligner()
     fia.load_reads(alignment_tile_data)
+    log.debug("FastQImageAligner loaded.")
 
     if 'end_tiles' not in metadata:
         end_tiles = align.get_end_tiles(h5_filenames, metadata['alignment_channel'], clargs.snr, metadata, sequencing_chip, fia)
