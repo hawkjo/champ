@@ -262,9 +262,7 @@ def write_output(image_index, base_name, fastq_image_aligner, output_parameters,
     # here we load some data so we can make that comparison
 
     existing_score = load_existing_score(stats_file_path)
-    print("loading new stats")
     new_stats = fastq_image_aligner.alignment_stats
-    print("new stats loaded")
     if new_stats.score < existing_score:
         log.info("Not saving alignment, old score (%s) better than new score (%s)" % (existing_score, new_stats.score))
         return
