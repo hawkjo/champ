@@ -32,7 +32,13 @@ class AlignmentStats(object):
     @property
     def score(self):
         # A somewhat arbitrary metric to determine if one alignment is better than another
-        return self._data['hits']['exclusive'] + self._data['hits']['good_mutual']
+        try:
+            return self._data['hits']['exclusive'] + self._data['hits']['good_mutual']
+        except TypeError:
+            print("TYPE ERROR!!!!!")
+            print(self._data)
+            print("----TYPEERROR")
+            raise TypeError
 
     def __iter__(self):
         for tile_key, scaling, tile_width, rotation, rc_offset in zip(self._data['tile_keys'],
