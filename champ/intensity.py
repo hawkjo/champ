@@ -399,7 +399,6 @@ def calculate_ddg(h5_filepaths, int_scores, close_reads, ref_delta_G, protein_ch
                 popt = curve_fit_Fobs_fixed_curve_given_read_names(int_scores, h5_filepaths, resamp_read_names,
                                                                    protein_channel, fobs_func)
             except:
-                # log.error("%s, Read name length: %d, Resample read names length: %d" % (seq, len(read_names), len(resamp_read_names)))
                 error.fail("Error calculating ddG")
             bootstrap_Kds.append(popt[0])
             bootstrap_ddGs.append(delta_delta_G(popt[0], ref_delta_G))
@@ -467,6 +466,7 @@ def fit_curve_given_read_names(int_scores, protein_channel, Fmin, read_names, h5
             if read_name in score_dict:
                 all_pM_concentrations.append(pM_conc)
                 all_intensities.append(score_dict[read_name])
+                print("pM concentrations: %s" % pM_conc)
     optimization_result = minimize(make_Fobs_sq_error(all_pM_concentrations, all_intensities, Fmin),
                                    (500, 1),
                                    bounds=((0, None), (0, None)))
