@@ -350,17 +350,20 @@ class FastqImageAligner(object):
                                          str(flux),
                                          str(flux_err)]))
 
+        print("Done building LINES")
         fields = ('read_name', 'image_name', 'hit_type', 'r', 'c', 'flux', 'flux_err')
         yield '# Fields: ' + '\t'.join(fields) + '\n'
+        print("About to YIELD lines")
         for line in sorted(lines, key=lambda s: float(s.split()[3]), reverse=True):
+            print("LINE iterator")
             yield '{}\n'.format(line)
 
     @property
     def alignment_stats(self):
-        hits = {'exclusive': self.exclusive_hits,
-                'good_mutual': self.good_mutual_hits,
-                'bad_mutual': self.bad_mutual_hits,
-                'non_mutual': self.non_mutual_hits}
+        hits = {'exclusive': len(self.exclusive_hits),
+                'good_mutual': len(self.good_mutual_hits),
+                'bad_mutual': len(self.bad_mutual_hits),
+                'non_mutual': len(self.non_mutual_hits)}
         return stats.AlignmentStats().from_data([tile.key for tile in self.hitting_tiles],
                                                 [tile.scale for tile in self.hitting_tiles],
                                                 [tile.width for tile in self.hitting_tiles],
