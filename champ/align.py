@@ -244,12 +244,12 @@ def process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image
 
 
 def load_existing_score(stats_file_path):
-    print("loading existing score")
     if os.path.isfile(stats_file_path):
         with open(stats_file_path) as f:
-            print("found existing score")
-            return stats.AlignmentStats().from_file(f).score
-    print("could not find existing score")
+            try:
+                return stats.AlignmentStats().from_file(f).score
+            except ValueError:
+                return 0
     return 0
 
 

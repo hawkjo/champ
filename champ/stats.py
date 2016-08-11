@@ -12,27 +12,27 @@ class AlignmentStats(object):
 
     def from_file(self, fh):
         self._data = yaml.load(fh)
+        self._validate_data()
         return self
 
+    def _validate_data(self):
+        if not len(self._data['tile_keys']) == len(self._data['scalings']) == len(self._data['tile_widths']) == len(self._data['rotations']) == len(self._data['rc_offsets']):
+            raise ValueError("Corrupt or invalid AlignmentStats file")
+
     def from_data(self, tile_keys, scalings, tile_widths, rotations, rc_offsets, hits):
-        assert len(tile_keys) == len(scalings) == len(tile_widths) == len(rotations) == len(rc_offsets)
         self._data['tile_keys'] = tile_keys
         self._data['scalings'] = scalings
         self._data['tile_widths'] = tile_widths
         self._data['rotations'] = [rotation * np.pi / 180 for rotation in rotations]
         self._data['rc_offsets'] = rc_offsets
         self._data['hits'] = hits
+        self._validate_data()
         return self
 
     @property
     def score(self):
         # A somewhat arbitrary metric to determine if one alignment is better than another
-        print("about to load score")
-        print(self._data)
-        print("=-----------")
-        score = self._data['hits']['exclusive'] + self._data['hits']['good_mutual']
-        print("SCORE", score)
-        return score
+        return self._data['hits']['exclusive'] + self._data['hits']['good_mutual']
 
     def __iter__(self):
         for tile_key, scaling, tile_width, rotation, rc_offset in zip(self._data['tile_keys'],
