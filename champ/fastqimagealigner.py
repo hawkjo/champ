@@ -1,12 +1,11 @@
 import logging
-import os
 import time
 from copy import deepcopy
 from itertools import izip
 
 import numpy as np
 import sextraction
-import yaml
+from champ import stats
 from fastqtilercs import FastqTileRCs
 from imagedata import ImageData
 from scipy.spatial import KDTree
@@ -61,7 +60,7 @@ class FastqImageAligner(object):
 
     def alignment_from_alignment_file(self, path):
         self.hitting_tiles = []
-        astats = AlignmentStats().from_file(path)
+        astats = stats.AlignmentStats().from_file(path)
         for tile_key, scaling, tile_width, rotation, rc_offset in astats:
             self.set_tile_alignment(tile_key, scaling, tile_width, rotation, rc_offset)
 
@@ -317,8 +316,9 @@ class FastqImageAligner(object):
         start_time = time.time()
         self.find_hits()
         log.debug('Hit finding time: %.3f seconds' % (time.time() - start_time))
-        
-    def output_intensity_results(self, out_fpath):
+
+    @property
+    def intensity_results(self):
         hit_given_aligned_idx = {}
         for hit_type in ('non_mutual', 'bad_mutual', 'good_mutual', 'exclusive'):
             for i, j in getattr(self, hit_type + '_hits'):
@@ -350,82 +350,28 @@ class FastqImageAligner(object):
                                          str(flux),
                                          str(flux_err)]))
 
-        with open(out_fpath, 'w') as out:
-            fields = ('read_name', 'image_name', 'hit_type', 'r', 'c', 'flux', 'flux_err')
-            out.write('# Fields: ' + '\t'.join(fields) + '\n')
-            out.write('\n'.join(sorted(lines, key=lambda s: float(s.split()[3]), reverse=True)))
-        del lines
+        fields = ('read_name', 'image_name', 'hit_type', 'r', 'c', 'flux', 'flux_err')
+        yield '# Fields: ' + '\t'.join(fields) + '\n'
+        for line in sorted(lines, key=lambda s: float(s.split()[3]), reverse=True):
+            yield '{}\n'.format(line)
 
-    def write_alignment_stats(self, stats_file_path):
+    @property
+    def alignment_stats(self):
         hits = {'exclusive': self.exclusive_hits,
                 'good_mutual': self.good_mutual_hits,
                 'bad_mutual': self.bad_mutual_hits,
                 'non_mutual': self.non_mutual_hits}
-        alignment_stats = AlignmentStats().from_data([tile.key for tile in self.hitting_tiles],
-                                                     [tile.scale for tile in self.hitting_tiles],
-                                                     [tile.width for tile in self.hitting_tiles],
-                                                     [tile.rotation_degrees for tile in self.hitting_tiles],
-                                                     [tuple(tile.offset) for tile in self.hitting_tiles],
-                                                     hits)
-        if os.path.isfile(stats_file_path):
-            with open(stats_file_path) as f:
-                existing_score = AlignmentStats().from_file(f).score
-        else:
-            existing_score = 0
-
-        if alignment_stats.score > existing_score:
-            log.debug("Saving alignment with score of %s" % alignment_stats.score)
-            with open(stats_file_path, 'w') as out:
-                yaml.dump(alignment_stats, out)
-        else:
-            log.debug("Not saving alignment, old score (%s) better than new score (%s)" % (existing_score, alignment_stats.score))
-
-    def write_read_names_rcs(self, out_fpath):
-        im_shape = self.image_data.image.shape
-        with open(out_fpath, 'w') as out:
-            for tile in self.hitting_tiles:
-                for read_name, pt in izip(tile.read_names, tile.aligned_rcs):
-                    if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
-                        out.write('%s\t%f\t%f\n' % (read_name, pt[0], pt[1]))
-        del out
-
-
-class AlignmentStats(object):
-    """
-    The transformations needed to align an image to FASTQ data, and some data to measure the quality of the alignment
-
-    """
-    def __init__(self):
-        self._data = {}
-
-    def from_file(self, fh):
-        self._data = yaml.load(fh)
-        return self
-
-    def from_data(self, tile_keys, scalings, tile_widths, rotations, rc_offsets, hits):
-        assert len(tile_keys) == len(scalings) == len(tile_widths) == len(rotations) == len(rc_offsets)
-        self._data['tile_keys'] = tile_keys
-        self._data['scalings'] = scalings
-        self._data['tile_widths'] = tile_widths
-        self._data['rotations'] = [rotation * np.pi / 180 for rotation in rotations]
-        self._data['rc_offsets'] = rc_offsets
-        self._data['hits'] = hits
-        return self
+        return stats.AlignmentStats().from_data([tile.key for tile in self.hitting_tiles],
+                                                [tile.scale for tile in self.hitting_tiles],
+                                                [tile.width for tile in self.hitting_tiles],
+                                                [tile.rotation_degrees for tile in self.hitting_tiles],
+                                                [tuple(tile.offset) for tile in self.hitting_tiles],
+                                                hits)
 
     @property
-    def score(self):
-        # A somewhat arbitrary metric to determine if one alignment is better than another
-        return self._data['hits']['exclusive'] + self._data['hits']['good_mutual']
-
-    def __iter__(self):
-        for tile_key, scaling, tile_width, rotation, rc_offset in zip(self._data['tile_keys'],
-                                                                      self._data['scalings'],
-                                                                      self._data['tile_widths'],
-                                                                      self._data['rotations'],
-                                                                      self._data['rc_offsets']):
-            # The number of hits is an aggregation of all tiles that align to the image, which is why it doesn't
-            # change between each iteration.
-            yield tile_key, scaling, tile_width, rotation, rc_offset, self._data['hits']
-
-    def __repr__(self):
-        return yaml.dump(self._data)
+    def read_names_rcs(self):
+        im_shape = self.image_data.image.shape
+        for tile in self.hitting_tiles:
+            for read_name, pt in izip(tile.read_names, tile.aligned_rcs):
+                if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
+                    yield '%s\t%f\t%f\n' % (read_name, pt[0], pt[1])

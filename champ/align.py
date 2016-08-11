@@ -2,7 +2,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from champ.grid import GridImages
-from champ import plotting, fastqimagealigner
+from champ import plotting, fastqimagealigner, stats
 from collections import Counter, defaultdict
 import functools
 import h5py
@@ -13,6 +13,7 @@ import os
 import sys
 import re
 from copy import deepcopy
+import yaml
 
 log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
@@ -242,14 +243,44 @@ def process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image
     return fia
 
 
-def write_output(image_index, base_name, fastq_image_aligner, output_parameters, all_tile_data, make_pdfs):
-    intensity_filepath = os.path.join(output_parameters.results_directory,
-                                      base_name, '{}_intensities.txt'.format(image_index))
-    stats_filepath = os.path.join(output_parameters.results_directory,
-                                  base_name, '{}_stats.txt'.format(image_index))
-    all_read_rcs_filepath = os.path.join(output_parameters.results_directory,
-                                         base_name, '{}_all_read_rcs.txt'.format(image_index))
+def load_existing_score(stats_file_path):
+    if os.path.isfile(stats_file_path):
+        with open(stats_file_path) as f:
+            return stats.AlignmentStats().from_file(f).score
+    return 0
 
+
+def write_output(image_index, base_name, fastq_image_aligner, output_parameters, all_tile_data, make_pdfs):
+    intensity_filepath = os.path.join(output_parameters.results_directory, base_name, '{}_intensities.txt'.format(image_index))
+    stats_file_path = os.path.join(output_parameters.results_directory, base_name, '{}_stats.txt'.format(image_index))
+    all_read_rcs_filepath = os.path.join(output_parameters.results_directory, base_name, '{}_all_read_rcs.txt'.format(image_index))
+
+    # if we've already aligned this channel with a different strategy, the current alignment may or may not be better
+    # here we load some data so we can make that comparison
+    existing_score = load_existing_score(stats_file_path)
+    new_stats = fastq_image_aligner.alignment_stats
+    if new_stats.score < existing_score:
+        log.debug("Not saving alignment, old score (%s) better than new score (%s)" % (existing_score, new_stats.score))
+        return
+
+    # save information about how to align the images
+    log.debug("Saving alignment with score of %s" % new_stats.score)
+    with open(stats_file_path, 'w') as f:
+        yaml.dump(new_stats, f)
+
+    # save the intensity data for each read
+    with open(intensity_filepath, 'w') as f:
+        for line in fastq_image_aligner.intensity_results:
+            f.write(line)
+
+    # save the corrected location of each read
+    all_fastq_image_aligner = fastqimagealigner.FastqImageAligner()
+    all_fastq_image_aligner.all_reads_fic_from_aligned_fic(fastq_image_aligner, all_tile_data)
+    with open(all_read_rcs_filepath, 'w') as f:
+        for line in all_fastq_image_aligner.read_names_rcs:
+            f.write(line)
+
+    # save some diagnostic PDFs that give a nice visualization of the alignment
     if make_pdfs:
         ax = plotting.plot_all_hits(fastq_image_aligner)
         ax.figure.savefig(os.path.join(output_parameters.figure_directory, base_name, '{}_all_hits.pdf'.format(image_index)))
@@ -257,9 +288,3 @@ def write_output(image_index, base_name, fastq_image_aligner, output_parameters,
         ax = plotting.plot_hit_hists(fastq_image_aligner)
         ax.figure.savefig(os.path.join(output_parameters.figure_directory, base_name, '{}_hit_hists.pdf'.format(image_index)))
         plt.close()
-
-    fastq_image_aligner.output_intensity_results(intensity_filepath)
-    fastq_image_aligner.write_alignment_stats(stats_filepath)
-    all_fastq_image_aligner = fastqimagealigner.FastqImageAligner()
-    all_fastq_image_aligner.all_reads_fic_from_aligned_fic(fastq_image_aligner, all_tile_data)
-    all_fastq_image_aligner.write_read_names_rcs(all_read_rcs_filepath)
