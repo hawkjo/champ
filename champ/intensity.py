@@ -572,4 +572,5 @@ def calculate_nM_concentrations(h5_filepaths):
 def determine_protein_channels(image_directory, metadata):
     channels = projectinfo.load_channels(image_directory)
     alignment_channel = set([metadata['alignment_channel']])
-    return channels - alignment_channel
+    protein_channels = channels - alignment_channel
+    return protein_channels if protein_channels else alignment_channel
