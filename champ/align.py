@@ -248,7 +248,7 @@ def load_existing_score(stats_file_path):
         with open(stats_file_path) as f:
             try:
                 return stats.AlignmentStats().from_file(f).score
-            except (TypeError, ValueError):
+            except ValueError:
                 return 0
     return 0
 

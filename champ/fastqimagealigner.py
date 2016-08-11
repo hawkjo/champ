@@ -361,10 +361,10 @@ class FastqImageAligner(object):
                 'good_mutual': len(self.good_mutual_hits),
                 'bad_mutual': len(self.bad_mutual_hits),
                 'non_mutual': len(self.non_mutual_hits)}
-        return stats.AlignmentStats().from_data([tile.key for tile in self.hitting_tiles],
-                                                [tile.scale for tile in self.hitting_tiles],
-                                                [tile.width for tile in self.hitting_tiles],
-                                                [tile.rotation_degrees for tile in self.hitting_tiles],
+        return stats.AlignmentStats().from_data([str(tile.key) for tile in self.hitting_tiles],
+                                                [float(tile.scale) for tile in self.hitting_tiles],
+                                                [float(tile.width) for tile in self.hitting_tiles],
+                                                [float(tile.rotation_degrees) for tile in self.hitting_tiles],
                                                 [tuple(tile.offset) for tile in self.hitting_tiles],
                                                 hits)
 
