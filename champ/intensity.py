@@ -77,10 +77,10 @@ def main(metadata, image_directory):
 
         log.info("Good read names in {}: {}".format(protein_channel, len(good_read_names)))
 
-        plot_good_ham_reads(single_counts, 50, False, 2).savefig(output_directory("{}_good_ham_reads_50.png"))
-        plot_good_ham_reads(single_counts, 50, True, 2).savefig(output_directory("{}_good_ham_reads_50_zoomed.png"))
-        plot_good_ham_reads(double_counts, 200, False, 2).savefig(output_directory("{}_good_ham_reads_200.png"))
-        plot_good_ham_reads(double_counts, 200, True, 2).savefig(output_directory("{}_good_ham_reads_200_zoomed.png"))
+        plot_good_ham_reads(single_counts, 50, False, 2).savefig(output_directory("{}_good_ham_reads_50.png".format(protein_channel)))
+        plot_good_ham_reads(single_counts, 50, True, 2).savefig(output_directory("{}_good_ham_reads_50_zoomed.png".format(protein_channel)))
+        plot_good_ham_reads(double_counts, 200, False, 2).savefig(output_directory("{}_good_ham_reads_200.png".format(protein_channel)))
+        plot_good_ham_reads(double_counts, 200, True, 2).savefig(output_directory("{}_good_ham_reads_200_zoomed.png".format(protein_channel)))
 
         seq_Kds, seq_Kd_error, seq_ddGs, seq_ddG_error = calculate_ddg(h5_filepaths, int_scores, close_reads,
                                                                        ref_delta_G, protein_channel, Fobs_fixed)

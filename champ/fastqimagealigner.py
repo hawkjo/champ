@@ -23,8 +23,6 @@ class FastqImageAligner(object):
         self.image_data = None
         self.fq_w = 935  # um
         self.control_corr = 0
-        # self.rcs_in_frame = []
-        # self.aligned_rcs_in_frame = None
         self.non_mutual_hits = set()
         self.mutual_hits = set()
         self.bad_mutual_hits = set()
