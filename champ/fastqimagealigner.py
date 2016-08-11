@@ -365,7 +365,7 @@ class FastqImageAligner(object):
                                                 [float(tile.scale) for tile in self.hitting_tiles],
                                                 [float(tile.width) for tile in self.hitting_tiles],
                                                 [float(tile.rotation_degrees) for tile in self.hitting_tiles],
-                                                [tuple(tile.offset) for tile in self.hitting_tiles],
+                                                [tuple(map(float, tile.offset)) for tile in self.hitting_tiles],
                                                 hits)
 
     @property
