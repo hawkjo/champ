@@ -61,7 +61,7 @@ class FastqImageAligner(object):
     def alignment_from_alignment_file(self, path):
         self.hitting_tiles = []
         astats = stats.AlignmentStats().from_file(path)
-        for tile_key, scaling, tile_width, rotation, rc_offset in astats:
+        for tile_key, scaling, tile_width, rotation, rc_offset, _ in astats:
             self.set_tile_alignment(tile_key, scaling, tile_width, rotation, rc_offset)
 
     def set_sexcat_from_file(self, fpath):

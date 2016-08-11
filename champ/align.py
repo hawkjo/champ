@@ -244,9 +244,12 @@ def process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image
 
 
 def load_existing_score(stats_file_path):
+    print("loading existing score")
     if os.path.isfile(stats_file_path):
         with open(stats_file_path) as f:
+            print("found existing score")
             return stats.AlignmentStats().from_file(f).score
+    print("could not find existing score")
     return 0
 
 
@@ -257,8 +260,11 @@ def write_output(image_index, base_name, fastq_image_aligner, output_parameters,
 
     # if we've already aligned this channel with a different strategy, the current alignment may or may not be better
     # here we load some data so we can make that comparison
+
     existing_score = load_existing_score(stats_file_path)
+    print("loading new stats")
     new_stats = fastq_image_aligner.alignment_stats
+    print("new stats loaded")
     if new_stats.score < existing_score:
         log.info("Not saving alignment, old score (%s) better than new score (%s)" % (existing_score, new_stats.score))
         return
