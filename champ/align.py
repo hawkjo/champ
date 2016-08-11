@@ -260,11 +260,11 @@ def write_output(image_index, base_name, fastq_image_aligner, output_parameters,
     existing_score = load_existing_score(stats_file_path)
     new_stats = fastq_image_aligner.alignment_stats
     if new_stats.score < existing_score:
-        log.debug("Not saving alignment, old score (%s) better than new score (%s)" % (existing_score, new_stats.score))
+        log.info("Not saving alignment, old score (%s) better than new score (%s)" % (existing_score, new_stats.score))
         return
 
     # save information about how to align the images
-    log.debug("Saving alignment with score of %s" % new_stats.score)
+    log.info("Saving alignment with score of %s" % new_stats.score)
     with open(stats_file_path, 'w') as f:
         yaml.dump(new_stats, f)
 

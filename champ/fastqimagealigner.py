@@ -350,12 +350,9 @@ class FastqImageAligner(object):
                                          str(flux),
                                          str(flux_err)]))
 
-        print("Done building LINES")
         fields = ('read_name', 'image_name', 'hit_type', 'r', 'c', 'flux', 'flux_err')
         yield '# Fields: ' + '\t'.join(fields) + '\n'
-        print("About to YIELD lines")
         for line in sorted(lines, key=lambda s: float(s.split()[3]), reverse=True):
-            print("LINE iterator")
             yield '{}\n'.format(line)
 
     @property
