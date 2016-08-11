@@ -274,8 +274,7 @@ def write_output(image_index, base_name, fastq_image_aligner, output_parameters,
 
     # save the intensity data for each read
     with open(intensity_filepath, 'w') as f:
-        for line in fastq_image_aligner.intensity_results:
-            f.write(line)
+        f.write(fastq_image_aligner.intensity_results)
 
     # save the corrected location of each read
     all_fastq_image_aligner = fastqimagealigner.FastqImageAligner()

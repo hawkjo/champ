@@ -351,9 +351,7 @@ class FastqImageAligner(object):
                                          str(flux_err)]))
 
         fields = ('read_name', 'image_name', 'hit_type', 'r', 'c', 'flux', 'flux_err')
-        yield '# Fields: ' + '\t'.join(fields) + '\n'
-        for line in sorted(lines, key=lambda s: float(s.split()[3]), reverse=True):
-            yield '{}\n'.format(line)
+        return '# Fields: ' + '\t'.join(fields) + '\n' + '\n'.join(sorted(lines, key=lambda s: float(s.split()[3]), reverse=True))
 
     @property
     def alignment_stats(self):
