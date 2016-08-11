@@ -62,6 +62,13 @@ def main(clargs):
     for channel_name in protein_channels:
         if channel_name not in metadata['protein_channels_aligned']:
             log.debug("Aligning protein channel: %s" % channel_name)
+            # TODO: Here is where we implement different alignment strategies.
+            # We've already aligned phix to the phix channel.
+            # Things we can try here:
+            # - Align regular clusters to protein channels
+            # - Align perfect target to protein channels
+            # - Align doped phiX to protein channel (not always applicable!)
+            # This should be totally idempotent since we don't save alignments unless they surpass previous ones in quality
             align.run_data_channel(h5_filenames, channel_name, output_parameters, alignment_tile_data,
                                    all_tile_data, metadata, clargs)
             metadata['protein_channels_aligned'].append(channel_name)

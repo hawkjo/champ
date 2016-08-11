@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 from copy import deepcopy
 from itertools import izip
@@ -8,7 +9,6 @@ import sextraction
 import yaml
 from fastqtilercs import FastqTileRCs
 from imagedata import ImageData
-from misc import AlignmentStats
 from scipy.spatial import KDTree
 
 log = logging.getLogger(__name__)
@@ -232,7 +232,7 @@ class FastqImageAligner(object):
         log.debug('Good mutual hits: %s' % len(good_mutual_hits))
         log.debug('Exclusive hits: %s' % len(exclusive_hits))
 
-    def least_squares_mapping(self, hit_type='exclusive', pct_thresh=0.9, min_hits=50):
+    def least_squares_mapping(self, pct_thresh=0.9, min_hits=50):
         """least_squares_mapping(self, hit_type='exclusive')
 
         "Input": set of tuples of (sexcat_idx, in_frame_idx) mappings.
@@ -277,7 +277,7 @@ class FastqImageAligner(object):
             self.find_hits(consider_tiles=tile)
 
             # Reminder: All indices are in the order (sexcat_idx, in_frame_idx)
-            raw_hits = get_hits(hit_type)
+            raw_hits = get_hits(('exclusive', 'good_mutual'))
             hits = self.remove_longest_hits(raw_hits, pct_thresh)
             if len(hits) < min_hits:
                 raise ValueError('Too few hits for least squares mapping: {0}'.format(len(hits)))
@@ -310,11 +310,11 @@ class FastqImageAligner(object):
         self.find_hitting_tiles(possible_tile_keys, snr_thresh)
         log.debug('Rough alignment time: %.3f seconds' % (time.time() - start_time))
 
-    def precision_align_only(self, hit_type=('exclusive', 'good_mutual'), min_hits=15):
+    def precision_align_only(self, min_hits):
         start_time = time.time()
         if not self.hitting_tiles:
             raise RuntimeError('Alignment not found')
-        self.least_squares_mapping(hit_type, min_hits=min_hits)
+        self.least_squares_mapping(min_hits=min_hits)
         log.debug('Precision alignment time: %.3f seconds' % (time.time() - start_time))
         start_time = time.time()
         self.find_hits()
@@ -359,31 +359,28 @@ class FastqImageAligner(object):
         del lines
 
     def write_alignment_stats(self, stats_file_path):
-        astats = AlignmentStats().from_data([tile.key for tile in self.hitting_tiles],
-                                            [tile.scale for tile in self.hitting_tiles],
-                                            [tile.width for tile in self.hitting_tiles],
-                                            [tile.rotation_degrees for tile in self.hitting_tiles],
-                                            [tuple(tile.offset) for tile in self.hitting_tiles])
-        with open(stats_file_path, 'w') as out:
-            yaml.dump(astats, out)
+        hits = {'exclusive': self.exclusive_hits,
+                'good_mutual': self.good_mutual_hits,
+                'bad_mutual': self.bad_mutual_hits,
+                'non_mutual': self.non_mutual_hits}
+        alignment_stats = AlignmentStats().from_data([tile.key for tile in self.hitting_tiles],
+                                                     [tile.scale for tile in self.hitting_tiles],
+                                                     [tile.width for tile in self.hitting_tiles],
+                                                     [tile.rotation_degrees for tile in self.hitting_tiles],
+                                                     [tuple(tile.offset) for tile in self.hitting_tiles],
+                                                     hits)
+        if os.path.isfile(stats_file_path):
+            with open(stats_file_path) as f:
+                existing_score = AlignmentStats().from_file(f).score
+        else:
+            existing_score = 0
 
-    # stats = [
-    #     'Image:                 %s' % self.image_data.fname,
-    #     'Objective:             %d' % int(16.0 / self.image_data.um_per_pixel),
-    #     'Tile:                  %s' % ','.join(tile.key for tile in self.hitting_tiles),
-    #     'Rotation (deg):        %s' % ','.join('%.4f' % tile.rotation_degrees for tile in self.hitting_tiles),
-    #     'Tile width (um):       %s' % ','.join('%.4f' % tile.width for tile in self.hitting_tiles),
-    #     'Scaling (px/fqu):      %s' % ','.join('%.7f' % tile.scale for tile in self.hitting_tiles),
-    #     'RC Offset (px):        %s' % ','.join('(%.4f,%.4f)' % tuple(tile.offset) for tile in self.hitting_tiles),
-    #     'Correlation:           %s' % ','.join('%.2f' % tile.best_max_corr for tile in self.hitting_tiles),
-    #     'Non-mutual hits:       %d' % (len(self.non_mutual_hits)),
-    #     'Bad mutual hits:       %d' % (len(self.bad_mutual_hits)),
-    #     'Good mutual hits:      %d' % (len(self.good_mutual_hits)),
-    #     'Exclusive hits:        %d' % (len(self.exclusive_hits)),
-    #     'Sextractor Ellipses:   %d' % (len(self.sexcat.point_rcs)),
-    #     'Fastq Points:          %d' % (len(self.aligned_rcs_in_frame)),
-    #     ]
-
+        if alignment_stats.score > existing_score:
+            log.debug("Saving alignment with score of %s" % alignment_stats.score)
+            with open(stats_file_path, 'w') as out:
+                yaml.dump(alignment_stats, out)
+        else:
+            log.debug("Not saving alignment, old score (%s) better than new score (%s)" % (existing_score, alignment_stats.score))
 
     def write_read_names_rcs(self, out_fpath):
         im_shape = self.image_data.image.shape
@@ -393,3 +390,44 @@ class FastqImageAligner(object):
                     if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
                         out.write('%s\t%f\t%f\n' % (read_name, pt[0], pt[1]))
         del out
+
+
+class AlignmentStats(object):
+    """
+    The transformations needed to align an image to FASTQ data, and some data to measure the quality of the alignment
+
+    """
+    def __init__(self):
+        self._data = {}
+
+    def from_file(self, fh):
+        self._data = yaml.load(fh)
+        return self
+
+    def from_data(self, tile_keys, scalings, tile_widths, rotations, rc_offsets, hits):
+        assert len(tile_keys) == len(scalings) == len(tile_widths) == len(rotations) == len(rc_offsets)
+        self._data['tile_keys'] = tile_keys
+        self._data['scalings'] = scalings
+        self._data['tile_widths'] = tile_widths
+        self._data['rotations'] = [rotation * np.pi / 180 for rotation in rotations]
+        self._data['rc_offsets'] = rc_offsets
+        self._data['hits'] = hits
+        return self
+
+    @property
+    def score(self):
+        # A somewhat arbitrary metric to determine if one alignment is better than another
+        return self._data['hits']['exclusive'] + self._data['hits']['good_mutual']
+
+    def __iter__(self):
+        for tile_key, scaling, tile_width, rotation, rc_offset in zip(self._data['tile_keys'],
+                                                                      self._data['scalings'],
+                                                                      self._data['tile_widths'],
+                                                                      self._data['rotations'],
+                                                                      self._data['rc_offsets']):
+            # The number of hits is an aggregation of all tiles that align to the image, which is why it doesn't
+            # change between each iteration.
+            yield tile_key, scaling, tile_width, rotation, rc_offset, self._data['hits']
+
+    def __repr__(self):
+        return yaml.dump(self._data)
