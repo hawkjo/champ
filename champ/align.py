@@ -63,10 +63,7 @@ def perform_alignment(output_parameters, snr, min_hits, um_per_pixel, sequencing
 
     log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
     # first get the correlation to random tiles, so we can distinguish signal from noise
-    try:
-        fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(preloaded_fia))
-    except TypeError:
-        print(1)
+    fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(preloaded_fia))
 
     if fia.hitting_tiles:
         # The image data aligned with FastQ reads!
@@ -74,13 +71,8 @@ def perform_alignment(output_parameters, snr, min_hits, um_per_pixel, sequencing
             fia.precision_align_only(min_hits)
         except ValueError:
             log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
-        except TypeError:
-            print(2)
         else:
-            try:
-                write_output(image.index, base_name, fia, output_parameters, all_tile_data, make_pdfs)
-            except TypeError:
-                print(3)
+            write_output(image.index, base_name, fia, output_parameters, all_tile_data, make_pdfs)
 
     # The garbage collector takes its sweet time for some reason, so we have to manually delete
     # these objects or memory usage blows up.
@@ -274,16 +266,30 @@ def write_output(image_index, base_name, fastq_image_aligner, output_parameters,
     # if we've already aligned this channel with a different strategy, the current alignment may or may not be better
     # here we load some data so we can make that comparison
 
-    existing_score = load_existing_score(stats_file_path)
-    new_stats = fastq_image_aligner.alignment_stats
-    if new_stats.score < existing_score:
-        log.info("Not saving alignment, old score (%s) better than new score (%s)" % (existing_score, new_stats.score))
-        return
+    try:
+        existing_score = load_existing_score(stats_file_path)
+    except TypeError:
+        print(1)
+
+    try:
+        new_stats = fastq_image_aligner.alignment_stats
+    except TypeError:
+        print(2)
+
+    try:
+        if new_stats.score < existing_score:
+            log.info("Not saving alignment, old score (%s) better than new score (%s)" % (existing_score, new_stats.score))
+            return
+    except TypeError:
+        print(3)
 
     # save information about how to align the images
-    log.info("Saving alignment with score of %s\t\t%s" % (new_stats.score, base_name))
-    with open(stats_file_path, 'w') as f:
-        yaml.dump(new_stats, f)
+    try:
+        log.info("Saving alignment with score of %s\t\t%s" % (new_stats.score, base_name))
+        with open(stats_file_path, 'w') as f:
+            yaml.dump(new_stats, f)
+    except TypeError:
+        print(4)
 
     # save the intensity data for each read
     with open(intensity_filepath, 'w') as f:
