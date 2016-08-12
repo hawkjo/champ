@@ -30,7 +30,7 @@ def run(h5_filenames, output_parameters, snr, min_hits, fia, end_tiles, alignmen
 
     pool = multiprocessing.Pool(num_processes)
     pool.map_async(alignment_func,
-                   iterate_all_images(h5_filenames, end_tiles, alignment_channel), chunksize=96).get(timeout=sys.maxint)
+                   iterate_all_images(h5_filenames, end_tiles, alignment_channel), chunksize=8).get(timeout=sys.maxint)
     log.debug("Done aligning!")
 
 
@@ -252,7 +252,7 @@ def load_existing_score(stats_file_path):
         with open(stats_file_path) as f:
             try:
                 return stats.AlignmentStats().from_file(f).score
-            except ValueError:
+            except (TypeError, ValueError):
                 return 0
     return 0
 
