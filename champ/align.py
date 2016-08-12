@@ -55,25 +55,29 @@ def perform_alignment(output_parameters, snr, min_hits, um_per_pixel, sequencing
                       make_pdfs, preloaded_fia, image_data):
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
-    row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
-    with h5py.File(h5_filename) as h5:
-        grid = GridImages(h5, channel)
-        image = grid.get(row, column)
-    log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
-    # first get the correlation to random tiles, so we can distinguish signal from noise
-    fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(preloaded_fia))
-    if fia.hitting_tiles:
-        # The image data aligned with FastQ reads!
-        try:
-            fia.precision_align_only(min_hits)
-        except ValueError:
-            log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
-        else:
-            write_output(image.index, base_name, fia, output_parameters, all_tile_data, make_pdfs)
-    # The garbage collector takes its sweet time for some reason, so we have to manually delete
-    # these objects or memory usage blows up.
-    del fia
-    del image
+    try:
+        row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
+        with h5py.File(h5_filename) as h5:
+            grid = GridImages(h5, channel)
+            image = grid.get(row, column)
+        log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
+        # first get the correlation to random tiles, so we can distinguish signal from noise
+        fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(preloaded_fia))
+        if fia.hitting_tiles:
+            # The image data aligned with FastQ reads!
+            try:
+                fia.precision_align_only(min_hits)
+            except ValueError:
+                log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
+            else:
+                write_output(image.index, base_name, fia, output_parameters, all_tile_data, make_pdfs)
+        # The garbage collector takes its sweet time for some reason, so we have to manually delete
+        # these objects or memory usage blows up.
+    except TypeError as e:
+        print("ugh typeerror")
+    else:
+        del fia
+        del image
 
 
 def make_output_directories(h5_filenames, output_parameters):
@@ -143,33 +147,36 @@ def load_aligned_stats_files(h5_filenames, alignment_channel, output_parameters)
 
 def process_data_image(output_parameters, all_tile_data, um_per_pixel, make_pdfs, channel,
                        fastq_image_aligner, min_hits, (h5_filename, base_name, stats_filepath, row, column)):
-    with h5py.File(h5_filename) as h5:
+    try:
+        with h5py.File(h5_filename) as h5:
+            try:
+                grid = GridImages(h5, channel)
+                image = grid.get(row, column)
+            except TypeError as e:
+                print(e)
+                print("CAPTURED TYPEERROR 1")
+                exit()
         try:
-            grid = GridImages(h5, channel)
-            image = grid.get(row, column)
+            sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
+            stats_filepath = os.path.join(output_parameters.results_directory, base_name, stats_filepath)
+            local_fia = deepcopy(fastq_image_aligner)
+            local_fia.set_image_data(image, um_per_pixel)
+            local_fia.set_sexcat_from_file(sexcat_filepath)
+            local_fia.alignment_from_alignment_file(stats_filepath)
         except TypeError as e:
             print(e)
-            print("CAPTURED TYPEERROR 1")
+            print("TYPE IN 3")
             exit()
-    try:
-        sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
-        stats_filepath = os.path.join(output_parameters.results_directory, base_name, stats_filepath)
-        local_fia = deepcopy(fastq_image_aligner)
-        local_fia.set_image_data(image, um_per_pixel)
-        local_fia.set_sexcat_from_file(sexcat_filepath)
-        local_fia.alignment_from_alignment_file(stats_filepath)
-    except TypeError as e:
-        print(e)
-        print("TYPE IN 3")
-        exit()
-    else:
-        try:
-            local_fia.precision_align_only(min_hits)
-        except (IndexError, ValueError):
-            log.debug("Could not precision align %s" % image.index)
         else:
-            log.debug("Processed 2nd channel for %s" % image.index)
-            write_output(image.index, base_name, local_fia, output_parameters, all_tile_data, make_pdfs)
+            try:
+                local_fia.precision_align_only(min_hits)
+            except (IndexError, ValueError):
+                log.debug("Could not precision align %s" % image.index)
+            else:
+                log.debug("Processed 2nd channel for %s" % image.index)
+                write_output(image.index, base_name, local_fia, output_parameters, all_tile_data, make_pdfs)
+    except TypeError as e:
+        print("ugh typerror where i expected")
 
 
 def decide_default_tiles_and_columns(end_tiles):
