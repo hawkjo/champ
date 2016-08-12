@@ -251,8 +251,19 @@ def load_existing_score(stats_file_path):
     if os.path.isfile(stats_file_path):
         with open(stats_file_path) as f:
             try:
-                astats = stats.AlignmentStats().from_file(f)
+                astats = stats.AlignmentStats()
+            except TypeError as e:
+                print(e)
+                print("UGH1")
+            try:
+                astats = astats.from_file(f)
+            except TypeError as e:
+                print(e)
+                print("UGH2")
+            try:
                 return astats.score
+            except TypeError as e:
+                print("UGH3", e)
             except ValueError:
                 return 0
     return 0
@@ -265,31 +276,17 @@ def write_output(image_index, base_name, fastq_image_aligner, output_parameters,
 
     # if we've already aligned this channel with a different strategy, the current alignment may or may not be better
     # here we load some data so we can make that comparison
+    existing_score = load_existing_score(stats_file_path)
+    new_stats = fastq_image_aligner.alignment_stats
 
-    try:
-        existing_score = load_existing_score(stats_file_path)
-    except TypeError:
-        print(1)
-
-    try:
-        new_stats = fastq_image_aligner.alignment_stats
-    except TypeError:
-        print(2)
-
-    try:
-        if new_stats.score < existing_score:
-            log.info("Not saving alignment, old score (%s) better than new score (%s)" % (existing_score, new_stats.score))
-            return
-    except TypeError:
-        print(3)
+    if new_stats.score < existing_score:
+        log.info("Not saving alignment, old score (%s) better than new score (%s)" % (existing_score, new_stats.score))
+        return
 
     # save information about how to align the images
-    try:
-        log.info("Saving alignment with score of %s\t\t%s" % (new_stats.score, base_name))
-        with open(stats_file_path, 'w') as f:
-            yaml.dump(new_stats, f)
-    except TypeError:
-        print(4)
+    log.info("Saving alignment with score of %s\t\t%s" % (new_stats.score, base_name))
+    with open(stats_file_path, 'w') as f:
+        yaml.dump(new_stats, f)
 
     # save the intensity data for each read
     with open(intensity_filepath, 'w') as f:
