@@ -7,6 +7,7 @@ import sys
 from collections import defaultdict
 
 import h5py
+import hdf5_tools
 import matplotlib.pyplot as plt
 import numpy as np
 from champ import misc, intensity
@@ -615,5 +616,3 @@ ax.set_xlabel('Target {} Reference Sequence (Background Color)'.format(target_na
 ax.set_ylabel(r'$\Delta \Delta G \left(\frac{kJ}{mol} \right)$', fontsize=fs)
 ax.legend(loc='best')
 fig.savefig(os.path.join(custom_fig_dir, 'doped_ham1.png'))
-print
-
