@@ -57,12 +57,25 @@ def perform_alignment(output_parameters, snr, min_hits, um_per_pixel, sequencing
     # FastQ reads to disk
     try:
         row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
+    except TypeError:
+        print(1)
+
+    try:
         with h5py.File(h5_filename) as h5:
             grid = GridImages(h5, channel)
             image = grid.get(row, column)
-        log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
-        # first get the correlation to random tiles, so we can distinguish signal from noise
+    except TypeError:
+        print(2)
+
+
+    log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
+    # first get the correlation to random tiles, so we can distinguish signal from noise
+    try:
         fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(preloaded_fia))
+    except TypeError:
+        print(3)
+
+    try:
         if fia.hitting_tiles:
             # The image data aligned with FastQ reads!
             try:
@@ -71,13 +84,13 @@ def perform_alignment(output_parameters, snr, min_hits, um_per_pixel, sequencing
                 log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
             else:
                 write_output(image.index, base_name, fia, output_parameters, all_tile_data, make_pdfs)
-        # The garbage collector takes its sweet time for some reason, so we have to manually delete
-        # these objects or memory usage blows up.
-    except TypeError as e:
-        print("ugh typeerror")
-    else:
-        del fia
-        del image
+    except TypeError:
+        print(4)
+
+    # The garbage collector takes its sweet time for some reason, so we have to manually delete
+    # these objects or memory usage blows up.
+    del fia
+    del image
 
 
 def make_output_directories(h5_filenames, output_parameters):
