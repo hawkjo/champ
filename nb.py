@@ -4,11 +4,13 @@ import os
 import random
 import re
 import sys
+from collections import defaultdict
 
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 from champ import misc, intensity
+from sklearn.neighbors import KernelDensity
 
 date = '20160609'
 project_name = 'SA16105'
@@ -137,7 +139,8 @@ class IntensityScores(object):
         for h5_fpath in self.h5_fpaths:
             if verbose: print os.path.basename(h5_fpath)
             for channel in self.scores[h5_fpath].keys():
-                if verbose: misctools.dot()
+                if verbose:
+                    dot()
                 mode_given_pos_tup = {}
                 for pos_tup in self.raw_scores[h5_fpath][channel].keys():
                     pos_key = hdf5_tools.dset_name_given_coords(*pos_tup)
@@ -173,7 +176,7 @@ class IntensityScores(object):
                 for pos_tup in self.scores[h5_fpath][channel].keys():
                     for read_name, score in self.scores[h5_fpath][channel][pos_tup].items():
                         if i % 100000 == 0:
-                            misctools.dot()
+                            dot()
                         score_given_read_name[read_name] = score
                         i += 1
             print
