@@ -13,7 +13,6 @@ import os
 import sys
 import re
 from copy import deepcopy
-import yaml
 
 log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
@@ -274,7 +273,7 @@ def write_output(image_index, base_name, fastq_image_aligner, output_parameters,
     # save information about how to align the images
     log.info("Saving alignment with score of %s\t\t%s" % (new_stats.score, base_name))
     with open(stats_file_path, 'w') as f:
-        yaml.dump(new_stats.serialized, f)
+        f.write(new_stats.serialized)
 
     # save the intensity data for each read
     with open(intensity_filepath, 'w') as f:
