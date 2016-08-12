@@ -144,8 +144,12 @@ def load_aligned_stats_files(h5_filenames, alignment_channel, output_parameters)
 def process_data_image(output_parameters, all_tile_data, um_per_pixel, make_pdfs, channel,
                        fastq_image_aligner, min_hits, (h5_filename, base_name, stats_filepath, row, column)):
     with h5py.File(h5_filename) as h5:
-        grid = GridImages(h5, channel)
-        image = grid.get(row, column)
+        try:
+            grid = GridImages(h5, channel)
+            image = grid.get(row, column)
+        except TypeError as e:
+            print(e)
+            print("CAPTURED TYPEERROR 1")
     sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
     stats_filepath = os.path.join(output_parameters.results_directory, base_name, stats_filepath)
     local_fia = deepcopy(fastq_image_aligner)
@@ -247,7 +251,10 @@ def load_existing_score(stats_file_path):
     if os.path.isfile(stats_file_path):
         with open(stats_file_path) as f:
             try:
-                return stats.AlignmentStats().from_file(f).score
+                astats = stats.AlignmentStats().from_file(f)
+                print(astats, stats_file_path)
+                print(astats.score)
+                return astats.score
             except ValueError:
                 return 0
     return 0
