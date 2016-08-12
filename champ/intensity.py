@@ -333,6 +333,7 @@ def plot_single_mismatch_ddgs(seq_ddGs, seq_ddG_error, target, reference_sequenc
     ax.legend(loc='best')
     return fig
 
+
 def plot_kd_list(seq_Kds, ham_seqs, hamming_distance):
     assert hamming_distance >= 0
     kd_list = np.array([seq_Kds[seq]/1000.0 for seq in ham_seqs if seq in seq_Kds])
@@ -344,6 +345,7 @@ def plot_kd_list(seq_Kds, ham_seqs, hamming_distance):
     ax.set_ylabel('$K_d$ (nM)')
     ax.set_title('HamDist=%d Sorted $K_d$\'s' % hamming_distance)
     return fig
+
 
 def write_ddgs(ddGs, ddG_error, filename):
     # for fname, ddGs, ddG_error in [('target{}_close_seq_ddGs_and_errors.txt'.format(target_name), seq_ddGs, seq_ddG_error)]:
@@ -438,6 +440,7 @@ def plot_fluorescence_vs_concentration(intensities, kd, fmax, fmin, fobs_func, n
 
     ax.set_axis_bgcolor('white')
     return fig
+
 
 def curve_fit_Fobs_fixed_curve_given_read_names(int_scores, h5_filepaths, read_names, protein_channel, fobs_func):
     all_pM_concentrations = []
