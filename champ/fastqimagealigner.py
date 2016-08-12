@@ -60,15 +60,10 @@ class FastqImageAligner(object):
 
     def alignment_from_alignment_file(self, path):
         self.hitting_tiles = []
-        astats = stats.AlignmentStats().from_file(path)
+        with open(path) as f:
+            astats = stats.AlignmentStats().from_file(f)
         for tile_key, scaling, tile_width, rotation, rc_offset, _ in astats:
-            print(tile_key, scaling, tile_width, rotation, rc_offset, _)
-            try:
-                self.set_tile_alignment(tile_key, scaling, tile_width, rotation, rc_offset)
-            except TypeError as e:
-                print(e)
-                print("IN $4")
-                exit()
+            self.set_tile_alignment(tile_key, scaling, tile_width, rotation, rc_offset)
 
     def set_sexcat_from_file(self, fpath):
         with open(fpath) as f:

@@ -11,6 +11,7 @@ class AlignmentStats(object):
         self._data = {}
 
     def from_file(self, fh):
+        assert not isinstance(fh, str)
         self._data = yaml.load(fh)
         self._validate_data()
         return self
@@ -32,12 +33,7 @@ class AlignmentStats(object):
     @property
     def score(self):
         # A somewhat arbitrary metric to determine if one alignment is better than another
-        try:
-            return self._data['hits']['exclusive'] + self._data['hits']['good_mutual']
-        except TypeError as e:
-            print(e)
-            print("CAPTURED TYPEERROR score")
-            exit()
+        return self._data['hits']['exclusive'] + self._data['hits']['good_mutual']
 
     def __iter__(self):
         for tile_key, scaling, tile_width, rotation, rc_offset in zip(self._data['tile_keys'],

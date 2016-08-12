@@ -147,36 +147,22 @@ def load_aligned_stats_files(h5_filenames, alignment_channel, output_parameters)
 
 def process_data_image(output_parameters, all_tile_data, um_per_pixel, make_pdfs, channel,
                        fastq_image_aligner, min_hits, (h5_filename, base_name, stats_filepath, row, column)):
+    with h5py.File(h5_filename) as h5:
+        grid = GridImages(h5, channel)
+        image = grid.get(row, column)
+    sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
+    stats_filepath = os.path.join(output_parameters.results_directory, base_name, stats_filepath)
+    local_fia = deepcopy(fastq_image_aligner)
+    local_fia.set_image_data(image, um_per_pixel)
+    local_fia.set_sexcat_from_file(sexcat_filepath)
+    local_fia.alignment_from_alignment_file(stats_filepath)
     try:
-        with h5py.File(h5_filename) as h5:
-            try:
-                grid = GridImages(h5, channel)
-                image = grid.get(row, column)
-            except TypeError as e:
-                print(e)
-                print("CAPTURED TYPEERROR 1")
-                exit()
-        try:
-            sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
-            stats_filepath = os.path.join(output_parameters.results_directory, base_name, stats_filepath)
-            local_fia = deepcopy(fastq_image_aligner)
-            local_fia.set_image_data(image, um_per_pixel)
-            local_fia.set_sexcat_from_file(sexcat_filepath)
-            local_fia.alignment_from_alignment_file(stats_filepath)
-        except TypeError as e:
-            print(e)
-            print("TYPE IN 3")
-            exit()
-        else:
-            try:
-                local_fia.precision_align_only(min_hits)
-            except (IndexError, ValueError):
-                log.debug("Could not precision align %s" % image.index)
-            else:
-                log.debug("Processed 2nd channel for %s" % image.index)
-                write_output(image.index, base_name, local_fia, output_parameters, all_tile_data, make_pdfs)
-    except TypeError as e:
-        print("ugh typerror where i expected")
+        local_fia.precision_align_only(min_hits)
+    except (IndexError, ValueError):
+        log.debug("Could not precision align %s" % image.index)
+    else:
+        log.debug("Processed 2nd channel for %s" % image.index)
+        write_output(image.index, base_name, local_fia, output_parameters, all_tile_data, make_pdfs)
 
 
 def decide_default_tiles_and_columns(end_tiles):
@@ -266,8 +252,6 @@ def load_existing_score(stats_file_path):
         with open(stats_file_path) as f:
             try:
                 astats = stats.AlignmentStats().from_file(f)
-                print(astats, stats_file_path)
-                print(astats.score)
                 return astats.score
             except ValueError:
                 return 0
