@@ -251,19 +251,7 @@ def load_existing_score(stats_file_path):
     if os.path.isfile(stats_file_path):
         with open(stats_file_path) as f:
             try:
-                astats = stats.AlignmentStats()
-            except TypeError as e:
-                print(e)
-                print("UGH1")
-            try:
-                astats = astats.from_file(f)
-            except TypeError as e:
-                print(e)
-                print("UGH2")
-            try:
-                return astats.score
-            except TypeError as e:
-                print("UGH3", e)
+                return stats.AlignmentStats().from_file(f).score
             except ValueError:
                 return 0
     return 0
