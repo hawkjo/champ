@@ -45,8 +45,6 @@ class AlignmentStats(object):
             # change between each iteration.
             yield tile_key, scaling, tile_width, rotation, rc_offset, self._data['hits']
 
-    def __repr__(self):
-        data = dict(self._data)
-        print("data")
-        print(data)
-        return yaml.dump(data)
+    @property
+    def serialized(self):
+        return yaml.dump(dict(self._data))
