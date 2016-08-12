@@ -361,8 +361,6 @@ class FastqImageAligner(object):
                 'bad_mutual': len(self.bad_mutual_hits),
                 'non_mutual': len(self.non_mutual_hits)}
         offsets = [tuple(map(float, tile.offset)) for tile in self.hitting_tiles]
-        print("OFFSETS")
-        print(offsets)
         return stats.AlignmentStats().from_data([str(tile.key) for tile in self.hitting_tiles],
                                                 [float(tile.scale) for tile in self.hitting_tiles],
                                                 [float(tile.width) for tile in self.hitting_tiles],
