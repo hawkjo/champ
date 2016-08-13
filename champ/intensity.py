@@ -1,105 +1,17 @@
-import functools
 import glob
-import itertools
 import logging
 import os
-import random
 import re
-import warnings
 from collections import defaultdict
 
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
-from champ import hdf5tools, constants, error, projectinfo, misc
-from matplotlib.ticker import MultipleLocator
-from scipy.optimize import minimize, curve_fit
+from champ import hdf5tools, misc
+from scipy.optimize import minimize
 from sklearn.neighbors import KernelDensity
 
 log = logging.getLogger(__name__)
-
-
-def main(metadata, image_directory):
-    on_target_label = "e"
-    on_target_sequence = "GACGCATAAAGATGAGACGCTGGA"
-    off_target_sequence = "GTGATAAGTGGAATGCCATGTGGA"  # target D
-    output_directory = functools.partial(os.path.join, 'figs')
-    protein_channels = determine_protein_channels(image_directory, metadata)
-    read_names_by_seq_fpath = os.path.join(metadata['parsed_reads'], 'read_names_by_seq.txt')
-    perfect_target_read_name_fpath = os.path.join(metadata['parsed_reads'],
-                                                  'perfect_target_{}_read_names.txt'.format(on_target_label))
-    perfect_target_read_names = set(line.strip() for line in open(perfect_target_read_name_fpath))
-    h5_filepaths = sort_h5_files(image_directory)
-    results_dirs = [os.path.join(image_directory, 'results', os.path.splitext(os.path.basename(h5_fpath))[0])
-                    for h5_fpath in h5_filepaths]
-    print('Loading data...')
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        int_scores = IntensityScores(h5_filepaths)
-        int_scores.get_LDA_scores(results_dirs, metadata['lda_weights'])
-        print('Normalizing data...')
-        int_scores.normalize_scores()
-        for basename, fig in int_scores.plot_aligned_images('br', 'o*'):
-            fig.savefig(output_directory("{}_aligned_images.png".format(os.path.splitext(basename)[0])))
-            plt.close()
-        for basename, channel, fig in int_scores.plot_normalization_constants():
-            fig.savefig(output_directory("{}_{}_normalization_constants.png".format(basename, channel)))
-            plt.close()
-        int_scores.print_reads_per_channel()
-        good_num_ims_cutoff = len(h5_filepaths) - 1
-        int_scores.build_good_read_names(good_num_ims_cutoff)
-
-    good_read_names = int_scores.good_read_names
-    good_perfect_read_names = perfect_target_read_names & good_read_names
-    print('Good Perfect Reads: %d' % len(good_perfect_read_names))
-
-    single_ham_seqs = get_sequences_given_ref_and_hamming_distance(on_target_sequence, 1)
-    double_ham_seqs = get_sequences_given_ref_and_hamming_distance(on_target_sequence, 2)
-    close_seqs = [on_target_sequence] + single_ham_seqs + double_ham_seqs
-    close_reads = load_close_reads(read_names_by_seq_fpath, close_seqs, good_read_names)
-    single_counts = [len(close_reads[seq]) for seq in single_ham_seqs]
-    double_counts = [len(close_reads[seq]) for seq in double_ham_seqs]
-    int_scores.build_score_given_read_name_given_channel()
-    bad_read_names = load_bad_read_names(read_names_by_seq_fpath, off_target_sequence, good_read_names)
-    sample_size = min(2000, len(good_perfect_read_names))
-
-    for protein_channel in protein_channels:
-        print("Processing protein channel: {}".format(protein_channel))
-        Fmin = get_fmin(h5_filepaths, protein_channel, int_scores, bad_read_names)
-        Kd, Fmax = fit_curve_given_read_names(int_scores,
-                                              protein_channel,
-                                              Fmin,
-                                              random.sample(good_perfect_read_names, sample_size),
-                                              h5_filepaths)
-        Fobs_fixed = lambda x, kd: fob_fix(x, kd, Fmin, Fmax)
-        nM_concentrations = calculate_nM_concentrations(h5_filepaths)
-        ref_delta_G = delta_G(Kd)
-
-        log.info("Good read names in {}: {}".format(protein_channel, len(good_read_names)))
-
-        plot_good_ham_reads(single_counts, 50, False, 2).savefig(output_directory("{}_good_ham_reads_50.png".format(protein_channel)))
-        plot_good_ham_reads(single_counts, 50, True, 2).savefig(output_directory("{}_good_ham_reads_50_zoomed.png".format(protein_channel)))
-        plot_good_ham_reads(double_counts, 200, False, 2).savefig(output_directory("{}_good_ham_reads_200.png".format(protein_channel)))
-        plot_good_ham_reads(double_counts, 200, True, 2).savefig(output_directory("{}_good_ham_reads_200_zoomed.png".format(protein_channel)))
-
-        seq_Kds, seq_Kd_error, seq_ddGs, seq_ddG_error = calculate_ddg(h5_filepaths, int_scores, close_reads,
-                                                                       ref_delta_G, protein_channel, Fobs_fixed)
-
-        write_kds(seq_Kds, seq_Kd_error,
-                  output_directory('target{}_{}_close_seq_Kds_and_errors.txt').format(on_target_label, protein_channel))
-        write_ddgs(seq_ddGs, seq_ddG_error,
-                   output_directory('target{}_{}_close_seq_ddGs_and_errors.txt').format(on_target_label, protein_channel))
-        single_ham_seqs_fig = plot_kd_list(seq_Kds, single_ham_seqs, 1)
-        single_ham_seqs_fig.savefig(output_directory('{}_single_ham_seqs.png'.format(protein_channel)))
-        double_ham_seqs_fig = plot_kd_list(seq_Kds, double_ham_seqs, 2)
-        double_ham_seqs_fig.savefig(output_directory('{}_double_ham_seqs.png'.format(protein_channel)))
-        single_mismatch_ddgs_fig = plot_single_mismatch_ddgs(seq_ddGs, seq_ddG_error, on_target_sequence,
-                                                             'Target %s' % on_target_label.upper(), fs=16)
-        single_mismatch_ddgs_fig.savefig(output_directory('{}_single_mismatch_ddgs.png'.format(protein_channel)))
-
-        intensities = calculate_intensities(good_perfect_read_names, sample_size, int_scores, protein_channel, h5_filepaths)
-        fl_vs_conc_fig = plot_fluorescence_vs_concentration(intensities, Kd, Fmax, Fmin, Fobs_fixed, nM_concentrations)
-        fl_vs_conc_fig.savefig(output_directory('{}_fl_vs_conc.png'.format(protein_channel)))
 
 
 class IntensityScores(object):
@@ -110,7 +22,7 @@ class IntensityScores(object):
         """
         self.h5_filepaths = h5_filepaths
         self.raw_scores = {
-            h5_fpath: {channel: {} for channel in hdf5tools.get_channel_names(h5_fpath)}
+            h5_fpath: {channel: {} for channel in hdf5tools.load_channel_names(h5_fpath)}
             for h5_fpath in h5_filepaths
             }
         self.scores = self.raw_scores
@@ -140,7 +52,7 @@ class IntensityScores(object):
                 m = image_parsing_regex.match(result_filename)
                 channel = m.group('channel')
                 minor, major = int(m.group('minor')), int(m.group('major'))
-                position = hdf5tools.dset_name_given_coords(major, minor)
+                position = hdf5tools.get_image_key(major, minor)
                 self.scores[h5_fpath][channel][(major, minor)] = {}
 
                 with h5py.File(h5_fpath) as f:
@@ -185,18 +97,18 @@ class IntensityScores(object):
         """
 
         self.scores = {
-            h5_fpath: {channel: {} for channel in hdf5tools.get_channel_names(h5_fpath)}
+            h5_fpath: {channel: {} for channel in hdf5tools.load_channel_names(h5_fpath)}
             for h5_fpath in self.h5_filepaths
             }
         self.normalizing_constants = {
-            h5_fpath: {channel: {} for channel in hdf5tools.get_channel_names(h5_fpath)}
+            h5_fpath: {channel: {} for channel in hdf5tools.load_channel_names(h5_fpath)}
             for h5_fpath in self.h5_filepaths
             }
         for h5_fpath in self.h5_filepaths:
             for channel in self.scores[h5_fpath].keys():
                 mode_given_pos_tup = {}
                 for pos_tup in self.raw_scores[h5_fpath][channel].keys():
-                    pos_key = hdf5tools.dset_name_given_coords(*pos_tup)
+                    pos_key = hdf5tools.get_image_key(*pos_tup)
                     with h5py.File(h5_fpath) as f:
                         im = np.array(f[channel][pos_key])
                     mode_given_pos_tup[pos_tup] = self.get_mode(im)
@@ -216,7 +128,7 @@ class IntensityScores(object):
 
     def build_score_given_read_name_given_channel(self):
         self.score_given_read_name_in_channel = {
-            h5_fpath: {channel: {} for channel in hdf5tools.get_channel_names(h5_fpath)}
+            h5_fpath: {channel: {} for channel in hdf5tools.load_channel_names(h5_fpath)}
             for h5_fpath in self.h5_filepaths
             }
         for h5_fpath in self.h5_filepaths:
@@ -229,9 +141,9 @@ class IntensityScores(object):
     def plot_normalization_constants(self):
         for h5_fpath in self.h5_filepaths:
             basename = os.path.basename(h5_fpath)
-            nMajor_pos, nminor_pos = hdf5tools.get_nMajor_nminor_pos(h5_fpath)
+            num_columns, num_rows = hdf5tools.calculate_grid_dimensions(h5_fpath)
             for channel in sorted(self.scores[h5_fpath].keys()):
-                M = np.empty((nminor_pos, nMajor_pos))
+                M = np.empty((num_rows, num_columns))
                 M[:] = None
 
                 for pos_tup in self.scores[h5_fpath][channel].keys():
@@ -261,7 +173,7 @@ class IntensityScores(object):
                 ax.plot(cs, rs, marker, color=color, alpha=0.4, label=channel)
 
             ax.set_title('Aligned images in {}'.format(basename))
-            nMajor_pos, nminor_pos = hdf5tools.get_nMajor_nminor_pos(h5_fpath)
+            nMajor_pos, nminor_pos = hdf5tools.calculate_grid_dimensions(h5_fpath)
             ax.set_ylim((nminor_pos, -1))
             ax.set_xlim((-1, 1.15 * nMajor_pos))  # Add room for legend
             ax.set_aspect(1)
@@ -291,289 +203,3 @@ class IntensityScores(object):
             if len(pos_names) == 1
             and len(h5_filepaths_given_read_name[read_name]) >= good_num_ims_cutoff
         )
-
-
-def plot_single_mismatch_ddgs(seq_ddGs, seq_ddG_error, target, reference_sequence_name, fs=16):
-    base_colors = dict(A='b', C='darkgoldenrod', G='g', T='r')
-    fig, ax = plt.subplots(figsize=(15, 5))
-    idxs = np.arange(len(target))
-    for j, nucleotide in enumerate('ACGT'):
-        loc_ddGs = []
-        loc_ddG_error = []
-        ticks = []
-        for i, t in enumerate(target):
-            seq = target[:i] + nucleotide + target[i+1:]
-            if seq in seq_ddGs:
-                loc_ddGs.append(seq_ddGs[seq]/1000.0)
-                loc_ddG_error.append(seq_ddG_error[seq]/1000.0)
-                ticks.append(idxs[i])
-            # else:
-            #     print(i, nucleotide, target[i])
-        ticks = np.array(ticks)
-        ax.bar(ticks - 0.25 + 0.5 * j / 4.0, loc_ddGs,
-               width=0.125,
-               yerr=loc_ddG_error,
-               color=base_colors[nucleotide],
-               error_kw=dict(ecolor='k', alpha=0.6),
-               label=nucleotide)
-    ax.xaxis.grid(False)
-    ax.set_xlim((-0.5, len(target)-0.5))
-    ax.set_xticks(range(len(target)))
-    ax.set_xticklabels(target)
-
-    ylim = ax.get_ylim()
-    for i, nucleotide in enumerate(target):
-        ax.fill_between([i-0.5, i+0.5], [ylim[0]]*2, [ylim[1]]*2,
-                        color=base_colors[nucleotide],
-                        alpha=0.07)
-    ax.set_ylim(ylim)
-    ax.set_title('Single Mismatch $\Delta \Delta G$\'s', fontsize=fs)
-    ax.set_xlabel('{} Reference Sequence (Background Color)'.format(reference_sequence_name), fontsize=fs)
-    ax.set_ylabel(r'$\Delta \Delta G \left(\frac{kJ}{mol} \right)$', fontsize=fs)
-    ax.legend(loc='best')
-    return fig
-
-
-def plot_kd_list(seq_Kds, ham_seqs, hamming_distance):
-    assert hamming_distance >= 0
-    kd_list = np.array([seq_Kds[seq]/1000.0 for seq in ham_seqs if seq in seq_Kds])
-    kd_list.sort()
-    fig, ax = plt.subplots(figsize=(15, 7))
-    ax.plot(range(len(kd_list)), kd_list)
-    ax.set_yscale('log')
-    ax.set_xlabel('HamDist=%d Seqs Sorted by $K_d$' % hamming_distance)
-    ax.set_ylabel('$K_d$ (nM)')
-    ax.set_title('HamDist=%d Sorted $K_d$\'s' % hamming_distance)
-    return fig
-
-
-def write_ddgs(ddGs, ddG_error, filename):
-    # for fname, ddGs, ddG_error in [('target{}_close_seq_ddGs_and_errors.txt'.format(target_name), seq_ddGs, seq_ddG_error)]:
-    with open(filename, 'w') as out:
-        out.write('# Seq\tddG (J/mol)\tddG error (J/mol)\n')
-        out.write('\n'.join(['%s\t%f\t%f' % (seq, ddGs[seq], ddG_error[seq]) for seq in sorted(ddGs.keys())]))
-
-
-def write_kds(Kds, Kd_error, filename):
-    with open(filename, 'w') as out:
-        out.write('# Seq\tKd (pM)\tKd error (pM)\n')
-        out.write('\n'.join(['%s\t%f\t%f' % (seq, Kds[seq], Kd_error[seq]) for seq in sorted(Kds.keys())]))
-
-
-def plot_good_ham_reads(counts, bins, zoom_in, hamming_distance):
-    if zoom_in:
-        fig, ax = plt.subplots()
-    else:
-        fig, ax = plt.subplots(figsize=(15, 6))
-    ax.hist(counts, bins, histtype='step')
-    ax.set_title('Good Ham=%d Reads Found' % hamming_distance)
-    ax.set_xlabel('Read Counts')
-    ax.set_ylabel('Number of Seqs')
-    if zoom_in:
-        ax.set_xlim((0, 50))
-    return fig
-
-
-def delta_G(Kd):
-    """Takes a Kd in pM and return delta_G in J/mol"""
-    return constants.R * 333 * np.log(Kd / 10 ** 12)
-
-
-def delta_delta_G(Kd, ref_delta_G):
-    """Returns delta_delta_G in J/mol"""
-    return delta_G(Kd) - ref_delta_G
-
-
-def calculate_ddg(h5_filepaths, int_scores, close_reads, ref_delta_G, protein_channel, fobs_func):
-    seq_Kds, seq_Kd_error, seq_ddGs, seq_ddG_error = {}, {}, {}, {}
-    for seq, read_names in close_reads.items():
-        if len(read_names) < 5:
-            continue
-        read_names = list(read_names)
-        popt = curve_fit_Fobs_fixed_curve_given_read_names(int_scores, h5_filepaths, read_names, protein_channel, fobs_func)
-        seq_Kds[seq] = popt[0]
-        seq_ddGs[seq] = delta_delta_G(popt[0], ref_delta_G)
-
-        bootstrap_Kds, bootstrap_ddGs = [], []
-        for _ in range(50):
-            resamp_read_names = np.random.choice(read_names, size=len(read_names), replace=True)
-            try:
-                popt = curve_fit_Fobs_fixed_curve_given_read_names(int_scores, h5_filepaths, resamp_read_names,
-                                                                   protein_channel, fobs_func)
-            except:
-                error.fail("Error calculating ddG")
-            bootstrap_Kds.append(popt[0])
-            bootstrap_ddGs.append(delta_delta_G(popt[0], ref_delta_G))
-        seq_Kd_error[seq] = np.std(bootstrap_Kds)
-        seq_ddG_error[seq] = np.std(bootstrap_ddGs)
-    return seq_Kds, seq_Kd_error, seq_ddGs, seq_ddG_error
-
-
-def plot_fluorescence_vs_concentration(intensities, kd, fmax, fmin, fobs_func, nM_concentrations):
-    xx = np.logspace(1, 5, 200)
-    yy = fobs_func(xx, kd)
-
-    fig, ax = plt.subplots(figsize=(10, 7))
-    for intensity in intensities:
-        ax.plot(nM_concentrations, intensity, 'b', alpha=0.01)
-    ax.plot(xx / 1000, yy, 'r', label='Fit Curve', linewidth=2.5)
-    ax.set_xscale('log')
-    ax.grid(False)
-
-    ax.set_title('Fluorescence vs Concentration Curve')
-    ax.set_xlabel('Concentration (nM)')
-    ax.set_ylabel('Intensity')
-    xlim, ylim = ax.get_xlim(), ax.get_ylim()
-
-    inc = (ylim[1] - ylim[0]) / 3
-    oom = int(np.log10(inc))
-    inc -= inc % max(1, int(0.05 * 10 ** oom))
-    ax.yaxis.set_major_locator(MultipleLocator(inc))
-
-    ax.text(0.2,
-            sum(ax.get_ylim()) / 2,
-            '$K_d = %.2f$ nM\n$F_{max} = %.1f$\n$F_{min} = %.1f$' % (kd / 1000, fmax, fmin),
-            fontsize=20,
-            va='center')
-    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
-        item.set_fontsize(18)
-
-    ax.set_axis_bgcolor('white')
-    return fig
-
-
-def curve_fit_Fobs_fixed_curve_given_read_names(int_scores, h5_filepaths, read_names, protein_channel, fobs_func):
-    all_pM_concentrations = []
-    all_intensities = []
-    for h5_fpath in h5_filepaths:
-        pM_conc = misc.parse_concentration(h5_fpath)
-        if protein_channel not in int_scores.score_given_read_name_in_channel[h5_fpath]:
-            continue
-        score_dict = int_scores.score_given_read_name_in_channel[h5_fpath][protein_channel]
-        for read_name in read_names:
-            if read_name in score_dict:
-                all_pM_concentrations.append(pM_conc)
-                all_intensities.append(float(score_dict[read_name]))
-    return curve_fit(fobs_func, all_pM_concentrations, all_intensities)[0]
-
-
-def fit_curve_given_read_names(int_scores, protein_channel, Fmin, read_names, h5_filepaths):
-    all_pM_concentrations = []
-    all_intensities = []
-    for h5_fpath in h5_filepaths:
-        pM_conc = misc.parse_concentration(h5_fpath)
-        if protein_channel not in int_scores.score_given_read_name_in_channel[h5_fpath]:
-            continue
-        score_dict = int_scores.score_given_read_name_in_channel[h5_fpath][protein_channel]
-        for read_name in read_names:
-            if read_name in score_dict:
-                all_pM_concentrations.append(pM_conc)
-                all_intensities.append(score_dict[read_name])
-                print("pM concentrations: %s" % pM_conc)
-    optimization_result = minimize(make_Fobs_sq_error(all_pM_concentrations, all_intensities, Fmin),
-                                   (500, 1),
-                                   bounds=((0, None), (0, None)))
-    # we just return 'x', the solution array
-    return optimization_result.x
-
-
-def get_sequences_given_ref_and_hamming_distance(ref_seq, ham):
-    seqs = []
-    for idxs in itertools.combinations(range(len(ref_seq)), ham):
-        mm_bases = ['ACGT'.replace(ref_seq[idx], '') for idx in idxs]
-        for new_bases in itertools.product(*mm_bases):
-            new_seq = ref_seq[:idxs[0]]
-            for i, new_base in enumerate(new_bases[:-1]):
-                new_seq += new_base + ref_seq[idxs[i]+1:idxs[i+1]]
-            new_seq += new_bases[-1] + ref_seq[idxs[-1]+1:]
-            seqs.append(new_seq)
-    return seqs
-
-
-def load_close_reads(read_names_by_seq_fpath, close_seqs, good_read_names):
-    close_reads = {seq: set() for seq in close_seqs}
-    for line in open(read_names_by_seq_fpath):
-        words = line.strip().split()
-        seq = words[0]
-        read_names = words[1:]
-        for close_seq in close_seqs:
-            if close_seq in seq:
-                close_reads[close_seq].update(rn for rn in read_names if rn in good_read_names)
-                break
-    return close_reads
-
-
-def load_bad_read_names(read_names_by_seq_fpath, off_target, good_read_names):
-    bad_read_names = set()
-    for line in open(read_names_by_seq_fpath):
-        words = line.strip().split()
-        seq = words[0]
-        read_names = words[1:]
-        if off_target in seq:
-            bad_read_names.update(rn for rn in read_names if rn in good_read_names)
-    return bad_read_names
-
-
-def get_fmin(h5_filepaths, protein_channel, int_scores, bad_read_names):
-    for h5_fpath in h5_filepaths:
-        if protein_channel not in int_scores.score_given_read_name_in_channel[h5_fpath]:
-            continue
-        score_dict = int_scores.score_given_read_name_in_channel[h5_fpath][protein_channel]
-        intensities = []
-        for read_name in bad_read_names:
-            if read_name in score_dict:
-                intensities.append(score_dict[read_name])
-        if intensities:
-            break
-            # TODO: Move return statement here?
-    return np.average(intensities)
-
-
-def Fobs(x, Kd, Fmax, Fmin):
-    return Fmax / (1.0 + (float(Kd)/x)) + Fmin
-
-
-def make_Fobs_sq_error(concentrations, intensities, Fmin):
-    def Fobs_sq_error(params):
-        Kd, Fmax = params
-        return sum((Fobs(conc, Kd, Fmax, Fmin) - obs_avg)**2 for conc, obs_avg in zip(concentrations, intensities))
-    return Fobs_sq_error
-
-
-def sort_h5_files(data_directory):
-    h5_filepaths = glob.glob(os.path.join(data_directory, '*.h5'))
-    i = 0
-    while i < len(h5_filepaths):
-        if 'phix' in h5_filepaths[i].lower() or 'chip' in h5_filepaths[i]:
-            h5_filepaths.pop(i)
-        else:
-            i += 1
-    h5_filepaths.sort(key=misc.parse_concentration)
-    return h5_filepaths
-
-
-def calculate_intensities(good_perfect_read_names, sample_size, int_scores, protein_channel, h5_filepaths):
-    intensities = []
-    for read_name in random.sample(good_perfect_read_names, sample_size):
-        intensity = [int_scores.score_given_read_name_in_channel[h5_fpath][protein_channel][read_name]
-                     if protein_channel in int_scores.score_given_read_name_in_channel[h5_fpath]
-                         and read_name in int_scores.score_given_read_name_in_channel[h5_fpath][protein_channel]
-                     else None
-                     for h5_fpath in h5_filepaths]
-        intensities.append(intensity)
-    return intensities
-
-
-def fob_fix(fmin, fmax, x, kd):
-    return fmax / (1.0 + (float(kd) / float(x))) + fmin
-
-
-def calculate_nM_concentrations(h5_filepaths):
-    return [misc.parse_concentration(h5_fpath) / 1000.0 for h5_fpath in h5_filepaths]
-
-
-def determine_protein_channels(image_directory, metadata):
-    channels = projectinfo.load_channels(image_directory)
-    alignment_channel = set([metadata['alignment_channel']])
-    protein_channels = channels - alignment_channel
-    return protein_channels if protein_channels else alignment_channel
