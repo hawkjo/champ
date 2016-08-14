@@ -21,12 +21,14 @@ class IntensityScores(object):
             scores[h5_fpath][channel][pos_tup][read_name]
         """
         self.h5_filepaths = h5_filepaths
-        self.scores = {
+        self.raw_scores = {
             h5_fpath: {channel: {} for channel in hdf5tools.load_channel_names(h5_fpath)}
             for h5_fpath in h5_filepaths
             }
+        self.scores = self.raw_scores
 
     def get_LDA_scores(self, results_dirs, lda_weights_fpath, side_px=3, important_read_names='all'):
+
         # Set cluster skip test
         if important_read_names == 'all':
             def isimportant(*args):
@@ -105,7 +107,7 @@ class IntensityScores(object):
         for h5_fpath in self.h5_filepaths:
             for channel in self.scores[h5_fpath].keys():
                 mode_given_pos_tup = {}
-                for pos_tup in self.scores[h5_fpath][channel].keys():
+                for pos_tup in self.raw_scores[h5_fpath][channel].keys():
                     pos_key = hdf5tools.get_image_key(*pos_tup)
                     with h5py.File(h5_fpath) as f:
                         im = np.array(f[channel][pos_key])
@@ -115,14 +117,14 @@ class IntensityScores(object):
                 for pos_tup in mode_given_pos_tup.keys():
                     Z = mode_given_pos_tup[pos_tup] / float(median_of_modes)
                     self.normalizing_constants[h5_fpath][channel][pos_tup] = Z
-                    im_scores = self.scores[h5_fpath][channel][pos_tup]
+                    im_scores = self.raw_scores[h5_fpath][channel][pos_tup]
                     self.scores[h5_fpath][channel][pos_tup] = {
                         read_name: im_scores[read_name] / Z
                         for read_name in self.get_read_names_in_image(h5_fpath, channel, pos_tup)
                         }
 
     def get_read_names_in_image(self, h5_fpath, channel, pos_tup):
-        return set(self.scores[h5_fpath][channel][pos_tup].keys())
+        return set(self.raw_scores[h5_fpath][channel][pos_tup].keys())
 
     def build_score_given_read_name_given_channel(self):
         self.score_given_read_name_in_channel = {
