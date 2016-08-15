@@ -29,7 +29,7 @@ def run(h5_filenames, output_parameters, snr, min_hits, fia, end_tiles, alignmen
 
     pool = multiprocessing.Pool(num_processes)
     pool.map_async(alignment_func,
-                   iterate_all_images(h5_filenames, end_tiles, alignment_channel), chunksize=8).get(timeout=sys.maxint)
+                   iterate_all_images(h5_filenames, end_tiles, alignment_channel), chunksize=96).get(timeout=sys.maxint)
     log.debug("Done aligning!")
 
 
@@ -46,7 +46,7 @@ def run_data_channel(h5_filenames, channel_name, output_parameters, alignment_ti
     log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
     pool.map_async(second_processor,
                    load_aligned_stats_files(h5_filenames, metadata['alignment_channel'], output_parameters),
-                   chunksize=8).get(sys.maxint)
+                   chunksize=96).get(sys.maxint)
     log.debug("Done aligning!")
 
 

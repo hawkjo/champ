@@ -7,11 +7,28 @@ from collections import defaultdict
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
+from champ import grid
 from champ import hdf5tools, misc
 from scipy.optimize import minimize
 from sklearn.neighbors import KernelDensity
 
 log = logging.getLogger(__name__)
+
+
+def calculate_intensities(h5_filenames):
+    results = defaultdict(list)
+    for filename in h5_filenames:
+        h5 = h5py.File(filename, "r")
+        g = grid.GridImages(h5, "NGS_blue")
+        for image in g.left_iter():
+            results[filename].append(np.mean(image))
+    return results
+
+
+def plot_timecourse(times, intensities):
+    plt.boxplot(intensities)
+    plt.xticks(range(len(intensities)), times)
+    plt.show()
 
 
 class IntensityScores(object):
@@ -28,7 +45,6 @@ class IntensityScores(object):
         self.scores = self.raw_scores
 
     def get_LDA_scores(self, results_dirs, lda_weights_fpath, side_px=3, important_read_names='all'):
-
         # Set cluster skip test
         if important_read_names == 'all':
             def isimportant(*args):
