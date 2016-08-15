@@ -33,8 +33,10 @@ def main(clargs):
     # We use one process per concentration. We could theoretically speed this up since our machine
     # has significantly more cores than the typical number of concentration points, but since it
     # usually finds a result in the first image or two, it's not going to deliver any practical benefits
+    log.debug("Loading FastQImageAligner")
     fia = fastqimagealigner.FastqImageAligner()
     fia.load_reads(alignment_tile_data)
+    log.debug("FastQImageAligner loaded.")
 
     if 'end_tiles' not in metadata:
         end_tiles = align.get_end_tiles(h5_filenames, metadata['alignment_channel'], clargs.snr, metadata, sequencing_chip, fia)
@@ -62,6 +64,13 @@ def main(clargs):
     for channel_name in protein_channels:
         if channel_name not in metadata['protein_channels_aligned']:
             log.debug("Aligning protein channel: %s" % channel_name)
+            # TODO: Here is where we implement different alignment strategies.
+            # We've already aligned phix to the phix channel.
+            # Things we can try here:
+            # - Align regular clusters to protein channels
+            # - Align perfect target to protein channels
+            # - Align doped phiX to protein channel (not always applicable!)
+            # This should be totally idempotent since we don't save alignments unless they surpass previous ones in quality
             align.run_data_channel(h5_filenames, channel_name, output_parameters, alignment_tile_data,
                                    all_tile_data, metadata, clargs)
             metadata['protein_channels_aligned'].append(channel_name)

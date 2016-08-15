@@ -38,8 +38,8 @@ class GridImages(object):
 
         """
         self._h5 = h5
-        self._rows = None
-        self._columns = None
+        self._height = 0
+        self._width = 0
         self._channel = channel
         self._parse_grid()
 

@@ -5,9 +5,9 @@ from itertools import izip
 
 import numpy as np
 import sextraction
+from champ import stats
 from fastqtilercs import FastqTileRCs
 from imagedata import ImageData
-from misc import AlignmentStats
 from scipy.spatial import KDTree
 
 log = logging.getLogger(__name__)
@@ -22,8 +22,6 @@ class FastqImageAligner(object):
         self.image_data = None
         self.fq_w = 935  # um
         self.control_corr = 0
-        # self.rcs_in_frame = []
-        # self.aligned_rcs_in_frame = None
         self.non_mutual_hits = set()
         self.mutual_hits = set()
         self.bad_mutual_hits = set()
@@ -60,16 +58,12 @@ class FastqImageAligner(object):
         tile = self.fastq_tiles[tile_key]
         tile.set_aligned_rcs_given_transform(scale, rotation, rc_offset)
 
-    def alignment_from_alignment_file(self, fpath):
+    def alignment_from_alignment_file(self, path):
         self.hitting_tiles = []
-        astats = AlignmentStats(fpath)
-        for i in range(astats.numtiles):
-            self.set_tile_alignment(astats.tile[i],
-                                    astats.scaling[i],
-                                    astats.tile_width[i],
-                                    astats.rotation[i] * np.pi / 180,
-                                    astats.rc_offset[i]
-                                   )
+        with open(path) as f:
+            astats = stats.AlignmentStats().from_file(f)
+        for tile_key, scaling, tile_width, rotation, rc_offset, _ in astats:
+            self.set_tile_alignment(tile_key, scaling, tile_width, rotation, rc_offset)
 
     def set_sexcat_from_file(self, fpath):
         with open(fpath) as f:
@@ -236,7 +230,7 @@ class FastqImageAligner(object):
         log.debug('Good mutual hits: %s' % len(good_mutual_hits))
         log.debug('Exclusive hits: %s' % len(exclusive_hits))
 
-    def least_squares_mapping(self, hit_type='exclusive', pct_thresh=0.9, min_hits=50):
+    def least_squares_mapping(self, pct_thresh=0.9, min_hits=50):
         """least_squares_mapping(self, hit_type='exclusive')
 
         "Input": set of tuples of (sexcat_idx, in_frame_idx) mappings.
@@ -281,7 +275,7 @@ class FastqImageAligner(object):
             self.find_hits(consider_tiles=tile)
 
             # Reminder: All indices are in the order (sexcat_idx, in_frame_idx)
-            raw_hits = get_hits(hit_type)
+            raw_hits = get_hits(('exclusive', 'good_mutual'))
             hits = self.remove_longest_hits(raw_hits, pct_thresh)
             if len(hits) < min_hits:
                 raise ValueError('Too few hits for least squares mapping: {0}'.format(len(hits)))
@@ -314,17 +308,18 @@ class FastqImageAligner(object):
         self.find_hitting_tiles(possible_tile_keys, snr_thresh)
         log.debug('Rough alignment time: %.3f seconds' % (time.time() - start_time))
 
-    def precision_align_only(self, hit_type=('exclusive', 'good_mutual'), min_hits=15):
+    def precision_align_only(self, min_hits):
         start_time = time.time()
         if not self.hitting_tiles:
             raise RuntimeError('Alignment not found')
-        self.least_squares_mapping(hit_type, min_hits=min_hits)
+        self.least_squares_mapping(min_hits=min_hits)
         log.debug('Precision alignment time: %.3f seconds' % (time.time() - start_time))
         start_time = time.time()
         self.find_hits()
         log.debug('Hit finding time: %.3f seconds' % (time.time() - start_time))
-        
-    def output_intensity_results(self, out_fpath):
+
+    @property
+    def intensity_results(self):
         hit_given_aligned_idx = {}
         for hit_type in ('non_mutual', 'bad_mutual', 'good_mutual', 'exclusive'):
             for i, j in getattr(self, hit_type + '_hits'):
@@ -356,38 +351,27 @@ class FastqImageAligner(object):
                                          str(flux),
                                          str(flux_err)]))
 
-        with open(out_fpath, 'w') as out:
-            fields = ('read_name', 'image_name', 'hit_type', 'r', 'c', 'flux', 'flux_err')
-            out.write('# Fields: ' + '\t'.join(fields) + '\n')
-            out.write('\n'.join(sorted(lines, key=lambda s: float(s.split()[3]), reverse=True)))
-        del lines
+        fields = ('read_name', 'image_name', 'hit_type', 'r', 'c', 'flux', 'flux_err')
+        return '# Fields: ' + '\t'.join(fields) + '\n' + '\n'.join(sorted(lines, key=lambda s: float(s.split()[3]), reverse=True))
 
-    def write_alignment_stats(self, out_fpath):
-        stats = [
-            'Image:                 %s' % self.image_data.fname,
-            'Objective:             %d' % int(16.0 / self.image_data.um_per_pixel),
-            'Tile:                  %s' % ','.join(tile.key for tile in self.hitting_tiles),
-            'Rotation (deg):        %s' % ','.join('%.4f' % tile.rotation_degrees for tile in self.hitting_tiles),
-            'Tile width (um):       %s' % ','.join('%.4f' % tile.width for tile in self.hitting_tiles),
-            'Scaling (px/fqu):      %s' % ','.join('%.7f' % tile.scale for tile in self.hitting_tiles),
-            'RC Offset (px):        %s' % ','.join('(%.4f,%.4f)' % tuple(tile.offset) for tile in self.hitting_tiles),
-            'Correlation:           %s' % ','.join('%.2f' % tile.best_max_corr for tile in self.hitting_tiles),
-            'Non-mutual hits:       %d' % (len(self.non_mutual_hits)),
-            'Bad mutual hits:       %d' % (len(self.bad_mutual_hits)),
-            'Good mutual hits:      %d' % (len(self.good_mutual_hits)),
-            'Exclusive hits:        %d' % (len(self.exclusive_hits)),
-            'Sextractor Ellipses:   %d' % (len(self.sexcat.point_rcs)),
-            'Fastq Points:          %d' % (len(self.aligned_rcs_in_frame)),
-            ]
-        with open(out_fpath, 'w') as out:
-            out.write('\n'.join(stats))
-        del out
+    @property
+    def alignment_stats(self):
+        hits = {'exclusive': len(self.exclusive_hits),
+                'good_mutual': len(self.good_mutual_hits),
+                'bad_mutual': len(self.bad_mutual_hits),
+                'non_mutual': len(self.non_mutual_hits)}
+        offsets = [tuple(map(float, tile.offset)) for tile in self.hitting_tiles]
+        return stats.AlignmentStats().from_data([str(tile.key) for tile in self.hitting_tiles],
+                                                [float(tile.scale) for tile in self.hitting_tiles],
+                                                [float(tile.width) for tile in self.hitting_tiles],
+                                                [float(tile.rotation_degrees) for tile in self.hitting_tiles],
+                                                offsets,
+                                                hits)
 
-    def write_read_names_rcs(self, out_fpath):
+    @property
+    def read_names_rcs(self):
         im_shape = self.image_data.image.shape
-        with open(out_fpath, 'w') as out:
-            for tile in self.hitting_tiles:
-                for read_name, pt in izip(tile.read_names, tile.aligned_rcs):
-                    if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
-                        out.write('%s\t%f\t%f\n' % (read_name, pt[0], pt[1]))
-        del out
+        for tile in self.hitting_tiles:
+            for read_name, pt in izip(tile.read_names, tile.aligned_rcs):
+                if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
+                    yield '%s\t%f\t%f\n' % (read_name, pt[0], pt[1])
