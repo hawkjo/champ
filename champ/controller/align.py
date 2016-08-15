@@ -19,7 +19,6 @@ class AlignmentStrategies(object):
         pass
 
 
-
 def main(clargs):
     # TODO: Check if preprocessing is done, if not, run the preprocessing command
     # We know which channel phix is in from the YAML file
