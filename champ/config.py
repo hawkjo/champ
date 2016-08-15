@@ -19,7 +19,8 @@ class CommandLineArguments(object):
 
     @property
     def perfect_target_name(self):
-        return self._arguments['PERFECT_TARGET_NAME']
+        # return self._arguments['PERFECT_TARGET_NAME']
+        return 'D'
 
     @property
     def log_level(self):
@@ -140,4 +141,4 @@ class PathInfo(object):
 
     @property
     def perfect_read_names(self):
-        return os.path.join(self._mapped_reads, 'target_{}_perfect_reads'.format(self._perfect_target_name.lower()))
+        return os.path.join(self._mapped_reads, 'target_{}_perfect_reads.txt'.format(self._perfect_target_name.lower()))
