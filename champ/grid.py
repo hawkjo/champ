@@ -60,6 +60,10 @@ class GridImages(object):
         self._height = max_row + 1
         self._width = max_column + 1
 
+    def __len__(self):
+        # The number of images in this channel
+        return len(self._h5[self._channel])
+
     @property
     def columns(self):
         return [column for column in range(self._width)]
