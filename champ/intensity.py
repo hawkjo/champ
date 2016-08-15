@@ -44,7 +44,7 @@ class IntensityScores(object):
             }
         self.scores = self.raw_scores
 
-    def get_LDA_scores(self, results_dirs, lda_weights_fpath, side_px=3, important_read_names='all'):
+    def get_LDA_scores(self, results_dirs, lda_weights_fpath, side_px=3, important_read_names='all', control_flip=False):
         # Set cluster skip test
         if important_read_names == 'all':
             def isimportant(*args):
@@ -73,6 +73,8 @@ class IntensityScores(object):
 
                 with h5py.File(h5_fpath) as f:
                     im = np.array(f[channel][position])
+                    if control_flip:
+                        im = np.fliplr(im)
 
                 with open(result_path) as f:
                     for line in f:
