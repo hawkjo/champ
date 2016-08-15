@@ -14,20 +14,12 @@ class CommandLineArguments(object):
         self._current_directory = current_directory
 
     @property
-    def target_data_file(self):
-        return self._arguments['TARGET_DATA_FILE']
-
-    @property
     def nonneg_lda_weights_path(self):
         return self._arguments['LDA_WEIGHTS']
 
     @property
-    def target_label(self):
-        return self._arguments['TARGET_LABEL']
-
-    @property
-    def off_target_label(self):
-        return self._arguments['OFF_TARGET_LABEL']
+    def perfect_target_name(self):
+        return self._arguments['PERFECT_TARGET_NAME']
 
     @property
     def log_level(self):
@@ -56,6 +48,7 @@ class CommandLineArguments(object):
 
     @property
     def parsed_reads(self):
+        # TODO: This needs to be merged into mapped_reads, but that requires resolution of #42
         return self._arguments['PARSED_READS']
 
     @property
@@ -122,12 +115,12 @@ class CommandLineArguments(object):
         return float(self._arguments.get('-snr') or 1.2)
 
 
-class OutputParameters(object):
-    # TODO: The name of this is bad, it's input and output
+class PathInfo(object):
     """ Parses user-provided alignment parameters and provides a default in case no value was given. """
-    def __init__(self, image_directory, mapped_reads):
+    def __init__(self, image_directory, mapped_reads, perfect_target_name):
         self._image_directory = image_directory
         self._mapped_reads = mapped_reads
+        self._perfect_target_name = perfect_target_name
 
     @property
     def figure_directory(self):
@@ -144,3 +137,7 @@ class OutputParameters(object):
     @property
     def all_read_names_filepath(self):
         return os.path.join(self._mapped_reads, 'unclassified')
+
+    @property
+    def perfect_read_names(self):
+        return os.path.join(self._mapped_reads, 'target_{}_perfect_reads'.format(self._perfect_target_name.lower()))
