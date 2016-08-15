@@ -13,14 +13,16 @@ import os
 import sys
 import re
 from copy import deepcopy
+import math
 
 log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 
 
 def run(h5_filenames, output_parameters, snr, min_hits, fia, end_tiles, alignment_channel, all_tile_data, metadata, make_pdfs, sequencing_chip):
-    num_processes = calculate_process_count()
-    log.debug("Aligning all images with %d cores" % num_processes)
+    image_count = count_images(h5_filenames, alignment_channel)
+    num_processes, chunksize = calculate_process_count(image_count)
+    log.debug("Aligning alignment images with %d cores with chunksize %d" % (num_processes, chunksize))
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
@@ -29,12 +31,15 @@ def run(h5_filenames, output_parameters, snr, min_hits, fia, end_tiles, alignmen
 
     pool = multiprocessing.Pool(num_processes)
     pool.map_async(alignment_func,
-                   iterate_all_images(h5_filenames, end_tiles, alignment_channel), chunksize=96).get(timeout=sys.maxint)
+                   iterate_all_images(h5_filenames, end_tiles, alignment_channel), chunksize=chunksize).get(timeout=sys.maxint)
     log.debug("Done aligning!")
 
 
 def run_data_channel(h5_filenames, channel_name, output_parameters, alignment_tile_data, all_tile_data, metadata, clargs):
-    num_processes = calculate_process_count()
+    image_count = count_images(h5_filenames, channel_name)
+    num_processes, chunksize = calculate_process_count(image_count)
+    log.debug("Aligning data images with %d cores with chunksize %d" % (num_processes, chunksize))
+
     log.debug("Loading reads into FASTQ Image Aligner.")
     fastq_image_aligner = fastqimagealigner.FastqImageAligner()
     fastq_image_aligner.load_reads(alignment_tile_data)
@@ -46,7 +51,7 @@ def run_data_channel(h5_filenames, channel_name, output_parameters, alignment_ti
     log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
     pool.map_async(second_processor,
                    load_aligned_stats_files(h5_filenames, metadata['alignment_channel'], output_parameters),
-                   chunksize=96).get(sys.maxint)
+                   chunksize=chunksize).get(sys.maxint)
     log.debug("Done aligning!")
 
 
@@ -118,9 +123,20 @@ def build_end_tiles(h5_filenames, experiment_chip, left_end_tiles, default_left_
     return end_tiles
 
 
-def calculate_process_count():
+def count_images(h5_filenames, channel):
+    image_count = 0
+    for h5_filename in h5_filenames:
+        with h5py.File(h5_filename, 'r') as h5:
+            grid = GridImages(h5, channel)
+            image_count += len(grid)
+    return image_count
+
+
+def calculate_process_count(image_count):
     # Leave at least two processors free so we don't totally hammer the server
-    return max(multiprocessing.cpu_count() - 2, 1)
+    num_processes = max(multiprocessing.cpu_count() - 2, 1)
+    chunksize = int(math.ceil(float(image_count) / float(num_processes)))
+    return num_processes, chunksize
 
 
 def extract_rc_info(stats_file):
