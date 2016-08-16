@@ -76,7 +76,8 @@ def perform_alignment(path_info, snr, min_hits, um_per_pixel, sequencing_chip, a
         except ValueError:
             log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
         else:
-            write_output(image.index, base_name, fia, path_info, all_tile_data, make_pdfs)
+            result = write_output(image.index, base_name, fia, path_info, all_tile_data, make_pdfs)
+            print("Write alignment for %s: %s" % (image.index, result))
 
     # The garbage collector takes its sweet time for some reason, so we have to manually delete
     # these objects or memory usage blows up.
@@ -179,7 +180,8 @@ def process_data_image(path_info, all_tile_data, um_per_pixel, make_pdfs, channe
         log.debug("Could not precision align %s" % image.index)
     else:
         log.debug("Processed 2nd channel for %s" % image.index)
-        write_output(image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs)
+        result = write_output(image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs)
+        print("Write alignment for %s: %s" % (image.index, result))
 
 
 def decide_default_tiles_and_columns(end_tiles):
@@ -293,8 +295,7 @@ def write_output(image_index, base_name, fastq_image_aligner, path_info, all_til
     print("New score", new_stats.score)
     if new_stats.score < existing_score:
         log.info("Not saving alignment, old score (%s) better than new score (%s)" % (existing_score, new_stats.score))
-        log.info("JK, writing stats file.")
-    #     return
+        return False
 
     # save information about how to align the images
     log.info("Saving alignment with score of %s\t\t%s" % (new_stats.score, base_name))
@@ -320,3 +321,5 @@ def write_output(image_index, base_name, fastq_image_aligner, path_info, all_til
         ax = plotting.plot_hit_hists(fastq_image_aligner)
         ax.figure.savefig(os.path.join(path_info.figure_directory, base_name, '{}_hit_hists.pdf'.format(image_index)))
         plt.close()
+
+    return True
