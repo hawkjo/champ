@@ -283,16 +283,9 @@ def write_output(image_index, base_name, fastq_image_aligner, path_info, all_til
 
     # if we've already aligned this channel with a different strategy, the current alignment may or may not be better
     # here we load some data so we can make that comparison
-    try:
-        existing_score = load_existing_score(stats_file_path)
-    except Exception as e:
-        print("UNEXPECTED EXCEPTION")
-        print(e)
-        return
+    existing_score = load_existing_score(stats_file_path)
 
-    print("Existing score: %s" % existing_score)
     new_stats = fastq_image_aligner.alignment_stats
-    print("New score", new_stats.score)
     if new_stats.score < existing_score:
         log.info("Not saving alignment, old score (%s) better than new score (%s)" % (existing_score, new_stats.score))
         return False
@@ -321,5 +314,4 @@ def write_output(image_index, base_name, fastq_image_aligner, path_info, all_til
         ax = plotting.plot_hit_hists(fastq_image_aligner)
         ax.figure.savefig(os.path.join(path_info.figure_directory, base_name, '{}_hit_hists.pdf'.format(image_index)))
         plt.close()
-
     return True
