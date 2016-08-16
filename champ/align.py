@@ -168,19 +168,26 @@ def process_data_image(path_info, all_tile_data, um_per_pixel, make_pdfs, channe
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
         image = grid.get(row, column)
+    print(1)
     sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
     stats_filepath = os.path.join(path_info.results_directory, base_name, stats_filepath)
     local_fia = deepcopy(fastq_image_aligner)
     local_fia.set_image_data(image, um_per_pixel)
+    print(2)
     local_fia.set_sexcat_from_file(sexcat_filepath)
+    print(3)
     local_fia.alignment_from_alignment_file(stats_filepath)
+    print(4)
     try:
         local_fia.precision_align_only(min_hits)
+        print(5)
     except (IndexError, ValueError):
         log.debug("Could not precision align %s" % image.index)
     else:
         log.debug("Processed 2nd channel for %s" % image.index)
+        print(6)
         result = write_output(image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs)
+        print(7)
         print("Write alignment for %s: %s" % (image.index, result))
 
 
