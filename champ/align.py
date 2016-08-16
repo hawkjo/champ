@@ -281,10 +281,16 @@ def write_output(image_index, base_name, fastq_image_aligner, path_info, all_til
 
     # if we've already aligned this channel with a different strategy, the current alignment may or may not be better
     # here we load some data so we can make that comparison
-    existing_score = load_existing_score(stats_file_path)
+    try:
+        existing_score = load_existing_score(stats_file_path)
+    except Exception as e:
+        print("UNEXPECTED EXCEPTION")
+        print(e)
+        return
+
     print("Existing score: %s" % existing_score)
     new_stats = fastq_image_aligner.alignment_stats
-
+    print("New score", new_stats.score)
     if new_stats.score < existing_score:
         log.info("Not saving alignment, old score (%s) better than new score (%s)" % (existing_score, new_stats.score))
         log.info("JK, writing stats file.")
@@ -292,17 +298,17 @@ def write_output(image_index, base_name, fastq_image_aligner, path_info, all_til
 
     # save information about how to align the images
     log.info("Saving alignment with score of %s\t\t%s" % (new_stats.score, base_name))
-    with open(stats_file_path, 'w') as f:
+    with open(stats_file_path, 'w+') as f:
         f.write(new_stats.serialized)
 
     # save the intensity data for each read
-    with open(intensity_filepath, 'w') as f:
+    with open(intensity_filepath, 'w+') as f:
         f.write(fastq_image_aligner.intensity_results)
 
     # save the corrected location of each read
     all_fastq_image_aligner = fastqimagealigner.FastqImageAligner()
     all_fastq_image_aligner.all_reads_fic_from_aligned_fic(fastq_image_aligner, all_tile_data)
-    with open(all_read_rcs_filepath, 'w') as f:
+    with open(all_read_rcs_filepath, 'w+') as f:
         for line in all_fastq_image_aligner.read_names_rcs:
             f.write(line)
 
