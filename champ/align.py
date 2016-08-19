@@ -228,7 +228,7 @@ def check_column_for_alignment(channel, snr, sequencing_chip, um_per_pixel, fia,
                 # outermost FastQ tile
                 end_tiles[h5_filename] = [tile.key for tile in fia.hitting_tiles], image.column
                 break
--
+
 
 def iterate_all_images(h5_filenames, end_tiles, channel):
     # We need an iterator over all images to feed the parallel processes. Since each image is
