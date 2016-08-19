@@ -65,11 +65,11 @@ def main(clargs):
         log.warn("No protein channels detected. Assuming protein is in phiX channel: %s" % [metadata['alignment_channel']])
         protein_channels = [metadata['alignment_channel']]
 
-    # for channel_name in protein_channels:
+    for channel_name in protein_channels:
 
         # Align all protein reads to the protein image
-        # channel_combo = channel_name + "_unclassified"
-        # combo_align(h5_filenames, channel_combo, channel_name, path_info, unclassified_tile_data, all_tile_data, metadata, clargs)
+        channel_combo = channel_name + "_unclassified"
+        combo_align(h5_filenames, channel_combo, channel_name, path_info, unclassified_tile_data, all_tile_data, metadata, clargs)
 
         # Align just perfect protein reads to the protein image (less likely, but might be higher quality alignment!)
         # channel_combo = channel_name + "_perfect"
