@@ -182,6 +182,7 @@ def process_data_image(path_info, all_tile_data, um_per_pixel, make_pdfs, channe
         log.debug("Processed 2nd channel for %s" % image.index)
         result = write_output(image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs)
         print("Write alignment for %s: %s" % (image.index, result))
+    del local_fia
 
 
 def decide_default_tiles_and_columns(end_tiles):
