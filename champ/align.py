@@ -214,18 +214,19 @@ def check_column_for_alignment(channel, snr, sequencing_chip, um_per_pixel, fia,
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
         # We use row 3 because it's in the center of the circular regions where Illumina data is available
-        image = grid.get(3, column)
-        if image is None:
-            log.warn("Could not find an image for %s Row 3 Column %d" % (base_name, column))
-            return
-        log.debug("Aligning %s Row 3 Column %d against PhiX" % (base_name, column))
-        fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(fia))
-        if fia.hitting_tiles:
-            log.debug("%s aligned to at least one tile!" % image.index)
-            # because of the way we iterate through the images, if we find one that aligns,
-            # we can just stop because that gives us the outermost column of images and the
-            # outermost FastQ tile
-            end_tiles[h5_filename] = [tile.key for tile in fia.hitting_tiles], image.column
+        for row in (1, 2, 3, 4, 5):
+            image = grid.get(row, column)
+            if image is None:
+                log.warn("Could not find an image for %s Row 3 Column %d" % (base_name, column))
+                return
+            log.debug("Aligning %s Row 3 Column %d against PhiX" % (base_name, column))
+            fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(fia))
+            if fia.hitting_tiles:
+                log.debug("%s aligned to at least one tile!" % image.index)
+                # because of the way we iterate through the images, if we find one that aligns,
+                # we can just stop because that gives us the outermost column of images and the
+                # outermost FastQ tile
+                end_tiles[h5_filename] = [tile.key for tile in fia.hitting_tiles], image.column
 
 
 def iterate_all_images(h5_filenames, end_tiles, channel):
