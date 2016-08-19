@@ -37,13 +37,9 @@ def main(clargs):
     log.debug("Loading tile data.")
     sequencing_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
 
-    # TODO: Temp hack to see something
-    # alignment_tile_data = align.load_read_names(path_info.aligning_read_names_filepath)
-    alignment_tile_data = align.load_read_names(path_info.perfect_read_names)
-
-
+    alignment_tile_data = align.load_read_names(path_info.aligning_read_names_filepath)
     unclassified_tile_data = align.load_read_names(path_info.all_read_names_filepath)
-    # perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
+    perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
     all_tile_data = {key: list(set(alignment_tile_data.get(key, []) + unclassified_tile_data.get(key, [])))
                      for key in list(unclassified_tile_data.keys()) + list(alignment_tile_data.keys())}
     log.debug("Tile data loaded.")
