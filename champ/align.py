@@ -217,7 +217,7 @@ def check_column_for_alignment(channel, snr, sequencing_chip, um_per_pixel, fia,
         for row in (1, 2, 3, 4, 5):
             image = grid.get(row, column)
             if image is None:
-                log.warn("Could not find an image for %s Row 3 Column %d" % (base_name, column))
+                log.warn("Could not find an image for %s Row %d Column %d" % (base_name, row, column))
                 return
             log.debug("Aligning %s Row 3 Column %d against PhiX" % (base_name, column))
             fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(fia))
@@ -228,7 +228,7 @@ def check_column_for_alignment(channel, snr, sequencing_chip, um_per_pixel, fia,
                 # outermost FastQ tile
                 end_tiles[h5_filename] = [tile.key for tile in fia.hitting_tiles], image.column
                 break
-
+-
 
 def iterate_all_images(h5_filenames, end_tiles, channel):
     # We need an iterator over all images to feed the parallel processes. Since each image is
