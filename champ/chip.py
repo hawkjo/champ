@@ -54,8 +54,8 @@ class Miseq(BaseChip):
     def __init__(self, ports_on_right):
         # ports_on_right means that when imaging, the two fluid inlet ports are towards the right
         super(Miseq, self).__init__(19)
-        self._lower_tiles = [self._format_tile_number(2100 + num) for num in range(1, 11)]
-        self._higher_tiles = [self._format_tile_number(2100 + num) for num in reversed(range(11, 20))]
+        self._lower_tiles = [self._format_tile_number(1100 + num) for num in range(1, 11)]
+        self._higher_tiles = [self._format_tile_number(1100 + num) for num in reversed(range(11, 20))]
         self._ports_on_right = ports_on_right
         self.tile_width = 935.0
         self.rotation_estimate = 180.0

@@ -7,18 +7,6 @@ from champ.config import PathInfo
 log = logging.getLogger(__name__)
 
 
-class AlignmentStrategies(object):
-    def __init__(self, alignment_tile_data, uncategorized_tile_data, perfect_tile_data, all_tile_data):
-        self._alignment_tile_data = alignment_tile_data
-        self._uncategorized_tile_data = uncategorized_tile_data
-        self._perfect_tile_data = perfect_tile_data
-        self._all_tile_data = all_tile_data
-
-    def __iter__(self):
-        # returns a strategy name, alignment tile data and
-        pass
-
-
 def main(clargs):
     # TODO: Check if preprocessing is done, if not, run the preprocessing command
     # We know which channel phix is in from the YAML file
@@ -50,6 +38,7 @@ def main(clargs):
     log.debug("Loading FastQImageAligner")
     fia = fastqimagealigner.FastqImageAligner()
     fia.load_reads(alignment_tile_data)
+    log.debug("Loaded %s points" % sum([len(v) for v in alignment_tile_data.values()]))
     log.debug("FastQImageAligner loaded.")
 
     if 'end_tiles' not in metadata:

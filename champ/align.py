@@ -97,7 +97,7 @@ def make_output_directories(h5_filenames, path_info):
 def get_end_tiles(h5_filenames, alignment_channel, snr, metadata, sequencing_chip, fia):
     with h5py.File(h5_filenames[0]) as first_file:
         grid = GridImages(first_file, alignment_channel)
-        # no reason to use all cores yet, since we're IO bound
+        # no reason to use all cores yet, since we're IO bound?
         num_processes = len(h5_filenames)
         pool = multiprocessing.Pool(num_processes)
         base_column_checker = functools.partial(check_column_for_alignment, alignment_channel, snr, sequencing_chip, metadata['microns_per_pixel'], fia)
@@ -228,6 +228,7 @@ def check_column_for_alignment(channel, snr, sequencing_chip, um_per_pixel, fia,
                 # outermost FastQ tile
                 end_tiles[h5_filename] = [tile.key for tile in fia.hitting_tiles], image.column
                 break
+    del fia
 
 
 def iterate_all_images(h5_filenames, end_tiles, channel):
