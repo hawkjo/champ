@@ -227,6 +227,7 @@ def check_column_for_alignment(channel, snr, sequencing_chip, um_per_pixel, fia,
                 # we can just stop because that gives us the outermost column of images and the
                 # outermost FastQ tile
                 end_tiles[h5_filename] = [tile.key for tile in fia.hitting_tiles], image.column
+                break
 
 
 def iterate_all_images(h5_filenames, end_tiles, channel):
