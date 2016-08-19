@@ -2,7 +2,6 @@ import logging
 import time
 from copy import deepcopy
 from itertools import izip
-
 import numpy as np
 import sextraction
 from champ import stats
@@ -224,11 +223,12 @@ class FastqImageAligner(object):
         self.good_mutual_hits = good_mutual_hits
         self.exclusive_hits = exclusive_hits
 
-        log.debug('Non-mutual hits: %s' % len(non_mutual_hits))
-        log.debug('Mutual hits: %s' % len(mutual_hits))
-        log.debug('Bad mutual hits: %s' % len(bad_mutual_hits))
-        log.debug('Good mutual hits: %s' % len(good_mutual_hits))
-        log.debug('Exclusive hits: %s' % len(exclusive_hits))
+        if consider_tiles != 'all':
+            log.debug('Non-mutual hits: %s' % len(non_mutual_hits))
+            log.debug('Mutual hits: %s' % len(mutual_hits))
+            log.debug('Bad mutual hits: %s' % len(bad_mutual_hits))
+            log.debug('Good mutual hits: %s' % len(good_mutual_hits))
+            log.debug('Exclusive hits: %s' % len(exclusive_hits))
 
     def least_squares_mapping(self, pct_thresh=0.9, min_hits=50):
         """least_squares_mapping(self, hit_type='exclusive')

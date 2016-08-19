@@ -2,7 +2,7 @@ import logging
 import os
 
 from champ import align, initialize, error, projectinfo, chip, fastqimagealigner
-from champ.config import OutputParameters
+from champ.config import PathInfo
 
 log = logging.getLogger(__name__)
 
@@ -13,19 +13,21 @@ def main(clargs):
     metadata = initialize.load(clargs.image_directory)
     h5_filenames = list(filter(lambda x: x.endswith('.h5'), os.listdir(clargs.image_directory)))
     h5_filenames = [os.path.join(clargs.image_directory, filename) for filename in h5_filenames]
-    output_parameters = OutputParameters(clargs.image_directory, metadata['mapped_reads'])
+    path_info = PathInfo(clargs.image_directory, metadata['mapped_reads'], clargs.perfect_target_name)
 
     if len(h5_filenames) == 0:
         error.fail("There were no HDF5 files to process. "
                    "Either they just don't exist, or you didn't provide the correct path.")
 
     # Ensure we have the directories where output will be written
-    align.make_output_directories(h5_filenames, output_parameters)
+    align.make_output_directories(h5_filenames, path_info)
 
     log.debug("Loading tile data.")
     sequencing_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
-    alignment_tile_data = align.load_read_names(output_parameters.aligning_read_names_filepath)
-    unclassified_tile_data = align.load_read_names(output_parameters.all_read_names_filepath)
+
+    alignment_tile_data = align.load_read_names(path_info.aligning_read_names_filepath)
+    unclassified_tile_data = align.load_read_names(path_info.all_read_names_filepath)
+    perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
     all_tile_data = {key: list(set(alignment_tile_data.get(key, []) + unclassified_tile_data.get(key, [])))
                      for key in list(unclassified_tile_data.keys()) + list(alignment_tile_data.keys())}
     log.debug("Tile data loaded.")
@@ -36,6 +38,7 @@ def main(clargs):
     log.debug("Loading FastQImageAligner")
     fia = fastqimagealigner.FastqImageAligner()
     fia.load_reads(alignment_tile_data)
+    log.debug("Loaded %s points" % sum([len(v) for v in alignment_tile_data.values()]))
     log.debug("FastQImageAligner loaded.")
 
     if 'end_tiles' not in metadata:
@@ -47,7 +50,7 @@ def main(clargs):
         end_tiles = metadata['end_tiles']
 
     if not metadata['phix_aligned']:
-        align.run(h5_filenames, output_parameters, clargs.snr, clargs.min_hits, fia, end_tiles, metadata['alignment_channel'],
+        align.run(h5_filenames, path_info, clargs.snr, clargs.min_hits, fia, end_tiles, metadata['alignment_channel'],
                   all_tile_data, metadata, clargs.make_pdfs, sequencing_chip)
         metadata['phix_aligned'] = True
         initialize.update(clargs.image_directory, metadata)
@@ -61,17 +64,21 @@ def main(clargs):
         # protein is in phix channel, hopefully?
         log.warn("No protein channels detected. Assuming protein is in phiX channel: %s" % [metadata['alignment_channel']])
         protein_channels = [metadata['alignment_channel']]
-    for channel_name in protein_channels:
-        if channel_name not in metadata['protein_channels_aligned']:
-            log.debug("Aligning protein channel: %s" % channel_name)
-            # TODO: Here is where we implement different alignment strategies.
-            # We've already aligned phix to the phix channel.
-            # Things we can try here:
-            # - Align regular clusters to protein channels
-            # - Align perfect target to protein channels
-            # - Align doped phiX to protein channel (not always applicable!)
-            # This should be totally idempotent since we don't save alignments unless they surpass previous ones in quality
-            align.run_data_channel(h5_filenames, channel_name, output_parameters, alignment_tile_data,
-                                   all_tile_data, metadata, clargs)
-            metadata['protein_channels_aligned'].append(channel_name)
-            initialize.update(clargs.image_directory, metadata)
+
+    # for channel_name in protein_channels:
+
+        # Align all protein reads to the protein image
+        # channel_combo = channel_name + "_unclassified"
+        # combo_align(h5_filenames, channel_combo, channel_name, path_info, unclassified_tile_data, all_tile_data, metadata, clargs)
+
+        # Align just perfect protein reads to the protein image (less likely, but might be higher quality alignment!)
+        # channel_combo = channel_name + "_perfect"
+        # combo_align(h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
+
+
+def combo_align(h5_filenames, channel_combo, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs):
+    log.info("Aligning %s" % channel_combo)
+    if channel_combo not in metadata['protein_channels_aligned']:
+        align.run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs)
+        metadata['protein_channels_aligned'].append(channel_combo)
+        initialize.update(clargs.image_directory, metadata)
