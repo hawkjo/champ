@@ -36,9 +36,14 @@ def main(clargs):
 
     log.debug("Loading tile data.")
     sequencing_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
-    alignment_tile_data = align.load_read_names(path_info.aligning_read_names_filepath)
+
+    # TODO: Temp hack to see something
+    # alignment_tile_data = align.load_read_names(path_info.aligning_read_names_filepath)
+    alignment_tile_data = align.load_read_names(path_info.perfect_read_names)
+
+
     unclassified_tile_data = align.load_read_names(path_info.all_read_names_filepath)
-    perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
+    # perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
     all_tile_data = {key: list(set(alignment_tile_data.get(key, []) + unclassified_tile_data.get(key, [])))
                      for key in list(unclassified_tile_data.keys()) + list(alignment_tile_data.keys())}
     log.debug("Tile data loaded.")
@@ -75,11 +80,11 @@ def main(clargs):
         log.warn("No protein channels detected. Assuming protein is in phiX channel: %s" % [metadata['alignment_channel']])
         protein_channels = [metadata['alignment_channel']]
 
-    for channel_name in protein_channels:
+    # for channel_name in protein_channels:
 
         # Align all protein reads to the protein image
-        channel_combo = channel_name + "_unclassified"
-        combo_align(h5_filenames, channel_combo, channel_name, path_info, unclassified_tile_data, all_tile_data, metadata, clargs)
+        # channel_combo = channel_name + "_unclassified"
+        # combo_align(h5_filenames, channel_combo, channel_name, path_info, unclassified_tile_data, all_tile_data, metadata, clargs)
 
         # Align just perfect protein reads to the protein image (less likely, but might be higher quality alignment!)
         # channel_combo = channel_name + "_perfect"
