@@ -214,7 +214,7 @@ def check_column_for_alignment(channel, snr, sequencing_chip, um_per_pixel, fia,
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
         # We use row 3 because it's in the center of the circular regions where Illumina data is available
-        for row in (1, 2, 3, 4, 5):
+        for row in (3, 2, 4, 1, 5):
             image = grid.get(row, column)
             if image is None:
                 log.warn("Could not find an image for %s Row %d Column %d" % (base_name, row, column))
