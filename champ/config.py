@@ -19,8 +19,7 @@ class CommandLineArguments(object):
 
     @property
     def perfect_target_name(self):
-        # return self._arguments['PERFECT_TARGET_NAME']
-        return 'E'
+        return self._arguments['PERFECT_TARGET_NAME']
 
     @property
     def log_level(self):
