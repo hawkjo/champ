@@ -2,7 +2,6 @@ import logging
 import time
 from copy import deepcopy
 from itertools import izip
-
 import numpy as np
 import sextraction
 from champ import stats
