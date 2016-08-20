@@ -61,10 +61,7 @@ def perform_alignment(path_info, snr, min_hits, um_per_pixel, sequencing_chip, a
     # FastQ reads to disk
     row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
 
-    with h5py.File(h5_filename) as h5:
-        grid = GridImages(h5, channel)
-        image = grid.get(row, column)
-
+    image = load_image(h5_filename, channel, row, column)
     log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
     # first get the correlation to random tiles, so we can distinguish signal from noise
     fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(preloaded_fia))
@@ -165,9 +162,7 @@ def load_aligned_stats_files(h5_filenames, alignment_channel, path_info):
 
 def process_data_image(path_info, all_tile_data, um_per_pixel, make_pdfs, channel,
                        fastq_image_aligner, min_hits, (h5_filename, base_name, stats_filepath, row, column)):
-    with h5py.File(h5_filename) as h5:
-        grid = GridImages(h5, channel)
-        image = grid.get(row, column)
+    image = load_image(h5_filename, channel, row, column)
     sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
     stats_filepath = os.path.join(path_info.results_directory, base_name, stats_filepath)
     local_fia = deepcopy(fastq_image_aligner)
@@ -180,9 +175,14 @@ def process_data_image(path_info, all_tile_data, um_per_pixel, make_pdfs, channe
         log.debug("Could not precision align %s" % image.index)
     else:
         log.debug("Processed 2nd channel for %s" % image.index)
-        result = write_output(image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs)
-        print("Write alignment for %s: %s" % (image.index, result))
+        write_output(image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs)
     del local_fia
+
+
+def load_image(h5_filename, channel, row, column):
+    with h5py.File(h5_filename) as h5:
+        grid = GridImages(h5, channel)
+        return grid.get(row, column)
 
 
 def decide_default_tiles_and_columns(end_tiles):
@@ -192,8 +192,7 @@ def decide_default_tiles_and_columns(end_tiles):
         for tile in tiles:
             all_tiles.append(tile)
         columns.append(column)
-    a, b = Counter(all_tiles).most_common(1), Counter(columns).most_common(1)
-    best_tile, best_column = a[0][0], b[0][0]
+    best_tile, best_column = Counter(all_tiles).most_common(1)[0][0], Counter(columns).most_common(1)[0][0]
     return best_tile, best_column
 
 
@@ -240,7 +239,7 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
             grid = GridImages(h5, channel)
             min_column, max_column, tile_map = end_tiles[h5_filename]
             for column in range(min_column, max_column):
-                for row in range(grid._height):
+                for row in range(grid.height):
                     image = grid.get(row, column)
                     if image is not None:
                         yield row, column, channel, h5_filename, tile_map[image.column], base_name

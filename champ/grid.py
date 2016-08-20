@@ -65,6 +65,10 @@ class GridImages(object):
         return len(self._h5[self._channel])
 
     @property
+    def height(self):
+        return self._height
+
+    @property
     def columns(self):
         return [column for column in range(self._width)]
 
