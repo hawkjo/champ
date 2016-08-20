@@ -2,7 +2,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from champ.grid import GridImages
-from champ import plotting, fastqimagealigner, stats
+from champ import plotting, fastqimagealigner, stats, error
 from collections import Counter, defaultdict
 import functools
 import h5py
@@ -204,8 +204,7 @@ def get_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_k
         pool.map_async(column_checker, h5_filenames).get(sys.maxint)
         if end_tiles:
             return end_tiles
-    # TODO: Returning false will crash things as its cast to a dict
-    return False
+    error.fail("Could not find end tiles! This means that your data did not align to phix (or whatever you used for alignment) at all!")
 
 
 def check_column_for_alignment(channel, snr, sequencing_chip, um_per_pixel, fia,
