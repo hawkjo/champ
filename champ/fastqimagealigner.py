@@ -100,12 +100,16 @@ class FastqImageAligner(object):
         self.fq_im_scaled_dims = (self.fq_im_scaled_maxes + [1, 1]).astype(np.int)
 
     def find_hitting_tiles(self, possible_tile_keys, snr_thresh=1.2):
+        log.debug("b1")
         possible_tiles = [self.fastq_tiles[key] for key in possible_tile_keys
                           if key in self.fastq_tiles]
         impossible_tiles = [tile for tile in self.fastq_tiles.values() if tile not in possible_tiles]
+        log.debug("b2")
         impossible_tiles.sort(key=lambda tile: -len(tile.read_names))
         control_tiles = impossible_tiles[:2]
+        log.debug("b3")
         self.image_data.set_fft(self.fq_im_scaled_dims)
+        log.debug("b4")
         self.control_corr = 0
 
         for control_tile in control_tiles:
@@ -113,12 +117,16 @@ class FastqImageAligner(object):
             if corr > self.control_corr:
                 self.control_corr = corr
         del control_tiles
-
+        log.debug("b5")
         self.hitting_tiles = []
         for tile in possible_tiles:
+            log.debug("tile", tile)
             max_corr, align_tr = tile.fft_align_with_im(self.image_data)
+            log.debug("fft align done")
             if max_corr > snr_thresh * self.control_corr:
+                log.debug("ask")
                 tile.set_aligned_rcs(align_tr)
+                log.debug("set aligned done")
                 tile.snr = max_corr / self.control_corr
                 self.hitting_tiles.append(tile)
 
@@ -302,11 +310,8 @@ class FastqImageAligner(object):
     def rough_align(self, possible_tile_keys, rotation_est, fq_w_est=927, snr_thresh=1.2):
 
         self.fq_w = fq_w_est
-        log.debug("set mappings")
         self.set_fastq_tile_mappings()
-        log.debug("set all fastq image data")
         self.set_all_fastq_image_data()
-        log.debug("rotate all fastq image data")
         self.rotate_all_fastq_data(rotation_est)
         start_time = time.time()
         log.debug("find hitting toles")
