@@ -9,10 +9,6 @@ log = logging.getLogger(__name__)
 def main(clargs):
     h5_filenames = list(filter(lambda x: x.endswith('.h5'), os.listdir(clargs.image_directory)))
     h5_filenames = [os.path.join(clargs.image_directory, filename) for filename in h5_filenames]
-    if len(h5_filenames) == 0:
-        error.fail("There were no HDF5 files to process. "
-                   "Either they just don't exist, or you didn't provide the correct path.")
-
     metadata = initialize.load(clargs.image_directory)
 
     if 'preprocessed' not in metadata or not metadata['preprocessed']:
@@ -27,6 +23,9 @@ def main(clargs):
         fits.main(clargs.image_directory)
         metadata['preprocessed'] = True
         initialize.update(clargs.image_directory, metadata)
+
+    if len(h5_filenames) == 0:
+        error.fail("There were no HDF5 files to process. You must have deleted or moved them after preprocessing them.")
 
     path_info = PathInfo(clargs.image_directory, metadata['mapped_reads'], clargs.perfect_target_name)
     # Ensure we have the directories where output will be written
