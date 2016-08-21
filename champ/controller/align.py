@@ -1,24 +1,34 @@
 import logging
 import os
 
-from champ import align, initialize, error, projectinfo, chip, fastqimagealigner
+from champ import align, initialize, error, projectinfo, chip, fastqimagealigner, convert, fits
 from champ.config import PathInfo
 
 log = logging.getLogger(__name__)
 
 
 def main(clargs):
-    # TODO: Check if preprocessing is done, if not, run the preprocessing command
-    # We know which channel phix is in from the YAML file
-    metadata = initialize.load(clargs.image_directory)
     h5_filenames = list(filter(lambda x: x.endswith('.h5'), os.listdir(clargs.image_directory)))
     h5_filenames = [os.path.join(clargs.image_directory, filename) for filename in h5_filenames]
-    path_info = PathInfo(clargs.image_directory, metadata['mapped_reads'], clargs.perfect_target_name)
-
     if len(h5_filenames) == 0:
         error.fail("There were no HDF5 files to process. "
                    "Either they just don't exist, or you didn't provide the correct path.")
 
+    metadata = initialize.load(clargs.image_directory)
+
+    if 'preprocessed' not in metadata or not metadata['preprocessed']:
+        paths = convert.get_all_tif_paths(clargs.image_directory)
+        # directories will have ".h5" appended to them to come up with the HDF5 names
+        # tifs are relative paths to each tif file
+        log.debug("About to convert TIFs to HDF5.")
+        convert.main(paths, metadata['flipud'], metadata['fliplr'])
+        log.debug("Done converting TIFs to HDF5.")
+        log.debug("Fitsifying images from HDF5 files.")
+        fits.main(clargs.image_directory)
+        metadata['preprocessed'] = True
+        initialize.update(clargs.image_directory, metadata)
+
+    path_info = PathInfo(clargs.image_directory, metadata['mapped_reads'], clargs.perfect_target_name)
     # Ensure we have the directories where output will be written
     align.make_output_directories(h5_filenames, path_info)
 

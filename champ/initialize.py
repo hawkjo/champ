@@ -18,6 +18,7 @@ def save(clargs):
                 'flipud': clargs.flipud,
                 'fliplr': clargs.fliplr,
                 'phix_aligned': False,
+                'preprocessed': False,
                 'protein_channels_aligned': []}
         yaml.dump(data, f)
 
