@@ -56,7 +56,7 @@ def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data,
 
 
 def perform_alignment(path_info, snr, min_hits, um_per_pixel, sequencing_chip, all_tile_data,
-                      make_pdfs, preloaded_fia, image_data):
+                      make_pdfs, fia, image_data):
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
     row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
@@ -64,7 +64,7 @@ def perform_alignment(path_info, snr, min_hits, um_per_pixel, sequencing_chip, a
     image = load_image(h5_filename, channel, row, column)
     log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
     # first get the correlation to random tiles, so we can distinguish signal from noise
-    fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(preloaded_fia))
+    fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(fia))
 
     if fia.hitting_tiles:
         # The image data aligned with FastQ reads!
@@ -98,8 +98,8 @@ def get_end_tiles(h5_filenames, alignment_channel, snr, metadata, sequencing_chi
         num_processes = len(h5_filenames)
         pool = multiprocessing.Pool(num_processes)
         base_column_checker = functools.partial(check_column_for_alignment, alignment_channel, snr, sequencing_chip, metadata['microns_per_pixel'], fia)
-        left_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, grid.columns, sequencing_chip.left_side_tiles))
-        right_end_tiles = dict(get_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), sequencing_chip.right_side_tiles))
+        left_end_tiles = find_bounds(pool, h5_filenames, base_column_checker, grid.columns, sequencing_chip.left_side_tiles)
+        right_end_tiles = find_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), sequencing_chip.right_side_tiles)
 
     default_left_tile, default_left_column = decide_default_tiles_and_columns(left_end_tiles)
     default_right_tile, default_right_column = decide_default_tiles_and_columns(right_end_tiles)
@@ -196,13 +196,13 @@ def decide_default_tiles_and_columns(end_tiles):
     return best_tile, best_column
 
 
-def get_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_keys):
+def find_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_keys):
     end_tiles = Manager().dict()
     for column in columns:
         column_checker = functools.partial(base_column_checker, end_tiles, column, possible_tile_keys)
         pool.map_async(column_checker, h5_filenames).get(sys.maxint)
         if end_tiles:
-            return end_tiles
+            return dict(end_tiles)
     error.fail("Could not find end tiles! This means that your data did not align to phix (or whatever you used for alignment) at all!")
 
 
