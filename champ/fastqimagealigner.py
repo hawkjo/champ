@@ -278,6 +278,7 @@ class FastqImageAligner(object):
             raw_hits = get_hits(('exclusive', 'good_mutual'))
             hits = self.remove_longest_hits(raw_hits, pct_thresh)
             if len(hits) < min_hits:
+                print("whiff")
                 continue
             else:
                 found_good_mapping = True
