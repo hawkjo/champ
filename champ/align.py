@@ -239,7 +239,7 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
             grid = GridImages(h5, channel)
             min_column, max_column, tile_map = end_tiles[h5_filename]
             for column in range(min_column, max_column):
-                for row in range(grid.height):
+                for row in range(grid._height):
                     image = grid.get(row, column)
                     if image is not None:
                         yield row, column, channel, h5_filename, tile_map[image.column], base_name
