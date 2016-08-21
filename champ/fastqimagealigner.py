@@ -130,6 +130,7 @@ class FastqImageAligner(object):
                 log.debug("set aligned done")
                 tile.snr = max_corr / self.control_corr
                 self.hitting_tiles.append(tile)
+        log.debug("done here")
 
     def find_points_in_frame(self, consider_tiles='all'):
         self.rcs_in_frame = []
