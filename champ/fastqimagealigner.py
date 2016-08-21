@@ -103,7 +103,12 @@ class FastqImageAligner(object):
         log.debug("b1")
         possible_tiles = [self.fastq_tiles[key] for key in possible_tile_keys
                           if key in self.fastq_tiles]
+        print("possible tiles")
+        print(possible_tiles)
         impossible_tiles = [tile for tile in self.fastq_tiles.values() if tile not in possible_tiles]
+        print("impossible tiles")
+        print(impossible_tiles)
+
         log.debug("b2")
         impossible_tiles.sort(key=lambda tile: -len(tile.read_names))
         control_tiles = impossible_tiles[:2]
