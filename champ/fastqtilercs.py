@@ -1,6 +1,9 @@
 from copy import deepcopy
 import numpy as np
 import misc
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class FastqTileRCs(object):
@@ -33,15 +36,22 @@ class FastqTileRCs(object):
     def fft_align_with_im(self, image_data):
         # Make the ffts
         fq_image = self.image()
+        log.debug(fq_image.shape)
         padded_fq_im = misc.pad_to_size(fq_image, image_data.fft.shape)
+        log.debug(padded_fq_im.shape)
         fq_im_fft = np.fft.fft2(padded_fq_im)
-
+        log.debug("fq_im_fft")
         # Align
         im_data_fft = image_data.fft
+        log.debug("im data fft")
         cross_corr = abs(np.fft.ifft2(np.conj(fq_im_fft) * im_data_fft))
+        log.debug("crosscorr")
         max_corr = cross_corr.max()
+        log.debug("maxcorr")
         max_idx = misc.max_2d_idx(cross_corr)
+        log.debug("maxidx")
         align_tr = np.array(max_idx) - fq_image.shape
+        log.debug("aligntr")
         return max_corr, align_tr
 
     def set_aligned_rcs(self, align_tr):
