@@ -5,7 +5,6 @@ Usage:
   champ map FASTQ_DIRECTORY OUTPUT_DIRECTORY PATHS_TO_BAMFILES ... [--force] [-v | -vv | -vvv]
   champ init IMAGE_DIRECTORY CHIP_NAME MAPPED_READS PARSED_READS ALIGNMENT_CHANNEL LDA_WEIGHTS [--microns-per-pixel=0.266666666] [--chip=miseq] [--ports-on-right] [--flipud] [--fliplr] [-v | -vv | -vvv ]
   champ align IMAGE_DIRECTORY PERFECT_TARGET_NAME [--min-hits MIN_HITS] [--snr SNR] [--make-pdfs] [-v | -vv | -vvv]
-  champ kd IMAGE_DIRECTORY TARGET_DATA_FILE TARGET_LABEL OFF_TARGET_LABEL [-v | -vv | -vvv]
   champ preprocess IMAGE_DIRECTORY [-v | -vv | -vvv]
   champ info IMAGE_DIRECTORY
 
@@ -18,7 +17,6 @@ Commands:
   init          Stores some metadata about a particular experiment
   preprocess    Convert TIFs to HDF5 and prepare microscope data for alignment. Only needed for development.
   align         Determines the sequence of fluorescent points in the microscope data. Preprocesses images if not already done.
-  kd            Determines boundaries of clusters, assigns intensities to sequences and derives the apparent Kd's
   info          View the metadata associated with an experiment
 
 """
@@ -45,7 +43,6 @@ def main(**kwargs):
                 'preprocess': preprocess,
                 'init': initialize,
                 'map': mapreads,
-                'kd': kd,
                 'info': info}
 
     commands[arguments.command].main(arguments)

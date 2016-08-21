@@ -66,10 +66,10 @@ class CommandLineArguments(object):
 
     @property
     def command(self):
+        # We have to do this weird loop to deal with the way docopt stores the command name
         for possible_command in ('map',
                                  'init',
                                  'align',
-                                 'kd',
                                  'preprocess',
                                  'info'):
             if self._arguments.get(possible_command):
