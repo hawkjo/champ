@@ -16,6 +16,7 @@ def main(clargs):
     metadata = initialize.load(clargs.image_directory)
 
     if 'preprocessed' not in metadata or not metadata['preprocessed']:
+        log.debug("Preprocessing images.")
         paths = convert.get_all_tif_paths(clargs.image_directory)
         # directories will have ".h5" appended to them to come up with the HDF5 names
         # tifs are relative paths to each tif file
