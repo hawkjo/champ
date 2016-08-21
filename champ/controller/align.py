@@ -1,6 +1,5 @@
 import logging
 import os
-
 from champ import align, initialize, error, projectinfo, chip, fastqimagealigner, convert, fits
 from champ.config import PathInfo
 

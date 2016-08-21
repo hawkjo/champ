@@ -1,5 +1,4 @@
 import os
-
 import yaml
 from error import fail
 
