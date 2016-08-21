@@ -138,5 +138,9 @@ class PathInfo(object):
         return os.path.join(self._mapped_reads, 'unclassified')
 
     @property
+    def on_target_read_names(self):
+        return os.path.join(self._mapped_reads, 'target_{}_read_names.txt'.format(self._perfect_target_name.lower()))
+
+    @property
     def perfect_read_names(self):
         return os.path.join(self._mapped_reads, 'perfect_target_{}_read_names.txt'.format(self._perfect_target_name.lower()))
