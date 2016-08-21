@@ -259,16 +259,12 @@ def load_read_names(file_path):
 
 def process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, fia):
     sexcat_fpath = os.path.join(base_name, '%s.cat' % image.index)
-    log.debug("set image")
     fia.set_image_data(image, um_per_pixel)
-    log.debug("set sexcat")
     fia.set_sexcat_from_file(sexcat_fpath)
-    log.debug("rough align")
     fia.rough_align(possible_tile_keys,
                     sequencing_chip.rotation_estimate,
                     sequencing_chip.tile_width,
                     snr_thresh=snr)
-    log.debug("return from pai")
     return fia
 
 
