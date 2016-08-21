@@ -98,8 +98,8 @@ def get_end_tiles(h5_filenames, alignment_channel, snr, metadata, sequencing_chi
         num_processes = len(h5_filenames)
         pool = multiprocessing.Pool(num_processes)
         base_column_checker = functools.partial(check_column_for_alignment, alignment_channel, snr, sequencing_chip, metadata['microns_per_pixel'], fia)
-        left_end_tiles = find_bounds(pool, h5_filenames, base_column_checker, grid.columns, sequencing_chip.left_side_tiles)
-        right_end_tiles = find_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), sequencing_chip.right_side_tiles)
+        left_end_tiles = dict(find_bounds(pool, h5_filenames, base_column_checker, grid.columns, sequencing_chip.left_side_tiles))
+        right_end_tiles = dict(find_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), sequencing_chip.right_side_tiles))
 
     default_left_tile, default_left_column = decide_default_tiles_and_columns(left_end_tiles)
     default_right_tile, default_right_column = decide_default_tiles_and_columns(right_end_tiles)
@@ -202,7 +202,7 @@ def find_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_
         column_checker = functools.partial(base_column_checker, end_tiles, column, possible_tile_keys)
         pool.map_async(column_checker, h5_filenames).get(sys.maxint)
         if end_tiles:
-            return dict(end_tiles)
+            return end_tiles
     error.fail("Could not find end tiles! This means that your data did not align to phix (or whatever you used for alignment) at all!")
 
 
@@ -259,12 +259,16 @@ def load_read_names(file_path):
 
 def process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, fia):
     sexcat_fpath = os.path.join(base_name, '%s.cat' % image.index)
+    log.debug("set image")
     fia.set_image_data(image, um_per_pixel)
+    log.debug("set sexcat")
     fia.set_sexcat_from_file(sexcat_fpath)
+    log.debug("rough align")
     fia.rough_align(possible_tile_keys,
                     sequencing_chip.rotation_estimate,
                     sequencing_chip.tile_width,
                     snr_thresh=snr)
+    log.debug("return from pai")
     return fia
 
 

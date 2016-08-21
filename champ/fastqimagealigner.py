@@ -300,11 +300,16 @@ class FastqImageAligner(object):
                 tile.set_snr_with_control_corr(self.control_corr)
 
     def rough_align(self, possible_tile_keys, rotation_est, fq_w_est=927, snr_thresh=1.2):
+
         self.fq_w = fq_w_est
+        log.debug("set mappings")
         self.set_fastq_tile_mappings()
+        log.debug("set all fastq image data")
         self.set_all_fastq_image_data()
+        log.debug("rotate all fastq image data")
         self.rotate_all_fastq_data(rotation_est)
         start_time = time.time()
+        log.debug("find hitting toles")
         self.find_hitting_tiles(possible_tile_keys, snr_thresh)
         log.debug('Rough alignment time: %.3f seconds' % (time.time() - start_time))
 
