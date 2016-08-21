@@ -56,7 +56,7 @@ def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data,
 
 
 def perform_alignment(path_info, snr, min_hits, um_per_pixel, sequencing_chip, all_tile_data,
-                      make_pdfs, fia, image_data):
+                      make_pdfs, prefia, image_data):
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
     row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
@@ -64,7 +64,7 @@ def perform_alignment(path_info, snr, min_hits, um_per_pixel, sequencing_chip, a
     image = load_image(h5_filename, channel, row, column)
     log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
     # first get the correlation to random tiles, so we can distinguish signal from noise
-    fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(fia))
+    fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(prefia))
 
     if fia.hitting_tiles:
         # The image data aligned with FastQ reads!
@@ -212,7 +212,7 @@ def check_column_for_alignment(channel, snr, sequencing_chip, um_per_pixel, fia,
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
         # We use row 3 because it's in the center of the circular regions where Illumina data is available
-        for row in (3, 4, 2, 5, 1, 6, 0):
+        for row in (3,):
             image = grid.get(row, column)
             if image is None:
                 log.warn("Could not find an image for %s Row %d Column %d" % (base_name, row, column))
