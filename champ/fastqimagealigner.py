@@ -270,14 +270,17 @@ class FastqImageAligner(object):
                 hits.extend(getattr(self, ht + '_hits'))
             return hits 
 
+        found_good_mapping = False
+
         for tile in self.hitting_tiles:
             self.find_hits(consider_tiles=tile)
-
             # Reminder: All indices are in the order (sexcat_idx, in_frame_idx)
             raw_hits = get_hits(('exclusive', 'good_mutual'))
             hits = self.remove_longest_hits(raw_hits, pct_thresh)
             if len(hits) < min_hits:
-                raise ValueError('Too few hits for least squares mapping: {0}'.format(len(hits)))
+                continue
+            else:
+                found_good_mapping = True
             A = np.zeros((2 * len(hits), 4))
             b = np.zeros((2 * len(hits),))
             for i, (sexcat_idx, in_frame_idx) in enumerate(hits):
@@ -297,6 +300,7 @@ class FastqImageAligner(object):
             tile.set_correlation(self.image_data.image)
             if hasattr(self, 'control_corr'):
                 tile.set_snr_with_control_corr(self.control_corr)
+        return found_good_mapping
 
     def rough_align(self, possible_tile_keys, rotation_est, fq_w_est=927, snr_thresh=1.2):
         self.fq_w = fq_w_est
@@ -311,7 +315,9 @@ class FastqImageAligner(object):
         start_time = time.time()
         if not self.hitting_tiles:
             raise RuntimeError('Alignment not found')
-        self.least_squares_mapping(min_hits=min_hits)
+        found_good_mapping = self.least_squares_mapping(min_hits=min_hits)
+        if not found_good_mapping:
+            raise ValueError("Could not precision align!")
         log.debug('Precision alignment time: %.3f seconds' % (time.time() - start_time))
         start_time = time.time()
         self.find_hits()
