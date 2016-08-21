@@ -131,7 +131,7 @@ class PathInfo(object):
 
     @property
     def aligning_read_names_filepath(self):
-        return os.path.join(self._mapped_reads, 'phix')
+        return os.path.join(self._mapped_reads, 'perfect_target_d_read_names.txt')
 
     @property
     def all_read_names_filepath(self):
