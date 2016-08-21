@@ -120,7 +120,8 @@ class FastqImageAligner(object):
         log.debug("b5")
         self.hitting_tiles = []
         for tile in possible_tiles:
-            log.debug("tile", tile)
+            log.debug("tile")
+            log.debug(tile)
             max_corr, align_tr = tile.fft_align_with_im(self.image_data)
             log.debug("fft align done")
             if max_corr > snr_thresh * self.control_corr:
