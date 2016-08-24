@@ -70,7 +70,6 @@ class CommandLineArguments(object):
         for possible_command in ('map',
                                  'init',
                                  'align',
-                                 'preprocess',
                                  'info'):
             if self._arguments.get(possible_command):
                 return possible_command
@@ -137,6 +136,10 @@ class PathInfo(object):
     @property
     def all_read_names_filepath(self):
         return os.path.join(self._mapped_reads, 'unclassified')
+
+    @property
+    def on_target_read_names(self):
+        return os.path.join(self._mapped_reads, 'target_{}_read_names.txt'.format(self._perfect_target_name.lower()))
 
     @property
     def perfect_read_names(self):

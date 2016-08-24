@@ -3,7 +3,6 @@ import logging
 import os
 import re
 from collections import defaultdict
-
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np

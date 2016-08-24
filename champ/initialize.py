@@ -1,5 +1,4 @@
 import os
-
 import yaml
 from error import fail
 
@@ -18,6 +17,7 @@ def save(clargs):
                 'flipud': clargs.flipud,
                 'fliplr': clargs.fliplr,
                 'phix_aligned': False,
+                'preprocessed': False,
                 'protein_channels_aligned': []}
         yaml.dump(data, f)
 

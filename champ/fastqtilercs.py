@@ -1,6 +1,9 @@
 from copy import deepcopy
 import numpy as np
 import misc
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class FastqTileRCs(object):
@@ -35,7 +38,6 @@ class FastqTileRCs(object):
         fq_image = self.image()
         padded_fq_im = misc.pad_to_size(fq_image, image_data.fft.shape)
         fq_im_fft = np.fft.fft2(padded_fq_im)
-
         # Align
         im_data_fft = image_data.fft
         cross_corr = abs(np.fft.ifft2(np.conj(fq_im_fft) * im_data_fft))

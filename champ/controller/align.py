@@ -1,24 +1,33 @@
 import logging
 import os
-
-from champ import align, initialize, error, projectinfo, chip, fastqimagealigner
+from champ import align, initialize, error, projectinfo, chip, fastqimagealigner, convert, fits
 from champ.config import PathInfo
 
 log = logging.getLogger(__name__)
 
 
 def main(clargs):
-    # TODO: Check if preprocessing is done, if not, run the preprocessing command
-    # We know which channel phix is in from the YAML file
     metadata = initialize.load(clargs.image_directory)
+
+    if 'preprocessed' not in metadata or not metadata['preprocessed']:
+        log.debug("Preprocessing images.")
+        paths = convert.get_all_tif_paths(clargs.image_directory)
+        # directories will have ".h5" appended to them to come up with the HDF5 names
+        # tifs are relative paths to each tif file
+        log.debug("About to convert TIFs to HDF5.")
+        convert.main(paths, metadata['flipud'], metadata['fliplr'])
+        log.debug("Done converting TIFs to HDF5.")
+        log.debug("Fitsifying images from HDF5 files.")
+        fits.main(clargs.image_directory)
+        metadata['preprocessed'] = True
+        initialize.update(clargs.image_directory, metadata)
+
     h5_filenames = list(filter(lambda x: x.endswith('.h5'), os.listdir(clargs.image_directory)))
     h5_filenames = [os.path.join(clargs.image_directory, filename) for filename in h5_filenames]
-    path_info = PathInfo(clargs.image_directory, metadata['mapped_reads'], clargs.perfect_target_name)
-
     if len(h5_filenames) == 0:
-        error.fail("There were no HDF5 files to process. "
-                   "Either they just don't exist, or you didn't provide the correct path.")
+        error.fail("There were no HDF5 files to process. You must have deleted or moved them after preprocessing them.")
 
+    path_info = PathInfo(clargs.image_directory, metadata['mapped_reads'], clargs.perfect_target_name)
     # Ensure we have the directories where output will be written
     align.make_output_directories(h5_filenames, path_info)
 
@@ -28,6 +37,7 @@ def main(clargs):
     alignment_tile_data = align.load_read_names(path_info.aligning_read_names_filepath)
     unclassified_tile_data = align.load_read_names(path_info.all_read_names_filepath)
     perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
+    on_target_tile_data = align.load_read_names(path_info.on_target_read_names)
     all_tile_data = {key: list(set(alignment_tile_data.get(key, []) + unclassified_tile_data.get(key, [])))
                      for key in list(unclassified_tile_data.keys()) + list(alignment_tile_data.keys())}
     log.debug("Tile data loaded.")
@@ -66,14 +76,16 @@ def main(clargs):
         protein_channels = [metadata['alignment_channel']]
 
     for channel_name in protein_channels:
+        # Align just perfect protein reads to the protein image
+        channel_combo = channel_name + "_on_target"
+        combo_align(h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, clargs)
+
+        channel_combo = channel_name + "_perfect_target"
+        combo_align(h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
 
         # Align all protein reads to the protein image
         channel_combo = channel_name + "_unclassified"
         combo_align(h5_filenames, channel_combo, channel_name, path_info, unclassified_tile_data, all_tile_data, metadata, clargs)
-
-        # Align just perfect protein reads to the protein image (less likely, but might be higher quality alignment!)
-        channel_combo = channel_name + "_perfect"
-        combo_align(h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
 
 
 def combo_align(h5_filenames, channel_combo, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs):
