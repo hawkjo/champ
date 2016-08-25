@@ -114,13 +114,13 @@ def make_output_directories(h5_filenames, path_info):
                 os.makedirs(full_directory)
 
 
-def get_end_tiles(h5_filenames, alignment_channel, snr, metadata, sequencing_chip, fia):
+def get_end_tiles(h5_filenames, alignment_channel, snr, microns_per_pixel, sequencing_chip, fia):
     with h5py.File(h5_filenames[0]) as first_file:
         grid = GridImages(first_file, alignment_channel)
         # no reason to use all cores yet, since we're IO bound?
         num_processes = len(h5_filenames)
         pool = multiprocessing.Pool(num_processes)
-        base_column_checker = functools.partial(check_column_for_alignment, alignment_channel, snr, sequencing_chip, metadata['microns_per_pixel'], fia)
+        base_column_checker = functools.partial(check_column_for_alignment, alignment_channel, snr, sequencing_chip, microns_per_pixel, fia)
         left_end_tiles = dict(find_bounds(pool, h5_filenames, base_column_checker, grid.columns, sequencing_chip.left_side_tiles))
         right_end_tiles = dict(find_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), sequencing_chip.right_side_tiles))
 
