@@ -7,6 +7,7 @@ log = logging.getLogger(__name__)
 
 
 def preprocess(clargs, metadata):
+
     log.debug("Preprocessing images.")
     paths = convert.get_all_tif_paths(clargs.image_directory)
     # directories will have ".h5" appended to them to come up with the HDF5 names
@@ -22,19 +23,21 @@ def preprocess(clargs, metadata):
 
 def load_filenames(image_directory):
     h5_filenames = list(filter(lambda x: x.endswith('.h5'), os.listdir(image_directory)))
-    h5_filenames = [os.path.join(image_directory, filename) for filename in h5_filenames]
-    if len(h5_filenames) == 0:
-        error.fail("There were no HDF5 files to process. You must have deleted or moved them after preprocessing them.")
-    return h5_filenames
+    return [os.path.join(image_directory, filename) for filename in h5_filenames]
 
 
 def main(clargs):
     metadata = initialize.load(clargs.image_directory)
 
     if 'preprocessed' not in metadata or not metadata['preprocessed']:
+        for filename in load_filenames(clargs.image_directory):
+            log.warn("Deleting (probably invalid) existing HDF5 file and recreating it: %s" % filename)
+            os.unlink(filename)
         preprocess(clargs, metadata)
 
     h5_filenames = load_filenames(clargs.image_directory)
+    if len(h5_filenames) == 0:
+        error.fail("There were no HDF5 files to process. You must have deleted or moved them after preprocessing them.")
 
     path_info = PathInfo(clargs.image_directory, metadata['mapped_reads'], clargs.perfect_target_name)
     # Ensure we have the directories where output will be written
