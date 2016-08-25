@@ -60,7 +60,7 @@ def main(clargs):
     log.debug("Loading FastQImageAligner")
     fia = fastqimagealigner.FastqImageAligner()
     fia.load_reads(perfect_tile_data)
-    log.debug("Loaded %s points" % sum([len(v) for v in alignment_tile_data.values()]))
+    log.debug("Loaded %s points" % sum([len(v) for v in perfect_tile_data.values()]))
     log.debug("FastQImageAligner loaded.")
 
     if 'end_tiles' not in metadata:
