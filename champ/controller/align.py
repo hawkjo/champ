@@ -6,26 +6,35 @@ from champ.config import PathInfo
 log = logging.getLogger(__name__)
 
 
+def preprocess(clargs, metadata):
+    log.debug("Preprocessing images.")
+    paths = convert.get_all_tif_paths(clargs.image_directory)
+    # directories will have ".h5" appended to them to come up with the HDF5 names
+    # tifs are relative paths to each tif file
+    log.debug("About to convert TIFs to HDF5.")
+    convert.main(paths, metadata['flipud'], metadata['fliplr'])
+    log.debug("Done converting TIFs to HDF5.")
+    log.debug("Fitsifying images from HDF5 files.")
+    fits.main(clargs.image_directory)
+    metadata['preprocessed'] = True
+    initialize.update(clargs.image_directory, metadata)
+
+
+def load_filenames(image_directory):
+    h5_filenames = list(filter(lambda x: x.endswith('.h5'), os.listdir(image_directory)))
+    h5_filenames = [os.path.join(image_directory, filename) for filename in h5_filenames]
+    if len(h5_filenames) == 0:
+        error.fail("There were no HDF5 files to process. You must have deleted or moved them after preprocessing them.")
+    return h5_filenames
+
+
 def main(clargs):
     metadata = initialize.load(clargs.image_directory)
 
     if 'preprocessed' not in metadata or not metadata['preprocessed']:
-        log.debug("Preprocessing images.")
-        paths = convert.get_all_tif_paths(clargs.image_directory)
-        # directories will have ".h5" appended to them to come up with the HDF5 names
-        # tifs are relative paths to each tif file
-        log.debug("About to convert TIFs to HDF5.")
-        convert.main(paths, metadata['flipud'], metadata['fliplr'])
-        log.debug("Done converting TIFs to HDF5.")
-        log.debug("Fitsifying images from HDF5 files.")
-        fits.main(clargs.image_directory)
-        metadata['preprocessed'] = True
-        initialize.update(clargs.image_directory, metadata)
+        preprocess(clargs, metadata)
 
-    h5_filenames = list(filter(lambda x: x.endswith('.h5'), os.listdir(clargs.image_directory)))
-    h5_filenames = [os.path.join(clargs.image_directory, filename) for filename in h5_filenames]
-    if len(h5_filenames) == 0:
-        error.fail("There were no HDF5 files to process. You must have deleted or moved them after preprocessing them.")
+    h5_filenames = load_filenames(clargs.image_directory)
 
     path_info = PathInfo(clargs.image_directory, metadata['mapped_reads'], clargs.perfect_target_name)
     # Ensure we have the directories where output will be written
