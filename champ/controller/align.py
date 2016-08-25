@@ -71,6 +71,12 @@ def main(clargs):
         log.debug("End tiles already calculated.")
         end_tiles = metadata['end_tiles']
 
+    log.debug("Loading ANOTHER FastQImageAligner")
+    fia = fastqimagealigner.FastqImageAligner()
+    fia.load_reads(on_target_tile_data)
+    log.debug("Loaded %s points" % sum([len(v) for v in on_target_tile_data.values()]))
+    log.debug("FastQImageAligner loaded.")
+
     if not metadata['phix_aligned']:
         align.run(h5_filenames, path_info, clargs.snr, clargs.min_hits, fia, end_tiles, 'NGS_blue',
                   all_tile_data, metadata, clargs.make_pdfs, sequencing_chip)
