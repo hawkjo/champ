@@ -59,12 +59,12 @@ def main(clargs):
     # usually finds a result in the first image or two, it's not going to deliver any practical benefits
     log.debug("Loading FastQImageAligner")
     fia = fastqimagealigner.FastqImageAligner()
-    fia.load_reads(alignment_tile_data)
+    fia.load_reads(on_target_tile_data)
     log.debug("Loaded %s points" % sum([len(v) for v in alignment_tile_data.values()]))
     log.debug("FastQImageAligner loaded.")
 
     if 'end_tiles' not in metadata:
-        end_tiles = align.get_end_tiles(h5_filenames, metadata['alignment_channel'], clargs.snr, metadata, sequencing_chip, fia)
+        end_tiles = align.get_end_tiles(h5_filenames, 'NGS_blue', clargs.snr, metadata, sequencing_chip, fia)
         metadata['end_tiles'] = end_tiles
         initialize.update(clargs.image_directory, metadata)
     else:
@@ -72,7 +72,7 @@ def main(clargs):
         end_tiles = metadata['end_tiles']
 
     if not metadata['phix_aligned']:
-        align.run(h5_filenames, path_info, clargs.snr, clargs.min_hits, fia, end_tiles, metadata['alignment_channel'],
+        align.run(h5_filenames, path_info, clargs.snr, clargs.min_hits, fia, end_tiles, 'NGS_blue',
                   all_tile_data, metadata, clargs.make_pdfs, sequencing_chip)
         metadata['phix_aligned'] = True
         initialize.update(clargs.image_directory, metadata)

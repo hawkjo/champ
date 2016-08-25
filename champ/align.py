@@ -19,6 +19,29 @@ log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 
 
+class AlignmentStrategy(object):
+    """
+    It should have a method to iterate over the denovo conditions, then a separate one to iterate over data conditions
+    Those produce all unique combinations of (filenames, channel, read_names) for denovo, or
+      (filenames, channel, read_names, denovo_channel)
+
+    We will have to check for end tiles for each condition instead of just seeing if there are any end tiles in the metadata
+
+
+    """
+    def __init__(self, channel_names):
+        self._channel_names = channel_names
+        self._fastq_reads = {}
+        self._conditions = {}
+
+    def add_reads(self, name, data):
+        self._fastq_reads[name] = data
+
+    def add_condition(self, filename, alignment_channel, alignment_read_label, data_channel, data_read_labels):
+        # validate
+        pass
+
+
 def run(h5_filenames, path_info, snr, min_hits, fia, end_tiles, alignment_channel, all_tile_data, metadata, make_pdfs, sequencing_chip):
     image_count = count_images(h5_filenames, alignment_channel)
     num_processes, chunksize = calculate_process_count(image_count)
