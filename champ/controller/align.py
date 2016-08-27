@@ -48,8 +48,9 @@ def main(clargs):
 
     alignment_tile_data = align.load_read_names(path_info.aligning_read_names_filepath)
     unclassified_tile_data = align.load_read_names(path_info.all_read_names_filepath)
-    perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
-    on_target_tile_data = align.load_read_names(path_info.on_target_read_names)
+    # perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
+    # on_target_tile_data = align.load_read_names(path_info.on_target_read_names)
+
     all_tile_data = {key: list(set(alignment_tile_data.get(key, []) + unclassified_tile_data.get(key, [])))
                      for key in list(unclassified_tile_data.keys()) + list(alignment_tile_data.keys())}
     log.debug("Tile data loaded.")
@@ -89,11 +90,11 @@ def main(clargs):
 
     for channel_name in protein_channels:
         # Align just perfect protein reads to the protein image
-        channel_combo = channel_name + "_on_target"
-        combo_align(h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, clargs)
+        # channel_combo = channel_name + "_on_target"
+        # combo_align(h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, clargs)
 
-        channel_combo = channel_name + "_perfect_target"
-        combo_align(h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
+        # channel_combo = channel_name + "_perfect_target"
+        # combo_align(h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
 
         # Align all protein reads to the protein image
         channel_combo = channel_name + "_unclassified"
