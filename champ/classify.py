@@ -2,7 +2,7 @@ import editdistance
 import numpy as np
 import random
 import sys
-
+import os
 
 targets = {
     'A': 'AAGGCCGAATTCTCACCGGCCCCAAGGTATTCAAG',
@@ -24,24 +24,25 @@ def rand_seq(target):
     return ''.join(random.choice('ACGT') for _ in xrange(seq_len))
 
 
-def get_target_reads(target, reads_by_seq_fpath, out_fpath):
+def get_target_reads(target, reads_by_seq_fpath):
     max_edit_dist = get_max_edit_dist(target)
     print 'Max edit distance:', max_edit_dist
-    with open(out_fpath, 'w') as out:
-        for line in open(reads_by_seq_fpath):
-            words = line.strip().split()
-            seq = words[0]
-            read_names = words[1:]
-            if editdistance.eval(target, seq) <= max_edit_dist:
-                out.write('\n'.join(read_names) + '\n')
+    for line in open(reads_by_seq_fpath):
+        words = line.strip().split()
+        seq = words[0]
+        read_names = words[1:]
+        if editdistance.eval(target, seq) <= max_edit_dist:
+            yield '\n'.join(read_names) + '\n'
 
 
 if __name__ == '__main__':
-    usg_fmt = '{} <target_sequence> <reads_by_seq_fpath> <out_fpath>'.format(sys.argv[0])
+    usg_fmt = '{} <reads_by_seq_fpath> <out_dir>'.format(sys.argv[0])
     if len(sys.argv) != len(usg_fmt.split()):
         sys.exit(usg_fmt)
 
-    target_sequence, reads_by_seq_fpath, out_fpath = sys.argv[1:]
-    get_target_reads(target_sequence,
-                     reads_by_seq_fpath,
-                     out_fpath)
+    reads_by_seq_fpath, out_dir = sys.argv[1:]
+    for label, target_sequence in targets.items():
+        out_path = os.path.join(out_dir, "target_{}_read_names.txt".format(label))
+        with open(out_path, 'w+') as out:
+            for reads in get_target_reads(target_sequence, reads_by_seq_fpath):
+                out.write(reads)
