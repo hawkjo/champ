@@ -31,7 +31,9 @@ def get_target_reads(target, reads_by_seq_fpath):
         words = line.strip().split()
         seq = words[0]
         read_names = words[1:]
-        if editdistance.eval(target, seq) <= max_edit_dist:
+        distance = editdistance.eval(target, seq)
+        print(distance)
+        if distance <= max_edit_dist:
             yield '\n'.join(read_names) + '\n'
 
 
@@ -42,7 +44,7 @@ if __name__ == '__main__':
 
     reads_by_seq_fpath, out_dir = sys.argv[1:]
     for label, target_sequence in targets.items():
-        out_path = os.path.join(out_dir, "target_{}_read_names.txt".format(label))
+        out_path = os.path.join(out_dir, "target_{}_read_names.txt".format(label.lower()))
         with open(out_path, 'w+') as out:
             for reads in get_target_reads(target_sequence, reads_by_seq_fpath):
                 out.write(reads)
