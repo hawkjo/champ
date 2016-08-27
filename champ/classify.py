@@ -25,15 +25,14 @@ def rand_seq(target):
 
 
 def get_target_reads(target, reads_by_seq_fpath):
-    max_edit_dist = get_max_edit_dist(target)
-    print 'Max edit distance:', max_edit_dist
+    max_edit_distance = get_max_edit_dist(target)
+    print('Max edit distance:', max_edit_distance)
     for line in open(reads_by_seq_fpath):
         words = line.strip().split()
         seq = words[0]
         read_names = words[1:]
         distance = editdistance.eval(target, seq)
-        print(distance)
-        if distance <= max_edit_dist:
+        if distance <= max_edit_distance:
             yield '\n'.join(read_names) + '\n'
 
 
