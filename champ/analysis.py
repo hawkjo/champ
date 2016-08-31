@@ -225,12 +225,11 @@ def validate(analysis):
 def run(analysis):
     pass
 
-
-
-# ######################################################################3
 # Example!
+
 target_sequence = load_target("D")
 off_target_sequence = load_target("B")
+
 analysis = Analysis('.', '/shared/SA16105/read_names')
 analysis.analyze_hamming_distance()
 analysis.analyze_single_mismatch_penalties()
