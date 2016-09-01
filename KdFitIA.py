@@ -15,7 +15,8 @@ class KdFitIA(object):
     A class to fit Kd Values.
 
     Input:
-        Intensity Array
+        Intensity Array:    Data structure with all intensity values
+        [max_clust=2000]:   max clusters to use per fit
     """
     def __init__(self, IA, max_clust=2000):
         self.IA = IA
@@ -25,8 +26,24 @@ class KdFitIA(object):
         self.target = self.IA.target
         self.neg_control_target = self.IA.neg_control_target
         self.max_clust = max_clust
-        self.Imin_names = ['Imin_const', 'Imin_neg_cont']
-        self.Imax_names = ['Imax_const', 'Imax_adjusted', 'Imax_ML']
+        self.Imin_names = ['Imin_const']
+        self.Imax_names = ['Imax_adjusted']
+
+    def add_Imin_type(self, Imin_name):
+        """
+        Optionally add more Imin-determining strategies. Default: Imin_const.
+        """
+        assert Imin_name in ['Imin_const', 'Imin_neg_cont'], Imin_name
+        if Imin_name not in self.Imin_names:
+            self.Imin_names.append(Imin_name)
+
+    def add_Imax_type(self, Imax_name):
+        """
+        Optionally add more Imax-determining strategies. Default: Imax_adjusted.
+        """
+        assert Imax_name in ['Imax_const', 'Imax_adjusted', 'Imax_ML'], Imax_name
+        if Imax_name not in self.Imax_names:
+            self.Imax_names.append(Imax_name)
 
     def find_Imin_and_background_noise(self):
         """
@@ -44,6 +61,9 @@ class KdFitIA(object):
         }
 
     def find_Imax(self, ML_seqs=None):
+        """
+        Find Imax values according to selected strategies. If ML_seqs are included, finds Imax_ML.
+        """
         def Iobs(x, Kd, Imax):
             return (Imax - self.Imin_const)/(1.0 + (float(Kd)/x)) + self.Imin_const
 
@@ -196,7 +216,7 @@ class KdFitIA(object):
 
     def curve_fit_Kd(self, seq, Imin, Imax, max_clust=None, bootstrap=False, *args, **kw_args):
         """
-        Fits curve to values normalized by Imin/Imax.
+        Least square curve fit to values normalized by Imin/Imax.
         """
         if max_clust is None:
             max_clust = self.max_clust
@@ -223,12 +243,13 @@ class KdFitIA(object):
             self.fit_func_given_Imin_max_names[(Imin_name, Imax_name)] = self.curve_fit_Kd
             self.Imin_max_pairs_given_names[(Imin_name, Imax_name)] = (Imin, Imax)
 
-        for Imin_name in self.Imin_names:
-            Imin = getattr(self, Imin_name)
-            Imax = self.Imax_ML[Imin_name]
-            Imax_name = 'Imax_ML'
-            self.fit_func_given_Imin_max_names[(Imin_name, Imax_name)] = self.ML_fit_Kd
-            self.Imin_max_pairs_given_names[(Imin_name, Imax_name)] = (Imin, Imax)
+        if 'Imax_ML' in self.Imax_names:
+            for Imin_name in self.Imin_names:
+                Imin = getattr(self, Imin_name)
+                Imax = self.Imax_ML[Imin_name]
+                Imax_name = 'Imax_ML'
+                self.fit_func_given_Imin_max_names[(Imin_name, Imax_name)] = self.ML_fit_Kd
+                self.Imin_max_pairs_given_names[(Imin_name, Imax_name)] = (Imin, Imax)
 
     def fit_all_Kds(self, num_bootstraps=20):
         self.setup_for_fit()
