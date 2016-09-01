@@ -192,7 +192,6 @@ class KdFitIA(object):
                                                                        maxfev=1000000))
         if not res.success:
             print '\nWarning: Failure on {} ({})'.format(seq, seqtools.mm_names(self.target, seq))
-            return None
         return float(res.x)
 
     def curve_fit_Kd(self, seq, Imin, Imax, max_clust=None, bootstrap=False, *args, **kw_args):
