@@ -3,8 +3,8 @@ Chip-Hybridized Affinity Mapping Platform
 
 Usage:
   champ map FASTQ_DIRECTORY OUTPUT_DIRECTORY PATHS_TO_BAMFILES ... [--force] [-v | -vv | -vvv]
-  champ init IMAGE_DIRECTORY CHIP_NAME MAPPED_READS PARSED_READS ALIGNMENT_CHANNEL LDA_WEIGHTS [--microns-per-pixel=0.266666666] [--chip=miseq] [--ports-on-right] [--flipud] [--fliplr] [-v | -vv | -vvv ]
-  champ align IMAGE_DIRECTORY PERFECT_TARGET_NAME [--min-hits MIN_HITS] [--snr SNR] [--make-pdfs] [-v | -vv | -vvv]
+  champ init IMAGE_DIRECTORY CHIP_NAME MAPPED_READS PARSED_READS ALIGNMENT_CHANNEL LDA_WEIGHTS [--perfect-target-name] [--microns-per-pixel=0.266666666] [--chip=miseq] [--ports-on-right] [--flipud] [--fliplr] [-v | -vv | -vvv ]
+  champ align IMAGE_DIRECTORY [--min-hits MIN_HITS] [--snr SNR] [--make-pdfs] [-v | -vv | -vvv]
   champ info IMAGE_DIRECTORY
 
 Options:

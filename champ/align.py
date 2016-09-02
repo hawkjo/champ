@@ -246,6 +246,8 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
 
 
 def load_read_names(file_path):
+    if not file_path:
+        return {}
     # reads a FastQ file with Illumina read names
     with open(file_path) as f:
         tiles = defaultdict(set)

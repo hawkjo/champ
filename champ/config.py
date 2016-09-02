@@ -19,7 +19,7 @@ class CommandLineArguments(object):
 
     @property
     def perfect_target_name(self):
-        return self._arguments['PERFECT_TARGET_NAME']
+        return self._arguments.get('--perfect-target-name', False)
 
     @property
     def log_level(self):
@@ -139,8 +139,13 @@ class PathInfo(object):
 
     @property
     def on_target_read_names(self):
+        if not self._perfect_target_name:
+            raise ValueError("This experiment did not have a perfect target set!")
         return os.path.join(self._mapped_reads, 'target_{}_read_names.txt'.format(self._perfect_target_name.lower()))
 
     @property
     def perfect_read_names(self):
+        if not self._perfect_target_name:
+            raise ValueError("This experiment did not have a perfect target set!")
         return os.path.join(self._mapped_reads, 'perfect_target_{}_read_names.txt'.format(self._perfect_target_name.lower()))
+

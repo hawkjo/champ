@@ -39,7 +39,7 @@ def main(clargs):
     if len(h5_filenames) == 0:
         error.fail("There were no HDF5 files to process. You must have deleted or moved them after preprocessing them.")
 
-    path_info = PathInfo(clargs.image_directory, metadata['mapped_reads'], clargs.perfect_target_name)
+    path_info = PathInfo(clargs.image_directory, metadata['mapped_reads'], metadata['perfect_target_name'])
     # Ensure we have the directories where output will be written
     align.make_output_directories(h5_filenames, path_info)
 
@@ -88,12 +88,16 @@ def main(clargs):
         protein_channels = [metadata['alignment_channel']]
 
     for channel_name in protein_channels:
-        # Align just perfect protein reads to the protein image
-        channel_combo = channel_name + "_on_target"
-        combo_align(h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, clargs)
+        # Attempt to precision align protein channels using the phix channel alignment as a starting point.
+        # Not all experiments have "on target" or "perfect target" reads - that only applies to CRISPR systems (at the time of this writing anyway)
 
-        channel_combo = channel_name + "_perfect_target"
-        combo_align(h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
+        if on_target_tile_data:
+            channel_combo = channel_name + "_on_target"
+            combo_align(h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, clargs)
+
+        if perfect_tile_data:
+            channel_combo = channel_name + "_perfect_target"
+            combo_align(h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
 
         # Align all protein reads to the protein image
         channel_combo = channel_name + "_unclassified"
