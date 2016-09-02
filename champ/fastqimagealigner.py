@@ -324,42 +324,6 @@ class FastqImageAligner(object):
         log.debug('Hit finding time: %.3f seconds' % (time.time() - start_time))
 
     @property
-    def intensity_results(self):
-        hit_given_aligned_idx = {}
-        for hit_type in ('non_mutual', 'bad_mutual', 'good_mutual', 'exclusive'):
-            for i, j in getattr(self, hit_type + '_hits'):
-                hit_given_aligned_idx[j] = (hit_type, (i, j))
-
-        hit_given_rcs_coord_tup = {(int(tile_key[-4:]), pt[0], pt[1]): hit_given_aligned_idx[i]
-                                   for i, (tile_key, pt) in enumerate(self.rcs_in_frame)}
-        rcs_coord_tups = set(hit_given_rcs_coord_tup.keys())
-
-        def flux_info_given_rcs_coord_tup(coord_tup):
-            hit_type, (i, _) = hit_given_rcs_coord_tup[coord_tup]
-            if hit_type == 'non_mutual':
-                return 'none', 0, 0, 0, 0
-            else:
-                sexcat_pt = self.sexcat.points[i]
-                return hit_type, sexcat_pt.r, sexcat_pt.c, sexcat_pt.flux, sexcat_pt.flux_err
-
-        lines = set()  # set rather than list due to read pairs
-        for tile in self.fastq_tiles_list:
-            for read_name in tile.read_names:
-                coord_tup = tuple(map(int, read_name.split(':')[-3:]))  # tile:r:c
-                if coord_tup in rcs_coord_tups:
-                    hit_type, rr, cc, flux, flux_err = flux_info_given_rcs_coord_tup(coord_tup)
-                    lines.add('\t'.join([read_name,
-                                         self.image_data.fname,
-                                         hit_type,
-                                         str(rr),
-                                         str(cc),
-                                         str(flux),
-                                         str(flux_err)]))
-
-        fields = ('read_name', 'image_name', 'hit_type', 'r', 'c', 'flux', 'flux_err')
-        return '# Fields: ' + '\t'.join(fields) + '\n' + '\n'.join(sorted(lines, key=lambda s: float(s.split()[3]), reverse=True))
-
-    @property
     def alignment_stats(self):
         hits = {'exclusive': len(self.exclusive_hits),
                 'good_mutual': len(self.good_mutual_hits),

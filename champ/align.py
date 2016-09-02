@@ -281,7 +281,6 @@ def load_existing_score(stats_file_path):
 
 
 def write_output(image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs):
-    intensity_filepath = os.path.join(path_info.results_directory, base_name, '{}_intensities.txt'.format(image_index))
     stats_file_path = os.path.join(path_info.results_directory, base_name, '{}_stats.txt'.format(image_index))
     all_read_rcs_filepath = os.path.join(path_info.results_directory, base_name, '{}_all_read_rcs.txt'.format(image_index))
 
@@ -298,10 +297,6 @@ def write_output(image_index, base_name, fastq_image_aligner, path_info, all_til
     log.info("Saving alignment with score of %s\t\t%s" % (new_stats.score, base_name))
     with open(stats_file_path, 'w+') as f:
         f.write(new_stats.serialized)
-
-    # save the intensity data for each read
-    with open(intensity_filepath, 'w+') as f:
-        f.write(fastq_image_aligner.intensity_results)
 
     # save the corrected location of each read
     all_fastq_image_aligner = fastqimagealigner.FastqImageAligner()
