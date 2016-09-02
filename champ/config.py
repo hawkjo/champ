@@ -106,6 +106,14 @@ class CommandLineArguments(object):
         return self._arguments['--fliplr']
 
     @property
+    def alternate_good_target_reads_filename(self):
+        return self._arguments.get('--alternate-good-reads')
+
+    @property
+    def alternate_perfect_target_reads_filename(self):
+        return self._arguments.get('--alternate-perfect-reads')
+
+    @property
     def force(self):
         return self._arguments['--force']
 
@@ -116,10 +124,13 @@ class CommandLineArguments(object):
 
 class PathInfo(object):
     """ Parses user-provided alignment parameters and provides a default in case no value was given. """
-    def __init__(self, image_directory, mapped_reads, perfect_target_name):
+    def __init__(self, image_directory, mapped_reads, perfect_target_name,
+                 alternate_perfect_reads_filename=None, alternate_good_reads_filename=None):
         self._image_directory = image_directory
         self._mapped_reads = mapped_reads
         self._perfect_target_name = perfect_target_name
+        self._alternate_perfect_reads_filename = alternate_perfect_reads_filename
+        self._alternate_good_reads_filename = alternate_good_reads_filename
 
     @property
     def figure_directory(self):
@@ -139,13 +150,16 @@ class PathInfo(object):
 
     @property
     def on_target_read_names(self):
+        if self._alternate_good_reads_filename:
+            return self._alternate_good_reads_filename
         if not self._perfect_target_name:
             raise ValueError("This experiment did not have a perfect target set!")
         return os.path.join(self._mapped_reads, 'target_{}_read_names.txt'.format(self._perfect_target_name.lower()))
 
     @property
     def perfect_read_names(self):
+        if self._alternate_perfect_reads_filename:
+            return self._alternate_perfect_reads_filename
         if not self._perfect_target_name:
             raise ValueError("This experiment did not have a perfect target set!")
         return os.path.join(self._mapped_reads, 'perfect_target_{}_read_names.txt'.format(self._perfect_target_name.lower()))
-

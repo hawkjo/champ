@@ -14,6 +14,8 @@ def save(clargs):
                 'chip_type': str(clargs.chip),
                 'ports_on_right': clargs.ports_on_right,
                 'alignment_channel': clargs.alignment_channel,
+                'alternate_perfect_target_reads_filename': clargs.alternate_perfect_target_reads_filename,
+                'alternate_good_target_reads_filename': clargs.alternate_good_target_reads_filename,
                 'flipud': clargs.flipud,
                 'fliplr': clargs.fliplr,
                 'perfect_target': clargs.perfect_target_name,
