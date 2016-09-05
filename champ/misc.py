@@ -3,6 +3,8 @@ A space for miscellaneous useful functions.
 """
 import re
 import numpy as np
+from sklearn.neighbors import KernelDensity
+from scipy.optimize import minimize
 
 
 def next_power_of_2(x):
