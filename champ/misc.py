@@ -2,7 +2,6 @@
 A space for miscellaneous useful functions.
 """
 import re
-
 import numpy as np
 
 
@@ -76,3 +75,11 @@ def read_names_and_points_given_rcs_fpath(rcs_fpath):
         read_names.append(var[0])
         points.append(map(float, var[1:]))
     return read_names, np.array(points)
+
+
+def list_if_scalar(x, list_len):
+    try:
+        float(x)
+        return [x]*list_len
+    except:
+        return x

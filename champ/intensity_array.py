@@ -4,6 +4,9 @@ import numpy as np
 import misc
 
 
+bases_set = set('ACGT')
+
+
 class IntensityArray(object):
     def __init__(self):
         pass

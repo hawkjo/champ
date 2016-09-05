@@ -6,9 +6,6 @@ import matplotlib.pyplot as plt
 import misc
 import itertools
 
-bases = 'ACGT'
-bases_set = set(bases)
-
 
 def mm_names(ref, seq):
     mms = []
@@ -181,7 +178,7 @@ class KdFitIA(object):
                                                                        maxfev=1000000,
                                                                        disp=True))
         if not res.success:
-            print '\nWarning: Failure on {} ({})'.format(seq, mm_names(self.target, seq))
+            print('\nWarning: Failure on {} ({})'.format(seq, mm_names(self.target, seq)))
         params = map(abs, res.x)
         Kds = params[:idx1]
         Imax_list = params[idx1:idx2]
@@ -226,7 +223,7 @@ class KdFitIA(object):
         res = minimize(neg_log_L, x0=20, method='powell', options=dict(maxiter=1000000,
                                                                        maxfev=1000000))
         if not res.success:
-            print '\nWarning: Failure on {} ({})'.format(seq, mm_names(self.target, seq))
+            print('\nWarning: Failure on {} ({})'.format(seq, mm_names(self.target, seq)))
         return float(res.x)
 
     def curve_fit_Kd(self, seq, Imin, Imax, max_clust=None, bootstrap=False, *args, **kw_args):
