@@ -1,6 +1,6 @@
 import os
 import yaml
-from error import fail
+from champ.error import fail
 
 
 def save(clargs):
