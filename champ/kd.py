@@ -395,6 +395,7 @@ class KdFitIA(object):
                 Imin_name = names_tup[0]
                 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
                 Imin, Imax = self.Imin_max_pairs_given_names[names_tup]
+                print(len(self.Imin_max_pairs_given_names))
                 print(seq, Imin, Imax)
                 Kd = fit_func(seq, Imin=Imin, Imax=Imax, Imin_name=Imin_name)
                 self.plot_raw_fit(axes[0], seq, Kd, Imin, Imax)
