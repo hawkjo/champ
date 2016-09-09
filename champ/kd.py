@@ -331,6 +331,7 @@ class KdFitIA(object):
                 )
 
     def plot_raw_fit(self, ax, seq, Kd, Imin, Imax):
+        print(ax, seq, Kd, Imin, Imax)
         self.IA.plot_raw_intensities(ax, seq, xvals=self.nM_concentrations)
         Imin = misc.list_if_scalar(Imin, self.IA.course_len)
         Imax = misc.list_if_scalar(Imax, self.IA.course_len)
