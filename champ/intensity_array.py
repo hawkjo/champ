@@ -130,13 +130,11 @@ class IntensityArray(object):
 
         # Build intensity_lolol given reduced parameters
         IA.read_names = []
+        IA.intensity_lolol = []
         for seq in IA.seqs:
             if seq not in self.read_names_given_seq:
                 continue
             IA.read_names.append(self.read_names_given_seq[seq][:max_clust])
-
-        IA.intensity_lolol = []
-        for seq in IA.seqs:
             old_lol = self.intensity_lol_given_seq[seq]
             IA.intensity_lolol.append([old_lol[idx][:max_clust] for idx in trait_idxs])
 
