@@ -331,12 +331,12 @@ class KdFitIA(object):
                 )
 
     def plot_raw_fit(self, ax, seq, Kd, Imin, Imax):
-        print(ax, seq, Kd, Imin, Imax)
+        print(self.nM_concentrations)
         self.IA.plot_raw_intensities(ax, seq, xvals=self.nM_concentrations)
         Imin = misc.list_if_scalar(Imin, self.IA.course_len)
         Imax = misc.list_if_scalar(Imax, self.IA.course_len)
         nM_Kd = Kd / 1000.0
-
+        print('nM_Kd', nM_Kd)
         ax.plot(self.nM_concentrations, Imin, 'ko', alpha=0.8, label='$I_{min}$')
         ax.plot(self.nM_concentrations, Imax, 's', color='darkgoldenrod', alpha=0.8, label='$I_{max}$')
 
@@ -351,6 +351,8 @@ class KdFitIA(object):
                         np.log10(self.nM_concentrations[-1]),
                         200)
         y = [Iobs(xx, nM_Kd, self.Imin_const, self.Imax_const) for xx in x]
+        print("x", x)
+        print("y", y)
         ax.plot(x, y, 'r')
         ax.set_xscale('log')
 
