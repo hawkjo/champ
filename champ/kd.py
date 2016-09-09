@@ -335,6 +335,7 @@ class KdFitIA(object):
         self.IA.plot_raw_intensities(ax, seq, xvals=self.nM_concentrations)
         Imin = misc.list_if_scalar(Imin, self.IA.course_len)
         Imax = misc.list_if_scalar(Imax, self.IA.course_len)
+        print("IMIN IMAX", Imin, Imax)
         nM_Kd = Kd / 1000.0
         print('nM_Kd', nM_Kd)
         ax.plot(self.nM_concentrations, Imin, 'ko', alpha=0.8, label='$I_{min}$')
