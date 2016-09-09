@@ -88,9 +88,6 @@ def list_if_scalar(x, list_len):
 
 
 def get_mode(vals):
-    print(len(vals))
-    if len(vals) < 1000:
-        print(vals)
     h = 1.06 * np.std(vals) * len(vals)**(-1.0/5.0)
     kdf = KernelDensity(bandwidth=h)
     kdf.fit(np.array(vals).reshape(len(vals), 1))
