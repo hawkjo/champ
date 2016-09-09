@@ -203,6 +203,7 @@ class IntensityArray(object):
             :list: all_concentrations
             :list: all_intensities
         """
+        print("IMAX", Imax)
         Imin = misc.list_if_scalar(Imin, self.course_len)
         Imax = misc.list_if_scalar(Imax, self.course_len)
         print(self.course_trait_list, Imin, Imax)
