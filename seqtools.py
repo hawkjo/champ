@@ -1,5 +1,6 @@
 from collections import defaultdict
 import sys
+from champ.adapters_cython import simple_hamming_distance
 
 
 def build_read_names_given_seq(target,
