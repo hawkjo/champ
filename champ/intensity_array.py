@@ -156,8 +156,7 @@ class IntensityArray(object):
         return map(np.median, self.intensity_loarr_given_seq[seq])
 
     def modes_given_seq(self, seq):
-        print(self.intensity_loarr_given_seq[seq])
-        return map(misc.get_mode, self.intensity_loarr_given_seq[seq])
+        return map(misc.get_mode, filter(bool, self.intensity_loarr_given_seq[seq]))
 
     def stdevs_given_seq(self, seq):
         return map(np.std, self.intensity_loarr_given_seq[seq])
