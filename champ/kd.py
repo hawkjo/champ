@@ -395,7 +395,6 @@ class KdFitIA(object):
                 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
                 Imin, Imax = self.Imin_max_pairs_given_names[names_tup]
                 Imax = [i for i in Imax if not math.isnan(i) and i < float('inf')]
-                print(seq, Imin, Imax)
                 Kd = fit_func(seq, Imin=Imin, Imax=Imax, Imin_name=Imin_name)
                 self.plot_raw_fit(axes[0], seq, Kd, Imin, Imax)
                 self.plot_normalized_fit(axes[1], seq, Kd, Imin, Imax)
