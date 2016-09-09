@@ -93,7 +93,10 @@ class IntensityArray(object):
                     np.array([v for v in inten_list if v is not None])
                 )
         self.idx_given_seq = {seq: i for i, seq in enumerate(self.seqs)}
-        self.read_names_given_seq = {seq: self.read_names[i] for i, seq in enumerate(self.seqs)}
+        self.read_names_given_seq = {}
+        for i, seq in enumerate(self.seqs):
+            print(i, seq, self.read_names[i])
+            self.read_names_given_seq[seq] = self.read_names[i]
         self.intensity_lol_given_seq = {seq: self.intensity_lolol[i] for i, seq in enumerate(self.seqs)}
         self.intensity_loarr_given_seq = {seq: self.intensity_loloarr[i] for i, seq in enumerate(self.seqs)}
         self.nseqs = len(self.seqs)
