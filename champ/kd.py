@@ -331,13 +331,10 @@ class KdFitIA(object):
                 )
 
     def plot_raw_fit(self, ax, seq, Kd, Imin, Imax):
-        print(self.nM_concentrations)
         self.IA.plot_raw_intensities(ax, seq, xvals=self.nM_concentrations)
         Imin = misc.list_if_scalar(Imin, self.IA.course_len)
-        Imax = misc.list_if_scalar(max(Imax), self.IA.course_len)
-        print("IMIN IMAX", Imin, Imax)
+        Imax = misc.list_if_scalar(Imax, self.IA.course_len)
         nM_Kd = Kd / 1000.0
-        print('nM_Kd', nM_Kd)
         ax.plot(self.nM_concentrations, Imin, 'ko', alpha=0.8, label='$I_{min}$')
         ax.plot(self.nM_concentrations, Imax, 's', color='darkgoldenrod', alpha=0.8, label='$I_{max}$')
 
@@ -352,8 +349,6 @@ class KdFitIA(object):
                         np.log10(self.nM_concentrations[-1]),
                         200)
         y = [Iobs(xx, nM_Kd, self.Imin_const, self.Imax_const) for xx in x]
-        print("x", x)
-        print("y", y)
         ax.plot(x, y, 'r')
         ax.set_xscale('log')
 
@@ -400,6 +395,7 @@ class KdFitIA(object):
                 Imin, Imax = self.Imin_max_pairs_given_names[names_tup]
                 Imax = [i for i in Imax if not math.isnan(i) and i < float('inf')]
                 Kd = fit_func(seq, Imin=Imin, Imax=Imax, Imin_name=Imin_name)
+                Imax = max(Imax)
                 self.plot_raw_fit(axes[0], seq, Kd, Imin, Imax)
                 self.plot_normalized_fit(axes[1], seq, Kd, Imin, Imax)
                 axes[0].set_title('%s, Kd = %.2f' % (names_tup, Kd / 1000.0))
