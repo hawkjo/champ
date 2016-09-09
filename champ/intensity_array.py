@@ -94,8 +94,6 @@ class IntensityArray(object):
                 )
         self.idx_given_seq = {seq: i for i, seq in enumerate(self.seqs)}
         self.read_names_given_seq = {}
-        print(len(self.seqs), len(self.read_names))
-
         for i, seq in enumerate(self.seqs):
             self.read_names_given_seq[seq] = self.read_names[i]
         self.intensity_lol_given_seq = {seq: self.intensity_lolol[i] for i, seq in enumerate(self.seqs)}
@@ -131,13 +129,15 @@ class IntensityArray(object):
                     IA.seqs.append(seq)
         else:
             IA.seqs = self.seqs
-
+        if len(IA.seqs) != len(seqs):
+            print("Removed %d sequences" % (len(seqs) - len(IA.seqs)))
         # Build intensity_lolol given reduced parameters
         IA.read_names = []
         IA.intensity_lolol = []
         for seq in IA.seqs:
             if seq not in self.read_names_given_seq:
-                continue
+                # QUESTIONABLE CHANGE BY JIM:
+                IA.seqs.remove(seq)
             IA.read_names.append(self.read_names_given_seq[seq][:max_clust])
             old_lol = self.intensity_lol_given_seq[seq]
             IA.intensity_lolol.append([old_lol[idx][:max_clust] for idx in trait_idxs])
