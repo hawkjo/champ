@@ -85,7 +85,7 @@ def list_if_scalar(x, list_len):
         float(x)
         return [x]*list_len
     except:
-        return x
+        return
 
 
 def get_mode(vals):
