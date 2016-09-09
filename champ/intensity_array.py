@@ -129,7 +129,7 @@ class IntensityArray(object):
                     IA.seqs.append(seq)
         else:
             IA.seqs = self.seqs
-        if len(IA.seqs) != len(seqs):
+        if seqs is not None and len(IA.seqs) != len(seqs):
             print("Removed %d sequences" % (len(seqs) - len(IA.seqs)))
         # Build intensity_lolol given reduced parameters
         IA.read_names = []
