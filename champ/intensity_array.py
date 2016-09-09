@@ -129,7 +129,12 @@ class IntensityArray(object):
             IA.seqs = self.seqs
 
         # Build intensity_lolol given reduced parameters
-        IA.read_names = [self.read_names_given_seq[seq][:max_clust] for seq in IA.seqs]
+        IA.read_names = []
+        for seq in IA.seqs:
+            if seq not in self.read_names_given_seq:
+                continue
+            IA.read_names.append(self.read_names_given_seq[seq][:max_clust])
+
         IA.intensity_lolol = []
         for seq in IA.seqs:
             old_lol = self.intensity_lol_given_seq[seq]
