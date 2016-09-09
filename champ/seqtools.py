@@ -10,7 +10,6 @@ def build_read_names_given_seq(target,
                                max_ham,
                                verbose=True):
     interesting_reads = defaultdict(set)
-    i = 0
     for i, line in enumerate(open(read_names_by_seq_fpath)):
         if verbose and i % 10000 == 0:
             sys.stdout.write('.')
