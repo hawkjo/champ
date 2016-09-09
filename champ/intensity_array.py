@@ -95,7 +95,7 @@ class IntensityArray(object):
         self.idx_given_seq = {seq: i for i, seq in enumerate(self.seqs)}
         self.read_names_given_seq = {}
         for i, seq in enumerate(self.seqs):
-            print(i, seq, self.read_names[i])
+            print(i, seq, len(self.read_names[i]))
             self.read_names_given_seq[seq] = self.read_names[i]
         self.intensity_lol_given_seq = {seq: self.intensity_lolol[i] for i, seq in enumerate(self.seqs)}
         self.intensity_loarr_given_seq = {seq: self.intensity_loloarr[i] for i, seq in enumerate(self.seqs)}
