@@ -122,15 +122,14 @@ class IntensityArray(object):
             trait_idxs = range(len(IA.course_trait_list))
 
         # Optionally reduce seqs
-        if seqs:
-            IA.seqs = list(seqs)
-            for seq in [self.target, self.neg_control_target]:  # Force inclusion of targets
-                if seq not in seqs:
-                    IA.seqs.append(seq)
-        else:
-            IA.seqs = self.seqs
-        if seqs is not None and len(IA.seqs) != len(seqs):
-            print("Removed %d sequences" % (len(seqs) - len(IA.seqs)))
+        # if seqs:
+        #     IA.seqs = list(seqs)
+        #     for seq in [self.target, self.neg_control_target]:  # Force inclusion of targets
+        #         if seq not in seqs:
+        #             IA.seqs.append(seq)
+        # else:
+        IA.seqs = self.seqs
+
         # Build intensity_lolol given reduced parameters
         IA.read_names = []
         IA.intensity_lolol = []
@@ -138,6 +137,7 @@ class IntensityArray(object):
             if seq not in self.read_names_given_seq:
                 # QUESTIONABLE CHANGE BY JIM:
                 IA.seqs.remove(seq)
+                continue
             IA.read_names.append(self.read_names_given_seq[seq][:max_clust])
             old_lol = self.intensity_lol_given_seq[seq]
             IA.intensity_lolol.append([old_lol[idx][:max_clust] for idx in trait_idxs])
