@@ -56,6 +56,7 @@ class KdFitIA(object):
         Find Imin and Imin_stdev, the mode and stdev of the negative control intensities at each
         concentration.
         """
+        print(self.neg_control_target)
         self.Imin_neg_cont = self.IA.modes_given_seq(self.neg_control_target)
         self.Imin_const = self.Imin_neg_cont[0]
         self.Imin_given_conc = {
