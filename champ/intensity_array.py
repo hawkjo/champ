@@ -156,7 +156,8 @@ class IntensityArray(object):
         return map(np.median, self.intensity_loarr_given_seq[seq])
 
     def modes_given_seq(self, seq):
-        return map(misc.get_mode, filter(bool, self.intensity_loarr_given_seq[seq]))
+        # ignore empty arrays - but why are there any?
+        return map(misc.get_mode, filter(len, self.intensity_loarr_given_seq[seq]))
 
     def stdevs_given_seq(self, seq):
         return map(np.std, self.intensity_loarr_given_seq[seq])
