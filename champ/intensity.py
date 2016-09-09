@@ -138,6 +138,43 @@ class IntensityScores(object):
                         for read_name in self.get_read_names_in_image(h5_fpath, channel, pos_tup)
                         }
 
+    def normalize_scores_by_ref_read_names(self, ref_read_names_given_channel):
+        """Normalizes scores. The normalizing constant for each image is determined by
+
+            Z = median(reference read scores) / 100
+        """
+        self.scores = {
+            h5_fpath: {channel: {} for channel in hdf5tools.load_channel_names(h5_fpath)}
+            for h5_fpath in self.h5_filepaths
+            }
+        self.normalizing_constants = {
+            h5_fpath: {channel: {} for channel in hdf5tools.load_channel_names(h5_fpath)}
+            for h5_fpath in self.h5_filepaths
+            }
+        for h5_fpath in self.h5_filepaths:
+            for channel in self.scores[h5_fpath].keys():
+                ref_read_names = ref_read_names_given_channel[channel]
+                for pos_tup in self.raw_scores[h5_fpath][channel].keys():
+                    ref_read_names_in_image = (
+                        self.get_read_names_in_image(h5_fpath, channel, pos_tup)
+                        & ref_read_names
+                    )
+                    if len(ref_read_names_in_image) < 10:
+                        print 'Warning: 10 > {} reference reads in im_idx {}'.format(
+                            len(ref_read_names_in_image), (h5_fpath, channel, pos_tup)
+                        )
+                    med = np.median(
+                        [self.raw_scores[h5_fpath][channel][pos_tup][read_name]
+                         for read_name in ref_read_names_in_image]
+                    )
+                    Z = med / 100.0
+                    self.normalizing_constants[h5_fpath][channel][pos_tup] = Z
+                    im_scores = self.raw_scores[h5_fpath][channel][pos_tup]
+                    self.scores[h5_fpath][channel][pos_tup] = {
+                        read_name: im_scores[read_name] / Z
+                        for read_name in self.get_read_names_in_image(h5_fpath, channel, pos_tup)
+                        }
+
     def get_read_names_in_image(self, h5_fpath, channel, pos_tup):
         return set(self.raw_scores[h5_fpath][channel][pos_tup].keys())
 
