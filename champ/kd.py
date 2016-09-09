@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import misc
 import itertools
+import math
 
 
 def mm_names(ref, seq):
@@ -396,6 +397,11 @@ class KdFitIA(object):
                 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
                 Imin, Imax = self.Imin_max_pairs_given_names[names_tup]
                 Imax = max(Imax)
+                best = 0
+                for i in Imax:
+                    if not math.isnan(i) and i > best and i < float('inf'):
+                        best = i
+                Imax = best
                 print(seq, Imin, Imax)
                 Kd = fit_func(seq, Imin=Imin, Imax=Imax, Imin_name=Imin_name)
                 self.plot_raw_fit(axes[0], seq, Kd, Imin, Imax)
