@@ -206,6 +206,7 @@ class IntensityArray(object):
         print("IMAX", Imax)
         Imin = misc.list_if_scalar(Imin, self.course_len)
         Imax = misc.list_if_scalar(Imax, self.course_len)
+        print("IMAX2", Imax)
         print(self.course_trait_list, Imin, Imax)
         assert len(Imin) == len(Imax) == len(self.course_trait_list), (Imin, Imax)
         all_trait_vals, all_intensities = [], []
