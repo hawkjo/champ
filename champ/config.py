@@ -119,7 +119,7 @@ class CommandLineArguments(object):
 
     @property
     def snr(self):
-        return float(self._arguments.get('-snr') or 1.2)
+        return float(self._arguments.get('--snr') or 1.2)
 
 
 class PathInfo(object):
