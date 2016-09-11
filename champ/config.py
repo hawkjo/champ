@@ -19,7 +19,7 @@ class CommandLineArguments(object):
 
     @property
     def perfect_target_name(self):
-        return self._arguments.get('--perfect-target-name', False)
+        return self._arguments.get('PERFECT_TARGET_NAME', False)
 
     @property
     def log_level(self):
