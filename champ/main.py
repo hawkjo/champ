@@ -3,7 +3,7 @@ Chip-Hybridized Affinity Mapping Platform
 
 Usage:
   champ map FASTQ_DIRECTORY OUTPUT_DIRECTORY PATHS_TO_BAMFILES ... [--force] [-v | -vv | -vvv]
-  champ init IMAGE_DIRECTORY CHIP_NAME MAPPED_READS PARSED_READS ALIGNMENT_CHANNEL LDA_WEIGHTS [--perfect-target-name PERFECT_TARGET_NAME] [--alternate-perfect-reads ALTERNATE_PERFECT_READS] [--alternate-good-reads ALTERNATE_GOOD_READS] [--microns-per-pixel=0.266666666] [--chip=miseq] [--ports-on-right] [--flipud] [--fliplr] [-v | -vv | -vvv ]
+  champ init IMAGE_DIRECTORY CHIP_NAME MAPPED_READS PARSED_READS ALIGNMENT_CHANNEL LDA_WEIGHTS [--perfect-target-name=PERFECT_TARGET_NAME] [--alternate-perfect-reads=ALTERNATE_PERFECT_READS] [--alternate-good-reads=ALTERNATE_GOOD_READS] [--microns-per-pixel=0.266666666] [--chip=miseq] [--ports-on-right] [--flipud] [--fliplr] [-v | -vv | -vvv ]
   champ align IMAGE_DIRECTORY [--min-hits=MIN_HITS] [--snr=SNR] [--make-pdfs] [-v | -vv | -vvv]
   champ info IMAGE_DIRECTORY
 
@@ -28,9 +28,6 @@ from docopt import docopt
 
 def main(**kwargs):
     docopt_args = docopt(__doc__, version=VERSION)
-    from pprint import pprint
-    pprint(docopt_args)
-    exit()
     arguments = CommandLineArguments(docopt_args, os.getcwd())
 
     log = logging.getLogger()
