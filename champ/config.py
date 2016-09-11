@@ -89,7 +89,7 @@ class CommandLineArguments(object):
 
     @property
     def min_hits(self):
-        return int(self._arguments.get('--min-hits') or 15)
+        return int(self._arguments.get('MIN_HITS') or 15)
 
     @property
     def make_pdfs(self):
@@ -107,11 +107,11 @@ class CommandLineArguments(object):
 
     @property
     def alternate_good_target_reads_filename(self):
-        return self._arguments.get('--alternate-good-reads')
+        return self._arguments.get('ALTERNATE_GOOD_READS')
 
     @property
     def alternate_perfect_target_reads_filename(self):
-        return self._arguments.get('--alternate-perfect-reads')
+        return self._arguments.get('ALTERNATE_PERFECT_READS')
 
     @property
     def force(self):
@@ -119,7 +119,7 @@ class CommandLineArguments(object):
 
     @property
     def snr(self):
-        return float(self._arguments.get('--snr') or 1.2)
+        return float(self._arguments.get('SNR') or 1.2)
 
 
 class PathInfo(object):
