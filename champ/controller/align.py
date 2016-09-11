@@ -98,10 +98,6 @@ def main(clargs):
             channel_combo = channel_name + "_perfect_target"
             combo_align(h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
 
-        # Align all protein reads to the protein image
-        channel_combo = channel_name + "_unclassified"
-        combo_align(h5_filenames, channel_combo, channel_name, path_info, unclassified_tile_data, all_tile_data, metadata, clargs)
-
 
 def combo_align(h5_filenames, channel_combo, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs):
     log.info("Aligning %s" % channel_combo)

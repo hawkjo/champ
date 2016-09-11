@@ -18,7 +18,7 @@ def save(clargs):
                 'alternate_good_target_reads_filename': clargs.alternate_good_target_reads_filename,
                 'flipud': clargs.flipud,
                 'fliplr': clargs.fliplr,
-                'perfect_target': clargs.perfect_target_name,
+                'perfect_target_name': clargs.perfect_target_name,
                 'phix_aligned': False,
                 'preprocessed': False,
                 'protein_channels_aligned': []}

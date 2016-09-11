@@ -53,6 +53,8 @@ def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data,
                    load_aligned_stats_files(h5_filenames, metadata['alignment_channel'], path_info),
                    chunksize=chunksize).get(sys.maxint)
     log.debug("Done aligning!")
+    del fastq_image_aligner
+    del pool
 
 
 def perform_alignment(path_info, snr, min_hits, um_per_pixel, sequencing_chip, all_tile_data,
@@ -177,6 +179,7 @@ def process_data_image(path_info, all_tile_data, um_per_pixel, make_pdfs, channe
         log.debug("Processed 2nd channel for %s" % image.index)
         write_output(image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs)
     del local_fia
+    del image
 
 
 def load_image(h5_filename, channel, row, column):
