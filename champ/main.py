@@ -28,6 +28,9 @@ from docopt import docopt
 
 def main(**kwargs):
     docopt_args = docopt(__doc__, version=VERSION)
+    from pprint import pprint
+    pprint(docopt_args)
+    exit()
     arguments = CommandLineArguments(docopt_args, os.getcwd())
 
     log = logging.getLogger()
