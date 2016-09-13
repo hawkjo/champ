@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 import h5py
+from astropy.io import fits
 import numpy as np
 
 
@@ -26,24 +27,6 @@ class ImageFiles(object):
     def directories(self):
         for f in self._filenames:
             yield os.path.join(self._image_directory, os.path.splitext(f)[0])
-
-
-class XYZFile(object):
-    def __init__(self, image):
-        self._image = image
-
-    def __str__(self):
-        column_width = len(str(self._image.shape[0]))
-        row_width = len(str(self._image.shape[1]))
-        intensity_width = len(str(np.max(self._image)))
-        line = "{column: >%s} {row: >%s} {intensity: >%s}" % (column_width, row_width, intensity_width)
-        return "\n".join(line.format(row=row,
-                                     column=column,
-                                     intensity=intensity) for row, column, intensity in self._as_vector())
-
-    def _as_vector(self):
-        for (row, column), intensity in np.ndenumerate(self._image):
-            yield row, column, intensity
 
 
 class SEConfig(object):
@@ -106,17 +89,17 @@ def create_fits_files(h5_base_name):
     h5_filename = h5_base_name + ".h5"
     log.info("Creating fits files for %s" % h5_filename)
     h5 = h5py.File(h5_filename)
+    uint_32_max_value = 2**32
     for channel in h5.keys():
         channel = str(channel).strip().replace(" ", "_")
         grid = GridImages(h5, channel)
-        for n, image in enumerate(grid):
-            xyz_file = XYZFile(image)
-            xyz_path = "%s.xyz" % os.path.join(h5_base_name, image.index)
-            with open(xyz_path, "w+") as f:
-                f.write(str(xyz_file))
+        for image in grid:
             fits_path = '%s.fits' % os.path.join(h5_base_name, image.index)
-            log.debug("Calling %s" % " ".join(['fitsify', xyz_path, fits_path, '1', '2', '3']))
-            subprocess.call(['fitsify', xyz_path, fits_path, '1', '2', '3'])
+            # Source Extractor can handle at most 32-bit values, so we have to cast down from our 64-bit images
+            # We clip to ensure there's no overflow, although this seems improbable given that our cameras are 16 bit
+            clipped_image = np.clip(image, 0, uint_32_max_value).astype(np.uint32)
+            hdu = fits.PrimaryHDU(clipped_image)
+            hdu.writeto(fits_path)
     log.info("Done creating fits files for %s" % h5_base_name)
 
 
