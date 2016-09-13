@@ -258,12 +258,11 @@ def load_read_names(file_path):
             try:
                 lane, tile = line.strip().rsplit(':', 4)[1:3]
             except ValueError:
-                print(file_path)
-                print(line)
-                print("!!! OMG")
-                exit()
-            key = 'lane{0}tile{1}'.format(lane, tile)
-            tiles[key].add(line.strip())
+                # just ignore invalid lines
+                pass
+            else:
+                key = 'lane{0}tile{1}'.format(lane, tile)
+                tiles[key].add(line.strip())
     del f
     return {key: list(values) for key, values in tiles.items()}
 
