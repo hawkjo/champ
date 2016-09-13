@@ -37,8 +37,12 @@ def main(clargs):
     if len(h5_filenames) == 0:
         error.fail("There were no HDF5 files to process. You must have deleted or moved them after preprocessing them.")
 
-    path_info = PathInfo(clargs.image_directory, metadata['mapped_reads'], metadata['perfect_target_name'],
-                         metadata['alternate_perfect_target_reads_filename'], metadata['alternate_good_target_reads_filename'])
+    path_info = PathInfo(clargs.image_directory,
+                         metadata['mapped_reads'],
+                         metadata['perfect_target_name'],
+                         metadata['alternate_fiducial_reads'],
+                         metadata['alternate_perfect_target_reads_filename'],
+                         metadata['alternate_good_target_reads_filename'])
     # Ensure we have the directories where output will be written
     align.make_output_directories(h5_filenames, path_info)
 
@@ -49,6 +53,7 @@ def main(clargs):
     unclassified_tile_data = align.load_read_names(path_info.all_read_names_filepath)
     perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
     on_target_tile_data = align.load_read_names(path_info.on_target_read_names)
+    # TODO: Use all read names file instead of these shenanigans
     all_tile_data = {key: list(set(alignment_tile_data.get(key, []) + unclassified_tile_data.get(key, [])))
                      for key in list(unclassified_tile_data.keys()) + list(alignment_tile_data.keys())}
     log.debug("Tile data loaded.")
@@ -77,6 +82,10 @@ def main(clargs):
         initialize.update(clargs.image_directory, metadata)
     else:
         log.debug("Phix already aligned.")
+
+    if clargs.fiducial_only:
+        # the user doesn't want us to align the protein channels
+        exit(0)
 
     protein_channels = [channel for channel in projectinfo.load_channels(clargs.image_directory) if channel != metadata['alignment_channel']]
     if protein_channels:
