@@ -99,7 +99,7 @@ def create_fits_files(h5_base_name):
             # We clip to ensure there's no overflow, although this seems improbable given that our cameras are 16 bit
             clipped_image = np.clip(image, 0, uint_32_max_value).astype(np.uint32)
             hdu = fits.PrimaryHDU(clipped_image)
-            hdu.writeto(fits_path)
+            hdu.writeto(fits_path, clobber=True)
     log.info("Done creating fits files for %s" % h5_base_name)
 
 
