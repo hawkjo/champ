@@ -89,15 +89,14 @@ def create_fits_files(h5_base_name):
     h5_filename = h5_base_name + ".h5"
     log.info("Creating fits files for %s" % h5_filename)
     h5 = h5py.File(h5_filename)
-    uint_32_max_value = 2**32
     for channel in h5.keys():
-        channel = str(channel).strip().replace(" ", "_")
         grid = GridImages(h5, channel)
         for image in grid:
             fits_path = '%s.fits' % os.path.join(h5_base_name, image.index)
-            # Source Extractor can handle at most 32-bit values, so we have to cast down from our 64-bit images
-            # We clip to ensure there's no overflow, although this seems improbable given that our cameras are 16 bit
-            clipped_image = np.clip(image, 0, uint_32_max_value).astype(np.uint32)
+            # Source Extractor can handle at most 32-bit values, so we have to cast down from our 64-bit images or
+            # else it will throw an error. We clip to ensure there's no overflow, although this seems improbable
+            # given that most cameras are 16 bit
+            clipped_image = np.clip(image, 0, 2**32-1).astype(np.uint32)
             hdu = fits.PrimaryHDU(clipped_image)
             hdu.writeto(fits_path, clobber=True)
     log.info("Done creating fits files for %s" % h5_base_name)
