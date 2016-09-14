@@ -19,6 +19,7 @@ git clone https://github.com/hawkjo/champ.git
 Optionally, you can install into a virtual environment (recommended):
 
 ```
+cd champ
 virtualenv env
 . env/bin/activate
 ```
@@ -26,8 +27,8 @@ virtualenv env
 Now install Python packages:
 
 ```
-pip install numpy && pip install scipy && pip install -r champ/requirements.txt
-
+pip install numpy && pip install scipy && pip install -r requirements.txt
+python setup.py install
 ```
 
 ### Typical Pipeline
