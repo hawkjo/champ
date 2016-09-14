@@ -112,7 +112,7 @@ def find_clusters(h5_base_name):
 
 def write_cluster_locations(locations, out_filepath):
     with open(out_filepath, 'w') as out:
-        out.write('\n'.join("%s\t%s" % (r, c) for r, c in locations))
+        out.write('\n'.join("%s\t%s" % (r, c) for c, r in locations))
 
 
 def main(image_directory):
