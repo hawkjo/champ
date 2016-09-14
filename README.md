@@ -1,6 +1,13 @@
 # CHAMP: Chip-Hybridized Association Mapping Platform
 
-##
+This software was used for analyses described in the manuscript:
+
+## Massively parallel biophysical analysis of a CRISPR-Cas complex on repurposed next generation sequencing chips
+#### Cheulhee Jung, John Hawkins, Stephen K. Jones Jr, Yibei Xiao, James Rybarski, Kaylee Dillard, Jeffrey Hussmann,
+Mashelfatema A Saifuddin, Cagri A. Savran,  Andrew Ellington, Ailong Ke, William H. Press, and Ilya J. Finkelstein
+#### Submitted 2016
+
+
 ### Installation
 
 CHAMP has only been run on Ubuntu. You'll need a few dependencies first:
