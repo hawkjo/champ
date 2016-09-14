@@ -1,6 +1,5 @@
 import logging
 import os
-
 from chip import load
 
 
@@ -49,12 +48,12 @@ class CommandLineArguments(object):
 
     @property
     def mapped_reads(self):
-        return self._arguments['MAPPED_READS']
+        return self._arguments['READ_NAMES_DIRECTORY']
 
     @property
     def parsed_reads(self):
-        # TODO: This needs to be merged into mapped_reads, but that requires resolution of #42
-        return self._arguments['PARSED_READS']
+        # TODO: This needs to be merged into mapped_reads
+        return self._arguments['READ_NAMES_DIRECTORY']
 
     @property
     def microns_per_pixel(self):
