@@ -41,7 +41,7 @@ def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data,
     log.debug("Aligning data images with %d cores with chunksize %d" % (num_processes, chunksize))
 
     log.debug("Loading reads into FASTQ Image Aligner.")
-    fastq_image_aligner = fastqimagealigner.FastqImageAligner()
+    fastq_image_aligner = fastqimagealigner.FastqImageAligner(clargs.microns_per_pixel)
     fastq_image_aligner.load_reads(alignment_tile_data)
     log.debug("Reads loaded.")
     second_processor = functools.partial(process_data_image, path_info, all_tile_data,

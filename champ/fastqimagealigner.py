@@ -14,10 +14,11 @@ log = logging.getLogger(__name__)
 
 class FastqImageAligner(object):
     """A class to find the alignment of fastq data and image data."""
-    def __init__(self):
+    def __init__(self, microns_per_pixel):
         self.fastq_tiles = {}
         self.fastq_tiles_list = []
         self.fastq_tiles_keys = []
+        self.microns_per_pixel = microns_per_pixel
         self.image_data = None
         self.fq_w = 935  # um
         self.control_corr = 0
@@ -31,7 +32,7 @@ class FastqImageAligner(object):
     def load_reads(self, tile_data, valid_keys=None):
         for tile_key, read_names in tile_data.items():
             if valid_keys is None or tile_key in valid_keys:
-                self.fastq_tiles[tile_key] = FastqTileRCs(tile_key, read_names)
+                self.fastq_tiles[tile_key] = FastqTileRCs(tile_key, read_names, self.microns_per_pixel)
         self.fastq_tiles_list = [tile for tile_key, tile in sorted(self.fastq_tiles.items())]
 
     def all_reads_fic_from_aligned_fic(self, other_fic, all_reads):
