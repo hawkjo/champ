@@ -57,7 +57,7 @@ def main(clargs):
     # has significantly more cores than the typical number of concentration points, but since it
     # usually finds a result in the first image or two, it's not going to deliver any practical benefits
     log.debug("Loading FastQImageAligner")
-    fia = fastqimagealigner.FastqImageAligner()
+    fia = fastqimagealigner.FastqImageAligner(clargs.microns_per_pixel)
     fia.load_reads(alignment_tile_data)
     log.debug("Loaded %s points" % sum([len(v) for v in alignment_tile_data.values()]))
     log.debug("FastQImageAligner loaded.")
