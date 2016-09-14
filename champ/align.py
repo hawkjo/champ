@@ -165,11 +165,11 @@ def load_aligned_stats_files(h5_filenames, alignment_channel, path_info):
 def process_data_image(path_info, all_tile_data, um_per_pixel, make_pdfs, channel,
                        fastq_image_aligner, min_hits, (h5_filename, base_name, stats_filepath, row, column)):
     image = load_image(h5_filename, channel, row, column)
-    sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
+    cluster_filepath = os.path.join(base_name, '%s.cat' % image.index)
     stats_filepath = os.path.join(path_info.results_directory, base_name, stats_filepath)
     local_fia = deepcopy(fastq_image_aligner)
     local_fia.set_image_data(image, um_per_pixel)
-    local_fia.set_sexcat_from_file(sexcat_filepath)
+    local_fia.set_clusters_from_file(cluster_filepath)
     local_fia.alignment_from_alignment_file(stats_filepath)
     try:
         local_fia.precision_align_only(min_hits)
@@ -268,11 +268,11 @@ def load_read_names(file_path):
 
 
 def process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, fia):
-    sexcat_fpath = os.path.join(base_name, '%s.cat' % image.index)
-    if not os.path.exists(sexcat_fpath):
+    cluster_filepath = os.path.join(base_name, '%s.cat' % image.index)
+    if not os.path.exists(cluster_filepath):
         return fia
     fia.set_image_data(image, um_per_pixel)
-    fia.set_sexcat_from_file(sexcat_fpath)
+    fia.set_clusters_from_file(cluster_filepath)
     fia.rough_align(possible_tile_keys,
                     sequencing_chip.rotation_estimate,
                     sequencing_chip.tile_width,
