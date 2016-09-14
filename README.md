@@ -13,7 +13,7 @@ CHAMP has only been run on Ubuntu. You'll need a few dependencies first:
 
 ```
 sudo apt install -y git sextractor samtools bowtie2 virtualenv python-dev zlib1g-dev
-git clone https://gitlab.com/jimrybarski/ngs_project.git
+git clone https://github.com/hawkjo/champ.git
 ```
 
 Optionally, you can install into a virtual environment (recommended):
@@ -26,7 +26,7 @@ virtualenv env
 Now install Python packages:
 
 ```
-pip install numpy && pip install scipy && pip install -r ngs_project/requirements.txt
+pip install numpy && pip install scipy && pip install -r champ/requirements.txt
 
 ```
 
