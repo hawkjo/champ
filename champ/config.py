@@ -21,6 +21,11 @@ class CommandLineArguments(object):
         return self._arguments.get('PERFECT_TARGET_NAME', False)
 
     @property
+    def alternate_fiducial_reads(self):
+        # sometimes you don't want to use phix for end tile finding and initial alignment
+        return self._arguments.get('ALTERNATE_FIDUCIAL_READS', False)
+
+    @property
     def log_level(self):
         log_level = {0: logging.ERROR,
                      1: logging.WARN,
@@ -79,6 +84,10 @@ class CommandLineArguments(object):
         return chip(self._arguments['--ports-on-right'])
 
     @property
+    def fiducial_only(self):
+        return self._arguments['--fiducial-only']
+
+    @property
     def ports_on_right(self):
         return self._arguments['--ports-on-right']
 
@@ -123,10 +132,11 @@ class CommandLineArguments(object):
 
 class PathInfo(object):
     """ Parses user-provided alignment parameters and provides a default in case no value was given. """
-    def __init__(self, image_directory, mapped_reads, perfect_target_name,
+    def __init__(self, image_directory, mapped_reads, perfect_target_name, alternate_fiducial_reads=None,
                  alternate_perfect_reads_filename=None, alternate_good_reads_filename=None):
         self._image_directory = image_directory
         self._mapped_reads = mapped_reads
+        self._alternate_fiducial_reads = alternate_fiducial_reads
         self._perfect_target_name = perfect_target_name
         self._alternate_perfect_reads_filename = alternate_perfect_reads_filename
         self._alternate_good_reads_filename = alternate_good_reads_filename
@@ -141,6 +151,8 @@ class PathInfo(object):
 
     @property
     def aligning_read_names_filepath(self):
+        if self._alternate_fiducial_reads:
+            return os.path.join(self._mapped_reads, self._alternate_fiducial_reads)
         return os.path.join(self._mapped_reads, 'phix')
 
     @property
