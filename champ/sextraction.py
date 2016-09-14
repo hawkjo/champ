@@ -5,7 +5,7 @@ class SextractorPoint(object):
     __slots__ = ('r', 'c')
 
     def __init__(self, line):
-        self.c, self.r = map(float, line.strip().split())
+        self.r, self.c = map(float, line.strip().split())
 
 
 class Sextraction(object):
