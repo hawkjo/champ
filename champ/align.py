@@ -41,7 +41,7 @@ def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data,
     log.debug("Aligning data images with %d cores with chunksize %d" % (num_processes, chunksize))
 
     log.debug("Loading reads into FASTQ Image Aligner.")
-    fastq_image_aligner = fastqimagealigner.FastqImageAligner()
+    fastq_image_aligner = fastqimagealigner.FastqImageAligner(metadata['microns_per_pixel'])
     fastq_image_aligner.load_reads(alignment_tile_data)
     log.debug("Reads loaded.")
     second_processor = functools.partial(process_data_image, path_info, all_tile_data,
@@ -75,7 +75,7 @@ def perform_alignment(path_info, snr, min_hits, um_per_pixel, sequencing_chip, a
         except ValueError:
             log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
         else:
-            result = write_output(image.index, base_name, fia, path_info, all_tile_data, make_pdfs)
+            result = write_output(image.index, base_name, fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
             print("Write alignment for %s: %s" % (image.index, result))
 
     # The garbage collector takes its sweet time for some reason, so we have to manually delete
@@ -177,7 +177,7 @@ def process_data_image(path_info, all_tile_data, um_per_pixel, make_pdfs, channe
         log.debug("Could not precision align %s" % image.index)
     else:
         log.debug("Processed 2nd channel for %s" % image.index)
-        write_output(image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs)
+        write_output(image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
     del local_fia
     del image
 
@@ -290,7 +290,7 @@ def load_existing_score(stats_file_path):
     return 0
 
 
-def write_output(image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs):
+def write_output(image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, um_per_pixel):
     stats_file_path = os.path.join(path_info.results_directory, base_name, '{}_stats.txt'.format(image_index))
     all_read_rcs_filepath = os.path.join(path_info.results_directory, base_name, '{}_all_read_rcs.txt'.format(image_index))
 
@@ -309,7 +309,7 @@ def write_output(image_index, base_name, fastq_image_aligner, path_info, all_til
         f.write(new_stats.serialized)
 
     # save the corrected location of each read
-    all_fastq_image_aligner = fastqimagealigner.FastqImageAligner()
+    all_fastq_image_aligner = fastqimagealigner.FastqImageAligner(um_per_pixel)
     all_fastq_image_aligner.all_reads_fic_from_aligned_fic(fastq_image_aligner, all_tile_data)
     with open(all_read_rcs_filepath, 'w+') as f:
         for line in all_fastq_image_aligner.read_names_rcs:

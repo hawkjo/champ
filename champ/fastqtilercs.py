@@ -2,14 +2,16 @@ from copy import deepcopy
 import numpy as np
 import misc
 import logging
+from scipy import ndimage
 
 log = logging.getLogger(__name__)
 
 
 class FastqTileRCs(object):
     """A class for fastq tile coordinates."""
-    def __init__(self, key, read_names):
+    def __init__(self, key, read_names, microns_per_pixel):
         self.key = key
+        self.microns_per_pixel = microns_per_pixel
         self.read_names = read_names
         self.rcs = np.array([map(int, name.split(':')[-2:]) for name in self.read_names])
 
@@ -31,6 +33,8 @@ class FastqTileRCs(object):
     def image(self):
         image = np.zeros(self.image_shape)
         image[self.mapped_rcs.astype(np.int)[:, 0], self.mapped_rcs.astype(np.int)[:, 1]] = 1
+        sigma = 0.25 / self.microns_per_pixel  # Clusters have stdev ~= 0.25 um
+        image = ndimage.gaussian_filter(image, sigma)
         return image
 
     def fft_align_with_im(self, image_data):

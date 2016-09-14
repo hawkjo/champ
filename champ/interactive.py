@@ -35,7 +35,7 @@ def imshow(filename, channel, row, column):
 
 def get_fastq_image_aligner(read_names_path):
     reads = align.load_read_names(read_names_path)
-    fia = FastqImageAligner()
+    fia = FastqImageAligner(0.2666666)
     fia.load_reads(reads)
     return fia
 
