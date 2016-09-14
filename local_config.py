@@ -6,7 +6,7 @@ import os
 import numpy as np
 from collections import defaultdict
 
-base_dir = '/mnt/agate/ssd/home/hawkjo/tmp_alignment'
+base_dir = '/home/hawkjo/IlyaProjects/miseq_alignment'
 fig_dir = os.path.join(base_dir, 'figs')
 data_dir = os.path.join(base_dir, 'data')
 fourier_data_dir = os.path.join(data_dir, 'from_fourierseq')
