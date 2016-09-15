@@ -51,8 +51,11 @@ def main(clargs):
 
     alignment_tile_data = align.load_read_names(path_info.aligning_read_names_filepath)
     unclassified_tile_data = align.load_read_names(path_info.all_read_names_filepath)
-    perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
-    on_target_tile_data = align.load_read_names(path_info.on_target_read_names)
+    if 'perfect_target_name' in metadata:
+        perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
+        on_target_tile_data = align.load_read_names(path_info.on_target_read_names)
+
+
     # TODO: Use all read names file instead of these shenanigans
     all_tile_data = {key: list(set(alignment_tile_data.get(key, []) + unclassified_tile_data.get(key, [])))
                      for key in list(unclassified_tile_data.keys()) + list(alignment_tile_data.keys())}
@@ -98,12 +101,12 @@ def main(clargs):
     for channel_name in protein_channels:
         # Attempt to precision align protein channels using the phix channel alignment as a starting point.
         # Not all experiments have "on target" or "perfect target" reads - that only applies to CRISPR systems (at the time of this writing anyway)
-
-        if on_target_tile_data:
+        if not 'perfect_target_name' in metadata:
+            channel_combo = channel_name + "_all"
+            combo_align(h5_filenames, channel_combo, channel_name, path_info, unclassified_tile_data, all_tile_data, metadata, clargs)
+        else:
             channel_combo = channel_name + "_on_target"
             combo_align(h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, clargs)
-
-        if perfect_tile_data:
             channel_combo = channel_name + "_perfect_target"
             combo_align(h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
 
