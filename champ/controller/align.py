@@ -100,7 +100,7 @@ def main(clargs):
     for channel_name in protein_channels:
         # Attempt to precision align protein channels using the phix channel alignment as a starting point.
         # Not all experiments have "on target" or "perfect target" reads - that only applies to CRISPR systems (at the time of this writing anyway)
-        if not 'perfect_target_name' in metadata:
+        if not metadata['perfect_target_name']:
             channel_combo = channel_name + "_all"
             combo_align(h5_filenames, channel_combo, channel_name, path_info, unclassified_tile_data, all_tile_data, metadata, clargs)
         else:
