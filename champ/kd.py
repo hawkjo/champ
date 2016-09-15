@@ -313,8 +313,8 @@ class KdFitIA(object):
                 out.write('# Target: {}\n'.format(self.target))
                 out.write('# Neg Control: {}\n'.format(self.neg_control_target))
                 out.write('# Concentration\tImin\tImax\n')
-                for conc, Imin, Imax in zip(self.concentrations, Imin, Imax):
-                    out.write('\t'.join(map(str, map(float, (conc, Imin, Imax)))) + '\n')
+                for conc, imin, imax in zip(self.concentrations, Imin, Imax):
+                    out.write('\t'.join(map(str, map(float, (conc, imin, imax)))) + '\n')
                 out.write('\t'.join(['# Seq', 'Kd (pM)', 'Kd error', 'ABA (kB T)', 'ABA error']) + '\n')
                 out_zipper = zip(
                     self.IA.seqs,
