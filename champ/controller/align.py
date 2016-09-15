@@ -51,10 +51,9 @@ def main(clargs):
 
     alignment_tile_data = align.load_read_names(path_info.aligning_read_names_filepath)
     unclassified_tile_data = align.load_read_names(path_info.all_read_names_filepath)
-    if 'perfect_target_name' in metadata:
+    if metadata['perfect_target_name']:
         perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
         on_target_tile_data = align.load_read_names(path_info.on_target_read_names)
-
 
     # TODO: Use all read names file instead of these shenanigans
     all_tile_data = {key: list(set(alignment_tile_data.get(key, []) + unclassified_tile_data.get(key, [])))
