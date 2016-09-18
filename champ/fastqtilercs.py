@@ -79,8 +79,8 @@ class FastqTileRCs(object):
 
     def set_correlation(self, im):
         """Sets alignment correlation. Only works when image need not be flipped or rotated."""
-        self.best_max_corr = sum(im[pt[0], pt[1]] for pt in self.aligned_rcs
-                                 if 0 <= pt[0] < im.shape[0] and 0 <= pt[1] < im.shape[1])
+        self.best_max_corr = sum(im[int(pt[0]), int(pt[1])] for pt in self.aligned_rcs
+                                 if 0.0 <= pt[0] < im.shape[0] and 0.0 <= pt[1] < im.shape[1])
 
     def set_snr_with_control_corr(self, control_corr):
         self.snr = self.best_max_corr / control_corr
