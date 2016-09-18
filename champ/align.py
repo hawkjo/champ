@@ -268,15 +268,19 @@ def load_read_names(file_path):
 
 
 def process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, fia):
+    print("process alignment image")
     cluster_filepath = os.path.join(base_name, '%s.cat' % image.index)
     if not os.path.exists(cluster_filepath):
         return fia
     fia.set_image_data(image, um_per_pixel)
+    print("set image data")
     fia.set_clusters_from_file(cluster_filepath)
+    print("set clusters")
     fia.rough_align(possible_tile_keys,
                     sequencing_chip.rotation_estimate,
                     sequencing_chip.tile_width,
                     snr_thresh=snr)
+    print("rough align")
     return fia
 
 

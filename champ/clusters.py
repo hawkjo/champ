@@ -26,6 +26,7 @@ class ClusterPoint(object):
 
 class Clusters(object):
     def __init__(self, lines, parser_name):
+        print("clusters")
         parsers = {'sextractor': parse_sextractor,
                    'otsu': parse_cluster}
         parse = parsers[parser_name]
