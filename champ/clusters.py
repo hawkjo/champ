@@ -2,7 +2,9 @@ import numpy as np
 
 
 def parse_sextractor(lines):
+    print("parse st")
     for line in lines:
+        print(line)
         if line.startswith('#'):
             continue
         column, row, _, _, _, _, _, _ = map(float, line.strip().split())
@@ -11,6 +13,7 @@ def parse_sextractor(lines):
 
 
 def parse_cluster(lines):
+    print("parse cluster")
     for line in lines:
         print(line)
         row, column = map(float, line.strip().split())
@@ -33,6 +36,7 @@ class Clusters(object):
         parsers = {'sextractor': parse_sextractor,
                    'otsu': parse_cluster}
         parse = parsers[parser_name]
+        print(parse)
         self.points = []
         for row, column in parse(lines):
             self.points.append(ClusterPoint(row, column))
