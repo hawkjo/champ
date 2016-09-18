@@ -31,7 +31,7 @@ def ensure_image_data_directory_exists(h5_filename):
 
 
 def run(image_directory, strategy_name):
-    strategies = {'ostu': otsu,
+    strategies = {'otsu': otsu,
                   'sextractor': sextractor}
     strategy = strategies[strategy_name]
 
