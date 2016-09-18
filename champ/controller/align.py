@@ -1,6 +1,7 @@
 import logging
 import os
-from champ import align, initialize, error, projectinfo, chip, fastqimagealigner, convert, fits
+from champ import align, initialize, error, projectinfo, chip, fastqimagealigner, convert
+from champ.find_clusters import main as find_clusters
 from champ.config import PathInfo
 
 log = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ def preprocess(clargs, metadata):
     convert.main(paths, metadata['flipud'], metadata['fliplr'])
     log.debug("Done converting TIFs to HDF5.")
     log.debug("Fitsifying images from HDF5 files.")
-    fits.main(clargs.image_directory)
+    find_clusters.run(clargs.image_directory, 'otsu')
     metadata['preprocessed'] = True
     initialize.update(clargs.image_directory, metadata)
 
