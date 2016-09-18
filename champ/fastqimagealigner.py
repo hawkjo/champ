@@ -45,7 +45,7 @@ class FastqImageAligner(object):
         for other_tile in other_fic.hitting_tiles:
             tile = self.fastq_tiles[other_tile.key]
             tile.set_aligned_rcs_given_transform(other_tile.scale,
-                                                 other_tile.rotation_degrees,
+                                                 other_tile.rotation,
                                                  other_tile.offset)
 
     def set_tile_alignment(self, tile_key, scale, fq_w, rotation, rc_offset):
