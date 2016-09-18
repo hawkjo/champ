@@ -161,7 +161,7 @@ class PathInfo(object):
 
     @property
     def all_read_names_filepath(self):
-        return os.path.join(self._mapped_reads, 'unclassified')
+        return os.path.join(self._mapped_reads, 'all_read_names.txt')
 
     @property
     def on_target_read_names(self):
