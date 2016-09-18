@@ -13,6 +13,7 @@ def parse_sextractor(lines):
 def parse_cluster(lines):
     for line in lines:
         row, column = map(float, line.strip().split())
+        print(row, column)
         yield row, column
 
 
@@ -27,6 +28,7 @@ class ClusterPoint(object):
 class Clusters(object):
     def __init__(self, lines, parser_name):
         print("clusters")
+        print("parser name", parser_name)
         parsers = {'sextractor': parse_sextractor,
                    'otsu': parse_cluster}
         parse = parsers[parser_name]
