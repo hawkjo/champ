@@ -16,7 +16,7 @@ def preprocess(clargs, metadata):
     convert.main(paths, metadata['flipud'], metadata['fliplr'])
     log.debug("Done converting TIFs to HDF5.")
     log.debug("Fitsifying images from HDF5 files.")
-    find_clusters.run(clargs.image_directory, 'otsu')
+    find_clusters.run(clargs.image_directory, metadata['cluster_strategy'])
     metadata['preprocessed'] = True
     initialize.update(clargs.image_directory, metadata)
 
