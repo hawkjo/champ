@@ -12,6 +12,7 @@ def parse_sextractor(lines):
 
 def parse_cluster(lines):
     for line in lines:
+        print(line)
         row, column = map(float, line.strip().split())
         print(row, column)
         yield row, column
