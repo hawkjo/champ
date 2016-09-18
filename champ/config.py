@@ -13,6 +13,10 @@ class CommandLineArguments(object):
         self._current_directory = current_directory
 
     @property
+    def cluster_strategy(self):
+        return self._arguments.get('CLUSTER_STRATEGY', 'sextractor')
+
+    @property
     def nonneg_lda_weights_path(self):
         return self._arguments['LDA_WEIGHTS']
 

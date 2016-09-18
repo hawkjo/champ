@@ -19,6 +19,7 @@ def save(clargs):
                 'alternate_good_target_reads_filename': clargs.alternate_good_target_reads_filename,
                 'flipud': clargs.flipud,
                 'fliplr': clargs.fliplr,
+                'cluster_strategy': clargs.cluster_strategy,
                 'perfect_target_name': clargs.perfect_target_name,
                 'phix_aligned': False,
                 'preprocessed': False,

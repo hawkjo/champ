@@ -1,15 +1,19 @@
 import numpy as np
 
 
-def parse_sextractor(line):
-    column, row, _, _, _, _, _, _ = map(float, line.strip().split())
-    # Sextractor coordinates are 1-based
-    return row - 1.0, column - 1.0
+def parse_sextractor(lines):
+    for line in lines:
+        if line.startswith('#'):
+            continue
+        column, row, _, _, _, _, _, _ = map(float, line.strip().split())
+        # Sextractor coordinates are 1-based
+        yield row - 1.0, column - 1.0
 
 
-def parse_cluster(line):
-    row, column = map(float, line.strip().split())
-    return row, column
+def parse_cluster(lines):
+    for line in lines:
+        row, column = map(float, line.strip().split())
+        yield row, column
 
 
 class ClusterPoint(object):
@@ -26,8 +30,7 @@ class Clusters(object):
                    'otsu': parse_cluster}
         parse = parsers[parser_name]
         self.points = []
-        for line in lines:
-            row, column = parse(line)
+        for row, column in parse(lines):
             self.points.append(ClusterPoint(row, column))
         self.point_rcs = np.array([(pt.row, pt.column) for pt in self.points])
 

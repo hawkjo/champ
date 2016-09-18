@@ -13,7 +13,8 @@ log = logging.getLogger(__name__)
 
 class FastqImageAligner(object):
     """A class to find the alignment of fastq data and image data."""
-    def __init__(self, microns_per_pixel):
+    def __init__(self, microns_per_pixel, cluster_strategy=None):
+        self.cluster_strategy = cluster_strategy
         self.fastq_tiles = {}
         self.fastq_tiles_list = []
         self.fastq_tiles_keys = []
@@ -66,7 +67,7 @@ class FastqImageAligner(object):
 
     def set_clusters_from_file(self, file_path):
         with open(file_path) as f:
-            self.clusters = clusters.Clusters(f, 'otsu')
+            self.clusters = clusters.Clusters(f, self.cluster_strategy)
 
     def set_image_data(self, image, um_per_pixel):
         self.image_data = ImageData(image.index, um_per_pixel, image)

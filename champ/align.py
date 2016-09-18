@@ -41,7 +41,7 @@ def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data,
     log.debug("Aligning data images with %d cores with chunksize %d" % (num_processes, chunksize))
 
     log.debug("Loading reads into FASTQ Image Aligner.")
-    fastq_image_aligner = fastqimagealigner.FastqImageAligner(metadata['microns_per_pixel'])
+    fastq_image_aligner = fastqimagealigner.FastqImageAligner(metadata['microns_per_pixel'], clargs.cluster_strategy)
     fastq_image_aligner.load_reads(alignment_tile_data)
     log.debug("Reads loaded.")
     second_processor = functools.partial(process_data_image, path_info, all_tile_data,
@@ -165,11 +165,11 @@ def load_aligned_stats_files(h5_filenames, alignment_channel, path_info):
 def process_data_image(path_info, all_tile_data, um_per_pixel, make_pdfs, channel,
                        fastq_image_aligner, min_hits, (h5_filename, base_name, stats_filepath, row, column)):
     image = load_image(h5_filename, channel, row, column)
-    sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
+    cluster_filepath = os.path.join(base_name, '%s.cat' % image.index)
     stats_filepath = os.path.join(path_info.results_directory, base_name, stats_filepath)
     local_fia = deepcopy(fastq_image_aligner)
     local_fia.set_image_data(image, um_per_pixel)
-    local_fia.set_clusters_from_file(sexcat_filepath)
+    local_fia.set_clusters_from_file(cluster_filepath)
     local_fia.alignment_from_alignment_file(stats_filepath)
     try:
         local_fia.precision_align_only(min_hits)
