@@ -3,8 +3,7 @@ import time
 from copy import deepcopy
 from itertools import izip
 import numpy as np
-import sextraction
-from champ import stats
+from champ import stats, clusters
 from fastqtilercs import FastqTileRCs
 from imagedata import ImageData
 from scipy.spatial import KDTree
@@ -42,11 +41,11 @@ class FastqImageAligner(object):
         self.set_fastq_tile_mappings()
         self.set_all_fastq_image_data()
         self.hitting_tiles = [self.fastq_tiles[tile.key] for tile in other_fic.hitting_tiles]
-        self.sexcat = other_fic.sexcat
+        self.clusters = other_fic.clusters
         for other_tile in other_fic.hitting_tiles:
             tile = self.fastq_tiles[other_tile.key]
             tile.set_aligned_rcs_given_transform(other_tile.scale,
-                                                 other_tile.rotation,
+                                                 other_tile.rotation_degrees,
                                                  other_tile.offset)
 
     def set_tile_alignment(self, tile_key, scale, fq_w, rotation, rc_offset):
@@ -65,9 +64,9 @@ class FastqImageAligner(object):
         for tile_key, scaling, tile_width, rotation, rc_offset, _ in astats:
             self.set_tile_alignment(tile_key, scaling, tile_width, rotation, rc_offset)
 
-    def set_sexcat_from_file(self, fpath):
+    def set_clusters_from_file(self, fpath):
         with open(fpath) as f:
-            self.sexcat = sextraction.Sextraction(f)
+            self.clusters = clusters.Clusters(f)
 
     def set_image_data(self, image, um_per_pixel):
         self.image_data = ImageData(image.index, um_per_pixel, image)
@@ -144,7 +143,7 @@ class FastqImageAligner(object):
         return [self.single_hit_dist(hit) for hit in hits]
 
     def single_hit_dist(self, hit):
-        return np.linalg.norm(self.sexcat.point_rcs[hit[0]] - self.aligned_rcs_in_frame[hit[1]])
+        return np.linalg.norm(self.clusters.point_rcs[hit[0]] - self.aligned_rcs_in_frame[hit[1]])
 
     def remove_longest_hits(self, hits, pct_thresh):
         if not hits:
@@ -158,30 +157,30 @@ class FastqImageAligner(object):
         # Find nearest neighbors
         # --------------------------------------------------------------------------------
         self.find_points_in_frame(consider_tiles)
-        sexcat_tree = KDTree(self.sexcat.point_rcs)
+        cluster_tree = KDTree(self.clusters.point_rcs)
         aligned_tree = KDTree(self.aligned_rcs_in_frame)
 
-        # All indices are in the order (sexcat_idx, aligned_in_frame_idx)
-        sexcat_to_aligned_idxs = set()
-        for i, pt in enumerate(self.sexcat.point_rcs):
+        # All indices are in the order (cluster_index, aligned_in_frame_idx)
+        cluster_to_aligned_indexes = set()
+        for i, pt in enumerate(self.clusters.point_rcs):
             dist, idx = aligned_tree.query(pt)
-            sexcat_to_aligned_idxs.add((i, idx))
+            cluster_to_aligned_indexes.add((i, idx))
 
-        aligned_to_sexcat_idxs_rev = set()
+        aligned_to_cluster_indexes_rev = set()
         for i, pt in enumerate(self.aligned_rcs_in_frame):
-            dist, idx = sexcat_tree.query(pt)
-            aligned_to_sexcat_idxs_rev.add((idx, i))
+            dist, idx = cluster_tree.query(pt)
+            aligned_to_cluster_indexes_rev.add((idx, i))
 
         # --------------------------------------------------------------------------------
         # Find categories of hits
         # --------------------------------------------------------------------------------
-        mutual_hits = sexcat_to_aligned_idxs & aligned_to_sexcat_idxs_rev
-        non_mutual_hits = sexcat_to_aligned_idxs ^ aligned_to_sexcat_idxs_rev
+        mutual_hits = cluster_to_aligned_indexes & aligned_to_cluster_indexes_rev
+        non_mutual_hits = cluster_to_aligned_indexes ^ aligned_to_cluster_indexes_rev
 
-        sexcat_in_non_mutual = set(i for i, j in non_mutual_hits)
+        clusters_in_non_mutual = set(i for i, j in non_mutual_hits)
         aligned_in_non_mutual = set(j for i, j in non_mutual_hits)
         exclusive_hits = set((i, j) for i, j in mutual_hits if i not in
-                             sexcat_in_non_mutual and j not in aligned_in_non_mutual)
+                             clusters_in_non_mutual and j not in aligned_in_non_mutual)
 
         # --------------------------------------------------------------------------------
         # Recover good non-exclusive mutual hits. 
@@ -212,10 +211,10 @@ class FastqImageAligner(object):
         # Test that the four groups form a partition of all hits and finalize
         # --------------------------------------------------------------------------------
         assert (non_mutual_hits | bad_mutual_hits | good_mutual_hits | exclusive_hits
-                == sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev
+                == cluster_to_aligned_indexes | aligned_to_cluster_indexes_rev
                 and len(non_mutual_hits) + len(bad_mutual_hits)
                 + len(good_mutual_hits) + len(exclusive_hits)
-                == len(sexcat_to_aligned_idxs | aligned_to_sexcat_idxs_rev))
+                == len(cluster_to_aligned_indexes | aligned_to_cluster_indexes_rev))
 
         self.non_mutual_hits = non_mutual_hits
         self.mutual_hits = mutual_hits
@@ -233,7 +232,7 @@ class FastqImageAligner(object):
     def least_squares_mapping(self, pct_thresh=0.9, min_hits=50):
         """least_squares_mapping(self, hit_type='exclusive')
 
-        "Input": set of tuples of (sexcat_idx, in_frame_idx) mappings.
+        "Input": set of tuples of (cluster_index, in_frame_idx) mappings.
 
         "Output": scaling lambda, rotation theta, x_offset, y_offset, and aligned_rcs
 
@@ -251,7 +250,7 @@ class FastqImageAligner(object):
 
             b = [ x0s y0s x1s y1s . . . xns yns ]^T
 
-        The r and s subscripts indicate rcs and sexcat coords.
+        The r and s subscripts indicate rcs and cluster coords.
 
         The interpretation of x is then given by
 
@@ -275,7 +274,7 @@ class FastqImageAligner(object):
 
         for tile in self.hitting_tiles:
             self.find_hits(consider_tiles=tile)
-            # Reminder: All indices are in the order (sexcat_idx, in_frame_idx)
+            # Reminder: All indices are in the order (cluster_index, in_frame_idx)
             raw_hits = get_hits(('exclusive', 'good_mutual'))
             hits = self.remove_longest_hits(raw_hits, pct_thresh)
             if len(hits) < min_hits:
@@ -284,12 +283,12 @@ class FastqImageAligner(object):
                 found_good_mapping = True
             A = np.zeros((2 * len(hits), 4))
             b = np.zeros((2 * len(hits),))
-            for i, (sexcat_idx, in_frame_idx) in enumerate(hits):
+            for i, (cluster_index, in_frame_idx) in enumerate(hits):
                 tile_key, (xir, yir) = self.rcs_in_frame[in_frame_idx]
                 A[2*i, :] = [xir, -yir, 1, 0]
                 A[2*i+1, :] = [yir,  xir, 0, 1]
 
-                xis, yis = self.sexcat.point_rcs[sexcat_idx]
+                xis, yis = self.clusters.point_rcs[cluster_index]
                 b[2*i] = xis
                 b[2*i+1] = yis
 
