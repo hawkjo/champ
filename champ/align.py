@@ -299,8 +299,8 @@ def write_output(image_index, base_name, fastq_image_aligner, path_info, all_til
     existing_score = load_existing_score(stats_file_path)
 
     new_stats = fastq_image_aligner.alignment_stats
-    if new_stats.score < existing_score:
-        log.info("Not saving alignment, old score (%s) better than new score (%s)" % (existing_score, new_stats.score))
+    if existing_score > 0:
+        log.debug("Alignment already exists for %s/%s, skipping. Score difference: %d." % (base_name, image_index, (new_stats.score - existing_score)))
         return False
 
     # save information about how to align the images
