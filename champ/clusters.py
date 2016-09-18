@@ -29,10 +29,10 @@ class Clusters(object):
         for line in lines:
             row, column = parse(line)
             self.points.append(ClusterPoint(row, column))
-        self.point_rcs = np.array([(pt.r, pt.c) for pt in self.points])
+        self.point_rcs = np.array([(pt.row, pt.column) for pt in self.points])
 
     def rs(self):
-        return np.array([pt.r for pt in self.points])
+        return np.array([pt.row for pt in self.points])
 
     def cs(self):
-        return np.array([pt.c for pt in self.points])
+        return np.array([pt.column for pt in self.points])
