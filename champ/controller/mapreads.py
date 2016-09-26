@@ -25,10 +25,11 @@ def main(clargs):
     fastq_files = FastqFiles(filenames)
     all_classified_reads = set()
 
-    if not clargs.force:
-        if not fastq.safe_to_classify(clargs.bamfiles, clargs.output_directory):
+    if not clargs.force and not fastq.safe_to_classify(clargs.bamfiles, clargs.output_directory):
             error.fail("Some or all reads have already been mapped. If you want to force the read mapping "
                        "to be redone, rerun the last command with --force")
+
+    # create all_read_names.txt
 
     classified_reads = fastq.classify_all_reads(clargs.bamfiles, fastq_files)
     for name, reads in classified_reads.items():
@@ -37,7 +38,6 @@ def main(clargs):
         # keep a single set with all the reads so that we can figure out which reads aren't classified
         all_classified_reads.update(reads)
 
-    # now figure out which reads remain unclassified and save them to a catch-all bucket
-    log.info('Finding reads that were not classified.')
-    all_unclassified_reads = fastq.load_unclassified_reads(fastq_files, all_classified_reads)
-    fastq.save_classified_reads('unclassified', all_unclassified_reads, clargs.output_directory)
+    # do that ML thing to make read_names_by_sequence.txt
+    # create perfect_target_read_names
+    # create target_read_names
