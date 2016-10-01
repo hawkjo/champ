@@ -47,6 +47,7 @@ def align_fiducial(h5_filenames, path_info, snr, min_hits, fia, end_tiles, align
     for _ in range(num_processes):
         thread = threading.Thread(target=align_fiducial_thread, args=(q, done_event, snr, min_hits, fia, alignment_channel,
                                                                       metadata, sequencing_chip))
+        print("starting a thread")
         thread.start()
 
     # start one thread to write results to disk
@@ -54,16 +55,20 @@ def align_fiducial(h5_filenames, path_info, snr, min_hits, fia, end_tiles, align
     # anyway, we're not writing a lot to disk
     thread = threading.Thread(target=write_thread, args=(result_queue, processing_done_event, path_info, all_tile_data,
                                                          make_pdfs, metadata['microns_per_pixel']))
+    print("starting write thread")
     thread.start()
 
     data = iterate_all_images(h5_filenames, end_tiles, alignment_channel)
     for row, column, h5_filename, possible_tile_keys in data:
+        print("putting into data queue", row, column, h5_filename)
         q.put((row, column, h5_filename, possible_tile_keys))
     # signal the threads that if they find that the queue is empty, they should terminate since there's no more work for them
+    print("signaling shutdown to data threads")
     done_event.set()
     # wait for all the work to be finished
     q.join()
     # the alignments are done, now we just have to wait for everything to be written to disk
+    print("signaliing shutdown to write thread")
     processing_done_event.set()
     result_queue.join()
     print("ALL DONE WITH FIDUCIAL ALIGNMENT")
@@ -73,6 +78,7 @@ def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, prefia
     while True:
         try:
             row, column, h5_filename, possible_tile_keys = queue.get_nowait()
+            print("thread got", row, column, h5_filename)
         except Queue.Empty:
             # The queue might momentarily be empty, especially during the period after the threads start but before
             # we start putting data into the queue. Therefore, unless we get notified by done_event that we really are
@@ -100,6 +106,7 @@ def write_thread(result_queue, processing_done_event, path_info, all_tile_data, 
     while True:
         try:
             image_index, base_name, fastq_image_aligner = result_queue.get()
+            print("write thread got", image_index, base_name)
         except Queue.Empty:
             if processing_done_event.is_set():
                 break
