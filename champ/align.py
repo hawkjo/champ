@@ -89,10 +89,13 @@ def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, prefia
             print("data thread continuing")
             continue
         else:
+            print("thread processing thing")
             base_name = os.path.splitext(h5_filename)[0]
             image = load_image(h5_filename, alignment_channel, row, column)
             fia = process_alignment_image(snr, sequencing_chip, base_name, metadata['microns_per_pixel'], image, possible_tile_keys, deepcopy(prefia))
+            print("fia complete")
             if fia.hitting_tiles:
+                print("found hitting tiles****************")
                 # The image data aligned with FastQ reads!
                 try:
                     fia.precision_align_only(min_hits)
