@@ -104,6 +104,7 @@ def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, prefia
                 else:
                     result_queue.put(image.index, base_name, fia)
                     # maybe del image here
+            print("TASK DONE")
             queue.task_done()
 
 
