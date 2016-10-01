@@ -45,8 +45,8 @@ def align_fiducial(h5_filenames, path_info, snr, min_hits, fia, end_tiles, align
 
     # start threads that will actually perform the alignment
     for _ in range(num_processes):
-        thread = threading.Thread(target=align_fiducial_thread, args=(q, done_event, snr, min_hits, fia, alignment_channel,
-                                                                      metadata, sequencing_chip))
+        thread = threading.Thread(target=align_fiducial_thread, args=(q, result_queue, done_event, snr, min_hits, fia,
+                                                                      alignment_channel, metadata, sequencing_chip))
         print("starting a thread")
         thread.start()
 
