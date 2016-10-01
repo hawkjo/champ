@@ -116,6 +116,7 @@ def write_thread(result_queue, processing_done_event, path_info, all_tile_data, 
         else:
             write_output(image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, microns_per_pixel)
             del fastq_image_aligner
+            result_queue.task_done()
 
 
 def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs):
