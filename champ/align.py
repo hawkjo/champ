@@ -84,7 +84,9 @@ def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, prefia
             # we start putting data into the queue. Therefore, unless we get notified by done_event that we really are
             # finished, we should keep looping and wait for more data
             if done_event.is_set():
+                print("data thread quitting due to signal")
                 break
+            print("data thread continuing")
             continue
         else:
             base_name = os.path.splitext(h5_filename)[0]
