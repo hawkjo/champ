@@ -46,7 +46,7 @@ def align_fiducial(h5_filenames, path_info, snr, min_hits, fia, end_tiles, align
 
     # start threads that will actually perform the alignment
     for _ in range(num_processes):
-        thread = threading.Thread(target=align_fiducial_thread, args=(q, result_queue, done_event, snr, min_hits, fia,
+        thread = threading.Thread(target=align_fiducial_thread, args=(q, result_queue, done_event, snr, min_hits, deepcopy(fia),
                                                                       alignment_channel, metadata, sequencing_chip))
         print("starting a thread")
         thread.start()
@@ -75,7 +75,7 @@ def align_fiducial(h5_filenames, path_info, snr, min_hits, fia, end_tiles, align
     print("ALL DONE WITH FIDUCIAL ALIGNMENT")
 
 
-def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, prefia, alignment_channel, metadata, sequencing_chip):
+def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, original_fia, alignment_channel, metadata, sequencing_chip):
     while True:
         try:
             row, column, h5_filename, possible_tile_keys = queue.get_nowait()
@@ -87,13 +87,13 @@ def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, prefia
             if done_event.is_set():
                 print("data thread quitting due to signal")
                 break
-            print("data thread continuing")
             continue
         else:
             print("thread processing thing")
             base_name = os.path.splitext(h5_filename)[0]
             image = load_image(h5_filename, alignment_channel, row, column)
-            fia = process_alignment_image(snr, sequencing_chip, base_name, metadata['microns_per_pixel'], image, possible_tile_keys, deepcopy(prefia))
+            print("loaded image in data thread")
+            fia = process_alignment_image(snr, sequencing_chip, base_name, metadata['microns_per_pixel'], image, possible_tile_keys, original_fia)
             print("fia complete")
             if fia.hitting_tiles:
                 print("found hitting tiles****************")
