@@ -37,7 +37,8 @@ stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 def align_fiducial(h5_filenames, path_info, snr, min_hits, fia, end_tiles, alignment_channel,
         all_tile_data, metadata, make_pdfs, sequencing_chip):
     # this should be a tunable parameter so you can decide how much memory to use
-    num_processes = max(multiprocessing.cpu_count() - 3, 1)
+    # num_processes = max(multiprocessing.cpu_count() - 3, 1)
+    num_processes = 4
     done_event = threading.Event()
     processing_done_event = threading.Event()
     q = Queue.Queue(maxsize=num_processes)
@@ -98,10 +99,12 @@ def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, prefia
                 print("found hitting tiles****************")
                 # The image data aligned with FastQ reads!
                 try:
+                    print("precision aligning!")
                     fia.precision_align_only(min_hits)
                 except ValueError:
                     log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
                 else:
+                    print("Precision alignment worked!")
                     result_queue.put(image.index, base_name, fia)
                     # maybe del image here
             print("TASK DONE")
@@ -115,9 +118,11 @@ def write_thread(result_queue, processing_done_event, path_info, all_tile_data, 
             print("write thread got", image_index, base_name)
         except Queue.Empty:
             if processing_done_event.is_set():
+                print("Killing write thread")
                 break
             continue
         else:
+            print("WRITE THREAD OUTPUT")
             write_output(image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, microns_per_pixel)
             del fastq_image_aligner
             result_queue.task_done()
