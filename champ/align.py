@@ -93,18 +93,17 @@ def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, origin
             base_name = os.path.splitext(h5_filename)[0]
             image = load_image(h5_filename, alignment_channel, row, column)
             print("loaded image in data thread")
-            fia = process_alignment_image(snr, sequencing_chip, base_name, metadata['microns_per_pixel'], image, possible_tile_keys, original_fia)
+            copied_fia = deepcopy(original_fia)
+            print("copied FIA")
+            fia = process_alignment_image(snr, sequencing_chip, base_name, metadata['microns_per_pixel'], image, possible_tile_keys, copied_fia)
             print("fia complete")
             if fia.hitting_tiles:
-                print("found hitting tiles****************")
                 # The image data aligned with FastQ reads!
                 try:
-                    print("precision aligning!")
                     fia.precision_align_only(min_hits)
                 except ValueError:
                     log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
                 else:
-                    print("Precision alignment worked!")
                     result_queue.put(image.index, base_name, fia)
                     # maybe del image here
             print("TASK DONE")
