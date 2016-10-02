@@ -90,7 +90,7 @@ def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, origin
             continue
         else:
             t = threading.current_thread()
-            tid = t.get_ident()
+            tid = t.ident
             log.debug("%s thread processing thing" % tid)
             base_name = os.path.splitext(h5_filename)[0]
             image = load_image(h5_filename, alignment_channel, row, column)
