@@ -58,8 +58,6 @@ def main(clargs):
     sequencing_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
 
     alignment_tile_data = align.load_read_names(path_info.aligning_read_names_filepath)
-    perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
-    on_target_tile_data = align.load_read_names(path_info.on_target_read_names)
     all_tile_data = align.load_read_names(path_info.all_read_names_filepath)
     log.debug("Tile data loaded.")
 
@@ -99,6 +97,11 @@ def main(clargs):
         # protein is in phix channel, hopefully?
         log.warn("No protein channels detected. Assuming protein is in phiX channel: %s" % [metadata['alignment_channel']])
         protein_channels = [metadata['alignment_channel']]
+
+    log.debug("Loading target read data")
+    perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
+    on_target_tile_data = align.load_read_names(path_info.on_target_read_names)
+    log.debug("Target read data loaded.")
 
     for channel_name in protein_channels:
         # Attempt to precision align protein channels using the phix channel alignment as a starting point.
