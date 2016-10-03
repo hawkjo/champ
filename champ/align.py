@@ -32,7 +32,7 @@ def align_fiducial(h5_filenames, path_info, snr, min_hits, fastq_tiles, end_tile
 
     # start threads that will actually perform the alignment
     for _ in range(num_processes):
-        thread = threading.Thread(target=align_fiducial_thread, args=(q, result_queue, done_event, snr, min_hits, fastq_tiles,
+        thread = threading.Thread(target=align_fiducial_thread, args=(q, result_queue, done_event, snr, min_hits, deepcopy(fastq_tiles),
                                                                       alignment_channel, metadata, sequencing_chip))
         print("starting a thread")
         thread.start()
@@ -61,10 +61,7 @@ def align_fiducial(h5_filenames, path_info, snr, min_hits, fastq_tiles, end_tile
     print("ALL DONE WITH FIDUCIAL ALIGNMENT")
 
 
-def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, fastq_tiles, alignment_channel, metadata, sequencing_chip):
-    log.debug('copying local fastq files')
-    local_fastq_tiles = deepcopy(fastq_tiles)
-    log.debug("DONE copying local fastq files")
+def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, local_fastq_tiles, alignment_channel, metadata, sequencing_chip):
     while True:
         try:
             row, column, h5_filename, possible_tile_keys = queue.get_nowait()
