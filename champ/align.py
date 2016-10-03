@@ -388,4 +388,6 @@ def write_output(tile_data, image_index, base_name, fastq_image_aligner, path_in
         ax = plotting.plot_hit_hists(fastq_image_aligner)
         ax.figure.savefig(os.path.join(path_info.figure_directory, base_name, '{}_hit_hists.pdf'.format(image_index)))
         plt.close()
+    del fastq_image_aligner
+    del all_fastq_image_aligner
     return True
