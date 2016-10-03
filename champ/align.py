@@ -23,8 +23,8 @@ stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 def align_fiducial(alignment_tile_data, h5_filenames, path_info, snr, min_hits, fastq_tiles, end_tiles, alignment_channel,
         all_tile_data, metadata, make_pdfs, sequencing_chip):
     # this should be a tunable parameter so you can decide how much memory to use
-    # num_processes = max(multiprocessing.cpu_count() - 3, 1)
-    num_processes = 8
+    num_processes = max(multiprocessing.cpu_count() - 4, 1)
+    # num_processes = 8
     done_event = threading.Event()
     processing_done_event = threading.Event()
     q = Queue.Queue(maxsize=num_processes)
@@ -39,10 +39,11 @@ def align_fiducial(alignment_tile_data, h5_filenames, path_info, snr, min_hits, 
     # start one thread to write results to disk
     # this might not be the optimal number of threads! But I suspect that having less I/O contention will be fast
     # anyway, we're not writing a lot to disk
-    thread = threading.Thread(target=write_thread, args=(result_queue, processing_done_event, alignment_tile_data, path_info, all_tile_data,
-                                                         make_pdfs, metadata['microns_per_pixel']))
-    print("starting write thread")
-    thread.start()
+    for _ in range(2):
+        thread = threading.Thread(target=write_thread, args=(result_queue, processing_done_event, alignment_tile_data, path_info, all_tile_data,
+                                                             make_pdfs, metadata['microns_per_pixel']))
+        print("starting write thread")
+        thread.start()
 
     data = iterate_all_images(h5_filenames, end_tiles, alignment_channel)
     for row, column, h5_filename, possible_tile_keys in data:
