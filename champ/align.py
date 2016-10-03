@@ -20,21 +20,7 @@ log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 
 
-# def run(h5_filenames, path_info, snr, min_hits, fia, end_tiles, alignment_channel, all_tile_data, metadata, make_pdfs, sequencing_chip):
-#     num_processes = max(multiprocessing.cpu_count() - 2, 1)
-#     log.debug("Aligning alignment images with %d cores with chunksize %d" % (num_processes, chunksize))
-#
-#     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
-#     # align, do a precision alignment and write the mapped FastQ reads to disk
-#     alignment_func = functools.partial(perform_alignment, path_info, snr, min_hits, metadata['microns_per_pixel'],
-#                                        sequencing_chip, all_tile_data, make_pdfs, fia)
-#
-#     pool = multiprocessing.Pool(num_processes)
-#     pool.map_async(alignment_func,
-#                    iterate_all_images(h5_filenames, end_tiles, alignment_channel), chunksize=chunksize).get(timeout=sys.maxint)
-#     log.debug("Done aligning!")
-
-def align_fiducial(h5_filenames, path_info, snr, min_hits, fia, end_tiles, alignment_channel,
+def align_fiducial(h5_filenames, path_info, snr, min_hits, fastq_tiles, end_tiles, alignment_channel,
         all_tile_data, metadata, make_pdfs, sequencing_chip):
     # this should be a tunable parameter so you can decide how much memory to use
     num_processes = max(multiprocessing.cpu_count() - 3, 1)
@@ -46,7 +32,7 @@ def align_fiducial(h5_filenames, path_info, snr, min_hits, fia, end_tiles, align
 
     # start threads that will actually perform the alignment
     for _ in range(num_processes):
-        thread = threading.Thread(target=align_fiducial_thread, args=(q, result_queue, done_event, snr, min_hits, deepcopy(fia),
+        thread = threading.Thread(target=align_fiducial_thread, args=(q, result_queue, done_event, snr, min_hits, fastq_tiles,
                                                                       alignment_channel, metadata, sequencing_chip))
         print("starting a thread")
         thread.start()
@@ -75,7 +61,10 @@ def align_fiducial(h5_filenames, path_info, snr, min_hits, fia, end_tiles, align
     print("ALL DONE WITH FIDUCIAL ALIGNMENT")
 
 
-def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, original_fia, alignment_channel, metadata, sequencing_chip):
+def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, fastq_tiles, alignment_channel, metadata, sequencing_chip):
+    log.debug('copying local fastq files')
+    local_fastq_tiles = deepcopy(fastq_tiles)
+    log.debug("DONE copying local fastq files")
     while True:
         try:
             row, column, h5_filename, possible_tile_keys = queue.get_nowait()
@@ -95,9 +84,10 @@ def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, origin
             base_name = os.path.splitext(h5_filename)[0]
             image = load_image(h5_filename, alignment_channel, row, column)
             print("%s loaded image in data thread" % tid)
-            copied_fia = deepcopy(original_fia)
+            original_fia = fastqimagealigner.FastqImageAligner(metadata['microns_per_pixel'])
+            original_fia.set_fastq_tiles(deepcopy(local_fastq_tiles))
             print("%s copied FIA" % tid)
-            fia = process_alignment_image(snr, sequencing_chip, base_name, metadata['microns_per_pixel'], image, possible_tile_keys, copied_fia)
+            fia = process_alignment_image(snr, sequencing_chip, base_name, metadata['microns_per_pixel'], image, possible_tile_keys, original_fia)
             print("%s fia complete" % tid)
             if fia.hitting_tiles:
                 print("%s found hitting tiles" % tid)
@@ -109,7 +99,7 @@ def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, origin
                     log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
                 else:
                     print("Precision alignment worked!")
-                    result_queue.put(image.index, base_name, fia)
+                    result_queue.put((image.index, base_name, fia))
                     # maybe del image here
             print("TASK DONE")
             queue.task_done()

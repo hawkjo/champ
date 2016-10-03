@@ -2,6 +2,7 @@ import logging
 import os
 from champ import align, initialize, error, projectinfo, chip, fastqimagealigner, convert, fits
 from champ.config import PathInfo
+from champ.fastqtilercs import FastqTileRCs
 
 log = logging.getLogger(__name__)
 
@@ -23,6 +24,13 @@ def preprocess(clargs, metadata):
 def load_filenames(image_directory):
     h5_filenames = list(filter(lambda x: x.endswith('.h5'), os.listdir(image_directory)))
     return [os.path.join(image_directory, filename) for filename in h5_filenames]
+
+
+def load_fastq_tiles(tile_data, microns_per_pixel):
+    fastq_tiles = {}
+    for tile_key, read_names in tile_data.items():
+        fastq_tiles[tile_key] = FastqTileRCs(tile_key, read_names, microns_per_pixel)
+    return fastq_tiles
 
 
 def main(clargs):
@@ -59,13 +67,13 @@ def main(clargs):
     # has significantly more cores than the typical number of concentration points, but since it
     # usually finds a result in the first image or two, it's not going to deliver any practical benefits
     log.debug("Loading FastQImageAligner")
-    fia = fastqimagealigner.FastqImageAligner(clargs.microns_per_pixel)
-    fia.load_reads(alignment_tile_data)
+    fastq_tiles = load_fastq_tiles(alignment_tile_data, metadata['microns_per_pixel'])
     log.debug("Loaded %s points" % sum([len(v) for v in alignment_tile_data.values()]))
     log.debug("FastQImageAligner loaded.")
 
     if 'end_tiles' not in metadata:
-        end_tiles = align.get_end_tiles(h5_filenames, metadata['alignment_channel'], clargs.snr, metadata, sequencing_chip, fia)
+        # WARNING: Last parameter fastq_tiles is not correct or expected!!!
+        end_tiles = align.get_end_tiles(h5_filenames, metadata['alignment_channel'], clargs.snr, metadata, sequencing_chip, fastq_tiles)
         metadata['end_tiles'] = end_tiles
         initialize.update(clargs.image_directory, metadata)
     else:
@@ -73,8 +81,8 @@ def main(clargs):
         end_tiles = metadata['end_tiles']
 
     if not metadata['phix_aligned']:
-        align.align_fiducial(h5_filenames, path_info, clargs.snr, clargs.min_hits, fia, end_tiles, metadata['alignment_channel'],
-                  all_tile_data, metadata, clargs.make_pdfs, sequencing_chip)
+        align.align_fiducial(h5_filenames, path_info, clargs.snr, clargs.min_hits, fastq_tiles, end_tiles,
+                             metadata['alignment_channel'], all_tile_data, metadata, clargs.make_pdfs, sequencing_chip)
         metadata['phix_aligned'] = True
         initialize.update(clargs.image_directory, metadata)
     else:

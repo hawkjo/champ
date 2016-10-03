@@ -16,7 +16,6 @@ class FastqImageAligner(object):
     """A class to find the alignment of fastq data and image data."""
     def __init__(self, microns_per_pixel):
         self.fastq_tiles = {}
-        self.fastq_tiles_list = []
         self.fastq_tiles_keys = []
         self.microns_per_pixel = microns_per_pixel
         self.image_data = None
@@ -33,7 +32,14 @@ class FastqImageAligner(object):
         for tile_key, read_names in tile_data.items():
             if valid_keys is None or tile_key in valid_keys:
                 self.fastq_tiles[tile_key] = FastqTileRCs(tile_key, read_names, self.microns_per_pixel)
-        self.fastq_tiles_list = [tile for tile_key, tile in sorted(self.fastq_tiles.items())]
+
+    def set_fastq_tiles(self, fastq_tiles):
+        self.fastq_tiles = fastq_tiles
+
+    @property
+    def fastq_tiles_list(self):
+        for _, tile in sorted(self.fastq_tiles.items()):
+            yield tile
 
     def all_reads_fic_from_aligned_fic(self, other_fic, all_reads):
         self.load_reads(all_reads, valid_keys=[tile.key for tile in other_fic.hitting_tiles])
