@@ -12,8 +12,8 @@ class FastqTileRCs(object):
     def __init__(self, key, read_names, microns_per_pixel):
         self.key = key
         self.microns_per_pixel = microns_per_pixel
-        self.read_names = read_names
-        self.rcs = np.array([map(int, name.split(':')[-2:]) for name in self.read_names])
+        # self.read_names = read_names
+        self.rcs = np.array([map(int, name.split(':')[-2:]) for name in read_names])
 
     def set_fastq_image_data(self, offset, scale, scaled_dims, width):
         self.offset = offset
