@@ -96,8 +96,7 @@ def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, local_
                     log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
                 else:
                     print("Precision alignment worked!")
-                    result_queue.put((image.index, base_name, fia))
-                    # maybe del image here
+                    result_queue.put((image, base_name, fia))
             print("TASK DONE")
             queue.task_done()
 
@@ -105,8 +104,8 @@ def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, local_
 def write_thread(result_queue, processing_done_event, tile_data, path_info, all_tile_data, make_pdfs, microns_per_pixel):
     while True:
         try:
-            image_index, base_name, fastq_image_aligner = result_queue.get()
-            print("write thread got", image_index, base_name)
+            image, base_name, fastq_image_aligner = result_queue.get()
+            print("write thread got", image.index, base_name)
         except Queue.Empty:
             if processing_done_event.is_set():
                 print("Killing write thread")
@@ -114,7 +113,7 @@ def write_thread(result_queue, processing_done_event, tile_data, path_info, all_
             continue
         else:
             print("WRITE THREAD OUTPUT")
-            write_output(tile_data, image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, microns_per_pixel)
+            write_output(tile_data, image, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, microns_per_pixel)
             del fastq_image_aligner
             result_queue.task_done()
 
@@ -355,9 +354,9 @@ def load_existing_score(stats_file_path):
     return 0
 
 
-def write_output(tile_data, image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, um_per_pixel):
-    stats_file_path = os.path.join(path_info.results_directory, base_name, '{}_stats.txt'.format(image_index))
-    all_read_rcs_filepath = os.path.join(path_info.results_directory, base_name, '{}_all_read_rcs.txt'.format(image_index))
+def write_output(tile_data, image, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, um_per_pixel):
+    stats_file_path = os.path.join(path_info.results_directory, base_name, '{}_stats.txt'.format(image.index))
+    all_read_rcs_filepath = os.path.join(path_info.results_directory, base_name, '{}_all_read_rcs.txt'.format(image.index))
 
     # if we've already aligned this channel with a different strategy, the current alignment may or may not be better
     # here we load some data so we can make that comparison
@@ -365,7 +364,7 @@ def write_output(tile_data, image_index, base_name, fastq_image_aligner, path_in
 
     new_stats = fastq_image_aligner.alignment_stats
     if existing_score > 0:
-        log.debug("Alignment already exists for %s/%s, skipping. Score difference: %d." % (base_name, image_index, (new_stats.score - existing_score)))
+        log.debug("Alignment already exists for %s/%s, skipping. Score difference: %d." % (base_name, image.index, (new_stats.score - existing_score)))
         return False
 
     # save information about how to align the images
@@ -383,11 +382,12 @@ def write_output(tile_data, image_index, base_name, fastq_image_aligner, path_in
     # save some diagnostic PDFs that give a nice visualization of the alignment
     if make_pdfs:
         ax = plotting.plot_all_hits(fastq_image_aligner)
-        ax.figure.savefig(os.path.join(path_info.figure_directory, base_name, '{}_all_hits.pdf'.format(image_index)))
+        ax.figure.savefig(os.path.join(path_info.figure_directory, base_name, '{}_all_hits.pdf'.format(image.index)))
         plt.close()
         ax = plotting.plot_hit_hists(fastq_image_aligner)
-        ax.figure.savefig(os.path.join(path_info.figure_directory, base_name, '{}_hit_hists.pdf'.format(image_index)))
+        ax.figure.savefig(os.path.join(path_info.figure_directory, base_name, '{}_hit_hists.pdf'.format(image.index)))
         plt.close()
+    del image
     del fastq_image_aligner
     del all_fastq_image_aligner
     return True
