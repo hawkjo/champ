@@ -23,8 +23,8 @@ stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 def align_fiducial(h5_filenames, path_info, snr, min_hits, fastq_tiles, end_tiles, alignment_channel,
         all_tile_data, metadata, make_pdfs, sequencing_chip):
     # this should be a tunable parameter so you can decide how much memory to use
-    num_processes = max(multiprocessing.cpu_count() - 3, 1)
-    # num_processes = 4
+    # num_processes = max(multiprocessing.cpu_count() - 3, 1)
+    num_processes = 8
     done_event = threading.Event()
     processing_done_event = threading.Event()
     q = Queue.Queue(maxsize=num_processes)
