@@ -29,7 +29,6 @@ def align_fiducial(alignment_tile_data, h5_filenames, path_info, snr, min_hits, 
     processing_done_event = threading.Event()
     q = Queue.Queue(maxsize=num_processes)
     result_queue = Queue.Queue()
-    read_names = list(alignment_tile_data.values())
     # start threads that will actually perform the alignment
     for _ in range(num_processes):
         thread = threading.Thread(target=align_fiducial_thread, args=(q, result_queue, done_event, snr, min_hits, deepcopy(fastq_tiles),
@@ -40,7 +39,7 @@ def align_fiducial(alignment_tile_data, h5_filenames, path_info, snr, min_hits, 
     # start one thread to write results to disk
     # this might not be the optimal number of threads! But I suspect that having less I/O contention will be fast
     # anyway, we're not writing a lot to disk
-    thread = threading.Thread(target=write_thread, args=(result_queue, processing_done_event, read_names, path_info, all_tile_data,
+    thread = threading.Thread(target=write_thread, args=(result_queue, processing_done_event, alignment_tile_data, path_info, all_tile_data,
                                                          make_pdfs, metadata['microns_per_pixel']))
     print("starting write thread")
     thread.start()
@@ -102,7 +101,7 @@ def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, local_
             queue.task_done()
 
 
-def write_thread(result_queue, processing_done_event, read_names, path_info, all_tile_data, make_pdfs, microns_per_pixel):
+def write_thread(result_queue, processing_done_event, tile_data, path_info, all_tile_data, make_pdfs, microns_per_pixel):
     while True:
         try:
             image_index, base_name, fastq_image_aligner = result_queue.get()
@@ -114,7 +113,7 @@ def write_thread(result_queue, processing_done_event, read_names, path_info, all
             continue
         else:
             print("WRITE THREAD OUTPUT")
-            write_output(read_names, image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, microns_per_pixel)
+            write_output(tile_data, image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, microns_per_pixel)
             del fastq_image_aligner
             result_queue.task_done()
 
@@ -355,7 +354,7 @@ def load_existing_score(stats_file_path):
     return 0
 
 
-def write_output(read_names, image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, um_per_pixel):
+def write_output(tile_data, image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, um_per_pixel):
     stats_file_path = os.path.join(path_info.results_directory, base_name, '{}_stats.txt'.format(image_index))
     all_read_rcs_filepath = os.path.join(path_info.results_directory, base_name, '{}_all_read_rcs.txt'.format(image_index))
 
@@ -377,7 +376,7 @@ def write_output(read_names, image_index, base_name, fastq_image_aligner, path_i
     all_fastq_image_aligner = fastqimagealigner.FastqImageAligner(um_per_pixel)
     all_fastq_image_aligner.all_reads_fic_from_aligned_fic(fastq_image_aligner, all_tile_data)
     with open(all_read_rcs_filepath, 'w+') as f:
-        for line in all_fastq_image_aligner.read_names_rcs(read_names):
+        for line in all_fastq_image_aligner.read_names_rcs(tile_data):
             f.write(line)
 
     # save some diagnostic PDFs that give a nice visualization of the alignment
