@@ -80,11 +80,9 @@ def get_base_file_names(h5_filename):
 def source_extract(base_file):
     command = '/usr/bin/sextractor {base_file}.fits -PARAMETERS_NAME spot.param -CATALOG_NAME {base_file}.cat -CHECKIMAGE_TYPE OBJECTS -CHECKIMAGE_NAME {base_file}.model'
     # Don't print any output
-    # with open('/dev/null', 'w') as devnull:
-    command = command.format(base_file=base_file).split(' ')
-    print(command)
-    res = subprocess.call(command, stdout=sys.stdout, stderr=sys.stdout)
-    print(res)
+    with open('/dev/null', 'w') as devnull:
+        command = command.format(base_file=base_file).split(' ')
+        subprocess.call(command, stdout=devnull, stderr=devnull)
 
 
 def create_fits_files(h5_base_name):
@@ -143,6 +141,5 @@ def main(image_directory):
         worker_pool = Pool(thread_count)
         base_files = [base_file for h5_filename in image_files.directories
                       for base_file in get_base_file_names(h5_filename)]
-        print("base files", base_files)
         worker_pool.map_async(source_extract, base_files).get(timeout=sys.maxint)
         log.info("Done with Source Extractor! Took %s seconds" % round(time.time() - start, 0))
