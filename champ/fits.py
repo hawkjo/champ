@@ -83,7 +83,8 @@ def source_extract(base_file):
     # with open('/dev/null', 'w') as devnull:
     command = command.format(base_file=base_file).split(' ')
     print(command)
-    subprocess.call(command, stdout=sys.stdout, stderr=sys.stdout)
+    res = subprocess.call(command, stdout=sys.stdout, stderr=sys.stdout)
+    print(res)
 
 
 def create_fits_files(h5_base_name):
@@ -142,5 +143,6 @@ def main(image_directory):
         worker_pool = Pool(thread_count)
         base_files = [base_file for h5_filename in image_files.directories
                       for base_file in get_base_file_names(h5_filename)]
+        print("base files", base_files)
         worker_pool.map_async(source_extract, base_files).get(timeout=sys.maxint)
         log.info("Done with Source Extractor! Took %s seconds" % round(time.time() - start, 0))
