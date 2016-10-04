@@ -82,7 +82,8 @@ def source_extract(base_file):
     # Don't print any output
     # with open('/dev/null', 'w') as devnull:
     command = command.format(base_file=base_file).split(' ')
-    subprocess.call(command)
+    print(command)
+    subprocess.call(command, stdout=sys.stdout, stderr=sys.stdout)
 
 
 def create_fits_files(h5_base_name):

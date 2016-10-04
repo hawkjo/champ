@@ -10,10 +10,11 @@ log = logging.getLogger(__name__)
 def preprocess(clargs, metadata):
     log.debug("Preprocessing images.")
     paths = convert.get_all_tif_paths(clargs.image_directory)
+    # print("paths", paths)
     # directories will have ".h5" appended to them to come up with the HDF5 names
     # tifs are relative paths to each tif file
     log.debug("About to convert TIFs to HDF5.")
-    convert.main(paths, metadata['flipud'], metadata['fliplr'])
+    # convert.main(paths, metadata['flipud'], metadata['fliplr'])
     log.debug("Done converting TIFs to HDF5.")
     log.debug("Fitsifying images from HDF5 files.")
     fits.main(clargs.image_directory)
@@ -38,7 +39,7 @@ def main(clargs):
     if 'preprocessed' not in metadata or not metadata['preprocessed']:
         for filename in load_filenames(clargs.image_directory):
             log.warn("Deleting (probably invalid) existing HDF5 file and recreating it: %s" % filename)
-            os.unlink(filename)
+            # os.unlink(filename)
         preprocess(clargs, metadata)
 
     h5_filenames = load_filenames(clargs.image_directory)
