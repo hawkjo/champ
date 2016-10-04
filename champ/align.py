@@ -17,6 +17,7 @@ import re
 from copy import deepcopy
 import gc
 
+
 log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 
@@ -27,26 +28,41 @@ def align_fiducial(alignment_tile_data, h5_filenames, path_info, snr, min_hits, 
     num_processes = max(multiprocessing.cpu_count() - 4, 1)
     # num_processes = 8
     done_event = threading.Event()
+    processing_done_event = threading.Event()
     q = Queue.Queue(maxsize=num_processes)
+    result_queue = Queue.Queue()
     # start threads that will actually perform the alignment
     for _ in range(num_processes):
-        thread = threading.Thread(target=align_fiducial_thread, args=(q, done_event, snr, min_hits, deepcopy(fastq_tiles),
-                                                                      alignment_channel, metadata, sequencing_chip, path_info,
-                                                                      all_tile_data, make_pdfs, alignment_tile_data))
+        thread = threading.Thread(target=align_fiducial_thread, args=(q, result_queue, done_event, snr, min_hits, deepcopy(fastq_tiles),
+                                                                      alignment_channel, metadata, sequencing_chip))
+        thread.start()
+
+    # start one thread to write results to disk
+    # this might not be the optimal number of threads! But I suspect that having less I/O contention will be fast
+    # anyway, we're not writing a lot to disk
+    for _ in range(2):
+        thread = threading.Thread(target=write_thread, args=(result_queue, processing_done_event, alignment_tile_data, path_info, all_tile_data,
+                                                             make_pdfs, metadata['microns_per_pixel']))
         thread.start()
 
     data = iterate_all_images(h5_filenames, end_tiles, alignment_channel)
     for row, column, h5_filename, possible_tile_keys in data:
-        q.put((row, column, h5_filename, possible_tile_keys))
         gc.collect()
+        q.put((row, column, h5_filename, possible_tile_keys))
     # signal the threads that if they find that the queue is empty, they should terminate since there's no more work for them
     done_event.set()
     gc.collect()
     # wait for all the work to be finished
     q.join()
+    gc.collect()
+    # the alignments are done, now we just have to wait for everything to be written to disk
+    processing_done_event.set()
+    gc.collect()
+    result_queue.join()
+    gc.collect()
 
 
-def align_fiducial_thread(queue, done_event, snr, min_hits, local_fastq_tiles, alignment_channel, metadata, sequencing_chip, path_info, all_tile_data, make_pdfs, alignment_tile_data):
+def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, local_fastq_tiles, alignment_channel, metadata, sequencing_chip):
     while True:
         try:
             row, column, h5_filename, possible_tile_keys = queue.get_nowait()
@@ -58,24 +74,36 @@ def align_fiducial_thread(queue, done_event, snr, min_hits, local_fastq_tiles, a
                 break
             continue
         else:
+            t = threading.current_thread()
+            tid = t.ident
+            log.debug("%s thread processing thing" % tid)
             base_name = os.path.splitext(h5_filename)[0]
             image = load_image(h5_filename, alignment_channel, row, column)
             original_fia = fastqimagealigner.FastqImageAligner(metadata['microns_per_pixel'])
             original_fia.set_fastq_tiles(deepcopy(local_fastq_tiles))
-            fastq_image_aligner = process_alignment_image(snr, sequencing_chip, base_name, metadata['microns_per_pixel'], image, possible_tile_keys, original_fia)
-            if fastq_image_aligner.hitting_tiles:
+            fia = process_alignment_image(snr, sequencing_chip, base_name, metadata['microns_per_pixel'], image, possible_tile_keys, original_fia)
+            if fia.hitting_tiles:
                 # The image data aligned with FastQ reads!
                 try:
-                    fastq_image_aligner.precision_align_only(min_hits)
+                    fia.precision_align_only(min_hits)
                 except ValueError:
                     log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
                 else:
-                    write_output(alignment_tile_data, image, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, metadata['microns_per_pixel'])
-            del image
-            del original_fia
-            del fastq_image_aligner
-            del possible_tile_keys
+                    result_queue.put((image, base_name, fia))
             queue.task_done()
+
+
+def write_thread(result_queue, processing_done_event, tile_data, path_info, all_tile_data, make_pdfs, microns_per_pixel):
+    while True:
+        try:
+            image, base_name, fastq_image_aligner = result_queue.get()
+        except Queue.Empty:
+            if processing_done_event.is_set():
+                break
+            continue
+        else:
+            write_output(tile_data, image, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, microns_per_pixel)
+            result_queue.task_done()
 
 
 def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs):
@@ -338,7 +366,6 @@ def write_output(tile_data, image, base_name, fastq_image_aligner, path_info, al
     with open(all_read_rcs_filepath, 'w+') as f:
         for line in all_fastq_image_aligner.read_names_rcs(tile_data):
             f.write(line)
-    del all_fastq_image_aligner
 
     # save some diagnostic PDFs that give a nice visualization of the alignment
     if make_pdfs:
@@ -348,4 +375,7 @@ def write_output(tile_data, image, base_name, fastq_image_aligner, path_info, al
         ax = plotting.plot_hit_hists(fastq_image_aligner)
         ax.figure.savefig(os.path.join(path_info.figure_directory, base_name, '{}_hit_hists.pdf'.format(image.index)))
         plt.close()
+    del image
+    del fastq_image_aligner
+    del all_fastq_image_aligner
     return True
