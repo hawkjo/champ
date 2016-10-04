@@ -26,12 +26,15 @@ def align_fiducial(alignment_tile_data, h5_filenames, path_info, snr, min_hits, 
         all_tile_data, metadata, make_pdfs, sequencing_chip):
     # this should be a tunable parameter so you can decide how much memory to use
     num_processes = max(multiprocessing.cpu_count() / 2, 1)
+    print("Using %d threads" % num_processes)
     done_event = threading.Event()
     processing_done_event = threading.Event()
     q = Queue.Queue(maxsize=num_processes)
     result_queue = Queue.Queue()
+    print("len fastq", len(fastq_tiles))
     # start threads that will actually perform the alignment
     for _ in range(num_processes):
+        print("starting thread", _)
         thread = threading.Thread(target=align_fiducial_thread, args=(q, result_queue, done_event, snr, min_hits, deepcopy(fastq_tiles),
                                                                       alignment_channel, metadata, sequencing_chip))
         thread.start()
@@ -40,14 +43,15 @@ def align_fiducial(alignment_tile_data, h5_filenames, path_info, snr, min_hits, 
     # this might not be the optimal number of threads! But I suspect that having less I/O contention will be fast
     # anyway, we're not writing a lot to disk
     for _ in range(2):
+        print("starting write thread")
         thread = threading.Thread(target=write_thread, args=(result_queue, processing_done_event, alignment_tile_data, path_info, all_tile_data,
                                                              make_pdfs, metadata['microns_per_pixel']))
         thread.start()
 
     data = iterate_all_images(h5_filenames, end_tiles, alignment_channel)
     for row, column, h5_filename, possible_tile_keys in data:
-        gc.collect()
         q.put((row, column, h5_filename, possible_tile_keys))
+        gc.collect()
     # signal the threads that if they find that the queue is empty, they should terminate since there's no more work for them
     done_event.set()
     gc.collect()
@@ -73,9 +77,6 @@ def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, local_
                 break
             continue
         else:
-            t = threading.current_thread()
-            tid = t.ident
-            log.debug("%s thread processing thing" % tid)
             base_name = os.path.splitext(h5_filename)[0]
             image = load_image(h5_filename, alignment_channel, row, column)
             original_fia = fastqimagealigner.FastqImageAligner(metadata['microns_per_pixel'])
