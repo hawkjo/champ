@@ -26,96 +26,53 @@ def align_fiducial(alignment_tile_data, h5_filenames, path_info, snr, min_hits, 
     num_processes = max(multiprocessing.cpu_count() - 4, 1)
     # num_processes = 8
     done_event = threading.Event()
-    processing_done_event = threading.Event()
     q = Queue.Queue(maxsize=num_processes)
-    result_queue = Queue.Queue()
     # start threads that will actually perform the alignment
     for _ in range(num_processes):
-        thread = threading.Thread(target=align_fiducial_thread, args=(q, result_queue, done_event, snr, min_hits, deepcopy(fastq_tiles),
-                                                                      alignment_channel, metadata, sequencing_chip))
-        print("starting a thread")
-        thread.start()
-
-    # start one thread to write results to disk
-    # this might not be the optimal number of threads! But I suspect that having less I/O contention will be fast
-    # anyway, we're not writing a lot to disk
-    for _ in range(2):
-        thread = threading.Thread(target=write_thread, args=(result_queue, processing_done_event, alignment_tile_data, path_info, all_tile_data,
-                                                             make_pdfs, metadata['microns_per_pixel']))
-        print("starting write thread")
+        thread = threading.Thread(target=align_fiducial_thread, args=(q, done_event, snr, min_hits, deepcopy(fastq_tiles),
+                                                                      alignment_channel, metadata, sequencing_chip, path_info,
+                                                                      all_tile_data, make_pdfs, alignment_tile_data))
         thread.start()
 
     data = iterate_all_images(h5_filenames, end_tiles, alignment_channel)
     for row, column, h5_filename, possible_tile_keys in data:
-        print("putting into data queue", row, column, h5_filename)
         q.put((row, column, h5_filename, possible_tile_keys))
     # signal the threads that if they find that the queue is empty, they should terminate since there's no more work for them
-    print("signaling shutdown to data threads")
     done_event.set()
     # wait for all the work to be finished
     q.join()
-    # the alignments are done, now we just have to wait for everything to be written to disk
-    print("signaliing shutdown to write thread")
-    processing_done_event.set()
-    result_queue.join()
-    print("ALL DONE WITH FIDUCIAL ALIGNMENT")
 
 
-def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, local_fastq_tiles, alignment_channel, metadata, sequencing_chip):
+def align_fiducial_thread(queue, done_event, snr, min_hits, local_fastq_tiles, alignment_channel, metadata, sequencing_chip, path_info, all_tile_data, make_pdfs, alignment_tile_data):
     while True:
         try:
             row, column, h5_filename, possible_tile_keys = queue.get_nowait()
-            print("thread got", row, column, h5_filename)
         except Queue.Empty:
             # The queue might momentarily be empty, especially during the period after the threads start but before
             # we start putting data into the queue. Therefore, unless we get notified by done_event that we really are
             # finished, we should keep looping and wait for more data
             if done_event.is_set():
-                print("data thread quitting due to signal")
                 break
             continue
         else:
-            t = threading.current_thread()
-            tid = t.ident
-            log.debug("%s thread processing thing" % tid)
             base_name = os.path.splitext(h5_filename)[0]
             image = load_image(h5_filename, alignment_channel, row, column)
-            print("%s loaded image in data thread" % tid)
             original_fia = fastqimagealigner.FastqImageAligner(metadata['microns_per_pixel'])
             original_fia.set_fastq_tiles(deepcopy(local_fastq_tiles))
-            print("%s copied FIA" % tid)
-            fia = process_alignment_image(snr, sequencing_chip, base_name, metadata['microns_per_pixel'], image, possible_tile_keys, original_fia)
-            print("%s fia complete" % tid)
-            if fia.hitting_tiles:
-                print("%s found hitting tiles" % tid)
+            fastq_image_aligner = process_alignment_image(snr, sequencing_chip, base_name, metadata['microns_per_pixel'], image, possible_tile_keys, original_fia)
+            if fastq_image_aligner.hitting_tiles:
                 # The image data aligned with FastQ reads!
                 try:
-                    print("precision aligning!")
-                    fia.precision_align_only(min_hits)
+                    fastq_image_aligner.precision_align_only(min_hits)
                 except ValueError:
                     log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
                 else:
-                    print("Precision alignment worked!")
-                    result_queue.put((image, base_name, fia))
-            print("TASK DONE")
-            queue.task_done()
-
-
-def write_thread(result_queue, processing_done_event, tile_data, path_info, all_tile_data, make_pdfs, microns_per_pixel):
-    while True:
-        try:
-            image, base_name, fastq_image_aligner = result_queue.get()
-            print("write thread got", image.index, base_name)
-        except Queue.Empty:
-            if processing_done_event.is_set():
-                print("Killing write thread")
-                break
-            continue
-        else:
-            print("WRITE THREAD OUTPUT")
-            write_output(tile_data, image, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, microns_per_pixel)
+                    write_output(alignment_tile_data, image, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, metadata['microns_per_pixel'])
+            del image
+            del original_fia
             del fastq_image_aligner
-            result_queue.task_done()
+            del possible_tile_keys
+            queue.task_done()
 
 
 def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs):
@@ -378,6 +335,7 @@ def write_output(tile_data, image, base_name, fastq_image_aligner, path_info, al
     with open(all_read_rcs_filepath, 'w+') as f:
         for line in all_fastq_image_aligner.read_names_rcs(tile_data):
             f.write(line)
+    del all_fastq_image_aligner
 
     # save some diagnostic PDFs that give a nice visualization of the alignment
     if make_pdfs:
@@ -387,7 +345,4 @@ def write_output(tile_data, image, base_name, fastq_image_aligner, path_info, al
         ax = plotting.plot_hit_hists(fastq_image_aligner)
         ax.figure.savefig(os.path.join(path_info.figure_directory, base_name, '{}_hit_hists.pdf'.format(image.index)))
         plt.close()
-    del image
-    del fastq_image_aligner
-    del all_fastq_image_aligner
     return True
