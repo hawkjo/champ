@@ -79,10 +79,10 @@ def perform_alignment(alignment_tile_data, path_info, snr, min_hits, um_per_pixe
             result = write_output(alignment_tile_data, image.index, base_name, fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
             print("Write alignment for %s: %s" % (image.index, result))
 
-    # The garbage collector takes its sweet time for some reason, so we have to manually delete
-    # these objects or memory usage blows up.
+    # Force the GC to run, since otherwise memory usage blows up
     del fia
     del image
+    gc.collect()
 
 
 def make_output_directories(h5_filenames, path_info):
@@ -326,5 +326,4 @@ def write_output(tile_data, image_index, base_name, fastq_image_aligner, path_in
         plt.close()
     del all_fastq_image_aligner
     del fastq_image_aligner
-    gc.collect()
     return True
