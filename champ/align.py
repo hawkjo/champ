@@ -15,6 +15,7 @@ import os
 import sys
 import re
 from copy import deepcopy
+import gc
 
 log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
@@ -37,8 +38,10 @@ def align_fiducial(alignment_tile_data, h5_filenames, path_info, snr, min_hits, 
     data = iterate_all_images(h5_filenames, end_tiles, alignment_channel)
     for row, column, h5_filename, possible_tile_keys in data:
         q.put((row, column, h5_filename, possible_tile_keys))
+        gc.collect()
     # signal the threads that if they find that the queue is empty, they should terminate since there's no more work for them
     done_event.set()
+    gc.collect()
     # wait for all the work to be finished
     q.join()
 
