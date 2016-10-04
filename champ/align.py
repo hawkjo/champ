@@ -79,6 +79,7 @@ def align_fiducial_thread(queue, result_queue, done_event, snr, min_hits, local_
         else:
             base_name = os.path.splitext(h5_filename)[0]
             image = load_image(h5_filename, alignment_channel, row, column)
+            print("thread processing %s %s" % (h5_filename, image.index))
             original_fia = fastqimagealigner.FastqImageAligner(metadata['microns_per_pixel'])
             original_fia.set_fastq_tiles(deepcopy(local_fastq_tiles))
             fia = process_alignment_image(snr, sequencing_chip, base_name, metadata['microns_per_pixel'], image, possible_tile_keys, original_fia)
@@ -102,6 +103,7 @@ def write_thread(result_queue, processing_done_event, tile_data, path_info, all_
                 break
             continue
         else:
+            print("writing %s" % image.index)
             write_output(tile_data, image, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, microns_per_pixel)
             result_queue.task_done()
 
