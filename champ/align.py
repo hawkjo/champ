@@ -14,6 +14,7 @@ import sys
 import re
 from copy import deepcopy
 import math
+import gc
 
 log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
@@ -323,4 +324,7 @@ def write_output(image_index, base_name, fastq_image_aligner, path_info, all_til
         ax = plotting.plot_hit_hists(fastq_image_aligner)
         ax.figure.savefig(os.path.join(path_info.figure_directory, base_name, '{}_hit_hists.pdf'.format(image_index)))
         plt.close()
+    del all_fastq_image_aligner
+    del fastq_image_aligner
+    gc.collect()
     return True
