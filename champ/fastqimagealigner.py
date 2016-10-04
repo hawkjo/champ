@@ -338,9 +338,9 @@ class FastqImageAligner(object):
                                                 offsets,
                                                 hits)
 
-    def read_names_rcs(self, read_names):
+    def read_names_rcs(self, tile_data):
         im_shape = self.image_data.image.shape
         for tile in self.hitting_tiles:
-            for read_name, pt in izip(read_names, tile.aligned_rcs):
+            for read_name, pt in izip(tile_data[tile.key], tile.aligned_rcs):
                 if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
                     yield '%s\t%f\t%f\n' % (read_name, pt[0], pt[1])
