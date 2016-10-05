@@ -3,7 +3,7 @@ Chip-Hybridized Affinity Mapping Platform
 
 Usage:
   champ map FASTQ_DIRECTORY OUTPUT_DIRECTORY PATHS_TO_BAMFILES ... [--force] [-v | -vv | -vvv]
-  champ init IMAGE_DIRECTORY CHIP_NAME READ_NAMES_DIRECTORY ALIGNMENT_CHANNEL LDA_WEIGHTS [--perfect-target-name=PERFECT_TARGET_NAME] [--alternate-perfect-reads=ALTERNATE_PERFECT_READS] [--alternate-good-reads=ALTERNATE_GOOD_READS] [--microns-per-pixel=0.266666666] [--chip=miseq] [--ports-on-right] [--flipud] [--fliplr] [-v | -vv | -vvv ]
+  champ init IMAGE_DIRECTORY CHIP_NAME READ_NAMES_DIRECTORY ALIGNMENT_CHANNEL LDA_WEIGHTS [--perfect-target-name=PERFECT_TARGET_NAME] [--alternate-perfect-reads=ALTERNATE_PERFECT_READS] [--alternate-good-reads=ALTERNATE_GOOD_READS] [--alternate-fiducial-reads=ALTERNATE_FIDUCIAL_READS] [--microns-per-pixel=0.266666666] [--chip=miseq] [--ports-on-right] [--flipud] [--fliplr] [-v | -vv | -vvv ]
   champ align IMAGE_DIRECTORY [--min-hits=MIN_HITS] [--snr=SNR] [--make-pdfs] [--fiducial-only] [-v | -vv | -vvv]
   champ info IMAGE_DIRECTORY
 
@@ -36,6 +36,7 @@ def main(**kwargs):
     handler.setFormatter(formatter)
     log.addHandler(handler)
     log.setLevel(arguments.log_level)
+    log.debug(docopt_args)
 
     commands = {'align': align,
                 'init': initialize,
