@@ -50,14 +50,9 @@ def main(clargs):
     sequencing_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
 
     alignment_tile_data = align.load_read_names(path_info.aligning_read_names_filepath)
-    unclassified_tile_data = align.load_read_names(path_info.all_read_names_filepath)
-    if metadata['perfect_target_name']:
-        perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
-        on_target_tile_data = align.load_read_names(path_info.on_target_read_names)
-
-    # TODO: Use all read names file instead of these shenanigans
-    all_tile_data = {key: list(set(alignment_tile_data.get(key, []) + unclassified_tile_data.get(key, [])))
-                     for key in list(unclassified_tile_data.keys()) + list(alignment_tile_data.keys())}
+    perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
+    on_target_tile_data = align.load_read_names(path_info.on_target_read_names)
+    all_tile_data = align.load_read_names(path_info.all_read_names_filepath)
     log.debug("Tile data loaded.")
 
     # We use one process per concentration. We could theoretically speed this up since our machine
@@ -78,7 +73,7 @@ def main(clargs):
         end_tiles = metadata['end_tiles']
 
     if not metadata['phix_aligned']:
-        align.run(h5_filenames, path_info, clargs.snr, clargs.min_hits, fia, end_tiles, metadata['alignment_channel'],
+        align.run(alignment_tile_data, h5_filenames, path_info, clargs.snr, clargs.min_hits, fia, end_tiles, metadata['alignment_channel'],
                   all_tile_data, metadata, clargs.make_pdfs, sequencing_chip)
         metadata['phix_aligned'] = True
         initialize.update(clargs.image_directory, metadata)
@@ -100,12 +95,12 @@ def main(clargs):
     for channel_name in protein_channels:
         # Attempt to precision align protein channels using the phix channel alignment as a starting point.
         # Not all experiments have "on target" or "perfect target" reads - that only applies to CRISPR systems (at the time of this writing anyway)
-        if not metadata['perfect_target_name']:
-            channel_combo = channel_name + "_all"
-            combo_align(h5_filenames, channel_combo, channel_name, path_info, unclassified_tile_data, all_tile_data, metadata, clargs)
-        else:
+
+        if on_target_tile_data:
             channel_combo = channel_name + "_on_target"
             combo_align(h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, clargs)
+
+        if perfect_tile_data:
             channel_combo = channel_name + "_perfect_target"
             combo_align(h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
 

@@ -28,7 +28,7 @@ class ImageFiles(object):
 
 def get_base_file_names(h5_filename):
     return ["%s" % os.path.join(h5_filename, os.path.splitext(filename)[0])
-            for filename in os.listdir(h5_filename) if filename.endswith(".xyz")]
+            for filename in os.listdir(h5_filename) if filename.endswith(".fits")]
 
 
 def ensure_image_data_directory_exists(h5_filename):

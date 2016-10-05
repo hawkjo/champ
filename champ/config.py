@@ -127,7 +127,7 @@ class CommandLineArguments(object):
 
     @property
     def snr(self):
-        return float(self._arguments.get('SNR') or 1.2)
+        return float(self._arguments.get('SNR') or 1.4)
 
 
 class PathInfo(object):
@@ -157,7 +157,7 @@ class PathInfo(object):
 
     @property
     def all_read_names_filepath(self):
-        return os.path.join(self._mapped_reads, 'unclassified')
+        return os.path.join(self._mapped_reads, 'all_read_names.txt')
 
     @property
     def on_target_read_names(self):

@@ -12,8 +12,8 @@ class FastqTileRCs(object):
     def __init__(self, key, read_names, microns_per_pixel):
         self.key = key
         self.microns_per_pixel = microns_per_pixel
-        self.read_names = read_names
-        self.rcs = np.array([map(int, name.split(':')[-2:]) for name in self.read_names])
+        self.read_name_length = len(read_names)
+        self.rcs = np.array([map(int, name.split(':')[-2:]) for name in read_names])
 
     def set_fastq_image_data(self, offset, scale, scaled_dims, width):
         self.offset = offset
@@ -31,7 +31,7 @@ class FastqTileRCs(object):
         return self.image_shape
 
     def image(self):
-        image = np.zeros(self.image_shape)
+        image = np.zeros(self.image_shape.astype(np.int))
         image[self.mapped_rcs.astype(np.int)[:, 0], self.mapped_rcs.astype(np.int)[:, 1]] = 1
         sigma = 0.25 / self.microns_per_pixel  # Clusters have stdev ~= 0.25 um
         image = ndimage.gaussian_filter(image, sigma)
@@ -79,8 +79,8 @@ class FastqTileRCs(object):
 
     def set_correlation(self, im):
         """Sets alignment correlation. Only works when image need not be flipped or rotated."""
-        self.best_max_corr = sum(im[pt[0], pt[1]] for pt in self.aligned_rcs
-                                 if 0 <= pt[0] < im.shape[0] and 0 <= pt[1] < im.shape[1])
+        self.best_max_corr = sum(im[int(x), int(y)] for x, y in self.aligned_rcs
+                                 if 0.0 <= x < im.shape[0] and 0.0 <= y < im.shape[1])
 
     def set_snr_with_control_corr(self, control_corr):
         self.snr = self.best_max_corr / control_corr

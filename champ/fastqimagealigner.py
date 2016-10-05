@@ -15,7 +15,6 @@ class FastqImageAligner(object):
     """A class to find the alignment of fastq data and image data."""
     def __init__(self, microns_per_pixel):
         self.fastq_tiles = {}
-        self.fastq_tiles_list = []
         self.fastq_tiles_keys = []
         self.microns_per_pixel = microns_per_pixel
         self.image_data = None
@@ -32,7 +31,11 @@ class FastqImageAligner(object):
         for tile_key, read_names in tile_data.items():
             if valid_keys is None or tile_key in valid_keys:
                 self.fastq_tiles[tile_key] = FastqTileRCs(tile_key, read_names, self.microns_per_pixel)
-        self.fastq_tiles_list = [tile for tile_key, tile in sorted(self.fastq_tiles.items())]
+
+    @property
+    def fastq_tiles_list(self):
+        for _, tile in sorted(self.fastq_tiles.items()):
+            yield tile
 
     def all_reads_fic_from_aligned_fic(self, other_fic, all_reads):
         self.load_reads(all_reads, valid_keys=[tile.key for tile in other_fic.hitting_tiles])
@@ -103,7 +106,7 @@ class FastqImageAligner(object):
         possible_tiles = [self.fastq_tiles[key] for key in possible_tile_keys
                           if key in self.fastq_tiles]
         impossible_tiles = [tile for tile in self.fastq_tiles.values() if tile not in possible_tiles]
-        impossible_tiles.sort(key=lambda tile: -len(tile.read_names))
+        impossible_tiles.sort(key=lambda tile: -tile.read_name_length)
         control_tiles = impossible_tiles[:2]
         self.image_data.set_fft(self.fq_im_scaled_dims)
         self.control_corr = 0
@@ -337,10 +340,9 @@ class FastqImageAligner(object):
                                                 offsets,
                                                 hits)
 
-    @property
-    def read_names_rcs(self):
+    def read_names_rcs(self, tile_data):
         im_shape = self.image_data.image.shape
         for tile in self.hitting_tiles:
-            for read_name, pt in izip(tile.read_names, tile.aligned_rcs):
+            for read_name, pt in izip(tile_data[tile.key], tile.aligned_rcs):
                 if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
                     yield '%s\t%f\t%f\n' % (read_name, pt[0], pt[1])
