@@ -18,12 +18,12 @@ class CommandLineArguments(object):
 
     @property
     def perfect_target_name(self):
-        return self._arguments.get('PERFECT_TARGET_NAME', False)
+        return self._arguments.get('--perfect-target-name', False)
 
     @property
     def alternate_fiducial_reads(self):
         # sometimes you don't want to use phix for end tile finding and initial alignment
-        return self._arguments.get('ALTERNATE_FIDUCIAL_READS', False)
+        return self._arguments.get('--alternate-fiducial-reads', False)
 
     @property
     def log_level(self):
@@ -97,7 +97,7 @@ class CommandLineArguments(object):
 
     @property
     def min_hits(self):
-        return int(self._arguments.get('MIN_HITS') or 15)
+        return int(self._arguments['--min-hits'] or 15)
 
     @property
     def make_pdfs(self):
@@ -115,11 +115,11 @@ class CommandLineArguments(object):
 
     @property
     def alternate_good_target_reads_filename(self):
-        return self._arguments.get('ALTERNATE_GOOD_READS')
+        return self._arguments.get('--alternate-good-reads')
 
     @property
     def alternate_perfect_target_reads_filename(self):
-        return self._arguments.get('ALTERNATE_PERFECT_READS')
+        return self._arguments.get('--alternate-perfect-reads')
 
     @property
     def force(self):
@@ -127,7 +127,8 @@ class CommandLineArguments(object):
 
     @property
     def snr(self):
-        return float(self._arguments.get('SNR') or 1.4)
+        # 1.4 is a decent and relatively stringent default, though we used 1.2 for a long time with no problem
+        return float(self._arguments['--snr'] or 1.4)
 
 
 class PathInfo(object):
