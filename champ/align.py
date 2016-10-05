@@ -40,7 +40,7 @@ def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data,
     image_count = count_images(h5_filenames, channel_name)
     num_processes, chunksize = calculate_process_count(image_count)
     log.debug("Aligning data images with %d cores with chunksize %d" % (num_processes, chunksize))
-
+    log.debug("Min hits: %d" % clargs.min_hits)
     log.debug("Loading reads into FASTQ Image Aligner.")
     fastq_image_aligner = fastqimagealigner.FastqImageAligner(metadata['microns_per_pixel'])
     fastq_image_aligner.load_reads(alignment_tile_data)
