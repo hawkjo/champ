@@ -97,7 +97,7 @@ class CommandLineArguments(object):
 
     @property
     def min_hits(self):
-        return int(self._arguments.get('MIN_HITS') or 15)
+        return int(self._arguments.get('--min-hits') or 15)
 
     @property
     def make_pdfs(self):
