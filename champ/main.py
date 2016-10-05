@@ -36,6 +36,7 @@ def main(**kwargs):
     handler.setFormatter(formatter)
     log.addHandler(handler)
     log.setLevel(arguments.log_level)
+    log.debug(docopt_args)
 
     commands = {'align': align,
                 'init': initialize,
