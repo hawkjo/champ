@@ -45,7 +45,7 @@ def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data,
     fastq_image_aligner = fastqimagealigner.FastqImageAligner(metadata['microns_per_pixel'])
     fastq_image_aligner.load_reads(alignment_tile_data)
     log.debug("Reads loaded.")
-    second_processor = functools.partial(process_data_image, path_info, all_tile_data,
+    second_processor = functools.partial(process_data_image, alignment_tile_data, path_info, all_tile_data,
                                          clargs.microns_per_pixel, clargs.make_pdfs,
                                          channel_name, fastq_image_aligner, clargs.min_hits)
     pool = multiprocessing.Pool(num_processes)
@@ -163,7 +163,7 @@ def load_aligned_stats_files(h5_filenames, alignment_channel, path_info):
                     yield h5_filename, base_name, filename, row, column
 
 
-def process_data_image(path_info, all_tile_data, um_per_pixel, make_pdfs, channel,
+def process_data_image(alignment_tile_data, path_info, all_tile_data, um_per_pixel, make_pdfs, channel,
                        fastq_image_aligner, min_hits, (h5_filename, base_name, stats_filepath, row, column)):
     image = load_image(h5_filename, channel, row, column)
     sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
@@ -178,7 +178,7 @@ def process_data_image(path_info, all_tile_data, um_per_pixel, make_pdfs, channe
         log.debug("Could not precision align %s" % image.index)
     else:
         log.debug("Processed 2nd channel for %s" % image.index)
-        write_output(image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
+        write_output(alignment_tile_data, image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
     del local_fia
     del image
 
