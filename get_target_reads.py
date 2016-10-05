@@ -1,8 +1,8 @@
 import editdistance
-import local_config
 import numpy as np
 import random
 import sys
+import yaml
 
 
 def get_max_edit_dist(target):
@@ -34,6 +34,8 @@ if __name__ == '__main__':
         sys.exit(usg_fmt)
     
     target_name, reads_by_seq_fpath, out_fpath = sys.argv[1:]
-    get_target_reads(local_config.targets[target_name],
+    with open("/shared/targets.yml") as f:
+        targets = yaml.load(f)
+    get_target_reads(targets[target_name],
                      reads_by_seq_fpath,
                      out_fpath)

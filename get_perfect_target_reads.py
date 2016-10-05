@@ -1,5 +1,5 @@
-import local_config
 import sys
+import yaml
 
 
 def get_perfect_target_reads(target, reads_by_seq_fpath, out_fpath):
@@ -18,6 +18,8 @@ if __name__ == '__main__':
         sys.exit(usg_fmt)
     
     target_name, reads_by_seq_fpath, out_fpath = sys.argv[1:]
-    get_perfect_target_reads(local_config.targets[target_name],
+    with open("/shared/targets.yml") as f:
+        targets = yaml.load(f)
+    get_perfect_target_reads(targets[target_name],
                      reads_by_seq_fpath,
                      out_fpath)
