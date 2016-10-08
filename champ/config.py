@@ -17,6 +17,20 @@ class CommandLineArguments(object):
         return self._arguments['LDA_WEIGHTS']
 
     @property
+    def log_p_file_path(self):
+        return self._arguments.get('--log-p-file')
+
+    @property
+    def phix_bamfiles(self):
+        # Whether or not phiX reads should be mapped
+        return self._arguments.get('--phix-bamfiles')
+
+    @property
+    def bamfiles(self):
+        for path in self._arguments.get('BAMFILES', []):
+            yield os.path.abspath(path)
+
+    @property
     def perfect_target_name(self):
         return self._arguments.get('--perfect-target-name', False)
 
@@ -24,6 +38,10 @@ class CommandLineArguments(object):
     def alternate_fiducial_reads(self):
         # sometimes you don't want to use phix for end tile finding and initial alignment
         return self._arguments.get('--alternate-fiducial-reads', False)
+
+    @property
+    def target_sequence_file(self):
+        return self._arguments.get('--target-sequence-file', False)
 
     @property
     def log_level(self):
@@ -64,11 +82,6 @@ class CommandLineArguments(object):
         return self._arguments['OUTPUT_DIRECTORY']
 
     @property
-    def bamfiles(self):
-        # TODO: Auto-expand user directories or convert these to absolute paths or something
-        return self._arguments['PATHS_TO_BAMFILES']
-
-    @property
     def command(self):
         # We have to do this weird loop to deal with the way docopt stores the command name
         for possible_command in ('map',
@@ -98,6 +111,18 @@ class CommandLineArguments(object):
     @property
     def min_hits(self):
         return int(self._arguments['--min-hits'] or 15)
+
+    @property
+    def min_len(self):
+        return int(self._arguments.get('--min-len', 1))
+
+    @property
+    def max_len(self):
+        return int(self._arguments.get('--max-len', 50))
+
+    @property
+    def max_hamming_distance(self):
+        return int(self._arguments.get('--max-ham', 8))
 
     @property
     def make_pdfs(self):
