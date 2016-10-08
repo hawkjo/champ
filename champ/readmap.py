@@ -3,6 +3,7 @@ from champ import fastq
 from champ.adapters_cython import simple_hamming_distance
 from collections import defaultdict
 import editdistance
+import gzip
 import itertools
 import logging
 import numpy as np
@@ -53,14 +54,14 @@ def main(clargs):
 
     if clargs.phix_bamfiles:
         log.info("Finding phiX reads.")
-        read_names = find_reads_using_bamfile(clargs.phix_bamfiles, fastq_files, clargs.output_directory)
+        read_names = find_reads_using_bamfile(clargs.phix_bamfiles, fastq_files)
         write_read_names(read_names, 'phix', clargs.output_directory)
 
     log.info("Parsing and saving all read names to disk.")
     write_all_read_names(fastq_files, os.path.join('all_read_names.txt'))
 
 
-def find_reads_using_bamfile(bamfile_path, fastq_files, output_directory):
+def find_reads_using_bamfile(bamfile_path, fastq_files):
     classifier = fastq.FastqReadClassifier(bamfile_path)
     read_names = set()
     for file1, file2 in fastq_files.paired:
@@ -104,8 +105,7 @@ def write_all_read_names(fastq_files, out_file_path):
     with open(out_file_path, 'w+') as out:
         for filenames in fastq_files.paired:
             for filename in filenames:
-                with open(filename) as f:
-                    for record in parse_fastq_lines(f):
+                for record in parse_fastq_lines(filename):
                         out.write(record.name)
 
 
@@ -187,9 +187,10 @@ def classify_seq(rec1, rec2, min_len, max_len, max_ham, log_p_struct):
     return ''.join(ML_bases)
 
 
-def parse_fastq_lines(fh):
-    for record in SeqIO.parse(fh, 'fastq'):
-        yield record
+def parse_fastq_lines(gzipped_filename):
+    with gzip.open(gzipped_filename) as fh:
+        for record in SeqIO.parse(fh, 'fastq'):
+            yield record
 
 
 def isint(a):
