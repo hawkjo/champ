@@ -22,7 +22,7 @@ def main(clargs):
     #     out_file_path:          Location to write output file
     #     log_p_file_path:        Location of pickle file with probability struct
     #     fastq_file_paths:       List of all fastq files in run
-    fastq_filenames = os.listdir(clargs.fastq_directory)
+    fastq_filenames = [os.path.join(clargs.fastq_directory, directory) for directory in os.listdir(clargs.fastq_directory)]
     fastq_files = fastq.FastqFiles(fastq_filenames)
 
     if clargs.log_p_file_path:
