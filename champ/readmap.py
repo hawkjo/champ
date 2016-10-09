@@ -25,17 +25,18 @@ def main(clargs):
     #     fastq_file_paths:       List of all fastq files in run
     fastq_filenames = [os.path.join(clargs.fastq_directory, directory) for directory in os.listdir(clargs.fastq_directory)]
     fastq_files = fastq.FastqFiles(fastq_filenames)
-
+    read_names_given_seq = {}
     if clargs.log_p_file_path:
-        # log.debug("Determining probable sequence of each read name.")
-        # with open(clargs.log_p_file_path) as f:
-        #     log_p_struct = pickle.load(f)
-        #
-        # read_names_given_seq = determine_sequences_of_read_names(clargs.min_len, clargs.max_len,
-        #                                                          clargs.max_hamming_distance, log_p_struct, fastq_files)
-        # write_read_names_by_sequence(read_names_given_seq, os.path.join(clargs.output_directory, 'read_names_by_seq.txt'))
+        log.debug("Determining probable sequence of each read name.")
+        with open(clargs.log_p_file_path) as f:
+            log_p_struct = pickle.load(f)
 
-        if clargs.target_sequence_file:
+        read_names_given_seq = determine_sequences_of_read_names(clargs.min_len, clargs.max_len,
+                                                                 clargs.max_hamming_distance, log_p_struct, fastq_files)
+        write_read_names_by_sequence(read_names_given_seq, os.path.join(clargs.output_directory, 'read_names_by_seq.txt'))
+
+    if clargs.target_sequence_file:
+        if not read_names_given_seq:
             with open(os.path.join(clargs.output_directory, "read_names_by_seq.txt")) as f:
                 read_names_given_seq = {}
                 for line in f:
@@ -44,19 +45,19 @@ def main(clargs):
                     read_names = line[1:]
                     read_names_given_seq[seq] = read_names
 
-            with open(clargs.target_sequence_file) as f:
-                targets = yaml.load(f)
+        with open(clargs.target_sequence_file) as f:
+            targets = yaml.load(f)
 
-            log.info("Creating perfect target read name files.")
-            for target_name, perfect_read_names in determine_perfect_target_reads(targets, read_names_given_seq):
-                formatted_name = 'perfect_target_%s' % target_name.replace('-', '_').lower()
-                write_read_names(perfect_read_names, formatted_name, clargs.output_directory)
+        log.info("Creating perfect target read name files.")
+        for target_name, perfect_read_names in determine_perfect_target_reads(targets, read_names_given_seq):
+            formatted_name = 'perfect_target_%s' % target_name.replace('-', '_').lower()
+            write_read_names(perfect_read_names, formatted_name, clargs.output_directory)
 
-            # find imperfect target reads
-            log.info("Creating target read name files.")
-            for target_name, perfect_read_names in determine_target_reads(targets, read_names_given_seq):
-                formatted_name = 'target_%s' % target_name.replace('-', '_').lower()
-                write_read_names(perfect_read_names, formatted_name, clargs.output_directory)
+        # find imperfect target reads
+        log.info("Creating target read name files.")
+        for target_name, perfect_read_names in determine_target_reads(targets, read_names_given_seq):
+            formatted_name = 'target_%s' % target_name.replace('-', '_').lower()
+            write_read_names(perfect_read_names, formatted_name, clargs.output_directory)
 
     if clargs.phix_bamfiles:
         log.info("Finding phiX reads.")
@@ -116,15 +117,10 @@ def write_all_read_names(fastq_files, out_file_path):
 
 
 def determine_perfect_target_reads(targets, read_names_by_seq):
-    import time
     for target_name, target_sequence in targets.items():
-        print("perfect target %s" % target_name)
         perfect_read_names = []
         for seq, read_names in read_names_by_seq.items():
-            print(seq, read_names)
             if target_sequence in seq:
-                time.sleep(1)
-                print(seq, read_names)
                 perfect_read_names += read_names
         yield target_name, perfect_read_names
 
