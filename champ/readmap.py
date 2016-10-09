@@ -55,9 +55,9 @@ def main(clargs):
 
         # find imperfect target reads
         log.info("Creating target read name files.")
-        for target_name, perfect_read_names in determine_target_reads(targets, read_names_given_seq):
+        for target_name, read_names in determine_target_reads(targets, read_names_given_seq):
             formatted_name = 'target_%s' % target_name.replace('-', '_').lower()
-            write_read_names(perfect_read_names, formatted_name, clargs.output_directory)
+            write_read_names(read_names, formatted_name, clargs.output_directory)
 
     if clargs.phix_bamfiles:
         log.info("Finding phiX reads.")
@@ -97,7 +97,7 @@ def determine_target_reads(targets, read_names_given_seq):
 
 def write_read_names(read_names, target_name, output_directory):
     filename = os.path.join(output_directory, target_name + '_read_names.txt')
-    with open(filename, 'w') as f:
+    with open(filename, 'a+') as f:
         f.write('\n'.join(read_names) + '\n')
 
 
