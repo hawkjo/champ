@@ -259,8 +259,9 @@ def load_read_names(file_path):
             try:
                 lane, tile = line.strip().rsplit(':', 4)[1:3]
             except ValueError:
-                log.warn("Invalid line in read file: %s" % file_path)
-                log.warn("The invalid line was: %s" % line)
+                if line:
+                    log.warn("Invalid line in read file: %s" % file_path)
+                    log.warn("The invalid line was: %s" % line)
             else:
                 key = 'lane{0}tile{1}'.format(lane, tile)
                 tiles[key].add(line.strip())
