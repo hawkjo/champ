@@ -20,14 +20,14 @@ log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 
 
-def run(alignment_tile_data, h5_filenames, path_info, snr, min_hits, fia, end_tiles, alignment_channel, all_tile_data, metadata, make_pdfs, sequencing_chip):
+def run(rotation_adjustment, alignment_tile_data, h5_filenames, path_info, snr, min_hits, fia, end_tiles, alignment_channel, all_tile_data, metadata, make_pdfs, sequencing_chip):
     image_count = count_images(h5_filenames, alignment_channel)
     num_processes, chunksize = calculate_process_count(image_count)
     log.debug("Aligning alignment images with %d cores with chunksize %d" % (num_processes, chunksize))
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
-    alignment_func = functools.partial(perform_alignment, alignment_tile_data, path_info, snr, min_hits, metadata['microns_per_pixel'],
+    alignment_func = functools.partial(perform_alignment, rotation_adjustment, alignment_tile_data, path_info, snr, min_hits, metadata['microns_per_pixel'],
                                        sequencing_chip, all_tile_data, make_pdfs, fia)
 
     pool = multiprocessing.Pool(num_processes)
@@ -58,7 +58,7 @@ def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data,
     del pool
 
 
-def perform_alignment(alignment_tile_data, path_info, snr, min_hits, um_per_pixel, sequencing_chip, all_tile_data,
+def perform_alignment(rotation_adjustment, alignment_tile_data, path_info, snr, min_hits, um_per_pixel, sequencing_chip, all_tile_data,
                       make_pdfs, prefia, image_data):
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
@@ -67,7 +67,7 @@ def perform_alignment(alignment_tile_data, path_info, snr, min_hits, um_per_pixe
     image = load_image(h5_filename, channel, row, column)
     log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
     # first get the correlation to random tiles, so we can distinguish signal from noise
-    fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(prefia))
+    fia = process_alignment_image(rotation_adjustment, snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(prefia))
 
     if fia.hitting_tiles:
         # The image data aligned with FastQ reads!
@@ -94,13 +94,13 @@ def make_output_directories(h5_filenames, path_info):
                 os.makedirs(full_directory)
 
 
-def get_end_tiles(h5_filenames, alignment_channel, snr, metadata, sequencing_chip, fia):
+def get_end_tiles(rotation_adjustment, h5_filenames, alignment_channel, snr, metadata, sequencing_chip, fia):
     with h5py.File(h5_filenames[0]) as first_file:
         grid = GridImages(first_file, alignment_channel)
         # no reason to use all cores yet, since we're IO bound?
         num_processes = len(h5_filenames)
         pool = multiprocessing.Pool(num_processes)
-        base_column_checker = functools.partial(check_column_for_alignment, alignment_channel, snr, sequencing_chip, metadata['microns_per_pixel'], fia)
+        base_column_checker = functools.partial(check_column_for_alignment, rotation_adjustment, alignment_channel, snr, sequencing_chip, metadata['microns_per_pixel'], fia)
         left_end_tiles = dict(find_bounds(pool, h5_filenames, base_column_checker, grid.columns, sequencing_chip.left_side_tiles))
         right_end_tiles = dict(find_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), sequencing_chip.right_side_tiles))
 
@@ -210,7 +210,7 @@ def find_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_
     error.fail("Could not find end tiles! This means that your data did not align to phix (or whatever you used for alignment) at all!")
 
 
-def check_column_for_alignment(channel, snr, sequencing_chip, um_per_pixel, fia,
+def check_column_for_alignment(rotation_adjustment, channel, snr, sequencing_chip, um_per_pixel, fia,
                                end_tiles, column, possible_tile_keys, h5_filename):
     base_name = os.path.splitext(h5_filename)[0]
     with h5py.File(h5_filename) as h5:
@@ -222,7 +222,7 @@ def check_column_for_alignment(channel, snr, sequencing_chip, um_per_pixel, fia,
                 log.warn("Could not find an image for %s Row %d Column %d" % (base_name, row, column))
                 return
             log.debug("Aligning %s Row %d Column %d against PhiX" % (base_name, row, column))
-            fia = process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(fia))
+            fia = process_alignment_image(rotation_adjustment, snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(fia))
             if fia.hitting_tiles:
                 log.debug("%s aligned to at least one tile!" % image.index)
                 # because of the way we iterate through the images, if we find one that aligns,
@@ -268,14 +268,14 @@ def load_read_names(file_path):
     return {key: list(values) for key, values in tiles.items()}
 
 
-def process_alignment_image(snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, fia):
+def process_alignment_image(rotation_adjustment, snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, fia):
     cluster_filepath = os.path.join(base_name, '%s.cat' % image.index)
     if not os.path.exists(cluster_filepath):
         return fia
     fia.set_image_data(image, um_per_pixel)
     fia.set_clusters_from_file(cluster_filepath)
     fia.rough_align(possible_tile_keys,
-                    sequencing_chip.rotation_estimate,
+                    sequencing_chip.rotation_estimate + rotation_adjustment,
                     sequencing_chip.tile_width,
                     snr_thresh=snr)
     return fia
