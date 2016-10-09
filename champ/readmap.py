@@ -36,6 +36,14 @@ def main(clargs):
         # write_read_names_by_sequence(read_names_given_seq, os.path.join(clargs.output_directory, 'read_names_by_seq.txt'))
 
         if clargs.target_sequence_file:
+            with open(os.path.join(clargs.output_directory, "read_names_by_seq.txt")) as f:
+                read_names_given_seq = {}
+                for line in f:
+                    line = line.split("\t")
+                    seq = line[0]
+                    read_names = line[1:]
+                    read_names_given_seq[seq] = read_names
+
             with open(clargs.target_sequence_file) as f:
                 targets = yaml.load(f)
 
