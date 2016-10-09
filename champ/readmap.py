@@ -97,7 +97,7 @@ def determine_target_reads(targets, read_names_given_seq):
 
 def write_read_names(read_names, target_name, output_directory):
     filename = os.path.join(output_directory, target_name + '_read_names.txt')
-    with open(filename, 'a+') as f:
+    with open(filename, 'a') as f:
         f.write('\n'.join(read_names) + '\n')
 
 
@@ -109,7 +109,7 @@ def write_read_names_by_sequence(read_names_given_seq, out_file_path):
 
 def write_all_read_names(fastq_files, out_file_path):
     # Opens all FastQ files, finds every read name, and saves it in a file without any other data
-    with open(out_file_path, 'w+') as out:
+    with open(out_file_path, 'w') as out:
         for filenames in fastq_files.paired:
             for filename in filenames:
                 for record in parse_fastq_lines(filename):
