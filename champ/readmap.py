@@ -116,10 +116,14 @@ def write_all_read_names(fastq_files, out_file_path):
 
 
 def determine_perfect_target_reads(targets, read_names_by_seq):
+    import time
     for target_name, target_sequence in targets.items():
+        print("perfect target %s" % target_name)
         perfect_read_names = []
         for seq, read_names in read_names_by_seq.items():
+            print(seq, read_names)
             if target_sequence in seq:
+                time.sleep(1)
                 print(seq, read_names)
                 perfect_read_names += read_names
         yield target_name, perfect_read_names
