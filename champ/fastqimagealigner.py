@@ -306,6 +306,7 @@ class FastqImageAligner(object):
         return found_good_mapping
 
     def rough_align(self, possible_tile_keys, rotation_est, fq_w_est=927, snr_thresh=1.2):
+        print("INNER ROT EST", rotation_est)
         self.fq_w = fq_w_est
         self.set_fastq_tile_mappings()
         self.set_all_fastq_image_data()
