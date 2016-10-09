@@ -27,13 +27,13 @@ def main(clargs):
     fastq_files = fastq.FastqFiles(fastq_filenames)
 
     if clargs.log_p_file_path:
-        log.debug("Determining probable sequence of each read name.")
-        with open(clargs.log_p_file_path) as f:
-            log_p_struct = pickle.load(f)
-
-        read_names_given_seq = determine_sequences_of_read_names(clargs.min_len, clargs.max_len,
-                                                                 clargs.max_hamming_distance, log_p_struct, fastq_files)
-        write_read_names_by_sequence(read_names_given_seq, os.path.join(clargs.output_directory, 'read_names_by_seq.txt'))
+        # log.debug("Determining probable sequence of each read name.")
+        # with open(clargs.log_p_file_path) as f:
+        #     log_p_struct = pickle.load(f)
+        #
+        # read_names_given_seq = determine_sequences_of_read_names(clargs.min_len, clargs.max_len,
+        #                                                          clargs.max_hamming_distance, log_p_struct, fastq_files)
+        # write_read_names_by_sequence(read_names_given_seq, os.path.join(clargs.output_directory, 'read_names_by_seq.txt'))
 
         if clargs.target_sequence_file:
             with open(clargs.target_sequence_file) as f:
@@ -42,14 +42,12 @@ def main(clargs):
             log.info("Creating perfect target read name files.")
             for target_name, perfect_read_names in determine_perfect_target_reads(targets, read_names_given_seq):
                 formatted_name = 'perfect_target_%s' % target_name.replace('-', '_').lower()
-                log.debug("Finding read names for %s" % formatted_name)
                 write_read_names(perfect_read_names, formatted_name, clargs.output_directory)
 
             # find imperfect target reads
             log.info("Creating target read name files.")
             for target_name, perfect_read_names in determine_target_reads(targets, read_names_given_seq):
                 formatted_name = 'target_%s' % target_name.replace('-', '_').lower()
-                log.debug("Finding read names for %s" % formatted_name)
                 write_read_names(perfect_read_names, formatted_name, clargs.output_directory)
 
     if clargs.phix_bamfiles:
@@ -114,6 +112,7 @@ def determine_perfect_target_reads(targets, read_names_by_seq):
         perfect_read_names = []
         for seq, read_names in read_names_by_seq.items():
             if target_sequence in seq:
+                print(seq, read_names)
                 perfect_read_names += read_names
         yield target_name, perfect_read_names
 
