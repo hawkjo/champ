@@ -179,7 +179,7 @@ class PathInfo(object):
     def aligning_read_names_filepath(self):
         if self._alternate_fiducial_reads:
             return os.path.join(self._mapped_reads, self._alternate_fiducial_reads)
-        return os.path.join(self._mapped_reads, 'phix')
+        return os.path.join(self._mapped_reads, 'phix_read_names.txt')
 
     @property
     def all_read_names_filepath(self):
