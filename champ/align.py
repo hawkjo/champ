@@ -95,7 +95,6 @@ def make_output_directories(h5_filenames, path_info):
 
 
 def get_end_tiles(rotation_adjustment, h5_filenames, alignment_channel, snr, metadata, sequencing_chip, fia):
-    print("rotadj", rotation_adjustment)
     with h5py.File(h5_filenames[0]) as first_file:
         grid = GridImages(first_file, alignment_channel)
         # no reason to use all cores yet, since we're IO bound?
@@ -271,6 +270,7 @@ def load_read_names(file_path):
 
 
 def process_alignment_image(rotation_adjustment, snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, fia):
+    print("PIA")
     cluster_filepath = os.path.join(base_name, '%s.cat' % image.index)
     if not os.path.exists(cluster_filepath):
         return fia
@@ -280,6 +280,7 @@ def process_alignment_image(rotation_adjustment, snr, sequencing_chip, base_name
                     sequencing_chip.rotation_estimate + rotation_adjustment,
                     sequencing_chip.tile_width,
                     snr_thresh=snr)
+    print("RETURN FIA")
     return fia
 
 
