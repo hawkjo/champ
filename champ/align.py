@@ -95,6 +95,7 @@ def make_output_directories(h5_filenames, path_info):
 
 
 def get_end_tiles(rotation_adjustment, h5_filenames, alignment_channel, snr, metadata, sequencing_chip, fia):
+    print("rotadj", rotation_adjustment)
     with h5py.File(h5_filenames[0]) as first_file:
         grid = GridImages(first_file, alignment_channel)
         # no reason to use all cores yet, since we're IO bound?
