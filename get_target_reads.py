@@ -24,7 +24,12 @@ def get_target_reads(target, reads_by_seq_fpath, out_fpath):
             words = line.strip().split()
             seq = words[0]
             read_names = words[1:]
-            if editdistance.eval(target, seq) <= max_edit_dist:
+            if len(seq) > len(target):
+                min_edit_dist = min(editdistance.eval(target, seq[i:i+len(target)])
+                                    for i in xrange(len(seq) - len(target)))
+            else:
+                min_edit_dist = editdistance.eval(target, seq)
+            if min_edit_dist <= max_edit_dist:
                 out.write('\n'.join(read_names) + '\n')
 
 
