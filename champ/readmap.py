@@ -118,7 +118,7 @@ def write_all_read_names(read_names_given_seq, out_file_path):
     with open(out_file_path, 'w') as out:
         for read_names in read_names_given_seq.values():
             for read_name in read_names:
-                out.write(read_name + '\n')
+                out.write(read_name.strip() + '\n')
 
 
 def determine_perfect_target_reads(targets, read_names_by_seq):
