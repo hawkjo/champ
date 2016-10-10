@@ -35,16 +35,17 @@ def main(clargs):
                                                                  clargs.max_hamming_distance, log_p_struct, fastq_files)
         write_read_names_by_sequence(read_names_given_seq, os.path.join(clargs.output_directory, 'read_names_by_seq.txt'))
 
-    if clargs.target_sequence_file:
-        if not read_names_given_seq:
-            with open(os.path.join(clargs.output_directory, "read_names_by_seq.txt")) as f:
-                read_names_given_seq = {}
-                for line in f:
-                    line = line.split("\t")
-                    seq = line[0]
-                    read_names = line[1:]
-                    read_names_given_seq[seq] = read_names
+    if not read_names_given_seq:
+        # We already generated read names by seq in a previous run, so we need to load them for subsequent steps
+        with open(os.path.join(clargs.output_directory, "read_names_by_seq.txt")) as f:
+            read_names_given_seq = {}
+            for line in f:
+                line = line.split("\t")
+                seq = line[0]
+                read_names = line[1:]
+                read_names_given_seq[seq] = read_names
 
+    if clargs.target_sequence_file:
         with open(clargs.target_sequence_file) as f:
             targets = yaml.load(f)
 
@@ -65,7 +66,7 @@ def main(clargs):
         write_read_names(read_names, 'phix', clargs.output_directory)
 
     log.info("Parsing and saving all read names to disk.")
-    write_all_read_names(fastq_files, os.path.join(clargs.output_directory, 'all_read_names.txt'))
+    write_all_read_names(read_names_given_seq, os.path.join(clargs.output_directory, 'all_read_names.txt'))
 
 
 def find_reads_using_bamfile(bamfile_path, fastq_files):
@@ -88,14 +89,8 @@ def rand_seq(target):
 
 
 def determine_target_reads(targets, read_names_given_seq):
-    # for target_name, target_sequence in targets.items():
-    #     max_edit_dist = get_max_edit_dist(target_sequence)
-    #     for seq, read_names in read_names_given_seq.items():
-    #         if editdistance.eval(target_sequence, seq) <= max_edit_dist:
-    #             yield target_name, read_names
     for target_name, target_sequence in targets.items():
         max_edit_dist = get_max_edit_dist(target_sequence)
-        # print 'Max edit distance:', max_edit_dist
         for seq, read_names in read_names_given_seq.items():
             if len(seq) > len(target_sequence):
                 min_edit_dist = min(editdistance.eval(target_sequence, seq[i:i + len(target_sequence)])
@@ -118,13 +113,11 @@ def write_read_names_by_sequence(read_names_given_seq, out_file_path):
             out.write('{}\t{}\n'.format(seq, '\t'.join(read_names)))
 
 
-def write_all_read_names(fastq_files, out_file_path):
+def write_all_read_names(read_names_given_seq, out_file_path):
     # Opens all FastQ files, finds every read name, and saves it in a file without any other data
     with open(out_file_path, 'w') as out:
-        for filenames in fastq_files.paired:
-            for filename in filenames:
-                for record in parse_fastq_lines(filename):
-                        out.write(record.name)
+        for seq in read_names_given_seq.keys():
+            out.write(seq + '\n')
 
 
 def determine_perfect_target_reads(targets, read_names_by_seq):
