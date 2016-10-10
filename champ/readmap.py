@@ -65,7 +65,7 @@ def main(clargs):
         write_read_names(read_names, 'phix', clargs.output_directory)
 
     log.info("Parsing and saving all read names to disk.")
-    write_all_read_names(fastq_files, os.path.join('all_read_names.txt'))
+    write_all_read_names(fastq_files, os.path.join(clargs.output_directory, 'all_read_names.txt'))
 
 
 def find_reads_using_bamfile(bamfile_path, fastq_files):
