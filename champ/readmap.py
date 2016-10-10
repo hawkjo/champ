@@ -116,8 +116,9 @@ def write_read_names_by_sequence(read_names_given_seq, out_file_path):
 def write_all_read_names(read_names_given_seq, out_file_path):
     # Opens all FastQ files, finds every read name, and saves it in a file without any other data
     with open(out_file_path, 'w') as out:
-        for seq in read_names_given_seq.keys():
-            out.write(seq + '\n')
+        for read_names in read_names_given_seq.values():
+            for read_name in read_names:
+                out.write(read_name + '\n')
 
 
 def determine_perfect_target_reads(targets, read_names_by_seq):
