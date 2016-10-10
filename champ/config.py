@@ -57,6 +57,10 @@ class CommandLineArguments(object):
         return self._arguments['ALIGNMENT_CHANNEL']
 
     @property
+    def rotation_adjustment(self):
+        return float(self._arguments.get('--rotation-adjustment', 0.0))
+
+    @property
     def image_directory(self):
         return self._arguments['IMAGE_DIRECTORY']
 
