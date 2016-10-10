@@ -88,10 +88,21 @@ def rand_seq(target):
 
 
 def determine_target_reads(targets, read_names_given_seq):
+    # for target_name, target_sequence in targets.items():
+    #     max_edit_dist = get_max_edit_dist(target_sequence)
+    #     for seq, read_names in read_names_given_seq.items():
+    #         if editdistance.eval(target_sequence, seq) <= max_edit_dist:
+    #             yield target_name, read_names
     for target_name, target_sequence in targets.items():
         max_edit_dist = get_max_edit_dist(target_sequence)
+        # print 'Max edit distance:', max_edit_dist
         for seq, read_names in read_names_given_seq.items():
-            if editdistance.eval(target_sequence, seq) <= max_edit_dist:
+            if len(seq) > len(target_sequence):
+                min_edit_dist = min(editdistance.eval(target_sequence, seq[i:i + len(target_sequence)])
+                                    for i in xrange(len(seq) - len(target_sequence)))
+            else:
+                min_edit_dist = editdistance.eval(target_sequence, seq)
+            if min_edit_dist <= max_edit_dist:
                 yield target_name, read_names
 
 
