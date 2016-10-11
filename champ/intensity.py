@@ -176,7 +176,9 @@ class IntensityScores(object):
                         }
 
     def get_read_names_in_image(self, h5_fpath, channel, pos_tup):
-        return set(self.raw_scores[h5_fpath][channel][pos_tup].keys())
+        read_names = set(self.raw_scores[h5_fpath][channel][pos_tup].keys())
+        log.debug("read_names[%s][%s]: %d" % (channel, pos_tup, len(read_names)))
+        return read_names
 
     def build_score_given_read_name_given_channel(self):
         self.score_given_read_name_in_channel = {
