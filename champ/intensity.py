@@ -113,16 +113,19 @@ class IntensityScores(object):
                     m = im_loc_re.match(rfname)
                     channel = m.group(1)
                     pos_tup = tuple(int(m.group(i)) for i in (2, 3))
+
                 except:
                     try:
                         m = jim_im_loc_re.match(rfname)
                         channel = m.group(1)
                         pos_tup = tuple(int(m.group(i)) for i in (2, 3))
+
                     except:
                         print rfname
                         raise
 
                 pos_key = hdf5tools.get_image_key(*pos_tup)
+
                 self.scores[h5_fpath][channel][pos_tup] = {}
 
                 with h5py.File(h5_fpath) as f:

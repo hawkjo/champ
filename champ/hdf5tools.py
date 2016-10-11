@@ -10,7 +10,7 @@ def parse_coordinates(position_key):
     return column, row
 
 
-def get_image_key(column, row):
+def get_image_key(row, column):
     return '(Major, minor) = ({}, {})'.format(column, row)
 
 
