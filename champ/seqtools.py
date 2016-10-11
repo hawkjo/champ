@@ -2,7 +2,7 @@ import sys
 import itertools
 import numpy as np
 from collections import defaultdict
-from adapters_cython import simple_hamming_distance
+from champ.adapters_cython import simple_hamming_distance
 import scipy.misc
 import matplotlib as mpl
 import matplotlib.colors as mcolors
