@@ -16,17 +16,18 @@ log = logging.getLogger(__name__)
 
 
 def main(clargs):
-    # TODO: Move this to main.py
-    #     min_len:            Minimum allowed overlap
-    #     max_len:            Maximum allowed overlap
-    #     max_mismatch:       Maximum allowed mismatch between reads
-    #     out_file_path:          Location to write output file
-    #     log_p_file_path:        Location of pickle file with probability struct
-    #     fastq_file_paths:       List of all fastq files in run
+    """
+    Creates text files containing the Illumina IDs of each read, sorted by type. Typically, we want to know which reads are the phiX fiducial markers,
+    which belong to a certain target, and so forth. Part of this process is determining what the likely sequence is - during the paired end read process
+    you receive two sequences with two different quality scores for each base, so we have to decide which is most likely to be correct.
+
+    """
     fastq_filenames = [os.path.join(clargs.fastq_directory, directory) for directory in os.listdir(clargs.fastq_directory)]
     fastq_files = fastq.FastqFiles(fastq_filenames)
     read_names_given_seq = {}
+
     if clargs.log_p_file_path:
+        # We need to find the sequence of each read name
         log.debug("Determining probable sequence of each read name.")
         with open(clargs.log_p_file_path) as f:
             log_p_struct = pickle.load(f)
@@ -36,7 +37,7 @@ def main(clargs):
         write_read_names_by_sequence(read_names_given_seq, os.path.join(clargs.output_directory, 'read_names_by_seq.txt'))
 
     if not read_names_given_seq:
-        # We already generated read names by seq in a previous run, so we need to load them for subsequent steps
+        # We already generated read names by seq in a previous run and aren't recreating them this time, so we need to load them from disk
         with open(os.path.join(clargs.output_directory, "read_names_by_seq.txt")) as f:
             read_names_given_seq = {}
             for line in f:
@@ -46,6 +47,7 @@ def main(clargs):
                 read_names_given_seq[seq] = read_names
 
     if clargs.target_sequence_file:
+        # Find read names for each target
         with open(clargs.target_sequence_file) as f:
             targets = yaml.load(f)
 
@@ -61,6 +63,7 @@ def main(clargs):
             write_read_names(read_names, formatted_name, clargs.output_directory)
 
     if clargs.phix_bamfiles:
+        # Find all read names of the phiX fiducial markers
         log.info("Finding phiX reads.")
         read_names = find_reads_using_bamfile(clargs.phix_bamfiles, fastq_files)
         write_read_names(read_names, 'phix', clargs.output_directory)
