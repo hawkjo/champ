@@ -38,57 +38,6 @@ class IntensityScores(object):
                 return read_name in important_read_names
         return isimportant
 
-    def get_gaussian_scores(self,
-                            results_dirs,
-                            verbose=True,
-                            important_read_names='all'):
-        """
-        The gaussian fit output gives the fit as
-
-            read_name   bg  A   sigma   mu_r    mu_c
-
-        We calculate volume as the sum of the gaussian and bg, where bg is the cylinder under the
-        circle of raduis 2*sigma:
-
-            V_g = 2 A pi sigma**2
-            V_bg = 4 bg pi sigma**2
-            V_total = V_g + V_bg
-        """
-        isimportant = self._make_isimportant_function(important_read_names)
-        im_loc_re = re.compile('Channel_(.+)_Pos_(\d+)_(\d+)_')
-        jim_im_loc_re = re.compile('^(.+)_(\d+)_(\d+)_')
-        for h5_fpath, results_dir in zip(self.h5_fpaths, results_dirs):
-            results_fpaths = glob.glob(os.path.join(results_dir, '*_gaussian_intensities.txt'))
-            if verbose:
-                print h5_fpath
-                print 'Num results files:', len(results_fpaths)
-
-            for i, rfpath in enumerate(results_fpaths):
-                rfname = os.path.basename(rfpath)
-                try:
-                    m = im_loc_re.match(rfname)
-                    channel = m.group(1)
-                    pos_tup = tuple(int(m.group(i)) for i in (2, 3))
-                except:
-                    try:
-                        m = jim_im_loc_re.match(rfname)
-                        channel = m.group(1)
-                        pos_tup = tuple(int(m.group(i)) for i in (2, 3))
-                    except:
-                        print rfname
-                        raise
-
-                self.scores[h5_fpath][channel][pos_tup] = {}
-
-                for line in open(rfpath):
-                    read_name, bg, A, sigma, mu_r, mu_c = line.strip().split()
-                    if bg == '-' or not isimportant(read_name):
-                        continue
-                    bg, A, sigma, mu_r, mu_c = map(float, (bg, A, sigma, mu_r, mu_c))
-                    score = np.pi * sigma ** 2 * (2 * A + 4 * bg)
-                    self.scores[h5_fpath][channel][pos_tup][read_name] = score
-            if verbose: print
-
     def get_LDA_scores(self,
                        results_dirs,
                        lda_weights_fpath,
@@ -100,7 +49,7 @@ class IntensityScores(object):
         # Read scores
         lda_weights = np.loadtxt(lda_weights_fpath)
         im_loc_re = re.compile('Channel_(.+)_Pos_(\d+)_(\d+)_')
-        jim_im_loc_re = re.compile('^(.+)_(\d+)_(\d+)_')
+        image_parsing_regex = re.compile(r'^(?P<channel>.+)_(?P<minor>\d+)_(?P<major>\d+)_')
         for h5_fpath, results_dir in zip(self.h5_fpaths, results_dirs):
             results_fpaths = glob.glob(os.path.join(results_dir, '*_all_read_rcs.txt'))
             if verbose:
@@ -112,21 +61,19 @@ class IntensityScores(object):
                 try:
                     m = im_loc_re.match(rfname)
                     channel = m.group(1)
-                    pos_tup = tuple(int(m.group(i)) for i in (2, 3))
-
+                    minor, major = tuple(int(m.group(i)) for i in (2, 3))
                 except:
                     try:
-                        m = jim_im_loc_re.match(rfname)
-                        channel = m.group(1)
-                        pos_tup = tuple(int(m.group(i)) for i in (2, 3))
-
+                        m = image_parsing_regex.match(rfname)
+                        channel = m.group('channel')
+                        minor, major = int(m.group('minor')), int(m.group('major'))
                     except:
                         print rfname
                         raise
 
-                pos_key = hdf5tools.get_image_key(*pos_tup)
+                pos_key = hdf5tools.get_image_key(major, minor)
 
-                self.scores[h5_fpath][channel][pos_tup] = {}
+                self.scores[h5_fpath][channel][(major, minor)] = {}
 
                 with h5py.File(h5_fpath) as f:
                     im = np.array(f[channel][pos_key])
@@ -140,7 +87,7 @@ class IntensityScores(object):
                         and side_px <= c < im.shape[0] - side_px - 1):
                         x = im[r - side_px:r + side_px + 1, c - side_px:c + side_px + 1].astype(np.float)
                         score = float(np.multiply(lda_weights, x).sum())
-                        self.scores[h5_fpath][channel][pos_tup][read_name] = score
+                        self.scores[h5_fpath][channel][(major, minor)][read_name] = score
 
     def normalize_scores(self, verbose=True):
         """Normalizes scores. The normalizing constant for each image is determined by
