@@ -4,7 +4,7 @@ from champ.error import fail
 
 
 def save(clargs):
-    filename = os.path.join(clargs.image_directory, 'champ.yaml')
+    filename = os.path.join(clargs.image_directory, 'champ.yml')
     with open(filename, 'w+') as f:
         data = {'chip_name': clargs.chip_name,
                 'mapped_reads': os.path.abspath(clargs.mapped_reads),
@@ -27,13 +27,17 @@ def save(clargs):
 
 
 def update(image_directory, metadata):
-    filename = os.path.join(image_directory, 'champ.yaml')
+    filename = os.path.join(image_directory, 'champ.yml')
+    if not os.path.exists(filename):
+        filename = os.path.join(image_directory, 'champ.yaml')
     with open(filename, 'w+') as f:
         yaml.dump(metadata, f)
 
 
 def load(image_directory):
-    filename = os.path.join(image_directory, 'champ.yaml')
+    filename = os.path.join(image_directory, 'champ.yml')
+    if not os.path.exists(filename):
+        filename = os.path.join(image_directory, 'champ.yaml')
     try:
         with open(filename) as fh:
             return yaml.load(fh)
