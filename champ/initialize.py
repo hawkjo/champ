@@ -4,7 +4,7 @@ from champ.error import fail
 
 
 def save(clargs):
-    filename = os.path.join(clargs.image_directory, 'champ.yaml')
+    filename = os.path.join(clargs.image_directory, 'champ.yml')
     with open(filename, 'w+') as f:
         data = {'chip_name': clargs.chip_name,
                 'mapped_reads': os.path.abspath(clargs.mapped_reads),
@@ -27,13 +27,13 @@ def save(clargs):
 
 
 def update(image_directory, metadata):
-    filename = os.path.join(image_directory, 'champ.yaml')
+    filename = get_existing_metadata_filename(image_directory)
     with open(filename, 'w+') as f:
         yaml.dump(metadata, f)
 
 
 def load(image_directory):
-    filename = os.path.join(image_directory, 'champ.yaml')
+    filename = get_existing_metadata_filename(image_directory)
     try:
         with open(filename) as fh:
             return yaml.load(fh)
@@ -42,3 +42,11 @@ def load(image_directory):
              "the 'champ init' command first." % str(image_directory))
     except:
         fail("Something is wrong with the metadata file in the image directory. Try rerunning 'champ init'.", 2)
+
+
+def get_existing_metadata_filename(image_directory):
+    # Look for the metadata file, and if it doesn't exist, try again with the old extension to allow backwards compatibility
+    filename = os.path.join(image_directory, 'champ.yml')
+    if not os.path.exists(filename):
+        filename = os.path.join(image_directory, 'champ.yaml')
+    return filename
