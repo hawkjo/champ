@@ -240,7 +240,9 @@ class IntensityScores(object):
         for h5_fpath in self.h5_fpaths:
             for channel in self.scores[h5_fpath].keys():
                 for score_given_read_name in self.scores[h5_fpath][channel].values():
-                    reads_in_channel[channel].update(score_given_read_name.keys())
+                    rnames = score_given_read_name.keys()
+                    print("len(read_names) = %d" % len(rnames))
+                    reads_in_channel[channel].update(rnames)
         for channel, read_names in sorted(reads_in_channel.items()):
             print 'All reads found in channel {}: {:,d}'.format(channel, len(read_names))
 
