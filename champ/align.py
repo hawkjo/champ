@@ -314,7 +314,7 @@ def write_output(tile_data, image_index, base_name, fastq_image_aligner, path_in
     all_fastq_image_aligner = fastqimagealigner.FastqImageAligner(um_per_pixel)
     all_fastq_image_aligner.all_reads_fic_from_aligned_fic(fastq_image_aligner, all_tile_data)
     with open(all_read_rcs_filepath, 'w+') as f:
-        for line in all_fastq_image_aligner.read_names_rcs(tile_data):
+        for line in all_fastq_image_aligner.read_names_rcs:
             f.write(line)
 
     # save some diagnostic PDFs that give a nice visualization of the alignment

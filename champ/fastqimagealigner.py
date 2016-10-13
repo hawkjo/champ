@@ -107,7 +107,7 @@ class FastqImageAligner(object):
         possible_tiles = [self.fastq_tiles[key] for key in possible_tile_keys
                           if key in self.fastq_tiles]
         impossible_tiles = [tile for tile in self.fastq_tiles.values() if tile not in possible_tiles]
-        impossible_tiles.sort(key=lambda tile: -tile.read_name_length)
+        impossible_tiles.sort(key=lambda tile: -len(tile.read_names))
         control_tiles = impossible_tiles[:2]
         self.image_data.set_fft(self.fq_im_scaled_dims)
         self.control_corr = 0
@@ -342,9 +342,10 @@ class FastqImageAligner(object):
                                                 offsets,
                                                 hits)
 
-    def read_names_rcs(self, tile_data):
+    @property
+    def read_names_rcs(self):
         im_shape = self.image_data.image.shape
         for tile in self.hitting_tiles:
-            for read_name, pt in izip(tile_data[tile.key], tile.aligned_rcs):
+            for read_name, pt in izip(tile.read_names, tile.aligned_rcs):
                 if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
                     yield '%s\t%f\t%f\n' % (read_name, pt[0], pt[1])
