@@ -50,9 +50,13 @@ def main(clargs):
     sequencing_chip = chip.load(metadata['chip_type'])(metadata['ports_on_right'])
 
     alignment_tile_data = align.load_read_names(path_info.aligning_read_names_filepath)
+    print("%d alignment reads" % len(alignment_tile_data))
     perfect_tile_data = align.load_read_names(path_info.perfect_read_names)
+    print("%d perfect reads" % len(perfect_tile_data))
     on_target_tile_data = align.load_read_names(path_info.on_target_read_names)
+    print("%d target reads" % len(on_target_tile_data))
     all_tile_data = align.load_read_names(path_info.all_read_names_filepath)
+    print("%d all reads" % len(all_tile_data))
     log.debug("Tile data loaded.")
 
     # We use one process per concentration. We could theoretically speed this up since our machine
