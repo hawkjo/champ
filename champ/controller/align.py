@@ -84,11 +84,13 @@ def main(clargs):
         # the user doesn't want us to align the protein channels
         exit(0)
 
+    overwrite_existing_alignments = False
     protein_channels = [channel for channel in projectinfo.load_channels(clargs.image_directory) if channel != metadata['alignment_channel']]
     if protein_channels:
         log.debug("Protein channels found: %s" % ", ".join(protein_channels))
     else:
         # protein is in phix channel, hopefully?
+        overwrite_existing_alignments = True
         log.warn("No protein channels detected. Assuming protein is in phiX channel: %s" % [metadata['alignment_channel']])
         protein_channels = [metadata['alignment_channel']]
 
@@ -98,16 +100,16 @@ def main(clargs):
 
         if on_target_tile_data:
             channel_combo = channel_name + "_on_target"
-            combo_align(h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, clargs)
+            combo_align(h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, clargs, overwrite_existing_alignments)
 
         if perfect_tile_data:
             channel_combo = channel_name + "_perfect_target"
-            combo_align(h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
+            combo_align(h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs, overwrite_existing_alignments)
 
 
-def combo_align(h5_filenames, channel_combo, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs):
+def combo_align(h5_filenames, channel_combo, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs, overwrite_existing_alignments):
     log.info("Aligning %s" % channel_combo)
     if channel_combo not in metadata['protein_channels_aligned']:
-        align.run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs)
+        align.run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs, overwrite_existing_alignments)
         metadata['protein_channels_aligned'].append(channel_combo)
         initialize.update(clargs.image_directory, metadata)

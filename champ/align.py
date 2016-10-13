@@ -36,7 +36,7 @@ def run(rotation_adjustment, alignment_tile_data, h5_filenames, path_info, snr, 
     log.debug("Done aligning!")
 
 
-def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs):
+def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs, overwrite_existing_alignments):
     image_count = count_images(h5_filenames, channel_name)
     num_processes, chunksize = calculate_process_count(image_count)
     log.debug("Aligning data images with %d cores with chunksize %d" % (num_processes, chunksize))
@@ -47,7 +47,7 @@ def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data,
     log.debug("Reads loaded.")
     second_processor = functools.partial(process_data_image, alignment_tile_data, path_info, all_tile_data,
                                          clargs.microns_per_pixel, clargs.make_pdfs,
-                                         channel_name, fastq_image_aligner, clargs.min_hits)
+                                         channel_name, fastq_image_aligner, clargs.min_hits, overwrite_existing_alignments)
     pool = multiprocessing.Pool(num_processes)
     log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
     pool.map_async(second_processor,
@@ -76,7 +76,7 @@ def perform_alignment(rotation_adjustment, alignment_tile_data, path_info, snr, 
         except ValueError:
             log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
         else:
-            result = write_output(alignment_tile_data, image.index, base_name, fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
+            result = write_output(alignment_tile_data, image.index, base_name, fia, path_info, all_tile_data, make_pdfs, um_per_pixel, True)
             print("Write alignment for %s: %s" % (image.index, result))
 
     # Force the GC to run, since otherwise memory usage blows up
@@ -164,7 +164,8 @@ def load_aligned_stats_files(h5_filenames, alignment_channel, path_info):
 
 
 def process_data_image(alignment_tile_data, path_info, all_tile_data, um_per_pixel, make_pdfs, channel,
-                       fastq_image_aligner, min_hits, (h5_filename, base_name, stats_filepath, row, column)):
+                       fastq_image_aligner, min_hits, overwrite_existing_alignments,
+                       (h5_filename, base_name, stats_filepath, row, column)):
     image = load_image(h5_filename, channel, row, column)
     sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
     stats_filepath = os.path.join(path_info.results_directory, base_name, stats_filepath)
@@ -178,7 +179,7 @@ def process_data_image(alignment_tile_data, path_info, all_tile_data, um_per_pix
         log.debug("Could not precision align %s" % image.index)
     else:
         log.debug("Processed 2nd channel for %s" % image.index)
-        write_output(alignment_tile_data, image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
+        write_output(alignment_tile_data, image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs, um_per_pixel, overwrite_existing_alignments)
     del local_fia
     del image
 
@@ -292,7 +293,7 @@ def load_existing_score(stats_file_path):
     return 0
 
 
-def write_output(tile_data, image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, um_per_pixel):
+def write_output(tile_data, image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, um_per_pixel, overwrite_existing_alignments):
     stats_file_path = os.path.join(path_info.results_directory, base_name, '{}_stats.txt'.format(image_index))
     all_read_rcs_filepath = os.path.join(path_info.results_directory, base_name, '{}_all_read_rcs.txt'.format(image_index))
 
@@ -301,19 +302,19 @@ def write_output(tile_data, image_index, base_name, fastq_image_aligner, path_in
     existing_score = load_existing_score(stats_file_path)
 
     new_stats = fastq_image_aligner.alignment_stats
-    if existing_score > 0:
+    if not overwrite_existing_alignments and existing_score > 0:
         log.debug("Alignment already exists for %s/%s, skipping. Score difference: %d." % (base_name, image_index, (new_stats.score - existing_score)))
         return False
 
     # save information about how to align the images
     log.info("Saving alignment with score of %s\t\t%s" % (new_stats.score, base_name))
-    with open(stats_file_path, 'w+') as f:
+    with open(stats_file_path, 'w') as f:
         f.write(new_stats.serialized)
 
     # save the corrected location of each read
     all_fastq_image_aligner = fastqimagealigner.FastqImageAligner(um_per_pixel)
     all_fastq_image_aligner.all_reads_fic_from_aligned_fic(fastq_image_aligner, all_tile_data)
-    with open(all_read_rcs_filepath, 'w+') as f:
+    with open(all_read_rcs_filepath, 'w') as f:
         for line in all_fastq_image_aligner.read_names_rcs(tile_data):
             f.write(line)
 
