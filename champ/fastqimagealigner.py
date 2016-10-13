@@ -93,10 +93,10 @@ class FastqImageAligner(object):
         assert self.image_data is not None, 'No image data loaded.'
         assert self.fastq_tiles != {}, 'No fastq data loaded.'
 
-        self.all_data = np.concatenate([tile.rcs for key, tile in self.fastq_tiles.items()])
+        all_data = np.concatenate([tile.rcs for key, tile in self.fastq_tiles.items()])
 
-        x_min, y_min = self.all_data.min(axis=0)
-        x_max, y_max = self.all_data.max(axis=0)
+        x_min, y_min = all_data.min(axis=0)
+        x_max, y_max = all_data.max(axis=0)
 
         self.fq_im_offset = np.array([-x_min, -y_min])
         self.fq_im_scale = (float(self.fq_w) / (x_max-x_min)) / self.image_data.um_per_pixel
