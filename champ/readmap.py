@@ -70,7 +70,7 @@ def main(clargs):
         write_read_names(read_names, 'phix', clargs.output_directory)
 
     log.info("Parsing and saving all read names to disk.")
-    write_all_read_names(read_names_given_seq, os.path.join(clargs.output_directory, 'all_read_names.txt'))
+    write_all_read_names(fastq_files, os.path.join(clargs.output_directory, 'all_read_names.txt'))
 
 
 
@@ -200,12 +200,13 @@ def write_read_names_by_sequence(read_names_given_seq, out_file_path):
             out.write('{}\t{}\n'.format(seq, '\t'.join(read_names)))
 
 
-def write_all_read_names(read_names_given_seq, out_file_path):
+def write_all_read_names(fastq_files, out_file_path):
     # Opens all FastQ files, finds every read name, and saves it in a file without any other data
     with open(out_file_path, 'w') as out:
-        for read_names in read_names_given_seq.values():
-            for read_name in read_names:
-                out.write(read_name.strip() + '\n')
+        for filenames in fastq_files.paired:
+            for filename in filenames:
+                for record in parse_fastq_lines(filename):
+                    out.write(record.name + '\n')
 
 
 def determine_perfect_target_reads(targets, read_names_by_seq):
