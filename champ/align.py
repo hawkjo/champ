@@ -76,7 +76,7 @@ def perform_alignment(rotation_adjustment, alignment_tile_data, path_info, snr, 
         except ValueError:
             log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
         else:
-            result = write_output(alignment_tile_data, image.index, base_name, fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
+            result = write_output(all_tile_data, image.index, base_name, fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
             print("Write alignment for %s: %s" % (image.index, result))
 
     # Force the GC to run, since otherwise memory usage blows up
@@ -178,7 +178,7 @@ def process_data_image(alignment_tile_data, path_info, all_tile_data, um_per_pix
         log.debug("Could not precision align %s" % image.index)
     else:
         log.debug("Processed 2nd channel for %s" % image.index)
-        write_output(alignment_tile_data, image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
+        write_output(all_tile_data, image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
     del local_fia
     del image
 
