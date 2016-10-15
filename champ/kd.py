@@ -5,15 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import misc
 import itertools
-import math
-
-
-def mm_names(ref, seq):
-    mms = []
-    for i, (c1, c2) in enumerate(zip(ref, seq)):
-        if c1 != c2:
-            mms.append('{}{}{}'.format(c1, i, c2))
-    return ','.join(mms)
+from champ import seqtools
 
 
 class KdFitIA(object):
@@ -179,7 +171,7 @@ class KdFitIA(object):
                                                                        maxfev=1000000,
                                                                        disp=True))
         if not res.success:
-            print('\nWarning: Failure on {} ({})'.format(seq, mm_names(self.target, seq)))
+            print '\nWarning: Failure on {} ({})'.format(seq, seqtools.mm_names(self.target, seq))
         params = map(abs, res.x)
         Kds = params[:idx1]
         Imax_list = params[idx1:idx2]
@@ -224,7 +216,7 @@ class KdFitIA(object):
         res = minimize(neg_log_L, x0=20, method='powell', options=dict(maxiter=1000000,
                                                                        maxfev=1000000))
         if not res.success:
-            print('\nWarning: Failure on {} ({})'.format(seq, mm_names(self.target, seq)))
+            print '\nWarning: Failure on {} ({})'.format(seq, seqtools.mm_names(self.target, seq))
         return float(res.x)
 
     def curve_fit_Kd(self, seq, Imin, Imax, max_clust=None, bootstrap=False, *args, **kw_args):
@@ -335,6 +327,7 @@ class KdFitIA(object):
         Imin = misc.list_if_scalar(Imin, self.IA.course_len)
         Imax = misc.list_if_scalar(Imax, self.IA.course_len)
         nM_Kd = Kd / 1000.0
+
         ax.plot(self.nM_concentrations, Imin, 'ko', alpha=0.8, label='$I_{min}$')
         ax.plot(self.nM_concentrations, Imax, 's', color='darkgoldenrod', alpha=0.8, label='$I_{max}$')
 
@@ -359,6 +352,8 @@ class KdFitIA(object):
 
     def plot_normalized_fit(self, ax, seq, Kd, Imin, Imax):
         self.IA.plot_normalized_intensities(ax, seq, Imin, Imax, xvals=self.nM_concentrations)
+        Imin = misc.list_if_scalar(Imin, self.IA.course_len)
+        Imax = misc.list_if_scalar(Imax, self.IA.course_len)
         nM_Kd = Kd / 1000.0
 
         def Iobs(x, Kd):
@@ -393,9 +388,7 @@ class KdFitIA(object):
                 Imin_name = names_tup[0]
                 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
                 Imin, Imax = self.Imin_max_pairs_given_names[names_tup]
-                Imax = [i for i in Imax if not math.isnan(i) and i < float('inf')]
                 Kd = fit_func(seq, Imin=Imin, Imax=Imax, Imin_name=Imin_name)
-                Imax = max(Imax)
                 self.plot_raw_fit(axes[0], seq, Kd, Imin, Imax)
                 self.plot_normalized_fit(axes[1], seq, Kd, Imin, Imax)
                 axes[0].set_title('%s, Kd = %.2f' % (names_tup, Kd / 1000.0))
