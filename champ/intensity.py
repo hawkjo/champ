@@ -233,7 +233,6 @@ class IntensityScores(object):
             ax.set_xlim((-1, 1.15 * nMajor_pos))  # Add room for legend
             ax.set_aspect(1)
             ax.legend()
-        return fig, axes
 
     def print_reads_per_channel(self):
         reads_in_channel = defaultdict(set)
