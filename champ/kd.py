@@ -268,7 +268,7 @@ class KdFitIA(object):
         self.Kd_errors = {name_tup: [] for name_tup in self.fit_func_given_Imin_max_names.keys()}
         self.ABAs = {name_tup: [] for name_tup in self.fit_func_given_Imin_max_names.keys()}
         self.ABA_errors = {name_tup: [] for name_tup in self.fit_func_given_Imin_max_names.keys()}
-        dot_val = 10
+        dot_val = 100
         print '{} Seqs, \'.\'={}\n'.format(self.IA.nseqs, dot_val)
         for names_tup, (Imin, Imax) in sorted(self.Imin_max_pairs_given_names.items()):
             print '\n', names_tup
