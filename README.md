@@ -12,7 +12,7 @@ This software was used for analyses described in the manuscript:
 CHAMP has only been run on Ubuntu. You'll need a few dependencies first:
 
 ```
-sudo apt install -y git sextractor samtools bowtie2 virtualenv python-dev zlib1g-dev
+sudo apt install -y build-essential git sextractor samtools bowtie2 virtualenv python-dev zlib1g-dev
 git clone https://github.com/hawkjo/champ.git
 ```
 
