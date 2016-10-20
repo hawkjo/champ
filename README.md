@@ -1,4 +1,4 @@
-# CHAMP: Chip-Hybridized Association Mapping Platform
+# CHAMP: Chip-Hybridized Affinity Mapping Platform
 
 This software was used for analyses described in the manuscript:
 
