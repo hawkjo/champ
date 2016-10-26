@@ -198,7 +198,7 @@ class PathInfo(object):
         if self._alternate_good_reads_filename:
             return os.path.join(self._mapped_reads, self._alternate_good_reads_filename)
         if not self._perfect_target_name:
-            raise ValueError("This experiment did not have a perfect target set!")
+            return None
         return os.path.join(self._mapped_reads, 'target_{}_read_names.txt'.format(self._perfect_target_name.lower()))
 
     @property
@@ -206,5 +206,5 @@ class PathInfo(object):
         if self._alternate_perfect_reads_filename:
             return os.path.join(self._mapped_reads, self._alternate_perfect_reads_filename)
         if not self._perfect_target_name:
-            raise ValueError("This experiment did not have a perfect target set!")
+            return None
         return os.path.join(self._mapped_reads, 'perfect_target_{}_read_names.txt'.format(self._perfect_target_name.lower()))
