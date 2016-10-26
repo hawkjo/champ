@@ -65,10 +65,6 @@ class CommandLineArguments(object):
         return self._arguments['IMAGE_DIRECTORY']
 
     @property
-    def rotation_adjustment(self):
-        return float(self._arguments.get('--rotation-adjustment', 0.0))
-
-    @property
     def fastq_directory(self):
         return self._arguments['FASTQ_DIRECTORY']
 
