@@ -92,10 +92,10 @@ class FastqImageAligner(object):
         assert self.image_data is not None, 'No image data loaded.'
         assert self.fastq_tiles != {}, 'No fastq data loaded.'
 
-        self.all_data = np.concatenate([tile.rcs for key, tile in self.fastq_tiles.items()])
+        all_data = np.concatenate([tile.rcs for key, tile in self.fastq_tiles.items()])
 
-        x_min, y_min = self.all_data.min(axis=0)
-        x_max, y_max = self.all_data.max(axis=0)
+        x_min, y_min = all_data.min(axis=0)
+        x_max, y_max = all_data.max(axis=0)
 
         self.fq_im_offset = np.array([-x_min, -y_min])
         self.fq_im_scale = (float(self.fq_w) / (x_max-x_min)) / self.image_data.um_per_pixel
@@ -106,7 +106,7 @@ class FastqImageAligner(object):
         possible_tiles = [self.fastq_tiles[key] for key in possible_tile_keys
                           if key in self.fastq_tiles]
         impossible_tiles = [tile for tile in self.fastq_tiles.values() if tile not in possible_tiles]
-        impossible_tiles.sort(key=lambda tile: -tile.read_name_length)
+        impossible_tiles.sort(key=lambda tile: -len(tile.read_names))
         control_tiles = impossible_tiles[:2]
         self.image_data.set_fft(self.fq_im_scaled_dims)
         self.control_corr = 0
@@ -233,6 +233,7 @@ class FastqImageAligner(object):
             log.debug('Exclusive hits: %s' % len(exclusive_hits))
 
     def least_squares_mapping(self, pct_thresh=0.9, min_hits=50):
+        print("min hits", min_hits)
         """least_squares_mapping(self, hit_type='exclusive')
 
         "Input": set of tuples of (cluster_index, in_frame_idx) mappings.
@@ -340,9 +341,10 @@ class FastqImageAligner(object):
                                                 offsets,
                                                 hits)
 
-    def read_names_rcs(self, tile_data):
+    @property
+    def read_names_rcs(self):
         im_shape = self.image_data.image.shape
         for tile in self.hitting_tiles:
-            for read_name, pt in izip(tile_data[tile.key], tile.aligned_rcs):
+            for read_name, pt in izip(tile.read_names, tile.aligned_rcs):
                 if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
                     yield '%s\t%f\t%f\n' % (read_name, pt[0], pt[1])

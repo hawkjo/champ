@@ -73,7 +73,7 @@ def main(clargs):
         end_tiles = metadata['end_tiles']
 
     if not metadata['phix_aligned']:
-        align.run(clargs.rotation_adjustment, alignment_tile_data, h5_filenames, path_info, clargs.snr, clargs.min_hits, fia, end_tiles, metadata['alignment_channel'],
+        align.run(clargs.rotation_adjustment, h5_filenames, path_info, clargs.snr, clargs.min_hits, fia, end_tiles, metadata['alignment_channel'],
                   all_tile_data, metadata, clargs.make_pdfs, sequencing_chip)
         metadata['phix_aligned'] = True
         initialize.update(clargs.image_directory, metadata)
