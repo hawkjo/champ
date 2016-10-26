@@ -72,7 +72,7 @@ def perform_alignment(rotation_adjustment, path_info, snr, min_hits, um_per_pixe
     if fia.hitting_tiles:
         # The image data aligned with FastQ reads!
         try:
-            fia.precision_align_only(min_hits)
+            fia.precision_align_only(min_hits=min_hits)
         except ValueError:
             log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
         else:

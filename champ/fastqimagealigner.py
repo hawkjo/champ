@@ -233,7 +233,6 @@ class FastqImageAligner(object):
             log.debug('Exclusive hits: %s' % len(exclusive_hits))
 
     def least_squares_mapping(self, pct_thresh=0.9, min_hits=50):
-        print("min hits", min_hits)
         """least_squares_mapping(self, hit_type='exclusive')
 
         "Input": set of tuples of (cluster_index, in_frame_idx) mappings.
