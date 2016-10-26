@@ -35,7 +35,7 @@ def plot_hits(fia, hits, color, ax, kwargs={}):
 
 
 def plot_ellipses(fia, ax, alpha=1.0, color=(1, 0, 0)):
-    ells = [Ellipse(xy=(pt.c, pt.r), width=pt.width, height=pt.height, angle=pt.theta)
+    ells = [Ellipse(xy=(pt.c, pt.r), width=3, height=3, angle=0.0)
             for pt in fia.clusters.points]
     for e in ells:
         ax.add_artist(e)
