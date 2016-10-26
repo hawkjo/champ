@@ -67,7 +67,7 @@ class FastqImageAligner(object):
         for tile_key, scaling, tile_width, rotation, rc_offset, _ in astats:
             self.set_tile_alignment(tile_key, scaling, tile_width, rotation, rc_offset)
 
-    def set_clusters_from_file(self, fpath):
+    def set_sexcat_from_file(self, fpath):
         with open(fpath) as f:
             self.clusters = clusters.Clusters(f)
 
