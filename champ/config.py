@@ -58,7 +58,7 @@ class CommandLineArguments(object):
 
     @property
     def rotation_adjustment(self):
-        return float(self._arguments.get('--rotation-adjustment', 0.0))
+        return float(self._arguments.get('--rotation-adjustment') or 0.0)
 
     @property
     def image_directory(self):
