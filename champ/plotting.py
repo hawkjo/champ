@@ -28,15 +28,15 @@ def plot_hit_hists(fia, ax=None):
 
 def plot_hits(fia, hits, color, ax, kwargs={}):
     for i, j in hits:
-        ax.plot([fia.sexcat.point_rcs[i, 1], fia.aligned_rcs_in_frame[j, 1]],
-                [fia.sexcat.point_rcs[i, 0], fia.aligned_rcs_in_frame[j, 0]],
+        ax.plot([fia.clusters.point_rcs[i, 1], fia.aligned_rcs_in_frame[j, 1]],
+                [fia.clusters.point_rcs[i, 0], fia.aligned_rcs_in_frame[j, 0]],
                 color=color, **kwargs)
     return ax
 
 
 def plot_ellipses(fia, ax, alpha=1.0, color=(1, 0, 0)):
     ells = [Ellipse(xy=(pt.c, pt.r), width=pt.width, height=pt.height, angle=pt.theta)
-            for pt in fia.sexcat.points]
+            for pt in fia.clusters.points]
     for e in ells:
         ax.add_artist(e)
         e.set_alpha(alpha)
@@ -85,7 +85,7 @@ def plot_all_hits(fia, im_kwargs={}, line_kwargs={}, fqpt_kwargs={}, sext_kwargs
     red_line = Line2D([], [], color='red',
             label='Exclusive hits: %d' % (len(fia.exclusive_hits)))
     sexcat_line = Line2D([], [], color='darkgoldenrod', alpha=0.6, marker='o', markersize=10,
-            label='Sextractor Ellipses: %d' % (len(fia.sexcat.point_rcs)))
+            label='Sextractor Ellipses: %d' % (len(fia.clusters.point_rcs)))
     fastq_line = Line2D([], [], color='k', alpha=0.3, marker='o', markersize=10,
             label='Fastq Points: %d' % (len(fia.aligned_rcs_in_frame)))
     handles = [grey_line, blue_line, magenta_line, red_line, sexcat_line, fastq_line]
