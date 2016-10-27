@@ -215,7 +215,9 @@ class IntensityScores(object):
     def plot_aligned_images(self, colors='rgbcmyk', markers='o*^sv+x'):
         n = len(self.h5_fpaths)
         fig, axes = plt.subplots(n, 1, figsize=(10, n))
-
+        if n == 1:
+            # axes is a tuple unless n==1, but the rest of the code depends on it being iterable
+            axes = (axes,)
         for h5_fpath, ax in zip(self.h5_fpaths, axes):
             for channel, color, marker in zip(
                     sorted(self.scores[h5_fpath].keys()), colors, markers
