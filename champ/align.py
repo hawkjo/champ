@@ -135,7 +135,10 @@ def count_images(h5_filenames, channel):
 
 def calculate_process_count(image_count):
     # Leave at least two processors free so we don't totally hammer the server
-    num_processes = max(multiprocessing.cpu_count() - 2, 1)
+    # num_processes = max(multiprocessing.cpu_count() - 2, 1)
+    # Quick hack to see if using fewer cores results in a speedup. I suspect that memory contention is actually
+    # the largest bottleneck
+    num_processes = 16
     # we add 1 to the chunksize to ensure that at most one processor will have less than a full workload the entire time
     # we set the minimum to 32 to ensure that in small datasets, we have constant throughput
     chunksize = min(32, int(math.ceil(float(image_count) / float(num_processes))) + 1)
