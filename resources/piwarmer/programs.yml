@@ -1,0 +1,15 @@
+- fields: {driver: 1, name: Regeneration, scientist: 1, steps: '{"1":{"mode":"set","temperature":"85","duration":600},"2":{"mode":"linear","start_temperature":"85","end_temperature":"60","duration":1800},"3":{"mode":"linear","start_temperature":"60","end_temperature":"40","duration":600},"4":{"mode":"set","temperature":"40","duration":600}}'}
+  model: rpidapi.program
+  pk: 1
+- fields: {driver: 1, name: Hybridization, scientist: 1, steps: '{"1":{"mode":"set","temperature":"60","duration":1500}}'}
+  model: rpidapi.program
+  pk: 2
+- model: rpidapi.program
+  pk: 3
+  fields: {name: Cascade, steps: '{"1":{"mode":"hold","temperature":"60"}}', scientist: 1,
+    driver: 1}
+- model: rpidapi.program
+  pk: 4
+  fields: {name: Proteinase K, steps: '{"1":{"mode":"set","temperature":"42","duration":1800}}',
+    scientist: 1, driver: 1}
+
