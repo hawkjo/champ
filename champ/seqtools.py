@@ -6,6 +6,8 @@ from champ.adapters_cython import simple_hamming_distance
 import scipy.misc
 import matplotlib as mpl
 import matplotlib.colors as mcolors
+from Queue import Queue, Empty
+from threading import Thread, Event
 
 bases = 'ACGT'
 
@@ -169,23 +171,18 @@ def get_complementary_bundle_sets(seq):
     return outset
 
 
-def build_read_names_given_seq(target,
-                               read_names_by_seq_fpath,
-                               allowed_read_names_set,
-                               is_interesting_seq,
-                               max_ham,
-                               verbose=True):
-    interesting_reads = defaultdict(set)
-    for i, line in enumerate(open(read_names_by_seq_fpath)):
-        if verbose and i % 10000 == 0:
-            sys.stdout.write('.')
-            sys.stdout.flush()
+def thread_process_read_name(line_queue, result_queue, is_interesting_seq, allowed_read_names_set, target, max_ham):
+    while True:
+        try:
+            words = line_queue.get_nowait()
+        except Empty:
+            return True
 
-        words = line.strip().split()
         seq = words[0]
         if is_interesting_seq(seq):
             read_names = set(words[1:]) & allowed_read_names_set
-            interesting_reads[seq].update(read_names)
+            # interesting_reads[seq].update(read_names)
+            result_queue.put((seq, read_names))
             last_start = len(seq) - len(target)
             if last_start < 0:
                 continue
@@ -194,7 +191,53 @@ def build_read_names_given_seq(target,
             min_ham = simple_hamming_distance(target, seq[min_ham_idx:min_ham_idx + len(target)])
             if min_ham <= max_ham:
                 min_ham_seq = seq[min_ham_idx:min_ham_idx + len(target)]
-                interesting_reads[min_ham_seq].update(read_names)
+                # interesting_reads[min_ham_seq].update(read_names)
+                result_queue.put((min_ham_seq, read_names))
+        line_queue.task_done()
+
+
+def thread_collect_read_names(result_queue, interesting_reads, line_done):
+    i = 0
+    while True:
+        try:
+            seq, read_names = result_queue.get_nowait()
+        except Empty:
+            if line_done.is_set():
+                return True
+        else:
+            if i % 10000 == 0:
+                sys.stdout.write('.')
+                sys.stdout.flush()
+            i += 1
+            interesting_reads[seq].update(read_names)
+            result_queue.task_done()
+
+
+def build_read_names_given_seq(target,
+                               read_names_by_seq_fpath,
+                               allowed_read_names_set,
+                               is_interesting_seq,
+                               max_ham,
+                               thread_count):
+    line_queue = Queue()
+    result_queue = Queue()
+    line_done = Event()
+    interesting_reads = defaultdict(set)
+
+    for i, line in enumerate(open(read_names_by_seq_fpath)):
+        words = line.strip().split()
+        line_queue.put((i, words))
+
+    for t in range(thread_count):
+        thread = Thread(target=thread_process_read_name, args=(line_queue, result_queue, is_interesting_seq,
+                                                               allowed_read_names_set, target, max_ham))
+        thread.start()
+
+    collector_thread = Thread(target=thread_collect_read_names, args=(result_queue, interesting_reads, line_done))
+    collector_thread.start()
+    line_queue.join()
+    line_done.set()
+    result_queue.join()
     return interesting_reads
 
 
