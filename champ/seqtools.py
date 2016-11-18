@@ -202,6 +202,9 @@ def thread_collect_read_names(result_queue, interesting_reads, line_done):
         try:
             seq, read_names = result_queue.get_nowait()
         except Empty:
+            # we're going to start processing data as soon as it's available, but result_queue will be empty when the
+            # thread first starts and at random times afterwards. We only allow this thread to finish when we're certain
+            # every line in the read_names_by_seq.txt file have been processed AND this thread has finished all its work
             if line_done.is_set():
                 return True
         else:

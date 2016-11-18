@@ -46,6 +46,10 @@ def thread_normalize_h5_scores(queue, raw_scores, scores, normalizing_constants)
     queue.task_done()
 
 
+def thread_lda_score(queue):
+    pass
+
+
 class IntensityScores(object):
     def __init__(self, h5_fpaths):
         """Initialize h5_fpaths and scores. scores is a dict accessed as:
@@ -90,7 +94,7 @@ class IntensityScores(object):
                 print h5_fpath
                 print 'Num results files:', len(results_fpaths)
 
-            for i, rfpath in enumerate(results_fpaths):
+            for rfpath in results_fpaths:
                 rfname = os.path.basename(rfpath)
                 try:
                     m = im_loc_re.match(rfname)
