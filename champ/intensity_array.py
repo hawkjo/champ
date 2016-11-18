@@ -1,10 +1,10 @@
-import re
-import os
 import numpy as np
+import os
+import re
 import misc
 
-
-bases_set = set('ACGT')
+bases = 'ACGT'
+bases_set = set(bases)
 
 
 class IntensityArray(object):
@@ -93,9 +93,7 @@ class IntensityArray(object):
                     np.array([v for v in inten_list if v is not None])
                 )
         self.idx_given_seq = {seq: i for i, seq in enumerate(self.seqs)}
-        self.read_names_given_seq = {}
-        for i, seq in enumerate(self.seqs):
-            self.read_names_given_seq[seq] = self.read_names[i]
+        self.read_names_given_seq = {seq: self.read_names[i] for i, seq in enumerate(self.seqs)}
         self.intensity_lol_given_seq = {seq: self.intensity_lolol[i] for i, seq in enumerate(self.seqs)}
         self.intensity_loarr_given_seq = {seq: self.intensity_loloarr[i] for i, seq in enumerate(self.seqs)}
         self.nseqs = len(self.seqs)
@@ -122,23 +120,18 @@ class IntensityArray(object):
             trait_idxs = range(len(IA.course_trait_list))
 
         # Optionally reduce seqs
-        # if seqs:
-        #     IA.seqs = list(seqs)
-        #     for seq in [self.target, self.neg_control_target]:  # Force inclusion of targets
-        #         if seq not in seqs:
-        #             IA.seqs.append(seq)
-        # else:
-        IA.seqs = self.seqs
+        if seqs:
+            IA.seqs = list(seqs)
+            for seq in [self.target, self.neg_control_target]:  # Force inclusion of targets
+                if seq not in seqs:
+                    IA.seqs.append(seq)
+        else:
+            IA.seqs = self.seqs
 
         # Build intensity_lolol given reduced parameters
-        IA.read_names = []
+        IA.read_names = [self.read_names_given_seq[seq][:max_clust] for seq in IA.seqs]
         IA.intensity_lolol = []
         for seq in IA.seqs:
-            if seq not in self.read_names_given_seq:
-                # QUESTIONABLE CHANGE BY JIM:
-                IA.seqs.remove(seq)
-                continue
-            IA.read_names.append(self.read_names_given_seq[seq][:max_clust])
             old_lol = self.intensity_lol_given_seq[seq]
             IA.intensity_lolol.append([old_lol[idx][:max_clust] for idx in trait_idxs])
 
@@ -156,8 +149,7 @@ class IntensityArray(object):
         return map(np.median, self.intensity_loarr_given_seq[seq])
 
     def modes_given_seq(self, seq):
-        # ignore empty arrays - but why are there any?
-        return map(misc.get_mode, filter(len, self.intensity_loarr_given_seq[seq]))
+        return map(misc.get_mode, self.intensity_loarr_given_seq[seq])
 
     def stdevs_given_seq(self, seq):
         return map(np.std, self.intensity_loarr_given_seq[seq])
@@ -204,7 +196,7 @@ class IntensityArray(object):
             :list: all_intensities
         """
         Imin = misc.list_if_scalar(Imin, self.course_len)
-        Imax = misc.list_if_scalar(max(Imax), self.course_len)
+        Imax = misc.list_if_scalar(Imax, self.course_len)
         assert len(Imin) == len(Imax) == len(self.course_trait_list), (Imin, Imax)
         all_trait_vals, all_intensities = [], []
         for tval, imn, imx, inten_arr, inten_list in zip(self.course_trait_list,
