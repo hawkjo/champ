@@ -215,8 +215,14 @@ def check_column_for_alignment(rotation_adjustment, channel, snr, sequencing_chi
     base_name = os.path.splitext(h5_filename)[0]
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
-        # We use row 3 because it's in the center of the circular regions where Illumina data is available
-        for row in (3, 4, 2):
+        # we assume odd numbers of rows, and good enough for now
+        if grid.height > 2:
+            center_row = grid.height / 2
+            rows_to_check = (center_row, center_row + 1, center_row - 1)
+        else:
+            # just one or two rows, might as well try them all
+            rows_to_check = tuple([i for i in range(grid.height)])
+        for row in rows_to_check:
             image = grid.get(row, column)
             if image is None:
                 log.warn("Could not find an image for %s Row %d Column %d" % (base_name, row, column))
