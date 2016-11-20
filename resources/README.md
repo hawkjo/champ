@@ -6,7 +6,7 @@ We have several programs to heat Illumina chips during each phase of the experim
 
 | Name | Description | Image | DXF file |
 | ---- | ----------- | ----- | -------- |
-| Base Plate  | Base for CHAMP microfluidics platform. Used to hold MiSeq chip in place for prism TIRF microscopy. | <img src="CHAMP_Base_Plate.png"> | [CHAMP_Base_Plate.scad](stage/CHAMP_Base_Plate.scad) | 
+| Base Plate  | Base for CHAMP microfluidics platform. Used to hold MiSeq chip in place for prism TIRF microscopy. | <img src="stage/CHAMP_Base_Plate.png"> | [CHAMP_Base_Plate.scad](stage/CHAMP_Base_Plate.scad) | 
 |  |  | <img src="stage/CHAMP_Base_Plate_1.png"> | [CHAMP_Base_Plate_1.dxf](stage/CHAMP_Base_Plate_1.dxf) |
 |  |  | <img src="stage/CHAMP_Base_Plate_2.png"> | [CHAMP_Base_Plate_2.dxf](stage/CHAMP_Base_Plate_2.dxf) |
 | Tubing Plates | Pressure plates used to keep tubing in place for efficient fluid flow through CHAMP system. | <img src="stage/CHAMP_Tubing_Plates.png"> | [CHAMP_Tubing_Plates.scad](stage/CHAMP_Tubing_Plates.scad) |
