@@ -1,26 +1,18 @@
-# Resources
+# Piwarmer Programs
 
-Here, you can find the heating programs we use to perform experiments and regenerate MiSeq chips, as well as the driver - the set of PID parameters that keep the heating blocks at the desired temperature. Precise control of the temperature is critical for the success of CHAMP experiments. 
+We have several programs to heat Illumina chips during each phase of the experiment. Learn more about those [here](piwarmer/).
 
-The programs and driver are respresented as serialized Django models, which is what Piwarmers use internally. To import and save the objects, you can run the code below. This is mostly supplied for purposes of reproducibility and transparency - in reality, it would probably be faster and easier to just use the Piwarmer GUI to create them manually.
+# Stage Designs 
 
-WARNING: The PID values in the driver are only valid for the specific heating blocks that we use. Blocks with any other shape, size or material may become extremely hot, up to several hundred degrees Celcius! 
+| Name | Description | Image | DXF file |
+| ---- | ----------- | ----- | -------- |
+| CHAMP Base Plate 1 | insert description here | <img src="CHAMP_Base_Plate_1.png"> | [CHAMP_Base_Plate_1.dxf](stage/CHAMP_Base_Plate_1.dxf) |
+| CHAMP Base Plate 2 | insert description here | <img src="CHAMP_Base_Plate_2.png"> | [CHAMP_Base_Plate_2.dxf](stage/CHAMP_Base_Plate_2.dxf) |
+| CHAMP Tubing Guide 1 | insert description here | <img src="CHAMP_Tubing_Guide_1.png"> | [CHAMP_Tubing_Guide_1.dxf](stage/CHAMP_Tubing_Guide_1.dxf) |
+| CHAMP Tubing Guide 2 | insert description here | <img src="CHAMP_Tubing_Guide_2.png"> | [CHAMP_Tubing_Guide_2.dxf](stage/CHAMP_Tubing_Guide_2.dxf) |
+| MiSeq chip holder 1-1 | insert description here | <img src="MiSeq chip holder1-1.png"> | [MiSeq chip holder1-1.dxf](stage/MiSeq chip holder1-1.dxf) |
+| MiSeq chip holder 1-2 | insert description here | <img src="MiSeq chip holder1-2.png"> | [MiSeq chip holder1-2.dxf](stage/MiSeq chip holder1-2.dxf) |
+| MiSeq chip holder 2-1 | insert description here | <img src="MiSeq chip holder2-1.png"> | [MiSeq chip holder2-1.dxf](stage/MiSeq chip holder2-1.dxf) |
+| MiSeq chip holder 2-2 | insert description here | <img src="MiSeq chip holder2-2.png"> | [MiSeq chip holder2-2.dxf](stage/MiSeq chip holder2-2.dxf) |
+| MiSeq chip holder 2-3 | insert description here | <img src="MiSeq chip holder2-3.png"> | [MiSeq chip holder2-3.dxf](stage/MiSeq chip holder2-3.dxf) |
 
-You will need to install some dependencies first if you don't already have them:
-
-```
-sudo apt-get install libyaml-dev
-sudo pip install pyyaml
-
-```
-Then run this on the Piwarmer in the `resources` directory, after cloning this repo:
-
-```
-from django.core import serializers
-
-for filename in ("programs.yml", "driver.yml"):
-    with open(filename) as f:
-        for obj in serializers.deserialize("yaml", f):
-            obj.save()
-
-```
