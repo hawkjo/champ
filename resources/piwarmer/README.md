@@ -1,4 +1,6 @@
-# Resources
+# Piwarmer Programs
+
+We used [Piwarmers](https://github.com/jimrybarski/piwarmer) for temperature control.
 
 Here, you can find the heating programs we use to perform experiments and regenerate MiSeq chips, as well as the driver - the set of PID parameters that keep the heating blocks at the desired temperature. Precise control of the temperature is critical for the success of CHAMP experiments. 
 
