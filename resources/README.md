@@ -10,8 +10,8 @@ Parts were designed in OpenSCAD and exported to .dxf (AutoCAD) for machining. We
 
 The base for the CHAMP microfluidics platform. Used to hold MiSeq chip in place for prism TIRF microscopy. 
 
-| | |
-|-|-|
+| Image | File |
+| -- | -- |
 | <img src="stage/CHAMP_Base_Plate.png"> | [CHAMP_Base_Plate.scad](stage/CHAMP_Base_Plate.scad) | 
 | <img src="stage/CHAMP_Base_Plate_1.png"> | [CHAMP_Base_Plate_1.dxf](stage/CHAMP_Base_Plate_1.dxf) |
 | <img src="stage/CHAMP_Base_Plate_2.png"> | [CHAMP_Base_Plate_2.dxf](stage/CHAMP_Base_Plate_2.dxf) |
@@ -20,8 +20,8 @@ The base for the CHAMP microfluidics platform. Used to hold MiSeq chip in place 
 
 Pressure plates used to keep tubing in place for efficient fluid flow through CHAMP system. 
 
-| | |
-|-|-|
+| Image | File |
+| -- | -- |
 | <img src="stage/CHAMP_Tubing_Plates.png"> | [CHAMP_Tubing_Plates.scad](stage/CHAMP_Tubing_Plates.scad) |
 | <img src="stage/CHAMP_Tubing_Guide_1.png"> | [CHAMP_Tubing_Guide_1.dxf](stage/CHAMP_Tubing_Guide_1.dxf) |
 | <img src="stage/CHAMP_Tubing_Guide_2.png"> | [CHAMP_Tubing_Guide_2.dxf](stage/CHAMP_Tubing_Guide_2.dxf) |
@@ -30,8 +30,8 @@ Pressure plates used to keep tubing in place for efficient fluid flow through CH
 
 Keeps the flow cell in place for the duration of experiment. 
 
-| | |
-|-|-|
+| Image | File |
+| -- | -- |
 | <img src="stage/CHAMP_Holders.png"> | [CHAMP_Holders.scad](stage/CHAMP_Holders.scad) | 
 | <img src="stage/MiSeq chip holder1-1.png"> | [MiSeq chip holder1-1.dxf](stage/MiSeq chip holder1-1.dxf) |
 | <img src="stage/MiSeq chip holder1-2.png"> | [MiSeq chip holder1-2.dxf](stage/MiSeq chip holder1-2.dxf) |
