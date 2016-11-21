@@ -18,9 +18,10 @@ log = logging.getLogger(__name__)
 
 def main(clargs):
     """
-    Creates text files containing the Illumina IDs of each read, sorted by type. Typically, we want to know which reads are the phiX fiducial markers,
-    which belong to a certain target, and so forth. Part of this process is determining what the likely sequence is - during the paired end read process
-    you receive two sequences with two different quality scores for each base, so we have to decide which is most likely to be correct.
+    Creates text files containing the Illumina IDs of each read, sorted by type. Typically, we want to know which reads
+    are the phiX fiducial markers, which belong to a certain target, and so forth. Part of this process is determining
+    what the likely sequence is - during the paired end read process you receive two sequences with two different
+    quality scores for each base, so we have to decide which is most likely to be correct.
 
     """
     fastq_filenames = [os.path.join(clargs.fastq_directory, directory) for directory in os.listdir(clargs.fastq_directory)]
@@ -38,7 +39,8 @@ def main(clargs):
         write_read_names_by_sequence(read_names_given_seq, os.path.join(clargs.output_directory, 'read_names_by_seq.txt'))
 
     if not read_names_given_seq:
-        # We already generated read names by seq in a previous run and aren't recreating them this time, so we need to load them from disk
+        # We already generated read names by seq in a previous run and aren't recreating them this time,
+        # so we need to load them from disk
         with open(os.path.join(clargs.output_directory, "read_names_by_seq.txt")) as f:
             read_names_given_seq = {}
             for line in f:
@@ -71,7 +73,6 @@ def main(clargs):
 
     log.info("Parsing and saving all read names to disk.")
     write_all_read_names(fastq_files, os.path.join(clargs.output_directory, 'all_read_names.txt'))
-
 
 
 class FastqFiles(object):
