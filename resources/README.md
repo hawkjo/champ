@@ -6,6 +6,10 @@ We have several programs to heat Illumina chips during each phase of the experim
 
 Parts were designed in OpenSCAD and exported to .dxf (AutoCAD) for machining. We provide OpenSCAD files in case you want to modify the original design, and dxf if you just want to replicate our current setup. 
 
+### Software Versions
+
+We used Autocad 2017 for Windows and OpenScad 2015.03-2 to generate these files.
+
 ### Base Plate
 
 The base for the CHAMP microfluidics platform. Used to hold MiSeq chip in place for prism TIRF microscopy. 
