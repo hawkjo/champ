@@ -56,6 +56,7 @@ def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data,
     log.debug("Done aligning!")
     del fastq_image_aligner
     del pool
+    gc.collect()
 
 
 def perform_alignment(rotation_adjustment, path_info, snr, min_hits, um_per_pixel, sequencing_chip, all_tile_data,
@@ -181,6 +182,7 @@ def process_data_image(path_info, all_tile_data, um_per_pixel, make_pdfs, channe
         write_output(image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
     del local_fia
     del image
+    gc.collect()
 
 
 def load_image(h5_filename, channel, row, column):
@@ -237,6 +239,7 @@ def check_column_for_alignment(rotation_adjustment, channel, snr, sequencing_chi
                 end_tiles[h5_filename] = [tile.key for tile in fia.hitting_tiles], image.column
                 break
     del fia
+    gc.collect()
 
 
 def iterate_all_images(h5_filenames, end_tiles, channel):

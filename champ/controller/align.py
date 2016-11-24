@@ -2,6 +2,7 @@ import logging
 import os
 from champ import align, initialize, error, projectinfo, chip, fastqimagealigner, convert, fits
 from champ.config import PathInfo
+import gc
 
 log = logging.getLogger(__name__)
 
@@ -71,6 +72,7 @@ def main(clargs):
     else:
         log.debug("End tiles already calculated.")
         end_tiles = metadata['end_tiles']
+    gc.collect()
 
     if not metadata['phix_aligned']:
         align.run(clargs.rotation_adjustment, h5_filenames, path_info, clargs.snr, clargs.min_hits, fia, end_tiles, metadata['alignment_channel'],
@@ -84,6 +86,7 @@ def main(clargs):
         # the user doesn't want us to align the protein channels
         exit(0)
 
+    gc.collect()
     protein_channels = [channel for channel in projectinfo.load_channels(clargs.image_directory) if channel != metadata['alignment_channel']]
     if protein_channels:
         log.debug("Protein channels found: %s" % ", ".join(protein_channels))
@@ -94,15 +97,17 @@ def main(clargs):
 
     for channel_name in protein_channels:
         # Attempt to precision align protein channels using the phix channel alignment as a starting point.
-        # Not all experiments have "on target" or "perfect target" reads - that only applies to CRISPR systems (at the time of this writing anyway)
-
+        # Not all experiments have "on target" or "perfect target" reads - that only applies to CRISPR systems
+        # (at the time of this writing anyway)
+        gc.collect()
         if on_target_tile_data:
             channel_combo = channel_name + "_on_target"
             combo_align(h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, clargs)
-
+        gc.collect()
         if perfect_tile_data:
             channel_combo = channel_name + "_perfect_target"
             combo_align(h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
+        gc.collect()
 
 
 def combo_align(h5_filenames, channel_combo, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs):

@@ -1,26 +1,41 @@
-# Resources
+# Piwarmer Programs
 
-Here, you can find the heating programs we use to perform experiments and regenerate MiSeq chips, as well as the driver - the set of PID parameters that keep the heating blocks at the desired temperature. Precise control of the temperature is critical for the success of CHAMP experiments. 
+We have several programs to heat Illumina chips during each phase of the experiment. Learn more about those [here](piwarmer/).
 
-The programs and driver are respresented as serialized Django models, which is what Piwarmers use internally. To import and save the objects, you can run the code below. This is mostly supplied for purposes of reproducibility and transparency - in reality, it would probably be faster and easier to just use the Piwarmer GUI to create them manually.
+# Stage Designs 
 
-WARNING: The PID values in the driver are only valid for the specific heating blocks that we use. Blocks with any other shape, size or material may become extremely hot, up to several hundred degrees Celcius! 
+Parts were designed in OpenSCAD and exported to .dxf (AutoCAD) for machining. We provide OpenSCAD files in case you want to modify the original design, and dxf if you just want to replicate our current setup. 
 
-You will need to install some dependencies first if you don't already have them:
+### Base Plate
 
-```
-sudo apt-get install libyaml-dev
-sudo pip install pyyaml
+The base for the CHAMP microfluidics platform. Used to hold MiSeq chip in place for prism TIRF microscopy. 
 
-```
-Then run this on the Piwarmer in the `resources` directory, after cloning this repo:
+| Preview | File |
+| --- | --- |
+| <img src="stage/CHAMP_Base_Plate.png"> | [CHAMP_Base_Plate.scad](stage/CHAMP_Base_Plate.scad) | 
+| <img src="stage/CHAMP_Base_Plate_1.png"> | [CHAMP_Base_Plate_1.dxf](stage/CHAMP_Base_Plate_1.dxf) |
+| <img src="stage/CHAMP_Base_Plate_2.png"> | [CHAMP_Base_Plate_2.dxf](stage/CHAMP_Base_Plate_2.dxf) |
 
-```
-from django.core import serializers
+### Tubing Plates
 
-for filename in ("programs.yml", "driver.yml"):
-    with open(filename) as f:
-        for obj in serializers.deserialize("yaml", f):
-            obj.save()
+Pressure plates used to keep tubing in place for efficient fluid flow through CHAMP system. 
 
-```
+| Preview | File |
+| --- | --- |
+| <img src="stage/CHAMP_Tubing_Plates.png"> | [CHAMP_Tubing_Plates.scad](stage/CHAMP_Tubing_Plates.scad) |
+| <img src="stage/CHAMP_Tubing_Guide_1.png"> | [CHAMP_Tubing_Guide_1.dxf](stage/CHAMP_Tubing_Guide_1.dxf) |
+| <img src="stage/CHAMP_Tubing_Guide_2.png"> | [CHAMP_Tubing_Guide_2.dxf](stage/CHAMP_Tubing_Guide_2.dxf) |
+
+### Tubing Holders 
+
+Keeps the flow cell in place for the duration of experiment. 
+
+| Preview | File |
+| --- | --- |
+| <img src="stage/CHAMP_Holders.png"> | [CHAMP_Holders.scad](stage/CHAMP_Holders.scad) | 
+| <img src="stage/MiSeq chip holder1-1.png"> | [MiSeq chip holder1-1.dxf](stage/MiSeq chip holder1-1.dxf) |
+| <img src="stage/MiSeq chip holder1-2.png"> | [MiSeq chip holder1-2.dxf](stage/MiSeq chip holder1-2.dxf) |
+| <img src="stage/MiSeq chip holder2-1.png"> | [MiSeq chip holder2-1.dxf](stage/MiSeq chip holder2-1.dxf) |
+| <img src="stage/MiSeq chip holder2-2.png"> | [MiSeq chip holder2-2.dxf](stage/MiSeq chip holder2-2.dxf) |
+| <img src="stage/MiSeq chip holder2-3.png"> | [MiSeq chip holder2-3.dxf](stage/MiSeq chip holder2-3.dxf) |
+
