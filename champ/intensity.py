@@ -26,20 +26,10 @@ def get_mode_in_im(im):
     return misc.get_mode(vals)
 
 
-def thread_normalize_h5_scores(queue, raw_scores, scores, normalizing_constants):
+def thread_normalize_h5_scores(queue, raw_scores, scores, normalizing_constants, mode_given_pos_tup):
     print("starting thread")
     h5_fpath, channel = queue.get()
     print("thread: %s" % h5_fpath)
-    mode_given_pos_tup = {}
-    start = time.time()
-    for pos_tup in raw_scores[h5_fpath][channel].keys():
-        print(pos_tup)
-        pos_key = hdf5tools.get_image_key(*pos_tup)
-        with h5py.File(h5_fpath) as f:
-            im = np.array(f[channel][pos_key])
-        mode_given_pos_tup[pos_tup] = get_mode_in_im(im)
-    print("get modes: %s" % (time.time() - start))
-
     start = time.time()
     median_of_modes = np.median(mode_given_pos_tup.values())
     for pos_tup in mode_given_pos_tup.keys():
@@ -152,11 +142,20 @@ class IntensityScores(object):
         queue = Queue()
         for h5_fpath in self.h5_fpaths:
             for channel in self.scores[h5_fpath].keys():
+                mode_given_pos_tup = {}
+                start = time.time()
+                for pos_tup in self.raw_scores[h5_fpath][channel].keys():
+                    pos_key = hdf5tools.get_image_key(*pos_tup)
+                    with h5py.File(h5_fpath) as f:
+                        im = np.array(f[channel][pos_key])
+                    mode_given_pos_tup[pos_tup] = get_mode_in_im(im)
+                print("get modes (less than 2200 total is good): %s" % (time.time() - start))
                 queue.put((h5_fpath, channel))
                 thread = Thread(target=thread_normalize_h5_scores, args=(queue,
                                                                          self.raw_scores,
                                                                          self.scores,
-                                                                         self.normalizing_constants))
+                                                                         self.normalizing_constants,
+                                                                         mode_given_pos_tup))
                 thread.start()
         queue.join()
 
