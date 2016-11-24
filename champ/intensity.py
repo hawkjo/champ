@@ -33,6 +33,7 @@ def thread_normalize_h5_scores(queue, raw_scores, scores, normalizing_constants)
     mode_given_pos_tup = {}
     start = time.time()
     for pos_tup in raw_scores[h5_fpath][channel].keys():
+        print(pos_tup)
         pos_key = hdf5tools.get_image_key(*pos_tup)
         with h5py.File(h5_fpath) as f:
             im = np.array(f[channel][pos_key])
