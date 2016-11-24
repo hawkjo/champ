@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
 import logging
+import time
 
 log = logging.getLogger(__name__)
 
@@ -96,6 +97,7 @@ class IntensityScores(object):
         """
 
         def get_mode_in_im(im):
+            start = time.time()
             w = 200
             hw = w / 2
             rmid, cmid = int(im.shape[0] / 2), int(im.shape[1] / 2)
@@ -103,7 +105,8 @@ class IntensityScores(object):
             # remove saturation
             pct95 = vmin + 0.95 * (vmax - vmin)
             vals = [v for v in im[rmid - hw:rmid + hw, cmid - hw:cmid + hw].flatten() if v < pct95]
-            return misc.get_mode(vals)
+            done = time.time() - start
+            return misc.get_mode(vals), done
 
         self.scores = {
             h5_fpath: {channel: {} for channel in hdf5tools.load_channel_names(h5_fpath)}
@@ -113,17 +116,23 @@ class IntensityScores(object):
             h5_fpath: {channel: {} for channel in hdf5tools.load_channel_names(h5_fpath)}
             for h5_fpath in self.h5_fpaths
             }
+        io_times = []
+        mode_in_im_times = []
+        kdf_times = []
         for h5_fpath in self.h5_fpaths:
             if verbose: print os.path.basename(h5_fpath)
             for channel in self.scores[h5_fpath].keys():
                 mode_given_pos_tup = {}
                 for pos_tup in self.raw_scores[h5_fpath][channel].keys():
+                    start = time.time()
                     pos_key = hdf5tools.get_image_key(*pos_tup)
                     with h5py.File(h5_fpath) as f:
                         im = np.array(f[channel][pos_key])
-
-                    mode_given_pos_tup[pos_tup] = get_mode_in_im(im)
-
+                    total = time.time() - start
+                    io_times.append(total)
+                    (mode_given_pos_tup[pos_tup], kdf_time), mode_in_im_time = get_mode_in_im(im)
+                    mode_in_im_times.append(mode_in_im_time)
+                    kdf_times.append(kdf_time)
                 median_of_modes = np.median(mode_given_pos_tup.values())
                 for pos_tup in mode_given_pos_tup.keys():
                     Z = mode_given_pos_tup[pos_tup] / float(median_of_modes)
@@ -134,7 +143,10 @@ class IntensityScores(object):
                         for read_name in self.get_read_names_in_image(h5_fpath, channel, pos_tup)
                         }
             if verbose: print
-
+        print("IO: %s" % sum(io_times))
+        print("Mode: %s" % sum(mode_in_im_times))
+        print("KDF: %s" % sum(kdf_times))
+        
     def normalize_scores_by_ref_read_names(self, ref_read_names_given_channel, verbose=True):
         """Normalizes scores. The normalizing constant for each image is determined by
 

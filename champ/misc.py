@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.neighbors import KernelDensity
 from scipy.optimize import minimize
 import warnings
+import time
 
 
 def next_power_of_2(x):
@@ -89,6 +90,7 @@ def list_if_scalar(x, list_len):
 
 
 def get_mode(vals):
+    start = time.time()
     h = 1.06 * np.std(vals) * len(vals)**(-1.0/5.0)
     kdf = KernelDensity(bandwidth=h)
     kdf.fit(np.array(vals).reshape(len(vals), 1))
@@ -100,4 +102,4 @@ def get_mode(vals):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         res = minimize(neg_kdf, x0=np.median(vals), method='Nelder-Mead')
         assert res.success, res
-        return float(res.x)
+        return float(res.x), time.time() - start
