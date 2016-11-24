@@ -10,6 +10,7 @@ from collections import defaultdict
 import logging
 from threading import Thread
 from Queue import Queue
+import time
 
 log = logging.getLogger(__name__)
 
@@ -28,12 +29,15 @@ def get_mode_in_im(im):
 def thread_normalize_h5_scores(queue, raw_scores, scores, normalizing_constants):
     h5_fpath, channel = queue.get()
     mode_given_pos_tup = {}
+    start = time.time()
     for pos_tup in raw_scores[h5_fpath][channel].keys():
         pos_key = hdf5tools.get_image_key(*pos_tup)
         with h5py.File(h5_fpath) as f:
             im = np.array(f[channel][pos_key])
         mode_given_pos_tup[pos_tup] = get_mode_in_im(im)
+    print("get modes: %s" % (time.time() - start))
 
+    start = time.time()
     median_of_modes = np.median(mode_given_pos_tup.values())
     for pos_tup in mode_given_pos_tup.keys():
         Z = mode_given_pos_tup[pos_tup] / float(median_of_modes)
@@ -43,6 +47,7 @@ def thread_normalize_h5_scores(queue, raw_scores, scores, normalizing_constants)
             read_name: im_scores[read_name] / Z
             for read_name in set(raw_scores[h5_fpath][channel][pos_tup].keys())
             }
+    print("do real work: %s" % (time.time() - start))
     queue.task_done()
 
 
