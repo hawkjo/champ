@@ -8,44 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
 import logging
-from threading import Thread
-from Queue import Queue
-import time
 
 log = logging.getLogger(__name__)
-
-
-def get_mode_in_im(im):
-    w = 200
-    hw = w / 2
-    rmid, cmid = int(im.shape[0] / 2), int(im.shape[1] / 2)
-    vmin, vmax = im.min(), im.max()
-    # remove saturation
-    pct95 = vmin + 0.95 * (vmax - vmin)
-    vals = [v for v in im[rmid - hw:rmid + hw, cmid - hw:cmid + hw].flatten() if v < pct95]
-    return misc.get_mode(vals)
-
-
-def thread_normalize_h5_scores(queue, raw_scores, scores, normalizing_constants, mode_given_pos_tup):
-    print("starting thread")
-    h5_fpath, channel = queue.get()
-    print("thread: %s" % h5_fpath)
-    start = time.time()
-    median_of_modes = np.median(mode_given_pos_tup.values())
-    for pos_tup in mode_given_pos_tup.keys():
-        Z = mode_given_pos_tup[pos_tup] / float(median_of_modes)
-        normalizing_constants[h5_fpath][channel][pos_tup] = Z
-        im_scores = raw_scores[h5_fpath][channel][pos_tup]
-        scores[h5_fpath][channel][pos_tup] = {
-            read_name: im_scores[read_name] / Z
-            for read_name in set(raw_scores[h5_fpath][channel][pos_tup].keys())
-            }
-    print("do real work: %s" % (time.time() - start))
-    queue.task_done()
-
-
-def thread_lda_score(queue):
-    pass
 
 
 class IntensityScores(object):
@@ -92,7 +56,7 @@ class IntensityScores(object):
                 print h5_fpath
                 print 'Num results files:', len(results_fpaths)
 
-            for rfpath in results_fpaths:
+            for i, rfpath in enumerate(results_fpaths):
                 rfname = os.path.basename(rfpath)
                 try:
                     m = im_loc_re.match(rfname)
@@ -125,12 +89,22 @@ class IntensityScores(object):
                         score = float(np.multiply(lda_weights, x).sum())
                         self.scores[h5_fpath][channel][(major, minor)][read_name] = score
 
-
     def normalize_scores(self, verbose=True):
         """Normalizes scores. The normalizing constant for each image is determined by
 
             Z = mode(pixel values) / median(all modes in h5_fpath)
         """
+
+        def get_mode_in_im(im):
+            w = 200
+            hw = w / 2
+            rmid, cmid = int(im.shape[0] / 2), int(im.shape[1] / 2)
+            vmin, vmax = im.min(), im.max()
+            # remove saturation
+            pct95 = vmin + 0.95 * (vmax - vmin)
+            vals = [v for v in im[rmid - hw:rmid + hw, cmid - hw:cmid + hw].flatten() if v < pct95]
+            return misc.get_mode(vals)
+
         self.scores = {
             h5_fpath: {channel: {} for channel in hdf5tools.load_channel_names(h5_fpath)}
             for h5_fpath in self.h5_fpaths
@@ -139,25 +113,27 @@ class IntensityScores(object):
             h5_fpath: {channel: {} for channel in hdf5tools.load_channel_names(h5_fpath)}
             for h5_fpath in self.h5_fpaths
             }
-        queue = Queue()
         for h5_fpath in self.h5_fpaths:
+            if verbose: print os.path.basename(h5_fpath)
             for channel in self.scores[h5_fpath].keys():
                 mode_given_pos_tup = {}
-                start = time.time()
                 for pos_tup in self.raw_scores[h5_fpath][channel].keys():
                     pos_key = hdf5tools.get_image_key(*pos_tup)
                     with h5py.File(h5_fpath) as f:
                         im = np.array(f[channel][pos_key])
+
                     mode_given_pos_tup[pos_tup] = get_mode_in_im(im)
-                print("get modes (less than 2200 total is good): %s" % (time.time() - start))
-                queue.put((h5_fpath, channel))
-                thread = Thread(target=thread_normalize_h5_scores, args=(queue,
-                                                                         self.raw_scores,
-                                                                         self.scores,
-                                                                         self.normalizing_constants,
-                                                                         mode_given_pos_tup))
-                thread.start()
-        queue.join()
+
+                median_of_modes = np.median(mode_given_pos_tup.values())
+                for pos_tup in mode_given_pos_tup.keys():
+                    Z = mode_given_pos_tup[pos_tup] / float(median_of_modes)
+                    self.normalizing_constants[h5_fpath][channel][pos_tup] = Z
+                    im_scores = self.raw_scores[h5_fpath][channel][pos_tup]
+                    self.scores[h5_fpath][channel][pos_tup] = {
+                        read_name: im_scores[read_name] / Z
+                        for read_name in self.get_read_names_in_image(h5_fpath, channel, pos_tup)
+                        }
+            if verbose: print
 
     def normalize_scores_by_ref_read_names(self, ref_read_names_given_channel, verbose=True):
         """Normalizes scores. The normalizing constant for each image is determined by
