@@ -57,7 +57,11 @@ class IntensityScores(object):
                 print h5_fpath
                 print 'Num results files:', len(results_fpaths)
 
+            h5_time = time.time()
+            regex_times = []
+            lda_times = []
             for i, rfpath in enumerate(results_fpaths):
+                start = time.time()
                 rfname = os.path.basename(rfpath)
                 try:
                     m = im_loc_re.match(rfname)
@@ -73,12 +77,13 @@ class IntensityScores(object):
                         raise
 
                 pos_key = hdf5tools.get_image_key(major, minor)
+                regex_times.append((time.time() - start))
 
                 self.scores[h5_fpath][channel][(major, minor)] = {}
 
                 with h5py.File(h5_fpath) as f:
                     im = np.array(f[channel][pos_key])
-
+                start = time.time()
                 for line in open(rfpath):
                     read_name, r, c = line.strip().split()
                     if not isimportant(read_name):
@@ -89,6 +94,10 @@ class IntensityScores(object):
                         x = im[r - side_px:r + side_px + 1, c - side_px:c + side_px + 1].astype(np.float)
                         score = float(np.multiply(lda_weights, x).sum())
                         self.scores[h5_fpath][channel][(major, minor)][read_name] = score
+                lda_times.append((time.time() - start))
+            print("Entire concentration work: %s" % (time.time() - h5_time))
+            print("Regex time: %s" % sum(regex_times))
+            print("LDA time: %s" % sum(lda_times))
 
     def normalize_scores(self, verbose=True):
         """Normalizes scores. The normalizing constant for each image is determined by
@@ -146,7 +155,7 @@ class IntensityScores(object):
         print("IO: %s" % sum(io_times))
         print("Mode: %s" % sum(mode_in_im_times))
         print("KDF: %s" % sum(kdf_times))
-        
+
     def normalize_scores_by_ref_read_names(self, ref_read_names_given_channel, verbose=True):
         """Normalizes scores. The normalizing constant for each image is determined by
 
