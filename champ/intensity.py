@@ -27,7 +27,9 @@ def get_mode_in_im(im):
 
 
 def thread_normalize_h5_scores(queue, raw_scores, scores, normalizing_constants):
+    print("starting thread")
     h5_fpath, channel = queue.get()
+    print("thread: %s" % h5_fpath)
     mode_given_pos_tup = {}
     start = time.time()
     for pos_tup in raw_scores[h5_fpath][channel].keys():
