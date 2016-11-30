@@ -479,7 +479,7 @@ class KdFitIA(object):
             fig.savefig(os.path.join(out_dir, out_bname + '.eps'))
 
 
-class KdFitData(object):
+class IAKdData(object):
     def __init__(self, Kd_fpath):
         self.concentrations, self.Imin, self.Imax, = [], [], []
         self.Kd, self.Kd_error, self.ABA, self.ABA_error = {}, {}, {}, {}
@@ -511,3 +511,9 @@ class KdFitData(object):
                 self.Kd_error[seq] = Kd_err
                 self.ABA[seq] = ABA
                 self.ABA_error[seq] = ABA_err
+        self.neg_control_Kd = self.Kd[self.neg_control_target]
+        self.log_neg_control_Kd = np.log(self.neg_control_Kd)
+        self.target_ABA = self.ABA[self.target]
+
+    def ABA_given_Kd(self, Kd):
+        return self.log_neg_control_Kd - np.log(Kd)
