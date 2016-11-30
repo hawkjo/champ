@@ -1,7 +1,7 @@
 import sys
 import pysam
 import misc
-from KdFitIA import KdFitData
+from KdFitIA import IAKdData
 from scipy.optimize import curve_fit
 
 
@@ -116,8 +116,7 @@ class KdFitGenome(object):
                  int_scores,
                  h5_fpaths,
                  signal_channel,
-                 Kd_fpath,
-                 bam_fpath,
+                 IA_Kd_fpath,
                  directional_Kd_offsets=[],
                  min_clust=5,
                  mapq_cutoff=20):
@@ -132,17 +131,16 @@ class KdFitGenome(object):
             )
         self.concentrations = map(misc.pM_concentration_given_fpath, self.h5_fpaths)
 
-        self.KdData = KdFitData(Kd_fpath)
-        assert self.concentrations == self.KdData.concentrations, (self.concentrations,
-                                                                   self.KdData.concentrations)
-        self.Imin = self.KdData.Imin
-        self.Imax = self.KdData.Imax
+        self.IAKdData = IAKdData(IA_Kd_fpath)
+        assert self.concentrations == self.IAKdData.concentrations, (self.concentrations,
+                                                                   self.IAKdData.concentrations)
+        self.Imin = self.IAKdData.Imin
+        self.Imax = self.IAKdData.Imax
         assert len(self.Imin) == len(self.Imax), (self.Imin, self.Imax)
         self.Irange = [float(imx - imn) for imn, imx in zip(self.Imin, self.Imax)]
 
-        self.bam_fpath = bam_fpath
         self.directional_Kd_offsets = directional_Kd_offsets
-        self.num_Kds_per_pos = 1 + 2 * len(self.directional_Kd_offsets)
+        self.num_outputs_per_pos = 1 + 4 * len(self.directional_Kd_offsets)
 
         self.min_clust = min_clust
         self.mapq_cutoff = mapq_cutoff
@@ -183,14 +181,14 @@ class KdFitGenome(object):
         self.remove_passed_read_scores(pos)
         if len(self.read_scores_list) < self.min_clust:
             if self.last_write_contained_Kds:
-                out_fh.write('{:d}\t'.format(pos) + '\t'.join('-' * self.num_Kds_per_pos) + '\n')
+                out_fh.write('{:d}\t'.format(pos) + '\t'.join('-' * self.num_outputs_per_pos) + '\n')
             self.last_write_contained_Kds = False
             return
 
         # Fit Kd with all
         all_concs = [conc for rs in self.read_scores_list for conc in rs.concs]
         all_scores = [score for rs in self.read_scores_list for score in rs.scores]
-        Kds = [self.fit_one_Kd(all_concs, all_scores)]
+        outputs = [self.fit_one_Kd(all_concs, all_scores)]
 
         # Fit "directional" Kds, filtering reads hanging over too far in one direction
         for offset in self.directional_Kd_offsets:
@@ -207,16 +205,18 @@ class KdFitGenome(object):
                     right_scores.extend(rs.scores)
 
             if left_read_count >= self.min_clust:
-                Kds.append(self.fit_one_Kd(left_concs, left_scores))
+                outputs.append(self.fit_one_Kd(left_concs, left_scores))
+                outputs.append(left_read_count)
             else:
-                Kds.append('-')
+                outputs.extend(['-', '-'])
             if right_read_count >= self.min_clust:
-                Kds.append(self.fit_one_Kd(right_concs, right_scores))
+                outputs.append(self.fit_one_Kd(right_concs, right_scores))
+                outputs.append(right_read_count)
             else:
-                Kds.append('-')
+                outputs.extend(['-', '-'])
 
         # Write results
-        out_fh.write('{:d}\t'.format(pos) + '\t'.join('{}'.format(Kd) for Kd in Kds) + '\n')
+        out_fh.write('{:d}\t'.format(pos) + '\t'.join('{}'.format(val) for val in outputs) + '\n')
         self.last_write_contained_Kds = True
 
     def finish_contig_Kds(self, start_pos, out_fh):
@@ -232,18 +232,20 @@ class KdFitGenome(object):
         # Fit Kds at all remaining positions of interest
         for pos in remaining_pos:
             self.fit_Kds_at_pos(pos, out_fh)
-        out_fh.write('{}\n'.format(remaining_pos[-1]))
+        out_fh.write('{:d}\t'.format(remaining_pos[-1]) + '\t'.join('-' * self.num_outputs_per_pos) + '\n')
 
         # Clean out any remaining reads
         for rs in self.read_scores_list:
             self.read_scores_list.remove(rs)
 
-    def fit_Kds_in_bam_and_write_results(self, out_fpath):
+    def fit_Kds_in_bam_and_write_results(self, bam_fpath, out_fpath):
         """Fit Kds at every status change in overlapping reads"""
-        self.Kd_names = ['Kd_All']
+        self.ColumnTitles = ['Pos', 'Kd_All']
         for offset in self.directional_Kd_offsets:
-            self.Kd_names.append('Kd_<=+{:d}bp'.format(offset))
-            self.Kd_names.append('Kd_>=-{:d}bp'.format(offset))
+            self.ColumnTitles.append('Kd_<=+{:d}bp'.format(offset))
+            self.ColumnTitles.append('Cov')
+            self.ColumnTitles.append('Kd_>=-{:d}bp'.format(offset))
+            self.ColumnTitles.append('Cov')
 
         def read_qc_and_ends(read):
             if (read.is_qcfail
@@ -264,10 +266,10 @@ class KdFitGenome(object):
 
         with open(out_fpath, 'w') as out:
             # Headers
-            out.write('# Pos\t' + '\t'.join(self.Kd_names) + '\n')
+            out.write('# ' + '\t'.join(self.ColumnTitles) + '\n')
 
             # Initialize
-            sf = pysam.Samfile(self.bam_fpath)
+            sf = pysam.Samfile(bam_fpath)
             qc_res = None
             while qc_res is None:
                 read = next(sf)
@@ -310,3 +312,25 @@ class KdFitGenome(object):
                     prev_start = start
                 self.add_read_scores_to_list(read.qname, start, end)
             self.finish_contig_Kds(start, out)
+
+
+class KdGenomeData(object):
+    def __init__(self, Genome_Kd_fpath, IA_Kd_fpath):
+        self.fpath = Genome_Kd_fpath
+        self.IAKdData = IAKdData(IA_Kd_fpath)
+
+    @property
+    def all_full_Kds(self):
+        for line in open(self.fpath):
+            if not line.startswith('#') and not line.startswith('>'):
+                words = line.strip().split()
+                if not len(words) > 1:
+                    continue
+                assert len(words) > 1, words
+                if words[1] != '-':
+                    yield float(words[1])
+
+    @property
+    def all_full_ABAs(self):
+        for Kd in self.all_full_Kds:
+            yield self.IAKdData.ABA_given_Kd(Kd)
