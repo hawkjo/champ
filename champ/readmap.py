@@ -68,7 +68,6 @@ def main(clargs):
     if clargs.phix_bamfiles:
         # Find all read names of the phiX fiducial markers
         log.info("Finding phiX reads.")
-        log.debug("Fastq filenames: %s" % ', '.join(fastq_filenames))
         read_names = find_reads_using_bamfile(clargs.phix_bamfiles, fastq_files)
         write_read_names(read_names, 'phix', clargs.output_directory)
 
@@ -162,6 +161,7 @@ def find_reads_using_bamfile(bamfile_path, fastq_files):
     classifier = FastqReadClassifier(bamfile_path)
     read_names = set()
     for file1, file2 in fastq_files.paired:
+        log.debug("paired files: %s, %s" % (file1, file2))
         for read in classifier.paired_call(file1, file2):
             read_names.add(read)
     return read_names
