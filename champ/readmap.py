@@ -68,6 +68,7 @@ def main(clargs):
     if clargs.phix_bamfiles:
         # Find all read names of the phiX fiducial markers
         log.info("Finding phiX reads.")
+        log.debug("Fastq filenames: %s" % ', '.join(fastq_filenames))
         read_names = find_reads_using_bamfile(clargs.phix_bamfiles, fastq_files)
         write_read_names(read_names, 'phix', clargs.output_directory)
 
@@ -141,7 +142,7 @@ class FastqReadClassifier(object):
         return self._run(command)
 
     def _run(self, command):
-        with open('/dev/null', 'w+') as devnull:
+        with open('champ_bamfiles_errors.txt', 'a') as devnull:
             shell_options = dict(shell=True, stderr=devnull, stdout=devnull)
             subprocess.call(' '.join(command), **shell_options)
             sam_command = 'samtools view -bS chimp.sam | samtools sort - final'
