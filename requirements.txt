@@ -1,6 +1,5 @@
 astropy==1.2.1
 biopython==1.68
-Cython==0.24.1
 editdistance==0.3.1
 docopt==0.6.2
 h5py==2.6.0
