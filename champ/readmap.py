@@ -204,10 +204,11 @@ def write_read_names_by_sequence(read_names_given_seq, out_file_path):
 def write_all_read_names(fastq_files, out_file_path):
     # Opens all FastQ files, finds every read name, and saves it in a file without any other data
     with open(out_file_path, 'w') as out:
-        for filenames in fastq_files.paired:
-            for filename in filenames:
-                for record in parse_fastq_lines(filename):
-                    out.write(record.name + '\n')
+        for (first, second) in fastq_files.paired:
+            # only save read names from the second pair, otherwise we would include duplicates
+            # and read names that were only found in the first run
+            for record in parse_fastq_lines(second):
+                out.write(record.name + '\n')
 
 
 def determine_perfect_target_reads(targets, read_names_by_seq):
