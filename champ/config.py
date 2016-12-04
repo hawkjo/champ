@@ -19,19 +19,19 @@ class CommandLineArguments(object):
     @property
     def alternate_fiducial_reads(self):
         # sometimes you don't want to use phix for end tile finding and initial alignment
-        return self._arguments.get('--alternate-fiducial-reads', False)
+        return self._arguments['--alternate-fiducial-reads'] or False
 
     @property
     def alternate_good_target_reads_filename(self):
-        return self._arguments.get('--alternate-good-reads')
+        return self._arguments['--alternate-good-reads'] or False
 
     @property
     def alternate_perfect_target_reads_filename(self):
-        return self._arguments.get('--alternate-perfect-reads')
+        return self._arguments['--alternate-perfect-reads'] or False
 
     @property
     def chip(self):
-        chip = load(self._arguments.get('--chip') or 'miseq')
+        chip = load(self._arguments['--chip'] or 'miseq')
         return chip(self.ports_on_right)
 
     @property
@@ -81,7 +81,7 @@ class CommandLineArguments(object):
 
     @property
     def log_p_file_path(self):
-        return self._arguments.get('--log-p-file')
+        return self._arguments['--log-p-file']
 
     @property
     def make_pdfs(self):
@@ -93,15 +93,15 @@ class CommandLineArguments(object):
 
     @property
     def max_hamming_distance(self):
-        return int(self._arguments.get('--max-ham', 8))
+        return int(self._arguments['--max-ham'] or 8)
 
     @property
     def max_len(self):
-        return int(self._arguments.get('--max-len', 50))
+        return int(self._arguments['--max-len'] or 50)
 
     @property
     def microns_per_pixel(self):
-        return float(self._arguments.get('--microns-per-pixel') or 0.2666666666666666666)
+        return float(self._arguments['--microns-per-pixel'] or 0.2666666666666666666)
 
     @property
     def min_hits(self):
@@ -109,7 +109,7 @@ class CommandLineArguments(object):
 
     @property
     def min_len(self):
-        return int(self._arguments.get('--min-len', 1))
+        return int(self._arguments['--min-len'] or 1)
 
     @property
     def nonneg_lda_weights_path(self):
@@ -126,7 +126,7 @@ class CommandLineArguments(object):
 
     @property
     def perfect_target_name(self):
-        return self._arguments.get('--perfect-target-name', False)
+        return self._arguments['--perfect-target-name'] or False
 
     @property
     def phix_bamfiles(self):
@@ -139,7 +139,7 @@ class CommandLineArguments(object):
 
     @property
     def rotation_adjustment(self):
-        return float(self._arguments.get('--rotation-adjustment', 0.0))
+        return float(self._arguments['--rotation-adjustment'] or 0.0)
 
     @property
     def snr(self):
@@ -148,7 +148,7 @@ class CommandLineArguments(object):
 
     @property
     def target_sequence_file(self):
-        return self._arguments.get('--target-sequence-file', False)
+        return self._arguments['--target-sequence-file'] or False
 
 
 class PathInfo(object):
