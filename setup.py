@@ -1,5 +1,6 @@
 from setuptools import setup
 from champ.constants import VERSION
+from distutils.extension import Extension
 
 requirements = []
 with open('requirements.txt') as f:
@@ -11,6 +12,7 @@ if __name__ == '__main__':
     setup(
         name='champ',
         packages=['champ', 'champ.controller'],
+        ext_modules=[Extension("champ.adapters_cython", ["champ/adapters_cython.c"])],
         install_requires=requirements,
         version=VERSION,
         entry_points={
