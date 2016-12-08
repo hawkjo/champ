@@ -18,17 +18,16 @@ import gc
 
 log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
-cluster_strategies = ('se', 'otsu')
 
 
-def run(rotation_adjustment, h5_filenames, path_info, snr, min_hits, fia, end_tiles, alignment_channel, all_tile_data, metadata, make_pdfs, sequencing_chip):
+def run(cluster_strategy, rotation_adjustment, h5_filenames, path_info, snr, min_hits, fia, end_tiles, alignment_channel, all_tile_data, metadata, make_pdfs, sequencing_chip):
     image_count = count_images(h5_filenames, alignment_channel)
     num_processes, chunksize = calculate_process_count(image_count)
     log.debug("Aligning alignment images with %d cores with chunksize %d" % (num_processes, chunksize))
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
     # align, do a precision alignment and write the mapped FastQ reads to disk
-    alignment_func = functools.partial(perform_alignment, rotation_adjustment, path_info, snr, min_hits, metadata['microns_per_pixel'],
+    alignment_func = functools.partial(perform_alignment, cluster_strategy, rotation_adjustment, path_info, snr, min_hits, metadata['microns_per_pixel'],
                                        sequencing_chip, all_tile_data, make_pdfs, fia)
 
     pool = multiprocessing.Pool(num_processes)
@@ -60,13 +59,25 @@ def run_data_channel(cluster_strategy, h5_filenames, channel_name, path_info, al
     gc.collect()
 
 
-def perform_alignment(rotation_adjustment, path_info, snr, min_hits, um_per_pixel, sequencing_chip, all_tile_data,
+def alignment_is_complete(stats_file_path):
+    existing_score = load_existing_score(stats_file_path)
+    if existing_score > 0:
+        return True
+    return False
+
+
+def perform_alignment(cluster_strategy, rotation_adjustment, path_info, snr, min_hits, um_per_pixel, sequencing_chip, all_tile_data,
                       make_pdfs, prefia, image_data):
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
     row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
 
     image = load_image(h5_filename, channel, row, column)
+    stats_file_path = os.path.join(path_info.results_directory, base_name, '{}_stats.txt'.format(image.index))
+    if alignment_is_complete(stats_file_path):
+        log.debug("Already aligned %s from %s" % (image.index, h5_filename))
+        return
+
     log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
     # first get the correlation to random tiles, so we can distinguish signal from noise
     fia = process_alignment_image(cluster_strategy, rotation_adjustment, snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(prefia))
@@ -78,7 +89,7 @@ def perform_alignment(rotation_adjustment, path_info, snr, min_hits, um_per_pixe
         except ValueError:
             log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
         else:
-            result = write_output(image.index, base_name, fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
+            result = write_output(stats_file_path, image.index, base_name, fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
             print("Write alignment for %s: %s" % (image.index, result))
 
     # Force the GC to run, since otherwise memory usage blows up
@@ -96,7 +107,7 @@ def make_output_directories(h5_filenames, path_info):
                 os.makedirs(full_directory)
 
 
-def get_end_tiles(rotation_adjustment, h5_filenames, alignment_channel, snr, metadata, sequencing_chip, fia):
+def get_end_tiles(cluster_strategies, rotation_adjustment, h5_filenames, alignment_channel, snr, metadata, sequencing_chip, fia):
     right_end_tiles = {}
     left_end_tiles = {}
     for cluster_strategy in cluster_strategies:
@@ -174,21 +185,26 @@ def load_aligned_stats_files(h5_filenames, alignment_channel, path_info):
 def process_data_image(cluster_strategy, path_info, all_tile_data, um_per_pixel, make_pdfs, channel,
                        fastq_image_aligner, min_hits, (h5_filename, base_name, stats_filepath, row, column)):
     image = load_image(h5_filename, channel, row, column)
+    alignment_stats_file_path = os.path.join(path_info.results_directory, base_name, stats_filepath)
+    data_stats_file_path = os.path.join(path_info.results_directory, base_name, '{}_stats.txt'.format(image.index))
+    if alignment_is_complete(data_stats_file_path):
+        log.debug("Already aligned %s from %s" % (image.index, h5_filename))
+        del image
+        gc.collect()
+        return
     sexcat_filepath = os.path.join(base_name, '%s.clusters.%s' % (image.index, cluster_strategy))
-    stats_filepath = os.path.join(path_info.results_directory, base_name, stats_filepath)
     local_fia = deepcopy(fastq_image_aligner)
     local_fia.set_image_data(image, um_per_pixel)
     local_fia.set_sexcat_from_file(sexcat_filepath)
-    local_fia.alignment_from_alignment_file(stats_filepath)
+    local_fia.alignment_from_alignment_file(alignment_stats_file_path)
     try:
         local_fia.precision_align_only(min_hits)
     except (IndexError, ValueError):
         log.debug("Could not precision align %s" % image.index)
-        del local_fia
-        del image
     else:
         log.debug("Processed data channel for %s" % image.index)
-        write_output(image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
+        write_output(data_stats_file_path, image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
+    finally:
         del local_fia
         del image
     gc.collect()
@@ -315,8 +331,7 @@ def load_existing_score(stats_file_path):
     return 0
 
 
-def write_output(image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, um_per_pixel):
-    stats_file_path = os.path.join(path_info.results_directory, base_name, '{}_stats.txt'.format(image_index))
+def write_output(stats_file_path, image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, um_per_pixel):
     all_read_rcs_filepath = os.path.join(path_info.results_directory, base_name, '{}_all_read_rcs.txt'.format(image_index))
 
     # if we've already aligned this channel with a different strategy, the current alignment may or may not be better
