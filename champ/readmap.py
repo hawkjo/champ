@@ -18,9 +18,10 @@ log = logging.getLogger(__name__)
 
 def main(clargs):
     """
-    Creates text files containing the Illumina IDs of each read, sorted by type. Typically, we want to know which reads are the phiX fiducial markers,
-    which belong to a certain target, and so forth. Part of this process is determining what the likely sequence is - during the paired end read process
-    you receive two sequences with two different quality scores for each base, so we have to decide which is most likely to be correct.
+    Creates text files containing the Illumina IDs of each read, sorted by type. Typically, we want to know which reads
+    are the phiX fiducial markers, which belong to a certain target, and so forth. Part of this process is determining
+    what the likely sequence is - during the paired end read process you receive two sequences with two different
+    quality scores for each base, so we have to decide which is most likely to be correct.
 
     """
     fastq_filenames = [os.path.join(clargs.fastq_directory, directory) for directory in os.listdir(clargs.fastq_directory)]
@@ -38,7 +39,8 @@ def main(clargs):
         write_read_names_by_sequence(read_names_given_seq, os.path.join(clargs.output_directory, 'read_names_by_seq.txt'))
 
     if not read_names_given_seq:
-        # We already generated read names by seq in a previous run and aren't recreating them this time, so we need to load them from disk
+        # We already generated read names by seq in a previous run and aren't recreating them this time,
+        # so we need to load them from disk
         with open(os.path.join(clargs.output_directory, "read_names_by_seq.txt")) as f:
             read_names_given_seq = {}
             for line in f:
@@ -71,7 +73,6 @@ def main(clargs):
 
     log.info("Parsing and saving all read names to disk.")
     write_all_read_names(fastq_files, os.path.join(clargs.output_directory, 'all_read_names.txt'))
-
 
 
 class FastqFiles(object):
@@ -190,8 +191,8 @@ def determine_target_reads(targets, read_names_given_seq):
 
 def write_read_names(read_names, target_name, output_directory):
     filename = os.path.join(output_directory, target_name + '_read_names.txt')
-    with open(filename, 'a') as f:
-        f.write('\n'.join(read_names) + '\n')
+    with open(filename, 'w') as f:
+        f.write('\n'.join(set(read_names)) + '\n')
 
 
 def write_read_names_by_sequence(read_names_given_seq, out_file_path):
@@ -203,10 +204,11 @@ def write_read_names_by_sequence(read_names_given_seq, out_file_path):
 def write_all_read_names(fastq_files, out_file_path):
     # Opens all FastQ files, finds every read name, and saves it in a file without any other data
     with open(out_file_path, 'w') as out:
-        for filenames in fastq_files.paired:
-            for filename in filenames:
-                for record in parse_fastq_lines(filename):
-                    out.write(record.name + '\n')
+        for (first, second) in fastq_files.paired:
+            # only save read names from the second pair, otherwise we would include duplicates
+            # and read names that were only found in the first run
+            for record in parse_fastq_lines(second):
+                out.write(record.name + '\n')
 
 
 def determine_perfect_target_reads(targets, read_names_by_seq):

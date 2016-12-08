@@ -56,6 +56,7 @@ def run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data,
     log.debug("Done aligning!")
     del fastq_image_aligner
     del pool
+    gc.collect()
 
 
 def perform_alignment(rotation_adjustment, path_info, snr, min_hits, um_per_pixel, sequencing_chip, all_tile_data,
@@ -181,6 +182,7 @@ def process_data_image(path_info, all_tile_data, um_per_pixel, make_pdfs, channe
         write_output(image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
     del local_fia
     del image
+    gc.collect()
 
 
 def load_image(h5_filename, channel, row, column):
@@ -215,8 +217,14 @@ def check_column_for_alignment(rotation_adjustment, channel, snr, sequencing_chi
     base_name = os.path.splitext(h5_filename)[0]
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
-        # We use row 3 because it's in the center of the circular regions where Illumina data is available
-        for row in (3, 4, 2):
+        # we assume odd numbers of rows, and good enough for now
+        if grid.height > 2:
+            center_row = grid.height / 2
+            rows_to_check = (center_row, center_row + 1, center_row - 1)
+        else:
+            # just one or two rows, might as well try them all
+            rows_to_check = tuple([i for i in range(grid.height)])
+        for row in rows_to_check:
             image = grid.get(row, column)
             if image is None:
                 log.warn("Could not find an image for %s Row %d Column %d" % (base_name, row, column))
@@ -231,6 +239,7 @@ def check_column_for_alignment(rotation_adjustment, channel, snr, sequencing_chi
                 end_tiles[h5_filename] = [tile.key for tile in fia.hitting_tiles], image.column
                 break
     del fia
+    gc.collect()
 
 
 def iterate_all_images(h5_filenames, end_tiles, channel):

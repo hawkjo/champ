@@ -55,14 +55,14 @@ def stoftoi(s):
 
 
 def parse_concentration(filename):
-    pattern = '[-_]([0-9_.]+)([pn]M)'
+    pattern = '[-_]([0-9_.]+)([pn][mM])'
     m = re.search(pattern, filename)
     if m is None:
         raise ValueError("The concentration cannot be parsed from the filename: %s" % filename)
     conc = float(m.group(1).replace('_', '.'))
-    if m.group(2) == 'pM':
+    if m.group(2).lower() == 'pm':
         return conc
-    elif m.group(2) == 'nM':
+    elif m.group(2).lower() == 'nm':
         return conc * 1000
     else:
         raise ValueError('Can only handle pM and nM at the moment.')
