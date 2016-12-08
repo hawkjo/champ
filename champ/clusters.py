@@ -9,7 +9,9 @@ class ClusterPoint(object):
 
 
 class Clusters(object):
-    def __init__(self, lines):
+    def __init__(self, lines, cluster_strategy):
+        point_object = {'otsu': ClusterPoint,
+                        'se': SextractorPoint}
         self.points = []
         for line in lines:
             self.points.append(ClusterPoint(line))

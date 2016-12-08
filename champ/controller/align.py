@@ -102,17 +102,17 @@ def main(clargs):
         gc.collect()
         if on_target_tile_data:
             channel_combo = channel_name + "_on_target"
-            combo_align(h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, clargs)
+            combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, clargs)
         gc.collect()
         if perfect_tile_data:
             channel_combo = channel_name + "_perfect_target"
-            combo_align(h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
+            combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
         gc.collect()
 
 
-def combo_align(h5_filenames, channel_combo, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs):
+def combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs):
     log.info("Aligning %s" % channel_combo)
     if channel_combo not in metadata['protein_channels_aligned']:
-        align.run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs)
+        align.run_data_channel(cluster_strategy, h5_filenames, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs)
         metadata['protein_channels_aligned'].append(channel_combo)
         initialize.update(clargs.image_directory, metadata)
