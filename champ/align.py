@@ -18,6 +18,7 @@ import gc
 
 log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
+cluster_strategies = ('se', 'otsu')
 
 
 def run(rotation_adjustment, h5_filenames, path_info, snr, min_hits, fia, end_tiles, alignment_channel, all_tile_data, metadata, make_pdfs, sequencing_chip):
@@ -166,22 +167,26 @@ def load_aligned_stats_files(h5_filenames, alignment_channel, path_info):
 
 def process_data_image(path_info, all_tile_data, um_per_pixel, make_pdfs, channel,
                        fastq_image_aligner, min_hits, (h5_filename, base_name, stats_filepath, row, column)):
-    image = load_image(h5_filename, channel, row, column)
-    sexcat_filepath = os.path.join(base_name, '%s.cat' % image.index)
-    stats_filepath = os.path.join(path_info.results_directory, base_name, stats_filepath)
-    local_fia = deepcopy(fastq_image_aligner)
-    local_fia.set_image_data(image, um_per_pixel)
-    local_fia.set_sexcat_from_file(sexcat_filepath)
-    local_fia.alignment_from_alignment_file(stats_filepath)
-    try:
-        local_fia.precision_align_only(min_hits)
-    except (IndexError, ValueError):
-        log.debug("Could not precision align %s" % image.index)
-    else:
-        log.debug("Processed 2nd channel for %s" % image.index)
-        write_output(image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
-    del local_fia
-    del image
+    for cluster_strategy in cluster_strategies:
+        image = load_image(h5_filename, channel, row, column)
+        sexcat_filepath = os.path.join(base_name, '%s.clusters.%s' % (image.index, cluster_strategy))
+        stats_filepath = os.path.join(path_info.results_directory, base_name, stats_filepath)
+        local_fia = deepcopy(fastq_image_aligner)
+        local_fia.set_image_data(image, um_per_pixel)
+        local_fia.set_sexcat_from_file(sexcat_filepath)
+        local_fia.alignment_from_alignment_file(stats_filepath)
+        try:
+            local_fia.precision_align_only(min_hits)
+        except (IndexError, ValueError):
+            log.debug("Could not precision align %s" % image.index)
+            del local_fia
+            del image
+        else:
+            log.debug("Processed 2nd channel for %s" % image.index)
+            write_output(image.index, base_name, local_fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
+            del local_fia
+            del image
+            break
     gc.collect()
 
 
@@ -279,15 +284,20 @@ def load_read_names(file_path):
 
 
 def process_alignment_image(rotation_adjustment, snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, fia):
-    sexcat_fpath = os.path.join(base_name, '%s.cat' % image.index)
-    if not os.path.exists(sexcat_fpath):
-        return fia
     fia.set_image_data(image, um_per_pixel)
-    fia.set_sexcat_from_file(sexcat_fpath)
-    fia.rough_align(possible_tile_keys,
-                    sequencing_chip.rotation_estimate + rotation_adjustment,
-                    sequencing_chip.tile_width,
-                    snr_thresh=snr)
+    for cluster_strategy in cluster_strategies:
+        sexcat_fpath = os.path.join(base_name, '%s.clusters.%s' % (image.index, cluster_strategy))
+        if not os.path.exists(sexcat_fpath):
+            return fia
+        fia.set_sexcat_from_file(sexcat_fpath)
+        fia.rough_align(possible_tile_keys,
+                        sequencing_chip.rotation_estimate + rotation_adjustment,
+                        sequencing_chip.tile_width,
+                        snr_thresh=snr)
+        if fia.hitting_tiles:
+            return fia
+    # return the fastq image aligner, even if nothing aligned.
+    # the empty fia.hitting_tiles will be recognized and the field of view will be skipped
     return fia
 
 
