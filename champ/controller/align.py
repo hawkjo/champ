@@ -5,7 +5,7 @@ from champ.config import PathInfo
 import gc
 
 log = logging.getLogger(__name__)
-cluster_strategies = ('se', 'otsu')
+cluster_strategies = ('otsu',)
 
 
 def preprocess(clargs, metadata):
