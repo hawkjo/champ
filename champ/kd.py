@@ -19,9 +19,10 @@ class KdFitIA(object):
 
     def __init__(self, IA, max_clust=2000):
         self.IA = IA
-        assert self.IA.course_trait_name == 'concentration_pM', self.IA.course_trait_name
+        # assert self.IA.course_trait_name == 'concentration_pM', self.IA.course_trait_name
         self.concentrations = self.IA.course_trait_list
-        self.nM_concentrations = [conc / 1000.0 for conc in self.concentrations]
+        self.nM_concentrations = self.concentrations
+        # self.nM_concentrations = [conc / 1000.0 for conc in self.concentrations]
         self.target = self.IA.target
         self.neg_control_target = self.IA.neg_control_target
         self.max_clust = max_clust
