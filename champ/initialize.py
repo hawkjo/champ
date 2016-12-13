@@ -63,7 +63,7 @@ def load_cache_and_metadata(image_directory):
             cache['protein_channels_aligned'] = metadata['protein_channels_aligned']
             if 'end_tiles' in metadata:
                 cache['end_tiles'] = metadata['end_tiles']
-    return metadata, cache
+        return metadata, cache
 
 
 def get_existing_metadata_filename(image_directory):
