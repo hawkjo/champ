@@ -191,7 +191,7 @@ def determine_target_reads(targets, read_names_given_seq):
 
 def write_read_names(read_names, target_name, output_directory):
     filename = os.path.join(output_directory, target_name + '_read_names.txt')
-    with open(filename, 'w') as f:
+    with open(filename, 'a') as f:
         f.write('\n'.join(set(read_names)) + '\n')
 
 
