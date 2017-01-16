@@ -3,6 +3,7 @@ import pysam
 import misc
 from KdFitIA import IAKdData
 from scipy.optimize import curve_fit
+from collections import defaultdict
 
 
 class ScoredRead(object):
@@ -188,7 +189,7 @@ class KdFitGenome(object):
         # Fit Kd with all
         all_concs = [conc for rs in self.read_scores_list for conc in rs.concs]
         all_scores = [score for rs in self.read_scores_list for score in rs.scores]
-        outputs = [self.fit_one_Kd(all_concs, all_scores)]
+        outputs = [self.fit_one_Kd(all_concs, all_scores), len(all_scores)]
 
         # Fit "directional" Kds, filtering reads hanging over too far in one direction
         for offset in self.directional_Kd_offsets:
@@ -240,7 +241,7 @@ class KdFitGenome(object):
 
     def fit_Kds_in_bam_and_write_results(self, bam_fpath, out_fpath):
         """Fit Kds at every status change in overlapping reads"""
-        self.ColumnTitles = ['Pos', 'Kd_All']
+        self.ColumnTitles = ['Pos', 'Kd_All', 'Cov']
         for offset in self.directional_Kd_offsets:
             self.ColumnTitles.append('Kd_<=+{:d}bp'.format(offset))
             self.ColumnTitles.append('Cov')
@@ -287,7 +288,6 @@ class KdFitGenome(object):
             # Proceed
             for i, read in enumerate(sf):
                 if i % 10000 == 0:
-                #sys.stdout.write(str(len(self.read_scores_list)))
                     sys.stdout.write('.')
                     sys.stdout.flush()
                 qc_res = read_qc_and_ends(read)
@@ -334,3 +334,62 @@ class KdGenomeData(object):
     def all_full_ABAs(self):
         for Kd in self.all_full_Kds:
             yield self.IAKdData.ABA_given_Kd(Kd)
+
+    def load_Kds(self):
+        self.locs = defaultdict(list)
+        self.Kds = defaultdict(list)
+        self.coverage = defaultdict(list)
+        self.max_Kds = defaultdict(list)
+        self.max_Kd_coverage = defaultdict(list)
+        for line in open(self.fpath):
+            if line.startswith('#'):
+                continue
+            elif line.startswith('>'):
+                curr_chrm = line.strip().split()[0][1:] # first word minus '>'
+            else:
+                words = line.strip().split()
+                loc = int(words[0])
+                all_Kds = [float(words[i]) if words[i] != '-' else None for i in range(1, len(words), 2)]
+                all_covs = [int(words[i]) if words[i] != '-' else 0 for i in range(2, len(words), 2)]
+                max_Kd_idx = max(range(len(all_Kds)), key=lambda i: all_Kds[i])
+                max_Kd = all_Kds[max_Kd_idx]
+                max_Kd_cov = all_covs[max_Kd_idx]
+
+                self.locs[curr_chrm].append(loc)
+                self.Kds[curr_chrm].append(all_Kds[0])
+                self.coverage[curr_chrm].append(all_covs[0])
+                self.max_Kds[curr_chrm].append(max_Kd)
+                self.max_Kd_coverage[curr_chrm].append(max_Kd_cov)
+        self.locs = dict(self.locs)
+        self.Kds = dict(self.Kds)
+        self.coverage = dict(self.coverage)
+        self.max_Kds = dict(self.max_Kds)
+        self.max_Kd_coverage = dict(self.max_Kd_coverage)
+
+    def Kds_in_range(self, chrm, start, end, max_Kds=False):
+        assert start < end
+        if chrm not in self.locs:
+            return [], [], []
+
+        start_idx, end_idx = 0, 0
+        for i, loc in enumerate(self.locs[chrm]):
+            if loc <= start:
+                start_idx = i
+            elif loc > end:
+                end_idx = i
+                break
+        if end_idx == 0:
+            end_idx = -1
+        if max_Kds:
+            return (self.locs[chrm][start_idx:end_idx],
+                    self.max_Kds[chrm][start_idx:end_idx],
+                    self.max_Kd_coverage[chrm][start_idx:end_idx])
+        else:
+            return (self.locs[chrm][start_idx:end_idx],
+                    self.Kds[chrm][start_idx:end_idx],
+                    self.coverage[chrm][start_idx:end_idx])
+
+    def ABAs_in_range(self, chrm, start, end, min_ABAs=False):
+        locs, Kds, coverage = self.Kds_in_range(chrm, start, end, max_Kds=min_ABAs)
+        ABAs = map(self.IAKdData.ABA_given_Kd, Kds)
+        return locs, ABAs, coverage
