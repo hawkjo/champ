@@ -516,4 +516,6 @@ class IAKdData(object):
         self.target_ABA = self.ABA[self.target]
 
     def ABA_given_Kd(self, Kd):
+        if Kd is None:
+            return None
         return self.log_neg_control_Kd - np.log(Kd)
