@@ -92,10 +92,6 @@ class CommandLineArguments(object):
         return self._arguments['READ_NAMES_DIRECTORY']
 
     @property
-    def max_hamming_distance(self):
-        return int(self._arguments['--max-ham'] or 8)
-
-    @property
     def max_len(self):
         return int(self._arguments['--max-len'] or 50)
 
