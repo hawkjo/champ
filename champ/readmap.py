@@ -166,7 +166,7 @@ def find_reads_using_bamfile(bamfile_path, fastq_files):
 
 
 def get_max_edit_dist(target):
-    dists = [editdistance.eval(target, rand_seq(target)) for _ in xrange(1000)]
+    dists = [editdistance.eval(target, rand_seq(len(target))) for _ in xrange(1000)]
     return min(10, np.percentile(dists, 0.5))
 
 
