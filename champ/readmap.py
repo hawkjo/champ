@@ -34,8 +34,7 @@ def main(clargs):
         with open(clargs.log_p_file_path) as f:
             log_p_struct = pickle.load(f)
 
-        read_names_given_seq = determine_sequences_of_read_names(clargs.min_len, clargs.max_len,
-                                                                 clargs.max_hamming_distance, log_p_struct, fastq_files)
+        read_names_given_seq = determine_sequences_of_read_names(clargs.min_len, clargs.max_len, log_p_struct, fastq_files)
         write_read_names_by_sequence(read_names_given_seq, os.path.join(clargs.output_directory, 'read_names_by_seq.txt'))
 
     if not read_names_given_seq:
@@ -171,8 +170,7 @@ def get_max_edit_dist(target):
     return min(10, np.percentile(dists, 0.5))
 
 
-def rand_seq(target):
-    seq_len = int(random.normalvariate(len(target), len(target) / 10))
+def rand_seq(seq_len):
     return ''.join(random.choice('ACGT') for _ in xrange(seq_len))
 
 
@@ -191,7 +189,7 @@ def determine_target_reads(targets, read_names_given_seq):
 
 def write_read_names(read_names, target_name, output_directory):
     filename = os.path.join(output_directory, target_name + '_read_names.txt')
-    with open(filename, 'w') as f:
+    with open(filename, 'a') as f:
         f.write('\n'.join(set(read_names)) + '\n')
 
 
@@ -220,16 +218,23 @@ def determine_perfect_target_reads(targets, read_names_by_seq):
         yield target_name, perfect_read_names
 
 
-def determine_sequences_of_read_names(min_len, max_len, max_ham, log_p_struct, fastq_files):
-    # --------------------------------------------------------------------------------
-    # Load log_p dict of dicts of lists. Addessed as follows:
-    #
-    #   log_p_struct[true_base][read_base][phred_score]
-    # --------------------------------------------------------------------------------
+def get_max_ham_dists(min_len, max_len):
+    dists = defaultdict(list)
+    for _ in xrange(50000):
+        ref_seq = rand_seq(max_len)
+        new_seq = rand_seq(max_len)
+        for i in range(min_len, max_len+1):
+            dists[i].append(simple_hamming_distance(ref_seq[:i], new_seq[:i]))
+    max_ham_dists = [min(np.percentile(dists[i], 0.1), int(i/4)) for i in range(min_len, max_len+1)]
+    return max_ham_dists
 
+
+def determine_sequences_of_read_names(min_len, max_len, log_p_struct, fastq_files):
     # --------------------------------------------------------------------------------
     # Pair fpaths and classify seqs
     # --------------------------------------------------------------------------------
+    max_ham_dists = get_max_ham_dists(min_len, max_len)
+    log.debug("Max ham dists: %s" % str(max_ham_dists))
     read_names_given_seq = defaultdict(list)
     for fpath1, fpath2 in fastq_files.paired:
         log.debug('{}, {}'.format(*map(os.path.basename, (fpath1, fpath2))))
@@ -240,26 +245,30 @@ def determine_sequences_of_read_names(min_len, max_len, max_ham, log_p_struct, f
                                parse_fastq_lines(fpath2))
         ):
             total += 1
-            seq = classify_seq(rec1, rec2, min_len, max_len, max_ham, log_p_struct)
+            seq = classify_seq(rec1, rec2, min_len, max_len, max_ham_dists, log_p_struct)
             if seq:
                 read_names_given_seq[seq].append(str(rec1.id))
             else:
                 discarded += 1
-        log.debug('Discarded {} of {} ({:.1f}%)'.format(discarded, total, 100 * discarded / float(total)))
+        found = total - discarded
+        log.debug('Found {} of {} ({:.1f}%)'.format(found, total, 100 * found / float(total)))
     return read_names_given_seq
 
 
-def classify_seq(rec1, rec2, min_len, max_len, max_ham, log_p_struct):
+def classify_seq(rec1, rec2, min_len, max_len, max_ham_dists, log_p_struct):
+    bases = set('ACGT')
     # Store as strings
     seq1 = str(rec1.seq)
     seq2_rc = str(rec2.seq.reverse_complement())
+    loc_max_len = min(max_len, len(seq1), len(seq2_rc))
 
     # Find aligning sequence, indels are not allowed, starts of reads included
-    hams = [simple_hamming_distance(seq1[:i], seq2_rc[-i:]) for i in range(min_len, max_len + 1)]
-    if min(hams) > max_ham:
+    sig_lens = [i for i, max_ham in zip(range(min_len, loc_max_len + 1), max_ham_dists)
+                if simple_hamming_distance(seq1[:i], seq2_rc[-i:]) < max_ham]
+    if len(sig_lens) != 1:
         return None
 
-    seq2_len = min(range(min_len, max_len + 1), key=lambda i: hams[i - min_len])
+    seq2_len = sig_lens[0]
     seq2_match = seq2_rc[-seq2_len:]
     seq1_match = seq1[:seq2_len]
 
@@ -267,8 +276,7 @@ def classify_seq(rec1, rec2, min_len, max_len, max_ham, log_p_struct):
     quals1 = rec1.letter_annotations['phred_quality'][:seq2_len]
     quals2 = rec2.letter_annotations['phred_quality'][::-1][-seq2_len:]
 
-    # Build concensus sequence
-    bases = set('ACGT')
+    # Build consensus sequence
     ML_bases = []
     for r1, q1, r2, q2 in zip(seq1_match, quals1, seq2_match, quals2):
         if r1 in bases and r1 == r2:
