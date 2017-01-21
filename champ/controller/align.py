@@ -5,7 +5,7 @@ from champ.config import PathInfo
 import gc
 
 log = logging.getLogger(__name__)
-cluster_strategies = ('otsu',)
+cluster_strategies = ('se', 'otsu',)
 
 
 def preprocess(clargs, metadata):
@@ -101,15 +101,16 @@ def main(clargs):
         # Attempt to precision align protein channels using the phix channel alignment as a starting point.
         # Not all experiments have "on target" or "perfect target" reads - that only applies to CRISPR systems
         # (at the time of this writing anyway)
-        gc.collect()
-        if on_target_tile_data:
-            channel_combo = channel_name + "_on_target"
-            combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, clargs)
-        gc.collect()
-        if perfect_tile_data:
-            channel_combo = channel_name + "_perfect_target"
-            combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
-        gc.collect()
+        for cluster_strategy in cluster_strategies:
+            gc.collect()
+            if on_target_tile_data:
+                channel_combo = channel_name + "_on_target"
+                combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, clargs)
+            gc.collect()
+            if perfect_tile_data:
+                channel_combo = channel_name + "_perfect_target"
+                combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
+            gc.collect()
 
 
 def combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs):
