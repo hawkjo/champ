@@ -195,7 +195,7 @@ def process_data_image(cluster_strategy, path_info, all_tile_data, um_per_pixel,
     sexcat_filepath = os.path.join(base_name, '%s.clusters.%s' % (image.index, cluster_strategy))
     local_fia = deepcopy(fastq_image_aligner)
     local_fia.set_image_data(image, um_per_pixel)
-    local_fia.set_sexcat_from_file(sexcat_filepath)
+    local_fia.set_sexcat_from_file(sexcat_filepath, cluster_strategy)
     local_fia.alignment_from_alignment_file(alignment_stats_file_path)
     try:
         local_fia.precision_align_only(min_hits)
