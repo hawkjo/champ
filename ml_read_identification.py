@@ -1,7 +1,9 @@
 import sys
 import os
+import random
 import itertools
 from collections import defaultdict
+import numpy as np
 from Bio import SeqIO
 import pickle
 import fastqtools
@@ -9,7 +11,23 @@ from adapters_cython import simple_hamming_distance
 from misctools import gzip_friendly_open
 
 
-def classify_reads(fastq_fpaths, log_p_fpath, min_len, max_len, max_ham, out_fpath):
+bases = 'ACGT'
+def rand_seq(seq_len):
+    return ''.join(random.choice(bases) for _ in xrange(seq_len))
+
+
+def get_max_ham_dists(min_len, max_len):
+    dists = defaultdict(list)
+    for _ in xrange(50000):
+        ref_seq = rand_seq(max_len)
+        new_seq = rand_seq(max_len)
+        for i in range(min_len, max_len+1):
+            dists[i].append(simple_hamming_distance(ref_seq[:i], new_seq[:i]))
+    max_ham_dists = [min(np.percentile(dists[i], 0.1), int(i/4)) for i in range(min_len, max_len+1)]
+    return max_ham_dists
+
+
+def classify_reads(fastq_fpaths, log_p_fpath, min_len, max_len, out_fpath):
     """
     Classifies reads by overlapping ML sequence identity.
     """
@@ -22,6 +40,14 @@ def classify_reads(fastq_fpaths, log_p_fpath, min_len, max_len, max_ham, out_fpa
         log_p_struct = pickle.load(f)
 
     #--------------------------------------------------------------------------------
+    # Find max hamming distances per length considered
+    #--------------------------------------------------------------------------------
+    print 'Finding max hamming distances by length...',
+    sys.stdout.flush()
+    max_ham_dists = get_max_ham_dists(min_len, max_len)
+    print 'Done'
+
+    #--------------------------------------------------------------------------------
     # Make classifying function with given params
     #--------------------------------------------------------------------------------
     bases = 'ACGT'
@@ -30,15 +56,15 @@ def classify_reads(fastq_fpaths, log_p_fpath, min_len, max_len, max_ham, out_fpa
         # Store as strings
         seq1 = str(rec1.seq)
         seq2_rc = str(rec2.seq.reverse_complement())
+        loc_max_len = min(max_len, len(seq1), len(seq2_rc))
 
         # Find aligning sequence, indels are not allowed, starts of reads included
-        hams = [simple_hamming_distance(seq1[:i], seq2_rc[-i:])
-                for i in range(min_len, max_len + 1)]
-        min_ham = min(hams)
-        if min_ham > max_ham:
+        sig_lens = [i for i, max_ham in zip(range(min_len, loc_max_len + 1), max_ham_dists)
+                    if simple_hamming_distance(seq1[:i], seq2_rc[-i:]) < max_ham]
+        if len(sig_lens) != 1:
             return None
 
-        seq2_len = min(range(min_len, max_len + 1), key=lambda i: hams[i-min_len])
+        seq2_len = sig_lens[0]
         seq2_match = seq2_rc[-seq2_len:]
         seq1_match = seq1[:seq2_len]
 
@@ -90,8 +116,9 @@ def classify_reads(fastq_fpaths, log_p_fpath, min_len, max_len, max_ham, out_fpa
                 read_names_given_seq[seq].append(str(rec1.id))
             else:
                 discarded += 1
+        found = total - discarded
         print
-        print 'Discarded {} of {} ({:.1f}%)'.format(discarded, total, 100 * discarded / float(total))
+        print 'Found {} of {} ({:.1f}%)'.format(found, total, 100 * found / float(total))
 
     #--------------------------------------------------------------------------------
     # Output results
@@ -116,17 +143,16 @@ Usage: {}
 
     min_len:            Minimum allowed overlap
     max_len:            Maximum allowed overlap
-    max_mismatch:       Maximum allowed mismatch between reads
     out_fpath:          Location to write output file
     log_p_fpath:        Location of pickle file with probability struct
     fastq_fpaths:       List of all fastq files in run
 """.format(usage_fmt)
         sys.exit(helpstr)
 
-    assert all(map(isint, sys.argv[1:4])), 'Min and Max lens and hams must be integers'
-    min_len, max_len, max_ham = map(int, sys.argv[1:4])
-    out_fpath = sys.argv[4]
-    log_p_fpath = sys.argv[5]
-    fastq_fpaths = sys.argv[6:]
+    min_len, max_len = map(int, sys.argv[1:3])
+    assert all(map(isint, (min_len, max_len))), 'Min and Max lens and hams must be integers'
+    out_fpath = sys.argv[3]
+    log_p_fpath = sys.argv[4]
+    fastq_fpaths = sys.argv[5:]
 
-    classify_reads(fastq_fpaths, log_p_fpath, min_len, max_len, max_ham, out_fpath)
+    classify_reads(fastq_fpaths, log_p_fpath, min_len, max_len, out_fpath)
