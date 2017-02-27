@@ -462,6 +462,30 @@ class FastqImageCorrelator(object):
 
         print 'Hit finding time: %.3f seconds' % (time.time() - start_time)
         
+    def rough_align_only(self,
+                         possible_tile_keys,
+                         rotation_est,
+                         fq_w_est=927,
+                         snr_thresh=1.2,
+                         hit_type=['exclusive', 'good_mutual'],
+                         min_hits=15):
+        start_time = time.time()
+
+        self.fq_w = fq_w_est
+        self.set_fastq_tile_mappings()
+        self.set_all_fastq_image_data()
+        self.rotate_all_fastq_data(rotation_est)
+
+        print 'Prep time: %.3f seconds' % (time.time() - start_time)
+        start_time = time.time()
+
+        self.find_hitting_tiles(possible_tile_keys, snr_thresh)
+
+        print 'Rough alignment time: %.3f seconds' % (time.time() - start_time)
+
+        if not self.hitting_tiles:
+            raise RuntimeError('Alignment not found')
+        
     def precision_align_only(self,
                              hit_type=['exclusive', 'good_mutual'],
                              min_hits=15):
