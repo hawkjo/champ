@@ -72,14 +72,14 @@ class ImageData(object):
         """Makes images and ffts of all flips and 90 degree rotations (i.e. D4)"""
         if hasattr(self, 'all_ffts') and self.all_ffts and not force:
             return
-        self.fft_padding = padding
+        self.fft_padding = map(int, padding)
         pool = ProcessingPool(processors)
         ffts = pool.map(self.single_fft, self.iterate_D4_idxs())
         self.all_ffts = {idx: fft for idx, fft in zip(self.iterate_D4_idxs(), ffts)}
         del pool
 
     def set_single_fft(self, idx, padding):
-        self.fft_padding = padding
+        self.fft_padding = map(int, padding)
         self.all_ffts = {idx: self.single_fft(idx)}
 
     def single_fft(self, idx):
