@@ -33,8 +33,9 @@ def run(cluster_strategy, rotation_adjustment, h5_filenames, path_info, snr, min
     pool = multiprocessing.Pool(num_processes)
     pool.map_async(alignment_func,
                    iterate_all_images(h5_filenames, end_tiles, alignment_channel), chunksize=chunksize).get(timeout=sys.maxint)
-    pool.join()
     pool.close()
+    pool.join()
+
     log.debug("Done aligning!")
 
 
@@ -55,8 +56,9 @@ def run_data_channel(cluster_strategy, h5_filenames, channel_name, path_info, al
     pool.map_async(second_processor,
                    load_aligned_stats_files(h5_filenames, metadata['alignment_channel'], path_info),
                    chunksize=chunksize).get(sys.maxint)
-    pool.join()
     pool.close()
+    pool.join()
+
     log.debug("Done aligning!")
     gc.collect()
 
@@ -234,8 +236,8 @@ def find_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_
     for column in columns:
         column_checker = functools.partial(base_column_checker, end_tiles, column, possible_tile_keys)
         pool.map_async(column_checker, h5_filenames).get(sys.maxint)
-        pool.join()
         pool.close()
+        pool.join()
         if end_tiles:
             return end_tiles
     return {}
