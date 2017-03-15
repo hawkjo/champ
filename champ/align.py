@@ -122,6 +122,7 @@ def get_end_tiles(cluster_strategies, rotation_adjustment, h5_filenames, alignme
             pool = multiprocessing.Pool(num_processes)
             base_column_checker = functools.partial(check_column_for_alignment, cluster_strategy, rotation_adjustment, alignment_channel, snr, sequencing_chip, metadata['microns_per_pixel'], fia)
             left_end_tiles = dict(find_bounds(pool, h5_filenames, base_column_checker, grid.columns, sequencing_chip.left_side_tiles))
+            pool = multiprocessing.Pool(num_processes)
             right_end_tiles = dict(find_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), sequencing_chip.right_side_tiles))
             if left_end_tiles and right_end_tiles:
                 break
