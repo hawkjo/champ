@@ -123,8 +123,9 @@ def get_end_tiles(cluster_strategies, rotation_adjustment, h5_filenames, alignme
             base_column_checker = functools.partial(check_column_for_alignment, cluster_strategy, rotation_adjustment, alignment_channel, snr, sequencing_chip, metadata['microns_per_pixel'], fia)
             left_end_tiles = dict(find_bounds(pool, h5_filenames, base_column_checker, grid.columns, sequencing_chip.left_side_tiles))
             print('We just finished left end tiles **********')
-            pool = multiprocessing.Pool(num_processes)
             right_end_tiles = dict(find_bounds(pool, h5_filenames, base_column_checker, reversed(grid.columns), sequencing_chip.right_side_tiles))
+            pool.close()
+            pool.join()
             print("FINSHED RIGHT END TILES")
             exit()
             if left_end_tiles and right_end_tiles:
@@ -240,8 +241,6 @@ def find_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_
     for column in columns:
         column_checker = functools.partial(base_column_checker, end_tiles, column, possible_tile_keys)
         pool.map_async(column_checker, h5_filenames).get(sys.maxint)
-        pool.close()
-        pool.join()
         if end_tiles:
             return end_tiles
     return {}
