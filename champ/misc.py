@@ -93,7 +93,7 @@ def get_mode(vals):
     kdf.fit(np.array(vals).reshape(len(vals), 1))
 
     def neg_kdf(x):
-        return -kdf.score(np.array([x]))
+        return -kdf.score(np.array((x,)))
 
     res = minimize(neg_kdf, x0=np.median(vals), method='Nelder-Mead')
     assert res.success, res
