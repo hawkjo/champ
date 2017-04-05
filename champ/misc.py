@@ -5,7 +5,6 @@ import re
 import numpy as np
 from sklearn.neighbors import KernelDensity
 from scipy.optimize import minimize
-import warnings
 
 
 def next_power_of_2(x):
@@ -94,10 +93,8 @@ def get_mode(vals):
     kdf.fit(np.array(vals).reshape(len(vals), 1))
 
     def neg_kdf(x):
-        return -kdf.score(x)
+        return -kdf.score(np.array([x]))
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        res = minimize(neg_kdf, x0=np.median(vals), method='Nelder-Mead')
-        assert res.success, res
-        return float(res.x)
+    res = minimize(neg_kdf, x0=np.median(vals), method='Nelder-Mead')
+    assert res.success, res
+    return float(res.x)
