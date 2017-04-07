@@ -338,6 +338,7 @@ def load_existing_score(stats_file_path):
 
 
 def write_output(stats_file_path, image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, um_per_pixel):
+    log.debug("All tile data length: %d" % len(all_tile_data))
     all_read_rcs_filepath = os.path.join(path_info.results_directory, base_name, '{}_all_read_rcs.txt'.format(image_index))
 
     # if we've already aligned this channel with a different strategy, the current alignment may or may not be better
@@ -351,15 +352,17 @@ def write_output(stats_file_path, image_index, base_name, fastq_image_aligner, p
 
     # save information about how to align the images
     log.info("Saving alignment with score of %s\t\t%s" % (new_stats.score, base_name))
-    with open(stats_file_path, 'w+') as f:
+    with open(stats_file_path, 'w') as f:
         f.write(new_stats.serialized)
 
     # save the corrected location of each read
+    log.debug("Beginning to write %s" % all_read_rcs_filepath)
     all_fastq_image_aligner = fastqimagealigner.FastqImageAligner(um_per_pixel)
     all_fastq_image_aligner.all_reads_fic_from_aligned_fic(fastq_image_aligner, all_tile_data)
-    with open(all_read_rcs_filepath, 'w+') as f:
+    with open(all_read_rcs_filepath, 'w') as f:
         for line in all_fastq_image_aligner.read_names_rcs:
             f.write(line)
+    log.debug("Done writing %s" % all_read_rcs_filepath)
 
     # save some diagnostic PDFs that give a nice visualization of the alignment
     if make_pdfs:
