@@ -77,6 +77,7 @@ class FastqTileRCs(object):
         self.rotation = theta
         self.rotation_degrees = theta * 180.0 / np.pi
         self.offset = offset
+        log.debug("self.offset %s" % self.offset)
         self.aligned_rcs = np.dot(A, x).reshape((len(self.rcs), 2))
 
     def set_correlation(self, im):
