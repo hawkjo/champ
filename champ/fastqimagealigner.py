@@ -30,6 +30,7 @@ class FastqImageAligner(object):
     def load_reads(self, tile_data, valid_keys=None):
         for tile_key, read_names in tile_data.items():
             if valid_keys is None or tile_key in valid_keys:
+                log.debug("load_reads() tile %s read_names len: %d" % (tile_key, len(read_names)))
                 self.fastq_tiles[tile_key] = FastqTileRCs(tile_key, read_names, self.microns_per_pixel)
 
     @property
