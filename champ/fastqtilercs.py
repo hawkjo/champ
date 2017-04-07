@@ -56,7 +56,7 @@ class FastqTileRCs(object):
         self.aligned_rcs = deepcopy(self.mapped_rcs)
         self.aligned_rcs -= np.tile(self.aligned_rcs.min(axis=0), (self.aligned_rcs.shape[0], 1))
         self.aligned_rcs += np.tile(align_tr, (self.aligned_rcs.shape[0], 1))
-        log.debug("aligned rcs min/max: %s %s" % (self.aligned_rcs.min(axis=0), self.aligned_rcs.min(axis=0)))
+        log.debug("aligned rcs min/max: %s %s" % (self.aligned_rcs.min(axis=0), self.aligned_rcs.max(axis=0)))
 
     def set_aligned_rcs_given_transform(self, lbda, theta, offset):
         """Performs transform calculated in FastqImageCorrelator.least_squares_mapping."""
