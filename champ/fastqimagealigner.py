@@ -347,6 +347,9 @@ class FastqImageAligner(object):
         for tile in self.hitting_tiles:
             log.debug("Hitting tiles read_names len: %d" % len(tile.read_names))
             log.debug("Hitting tiles aligned_rcs len: %d" % len(tile.aligned_rcs))
+            first_point = tile.aligned_rcs[0]
+            log.debug("First point: %s, %s" % (first_point[0], first_point[1]))
+            log.debug("Image shape: %s, %s" % (im_shape[0], im_shape[1]))
             for read_name, pt in izip(tile.read_names, tile.aligned_rcs):
                 if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
                     yield '%s\t%f\t%f\n' % (read_name, pt[0], pt[1])
