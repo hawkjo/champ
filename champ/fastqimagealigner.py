@@ -347,3 +347,6 @@ class FastqImageAligner(object):
             for read_name, pt in izip(tile.read_names, tile.aligned_rcs):
                 if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
                     yield '%s\t%f\t%f\n' % (read_name, pt[0], pt[1])
+                else:
+                    log.info("-offset %f" % (pt[0] - tile.offset[0]))
+                    log.info("+offset %f" % (pt[0] + tile.offset[0]))
