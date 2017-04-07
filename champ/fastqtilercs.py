@@ -66,9 +66,10 @@ class FastqTileRCs(object):
             A[2*i, :] = [xir, -yir, 1, 0]
             A[2*i+1, :] = [yir,  xir, 0, 1]
 
+        # -offset[0] is temporary and might break things!
         x = np.array([lbda * np.cos(theta),
                       lbda * np.sin(theta),
-                      offset[0],
+                      -offset[0],
                       offset[1]])
 
         # First update w since it depends on previous scale setting
