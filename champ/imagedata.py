@@ -32,5 +32,5 @@ class ImageData(object):
         padded_im = np.pad(self.image,
                            ((int(padding[0]), int(w-totalx)), (int(padding[1]), int(h-totaly))),
                            mode='constant')
-        log.info("padded im shape %s" % padded_im.shape)
+        log.info("padded im shape %s %s" % (padded_im.shape[0], padded_im.shape[1]))
         self.fft = np.fft.fft2(padded_im)
