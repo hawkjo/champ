@@ -356,13 +356,11 @@ def write_output(stats_file_path, image_index, base_name, fastq_image_aligner, p
         f.write(new_stats.serialized)
 
     # save the corrected location of each read
-    log.debug("Beginning to write %s" % all_read_rcs_filepath)
     all_fastq_image_aligner = fastqimagealigner.FastqImageAligner(um_per_pixel)
     all_fastq_image_aligner.all_reads_fic_from_aligned_fic(fastq_image_aligner, all_tile_data)
     with open(all_read_rcs_filepath, 'w') as f:
         for line in all_fastq_image_aligner.read_names_rcs:
             f.write(line)
-    log.debug("Done writing %s" % all_read_rcs_filepath)
 
     # save some diagnostic PDFs that give a nice visualization of the alignment
     if make_pdfs:
