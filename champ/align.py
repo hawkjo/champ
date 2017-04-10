@@ -112,6 +112,9 @@ def make_output_directories(h5_filenames, path_info):
 
 
 def get_end_tiles(cluster_strategies, rotation_adjustment, h5_filenames, alignment_channel, snr, metadata, sequencing_chip, fia):
+    print("SIDE TILES")
+    print(sequencing_chip.left_side_tiles)
+    print(sequencing_chip.right_side_tiles)
     right_end_tiles = {}
     left_end_tiles = {}
     for cluster_strategy in cluster_strategies:
