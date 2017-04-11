@@ -78,7 +78,7 @@ def main(clargs):
     if not metadata['phix_aligned']:
         for cluster_strategy in cluster_strategies:
             align.run(cluster_strategy, clargs.rotation_adjustment, h5_filenames, path_info, clargs.snr, clargs.min_hits, fia, end_tiles, metadata['alignment_channel'],
-                      all_tile_data, metadata, clargs.make_pdfs, sequencing_chip)
+                      all_tile_data, metadata, clargs.make_pdfs, sequencing_chip, clargs.cores)
             metadata['phix_aligned'] = True
             initialize.update(clargs.image_directory, metadata)
         else:
