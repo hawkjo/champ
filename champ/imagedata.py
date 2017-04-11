@@ -1,8 +1,5 @@
 import numpy as np
 from champ import misc
-import logging
-
-log = logging.getLogger(__name__)
 
 
 class ImageData(object):
