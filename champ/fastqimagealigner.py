@@ -143,7 +143,7 @@ class FastqImageAligner(object):
                     self.rcs_in_frame.append((tile.key, rcs[i]))
         self.aligned_rcs_in_frame = np.array(aligned_rcs_in_frame)
         log.debug("FIA.aligned_rcs_in_frame %s" % self.aligned_rcs_in_frame)
-        log.debug("len(FIA.aligned_rcs_in_frame.shape %s" % self.aligned_rcs_in_frame.shape)
+        log.debug("FIA.aligned_rcs_in_frame.shape %s, %s" % self.aligned_rcs_in_frame.shape)
         log.debug("FIA.rcs_in_frame.len() %s" % len(self.rcs_in_frame))
 
     def hit_dists(self, hits):
