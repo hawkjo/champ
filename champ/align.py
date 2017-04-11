@@ -95,7 +95,6 @@ def perform_alignment(cluster_strategy, rotation_adjustment, path_info, snr, min
         else:
             result = write_output(stats_file_path, image.index, base_name, fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
             print("Write alignment for %s: %s" % (image.index, result))
-
     # Force the GC to run, since otherwise memory usage blows up
     del fia
     del image
@@ -351,13 +350,13 @@ def write_output(stats_file_path, image_index, base_name, fastq_image_aligner, p
 
     # save information about how to align the images
     log.info("Saving alignment with score of %s\t\t%s" % (new_stats.score, base_name))
-    with open(stats_file_path, 'w+') as f:
+    with open(stats_file_path, 'w') as f:
         f.write(new_stats.serialized)
 
     # save the corrected location of each read
     all_fastq_image_aligner = fastqimagealigner.FastqImageAligner(um_per_pixel)
     all_fastq_image_aligner.all_reads_fic_from_aligned_fic(fastq_image_aligner, all_tile_data)
-    with open(all_read_rcs_filepath, 'w+') as f:
+    with open(all_read_rcs_filepath, 'w') as f:
         for line in all_fastq_image_aligner.read_names_rcs:
             f.write(line)
 
