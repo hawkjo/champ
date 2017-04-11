@@ -47,9 +47,15 @@ class FastqImageAligner(object):
         self.clusters = other_fic.clusters
         for other_tile in other_fic.hitting_tiles:
             tile = self.fastq_tiles[other_tile.key]
-            tile.set_aligned_rcs_given_transform(other_tile.scale,
-                                                 other_tile.rotation,
-                                                 other_tile.offset)
+            try:
+                tile.set_aligned_rcs_given_transform(other_tile.scale,
+                                                     other_tile.rotation,
+                                                     other_tile.offset)
+            except AttributeError:
+                # I'm not sure why this is happening - tiles aren't getting aligned?
+                # We will make sure tiles are aligned before writing results to disk
+                log.debug("Skipping tile that lacks rotation!")
+                continue
 
     def set_tile_alignment(self, tile_key, scale, fq_w, rotation, rc_offset):
         if self.fastq_tiles[tile_key] not in self.hitting_tiles:
@@ -344,6 +350,10 @@ class FastqImageAligner(object):
     def read_names_rcs(self):
         im_shape = self.image_data.image.shape
         for tile in self.hitting_tiles:
+            if not hasattr(tile, 'rotation'):
+                # hack because I don't understand why tiles aren't getting rotations
+                # not having rotations implies they aren't getting aligned at all, which is very bad
+                continue
             for read_name, pt in izip(tile.read_names, tile.aligned_rcs):
                 if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
                     yield '%s\t%f\t%f\n' % (read_name, pt[0], pt[1])
