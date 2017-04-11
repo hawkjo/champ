@@ -342,7 +342,6 @@ def load_existing_score(stats_file_path):
 
 
 def write_output(stats_file_path, image_index, base_name, fastq_image_aligner, path_info, all_tile_data, make_pdfs, um_per_pixel):
-    log.debug("All tile data length: %d" % len(all_tile_data))
     all_read_rcs_filepath = os.path.join(path_info.results_directory, base_name, '{}_all_read_rcs.txt'.format(image_index))
 
     # if we've already aligned this channel with a different strategy, the current alignment may or may not be better
