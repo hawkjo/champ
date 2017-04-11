@@ -137,6 +137,7 @@ class FastqImageAligner(object):
         for tile in considered_tiles:
             rcs = tile.rcs.astype(np.int)
             for i, pt in enumerate(tile.aligned_rcs):
+                log.debug("find_points_in_frame tile.aligned_rcs: %s" % tile.aligned_rcs)
                 if 0 <= pt[0] < im_shape[0] and 0 <= pt[1] < im_shape[1]:
                     aligned_rcs_in_frame.append(pt)
                     self.rcs_in_frame.append((tile.key, rcs[i]))

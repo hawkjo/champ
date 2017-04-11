@@ -57,6 +57,7 @@ class FastqTileRCs(object):
         self.aligned_rcs += np.tile(align_tr, (self.aligned_rcs.shape[0], 1))
 
     def set_aligned_rcs_given_transform(self, lbda, theta, offset):
+        log.debug("set_aligned_rcs_given_transform LTO: %s\t%s\t%s" % (lbda, theta, offset))
         """Performs transform calculated in FastqImageCorrelator.least_squares_mapping."""
         A = np.zeros((2*len(self.rcs), 4))
         for i, pt in enumerate(self.rcs):
@@ -76,6 +77,7 @@ class FastqTileRCs(object):
         self.rotation_degrees = theta * 180.0 / np.pi
         self.offset = offset
         self.aligned_rcs = np.dot(A, x).reshape((len(self.rcs), 2))
+        log.debug("TILE.aligned_rcs %s" % self.aligned_rcs)
 
     def set_correlation(self, im):
         """Sets alignment correlation. Only works when image need not be flipped or rotated."""
