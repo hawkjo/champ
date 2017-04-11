@@ -100,7 +100,7 @@ def perform_alignment(cluster_strategy, rotation_adjustment, path_info, snr, min
         else:
             result = write_output(stats_file_path, image.index, base_name, fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
             print("Write alignment for %s: %s" % (image.index, result))
-
+            exit()
     # Force the GC to run, since otherwise memory usage blows up
     del fia
     del image
@@ -292,7 +292,7 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
                     image = grid.get(row, column)
                     if image is not None:
                         yield row, column, channel, h5_filename, tile_map[image.column], base_name
-
+                        exit()
 
 def load_read_names(file_path):
     if not file_path:
