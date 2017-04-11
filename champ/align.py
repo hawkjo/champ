@@ -292,7 +292,7 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
                     image = grid.get(row, column)
                     if image is not None:
                         yield row, column, channel, h5_filename, tile_map[image.column], base_name
-                        exit()
+
 
 def load_read_names(file_path):
     if not file_path:
