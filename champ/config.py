@@ -49,13 +49,6 @@ class CommandLineArguments(object):
                 return possible_command
 
     @property
-    def cores(self):
-        # limits the number of cores used for alignments
-        # should reduce the total amount of memory used
-        cores = self._arguments['--cores']
-        return int(cores) if cores else None
-
-    @property
     def fastq_directory(self):
         return self._arguments['FASTQ_DIRECTORY']
 

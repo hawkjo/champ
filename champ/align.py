@@ -20,14 +20,9 @@ log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 
 
-def run(cluster_strategy, rotation_adjustment, h5_filenames, path_info, snr, min_hits, fia, end_tiles, alignment_channel, all_tile_data, metadata, make_pdfs, sequencing_chip, cores):
+def run(cluster_strategy, rotation_adjustment, h5_filenames, path_info, snr, min_hits, fia, end_tiles, alignment_channel, all_tile_data, metadata, make_pdfs, sequencing_chip):
     image_count = count_images(h5_filenames, alignment_channel)
-    if not cores:
-        num_processes, chunksize = calculate_process_count(image_count)
-    else:
-        num_processes = cores
-        chunksize = 32
-
+    num_processes, chunksize = calculate_process_count(image_count)
     log.debug("Aligning alignment images with %d cores with chunksize %d" % (num_processes, chunksize))
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
