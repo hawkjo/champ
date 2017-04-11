@@ -100,7 +100,6 @@ def perform_alignment(cluster_strategy, rotation_adjustment, path_info, snr, min
         else:
             result = write_output(stats_file_path, image.index, base_name, fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
             print("Write alignment for %s: %s" % (image.index, result))
-            exit()
     # Force the GC to run, since otherwise memory usage blows up
     del fia
     del image
