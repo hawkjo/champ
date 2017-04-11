@@ -57,7 +57,6 @@ class FastqTileRCs(object):
         self.aligned_rcs += np.tile(align_tr, (self.aligned_rcs.shape[0], 1))
 
     def set_aligned_rcs_given_transform(self, lbda, theta, offset):
-        log.debug("set_aligned_rcs_given_transform LTO: %s\t%s\t%s" % (lbda, theta, offset))
         """Performs transform calculated in FastqImageCorrelator.least_squares_mapping."""
         A = np.zeros((2*len(self.rcs), 4))
         for i, pt in enumerate(self.rcs):
@@ -77,20 +76,11 @@ class FastqTileRCs(object):
         self.rotation_degrees = theta * 180.0 / np.pi
         self.offset = offset
         self.aligned_rcs = np.dot(A, x).reshape((len(self.rcs), 2))
-        log.debug("TILE.aligned_rcs %s" % self.aligned_rcs)
-        log.debug("-----------")
-        good_points = []
-        for i, pt in enumerate(self.aligned_rcs):
-            if 0 <= pt[0] < 512 and 0 <= pt[1] < 512:
-                good_points.append(pt)
-        log.debug("Found %d good points in tile.aligned_rcs" % len(good_points))
-        log.debug("========================")
 
     def set_correlation(self, im):
         """Sets alignment correlation. Only works when image need not be flipped or rotated."""
         self.best_max_corr = sum(im[int(x), int(y)] for x, y in self.aligned_rcs
                                  if 0.0 <= x < im.shape[0] and 0.0 <= y < im.shape[1])
-        log.debug("best max corr %s" % self.best_max_corr)
 
     def set_snr_with_control_corr(self, control_corr):
         self.snr = self.best_max_corr / control_corr
