@@ -1,5 +1,8 @@
 import numpy as np
 from champ import misc
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class ImageData(object):
@@ -23,6 +26,10 @@ class ImageData(object):
         totalx, totaly = np.array(padding) + np.array(self.image.shape)
         w = misc.next_power_of_2(totalx)
         h = misc.next_power_of_2(totaly)
+        log.debug("padding[0] %s" % int(padding[0]))
+        log.debug("padding[1] %s" % int(padding[1]))
+        log.debug("w, h %s %s" % (w, h))
+        log.debug("totalx,y %s %s" % (totalx, totaly))
         padded_im = np.pad(self.image,
                            ((int(padding[0]), int(w-totalx)), (int(padding[1]), int(h-totaly))),
                            mode='constant')
