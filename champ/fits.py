@@ -45,21 +45,21 @@ def ensure_image_data_directory_exists(h5_filename):
         os.mkdir(new_directory)
 
 
-def otsu_cluster_func(h5_base_name):
-    h5_filename = h5_base_name + ".h5"
-    log.info("Finding clusters for %s" % h5_filename)
-    h5 = h5py.File(h5_filename)
-    for channel in h5.keys():
-        grid = GridImages(h5, channel)
-        for image in grid:
-            out_filepath = os.path.join(h5_base_name, image.index + '.clusters.otsu')
-            threshold = threshold_otsu(image)
-            mask_pixels = (image > threshold)
-            mask = ndimage.binary_closing(ndimage.binary_opening(mask_pixels))
-            label_image, num_labels = ndimage.label(mask)
-            log.debug("Found %d clusters in %s/%s" % (num_labels, h5_base_name, image.index))
-            center_of_masses = ndimage.center_of_mass(image, label_image, range(num_labels + 1))
-            write_cluster_locations(center_of_masses, out_filepath)
+def otsu_cluster_func(h5_filename, condition):
+    log.info("Finding Otsu clusters for %s" % condition)
+    with h5py.File(h5_filename, 'r') as h5:
+        images = h5[condition]
+        for channel in h5.keys():
+            grid = GridImages(images, channel)
+            for image in grid:
+                out_filepath = condition + image.index + '.clusters.otsu'
+                threshold = threshold_otsu(image)
+                mask_pixels = (image > threshold)
+                mask = ndimage.binary_closing(ndimage.binary_opening(mask_pixels))
+                label_image, num_labels = ndimage.label(mask)
+                log.debug("Found %d clusters in %s/%s" % (num_labels, condition, image.index))
+                center_of_masses = ndimage.center_of_mass(image, label_image, range(num_labels + 1))
+                write_cluster_locations(center_of_masses, out_filepath)
 
 
 def write_cluster_locations(locations, out_filepath):
@@ -125,62 +125,61 @@ def source_extract(base_file):
         f.write(cluster_data)
 
 
-def create_fits_files(h5_base_name):
-    h5_filename = h5_base_name + ".h5"
+def create_fits_files(h5_filename, condition):
     log.info("Creating fits files for %s" % h5_filename)
     h5 = h5py.File(h5_filename)
-    for channel in h5.keys():
-        grid = GridImages(h5, channel)
+    for channel in h5[condition].keys():
+        grid = GridImages(h5[condition], channel)
         for image in grid:
-            fits_path = '%s.fits' % os.path.join(h5_base_name, image.index)
+            fits_path = '%s.fits' % os.path.join('%s.%s' % (condition, image.index))
             # Source Extractor can handle at most 32-bit values, so we have to cast down from our 64-bit images or
             # else it will throw an error. We clip to ensure there's no overflow, although this seems improbable
             # given that most cameras are 16 bit
             clipped_image = np.clip(image, 0, 2**32-1).astype(np.uint32)
             hdu = fits.PrimaryHDU(clipped_image)
             hdu.writeto(fits_path, clobber=True)
-    log.info("Done creating fits files for %s" % h5_base_name)
+    log.info("Done creating fits files for %s" % condition)
 
 
 def main(image_directory):
-    image_files = ImageFiles(image_directory,
-                             [f for f in os.listdir(image_directory) if f.endswith('.h5')])
-    for directory in image_files.directories:
-        ensure_image_data_directory_exists(directory)
+    image_file = os.sep.join(image_directory, 'images.h5')
+    with h5py.File(image_file, 'r') as h5:
+        conditions = h5.keys()
     # Try to use one core per file, but top out at the number of cores that the machine has.
-    thread_count = min(len(image_files), multiprocessing.cpu_count() - 2)
+    thread_count = min(len(conditions), multiprocessing.cpu_count() - 2)
     log.debug("Using %s threads for source extraction" % thread_count)
     # Assign each HDF5 file to a thread, which converts it to a "fits" file
     worker_pool = Pool(processes=thread_count)
-    find_clusters_source_extractor(worker_pool, image_files)
-    find_clusters_otsu(worker_pool, image_files)
+    # find_clusters_source_extractor(worker_pool, image_file, conditions)
+    find_clusters_otsu(worker_pool, image_file, conditions)
 
 
-def find_clusters_otsu(worker_pool, image_files):
+def find_clusters_otsu(worker_pool, image_file, conditions):
     # Find clusters with Otsu thresholding
     start = time.time()
-    worker_pool.map_async(otsu_cluster_func, image_files.directories).get(timeout=sys.maxint)
+    otsu_partial_func = functools.partial(otsu_cluster_func, image_file)
+    worker_pool.map_async(otsu_partial_func, conditions).get(timeout=sys.maxint)
     log.info("Done with cluster location. Elapsed time: %s seconds" % round(time.time() - start, 0))
 
 
-def find_clusters_source_extractor(worker_pool, image_files):
-    # Find clusters with Source Extractor
-    log.info("Starting fits file conversions.")
-    # The multiprocessing thing only takes an iterable with no arguments, so we use a partial function to pass
-    # the directory where the files should be written
-    fits_func = functools.partial(create_fits_files)
-    # KeyboardInterrupt won't behave as expected while multiprocessing unless you specify a timeout.
-    # We don't want one really, so we just use the largest possible integer instead
-    start = time.time()
-    worker_pool.map_async(fits_func, image_files.directories).get(timeout=sys.maxint)
-    log.info("Done with fits file conversions. Elapsed time: %s seconds" % round(time.time() - start, 0))
-
-    # Now run source extractor to find the coordinates of points
-    with SEConfig():
-        log.info("Starting Source Extractor...")
-        start = time.time()
-        # Set up a worker for each HDF5 file like before
-        base_files = [base_file for h5_filename in image_files.directories
-                      for base_file in get_base_file_names(h5_filename)]
-        worker_pool.map_async(source_extract, base_files).get(timeout=sys.maxint)
-        log.info("Done with Source Extractor! Took %s seconds" % round(time.time() - start, 0))
+# def find_clusters_source_extractor(worker_pool, image_file, conditions):
+#     # Find clusters with Source Extractor
+#     log.info("Starting fits file conversions.")
+#     # The multiprocessing thing only takes an iterable with no arguments, so we use a partial function to pass
+#     # the directory where the files should be written
+#     fits_func = functools.partial(create_fits_files, image_file)
+#     # KeyboardInterrupt won't behave as expected while multiprocessing unless you specify a timeout.
+#     # We don't want one really, so we just use the largest possible integer instead
+#     start = time.time()
+#     worker_pool.map_async(fits_func, image_files.directories).get(timeout=sys.maxint)
+#     log.info("Done with fits file conversions. Elapsed time: %s seconds" % round(time.time() - start, 0))
+#
+#     # Now run source extractor to find the coordinates of points
+#     with SEConfig():
+#         log.info("Starting Source Extractor...")
+#         start = time.time()
+#         # Set up a worker for each HDF5 file like before
+#         base_files = [base_file for h5_filename in image_files.directories
+#                       for base_file in get_base_file_names(h5_filename)]
+#         worker_pool.map_async(source_extract, base_files).get(timeout=sys.maxint)
+#         log.info("Done with Source Extractor! Took %s seconds" % round(time.time() - start, 0))
