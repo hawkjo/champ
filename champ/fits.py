@@ -49,7 +49,7 @@ def otsu_cluster_func(h5_filename, condition):
     log.info("Finding Otsu clusters for %s" % condition)
     with h5py.File(h5_filename, 'r') as h5:
         images = h5[condition]
-        for channel in h5.keys():
+        for channel in images.keys():
             grid = GridImages(images, channel)
             for image in grid:
                 out_filepath = condition + image.index + '.clusters.otsu'
