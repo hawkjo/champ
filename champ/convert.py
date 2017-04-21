@@ -43,7 +43,7 @@ def main(paths, flipud, fliplr):
         image_adjustments.append(lambda x: np.fliplr(x))
     with h5py.File('images.h5', 'a') as h5:
         for directory, tifs in paths.items():
-            condition = misc.parse_concentration(directory)
+            condition = str(misc.parse_concentration(directory))
             condition_group = h5.create_group(condition)
             tiff_stack = load_tiff_stack(list(tifs), image_adjustments)
             for t in tiff_stack:
