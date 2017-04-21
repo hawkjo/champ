@@ -33,7 +33,7 @@ def load_filenames(image_directory):
 def main(clargs):
     metadata = initialize.load(clargs.image_directory)
     if 'preprocessed' not in metadata or not metadata['preprocessed']:
-        log.warn("Deleting (probably invalid) existing HDF5 file and recreating it: %s" % filename)
+        # log.warn("Deleting (probably invalid) existing HDF5 file and recreating it: %s" % filename)
         # os.unlink(filename)
         # preprocess(clargs.image_directory, metadata)
         preprocess_clusters(clargs.image_directory, metadata)
