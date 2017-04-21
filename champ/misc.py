@@ -58,7 +58,7 @@ def parse_concentration(filename):
     m = re.search(pattern, filename)
     if m is None:
         raise ValueError("The concentration cannot be parsed from the filename: %s" % filename)
-    conc = float(m.group(1).replace('_', '.'))
+    conc = int(m.group(1).replace('_', '.'))
     if m.group(2).lower() == 'pm':
         return conc
     elif m.group(2).lower() == 'nm':
