@@ -114,11 +114,15 @@ THETA_IMAGE
 
 
 def source_extract(base_file):
-    command = '/usr/bin/sextractor {base_file}.fits -PARAMETERS_NAME spot.param -CATALOG_NAME {base_file}.clusters.se -CHECKIMAGE_TYPE OBJECTS -CHECKIMAGE_NAME {base_file}.model'
+    command = '/usr/bin/sextractor {base_file}.fits -PARAMETERS_NAME spot.param -CATALOG_NAME STDOUT -CATALOG_TYPE ASCII -CHECKIMAGE_TYPE OBJECTS -CHECKIMAGE_NAME {base_file}.model -VERBOSE_TYPE QUIET'
     # Don't print any output
-    with open('/dev/null', 'w') as devnull:
-        command = command.format(base_file=base_file).split(' ')
-        subprocess.call(command, stdout=devnull, stderr=devnull)
+    command = command.format(base_file=base_file).split(' ')
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    cluster_data, errors = process.communicate()
+    if errors:
+        log.error("Error using Source Extractor on file: %s" % base_file)
+    with open("{base_file}.clusters.se".format(base_file=base_file), 'w') as f:
+        f.write(cluster_data)
 
 
 def create_fits_files(h5_base_name):

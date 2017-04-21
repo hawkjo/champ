@@ -35,6 +35,9 @@ def main(clargs):
             os.unlink(filename)
         preprocess(clargs.image_directory, metadata)
 
+    log.info("===== STOPPING BECAUSE JIM IS DEBUGGING =====")
+    exit()
+
     h5_filenames = load_filenames(clargs.image_directory)
     if len(h5_filenames) == 0:
         error.fail("There were no HDF5 files to process. You must have deleted or moved them after preprocessing them.")
