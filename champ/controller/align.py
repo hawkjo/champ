@@ -16,6 +16,9 @@ def preprocess(image_directory, metadata):
     log.debug("About to convert TIFs to HDF5.")
     convert.main(paths, metadata['flipud'], metadata['fliplr'])
     log.debug("Done converting TIFs to HDF5.")
+
+
+def preprocess_clusters(image_directory, metadata):
     log.debug("Fitsifying images from HDF5 files.")
     fits.main(image_directory)
     metadata['preprocessed'] = True
@@ -30,10 +33,10 @@ def load_filenames(image_directory):
 def main(clargs):
     metadata = initialize.load(clargs.image_directory)
     if 'preprocessed' not in metadata or not metadata['preprocessed']:
-        for filename in load_filenames(clargs.image_directory):
-            log.warn("Deleting (probably invalid) existing HDF5 file and recreating it: %s" % filename)
-            # os.unlink(filename)
-        preprocess(clargs.image_directory, metadata)
+        log.warn("Deleting (probably invalid) existing HDF5 file and recreating it: %s" % filename)
+        # os.unlink(filename)
+        # preprocess(clargs.image_directory, metadata)
+        preprocess_clusters(clargs.image_directory, metadata)
 
     log.info("===== STOPPING BECAUSE JIM IS DEBUGGING =====")
     exit()
