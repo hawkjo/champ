@@ -2,6 +2,7 @@ import tifffile
 import os
 import numpy as np
 from champ.tiff import TifsPerConcentration, TifsPerFieldOfView
+from champ import misc
 from collections import defaultdict
 import h5py
 import logging
@@ -40,17 +41,17 @@ def main(paths, flipud, fliplr):
         image_adjustments.append(lambda x: np.flipud(x))
     if fliplr:
         image_adjustments.append(lambda x: np.fliplr(x))
-
-    for directory, tifs in paths.items():
-        hdf5_filename = directory + ".h5"
-        with h5py.File(hdf5_filename, 'a') as h5:
+    with h5py.File('images.h5', 'a') as h5:
+        for directory, tifs in paths.items():
+            condition = misc.parse_concentration(directory)
+            condition_group = h5.create_group(condition)
             tiff_stack = load_tiff_stack(list(tifs), image_adjustments)
             for t in tiff_stack:
                 for channel, image in t:
-                    if channel not in h5:
-                        group = h5.create_group(channel)
+                    if channel not in h5[condition]:
+                        group = condition_group.create_group(channel)
                     else:
-                        group = h5[channel]
+                        group = condition_group[channel]
                     dataset = group.create_dataset(t.dataset_name, image.shape, dtype=image.dtype)
                     dataset[...] = image
-        log.debug("Done with %s" % hdf5_filename)
+            log.debug("Done converting images for condition: %s" % condition)
