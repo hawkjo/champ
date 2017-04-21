@@ -10,6 +10,8 @@ import os
 from scipy import ndimage
 from skimage.filters import threshold_otsu
 import subprocess
+import threading
+from Queue import Queue
 import sys
 import time
 
@@ -53,13 +55,17 @@ def otsu_cluster_func(h5_filename, condition):
             grid = GridImages(images, channel)
             for image in grid:
                 out_filepath = condition + image.index + '.clusters.otsu'
-                threshold = threshold_otsu(image)
-                mask_pixels = (image > threshold)
-                mask = ndimage.binary_closing(ndimage.binary_opening(mask_pixels))
-                label_image, num_labels = ndimage.label(mask)
-                log.debug("Found %d clusters in %s/%s" % (num_labels, condition, image.index))
-                center_of_masses = ndimage.center_of_mass(image, label_image, range(num_labels + 1))
+                center_of_masses = find_center_of_masses_using_otsu(image)
                 write_cluster_locations(center_of_masses, out_filepath)
+
+
+def find_center_of_masses_using_otsu(image):
+    threshold = threshold_otsu(image)
+    mask_pixels = (image > threshold)
+    mask = ndimage.binary_closing(ndimage.binary_opening(mask_pixels))
+    label_image, num_labels = ndimage.label(mask)
+    center_of_masses = ndimage.center_of_mass(image, label_image, range(num_labels + 1))
+    return center_of_masses
 
 
 def write_cluster_locations(locations, out_filepath):
@@ -142,23 +148,26 @@ def create_fits_files(h5_filename, condition):
 
 
 def main(image_directory):
-    image_file = os.path.join(image_directory, 'images.h5')
-    with h5py.File(image_file, 'r') as h5:
+    h5_filename = os.path.join(image_directory, 'images.h5')
+    with h5py.File(h5_filename, 'r') as h5:
         conditions = h5.keys()
-    # Try to use one core per file, but top out at the number of cores that the machine has.
-    thread_count = min(len(conditions), multiprocessing.cpu_count() - 2)
-    log.debug("Using %s threads for source extraction" % thread_count)
+    log.debug("Using %s threads for source extraction" % len(conditions))
     # Assign each HDF5 file to a thread, which converts it to a "fits" file
-    worker_pool = Pool(processes=thread_count)
+
+    for condition in conditions:
+        thread = threading.Thread(target=thread_find_clusters_otsu, args=(h5_filename, condition))
+        thread.start()
     # find_clusters_source_extractor(worker_pool, image_file, conditions)
-    find_clusters_otsu(worker_pool, image_file, conditions)
+    # find_clusters_otsu(worker_pool, image_file, conditions)
 
 
-def find_clusters_otsu(worker_pool, image_file, conditions):
+def thread_find_clusters_otsu(h5_filename, condition):
+    log.debug("Finding clusters with Otsu for %s" % condition)
     # Find clusters with Otsu thresholding
     start = time.time()
-    otsu_partial_func = functools.partial(otsu_cluster_func, image_file)
-    worker_pool.map_async(otsu_partial_func, conditions).get(timeout=sys.maxint)
+    otsu_cluster_func(h5_filename, condition)
+    # otsu_partial_func = functools.partial(otsu_cluster_func, image_file)
+    # worker_pool.map_async(otsu_partial_func, conditions).get(timeout=sys.maxint)
     log.info("Done with cluster location. Elapsed time: %s seconds" % round(time.time() - start, 0))
 
 
