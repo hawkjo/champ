@@ -142,7 +142,7 @@ def create_fits_files(h5_filename, condition):
 
 
 def main(image_directory):
-    image_file = os.sep.join(image_directory, 'images.h5')
+    image_file = os.path.join(image_directory, 'images.h5')
     with h5py.File(image_file, 'r') as h5:
         conditions = h5.keys()
     # Try to use one core per file, but top out at the number of cores that the machine has.
