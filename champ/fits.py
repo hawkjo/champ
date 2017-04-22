@@ -1,19 +1,17 @@
 from astropy.io import fits
 from champ.grid import GridImages
-import functools
 import h5py
 import logging
-import multiprocessing
-from multiprocessing import Pool
 import numpy as np
 import os
 from scipy import ndimage
 from skimage.filters import threshold_otsu
 import subprocess
 import threading
-from Queue import Queue
-import sys
+from Queue import Queue, Empty
 import time
+import sys
+
 
 log = logging.getLogger(__name__)
 
@@ -47,7 +45,7 @@ def ensure_image_data_directory_exists(h5_filename):
         os.mkdir(new_directory)
 
 
-def otsu_cluster_func(h5_filename, condition):
+def otsu_cluster_func(h5_filename, condition, results_queue):
     log.info("Finding Otsu clusters for %s" % condition)
     with h5py.File(h5_filename, 'r') as h5:
         images = h5[condition]
@@ -56,7 +54,9 @@ def otsu_cluster_func(h5_filename, condition):
             for image in grid:
                 out_filepath = condition + image.index + '.clusters.otsu'
                 center_of_masses = find_center_of_masses_using_otsu(image)
-                write_cluster_locations(center_of_masses, out_filepath)
+                results_queue.put((center_of_masses, out_filepath))
+                sys.stdout.write('.')
+                sys.stdout.flush()
 
 
 def find_center_of_masses_using_otsu(image):
@@ -153,19 +153,35 @@ def main(image_directory):
         conditions = h5.keys()
     log.debug("Using %s threads for source extraction" % len(conditions))
     # Assign each HDF5 file to a thread, which converts it to a "fits" file
-
+    results_queue = Queue()
+    threads = []
     for condition in conditions:
-        thread = threading.Thread(target=thread_find_clusters_otsu, args=(h5_filename, condition))
+        log.debug("Starting thread for %s" % condition)
+        thread = threading.Thread(target=thread_find_clusters_otsu, args=(h5_filename, condition, results_queue))
         thread.start()
+        threads.append(thread)
+
+    for thread in threads:
+        log.debug("joining for thread")
+        thread.join()
+    log.debug("about to start infiniloop")
+    while True:
+        try:
+            center_of_masses, out_filepath = results_queue.get_nowait()
+            log.debug("writing: %s" % out_filepath)
+            with open(out_filepath, 'w') as f:
+                f.write(center_of_masses)
+        except Empty:
+            break
+    log.debug("done")
     # find_clusters_source_extractor(worker_pool, image_file, conditions)
     # find_clusters_otsu(worker_pool, image_file, conditions)
 
 
-def thread_find_clusters_otsu(h5_filename, condition):
-    log.debug("Finding clusters with Otsu for %s" % condition)
+def thread_find_clusters_otsu(h5_filename, condition, results_queue):
     # Find clusters with Otsu thresholding
     start = time.time()
-    otsu_cluster_func(h5_filename, condition)
+    otsu_cluster_func(h5_filename, condition, results_queue)
     # otsu_partial_func = functools.partial(otsu_cluster_func, image_file)
     # worker_pool.map_async(otsu_partial_func, conditions).get(timeout=sys.maxint)
     log.info("Done with cluster location. Elapsed time: %s seconds" % round(time.time() - start, 0))
