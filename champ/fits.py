@@ -169,8 +169,7 @@ def main(image_directory):
         try:
             center_of_masses, out_filepath = results_queue.get_nowait()
             log.debug("writing: %s" % out_filepath)
-            with open(out_filepath, 'w') as f:
-                f.write(center_of_masses)
+            write_cluster_locations(center_of_masses, out_filepath)
         except Empty:
             break
     log.debug("done")
