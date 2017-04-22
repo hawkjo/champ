@@ -10,7 +10,7 @@ import subprocess
 import threading
 from Queue import Queue, Empty
 import time
-import sys
+import sqlite3
 
 
 log = logging.getLogger(__name__)
@@ -52,11 +52,8 @@ def otsu_cluster_func(h5_filename, condition, results_queue):
         for channel in images.keys():
             grid = GridImages(images, channel)
             for image in grid:
-                out_filepath = condition + image.index + '.clusters.otsu'
                 center_of_masses = find_center_of_masses_using_otsu(image)
-                results_queue.put((center_of_masses, out_filepath))
-                sys.stdout.write('.')
-                sys.stdout.flush()
+                results_queue.put((center_of_masses, condition, image.row, image.column))
 
 
 def find_center_of_masses_using_otsu(image):
@@ -68,12 +65,11 @@ def find_center_of_masses_using_otsu(image):
     return center_of_masses
 
 
-def write_cluster_locations(locations, out_filepath):
-    with open(out_filepath, 'w') as out:
-        out.write('\n'.join("%s\t%s" % (r, c) for r, c in locations))
-
-
-# ===================
+def write_cluster_locations(locations, condition, fov_row, fov_column, cursor):
+    # out.write('\n'.join("%s\t%s" % (r, c) for r, c in locations))
+    # condition int, fov_row int, fov_column int, row real, column real)
+    query = "INSERT INTO clusters VALUES (%s, %s, %s, ?, ?)" % (condition, fov_row, fov_column)
+    cursor.executemany(query, locations)
 
 
 class SEConfig(object):
@@ -148,6 +144,8 @@ def create_fits_files(h5_filename, condition):
 
 
 def main(image_directory):
+    db = sqlite3.connect(os.path.join(image_directory, 'champ.db'))
+    cursor = db.cursor()
     h5_filename = os.path.join(image_directory, 'images.h5')
     with h5py.File(h5_filename, 'r') as h5:
         conditions = h5.keys()
@@ -167,14 +165,12 @@ def main(image_directory):
     log.debug("about to start infiniloop")
     while True:
         try:
-            center_of_masses, out_filepath = results_queue.get_nowait()
-            log.debug("writing: %s" % out_filepath)
-            write_cluster_locations(center_of_masses, out_filepath)
+            center_of_masses, condition, fov_row, fov_column = results_queue.get_nowait()
+            log.debug("writing: %s %s %s" % (condition, fov_row, fov_column))
+            write_cluster_locations(center_of_masses, condition, fov_row, fov_column, cursor)
         except Empty:
             break
     log.debug("done")
-    # find_clusters_source_extractor(worker_pool, image_file, conditions)
-    # find_clusters_otsu(worker_pool, image_file, conditions)
 
 
 def thread_find_clusters_otsu(h5_filename, condition, results_queue):
