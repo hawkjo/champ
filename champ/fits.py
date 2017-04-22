@@ -145,7 +145,6 @@ def create_fits_files(h5_filename, condition):
 
 def main(image_directory):
     db = sqlite3.connect(os.path.join(image_directory, 'champ.db'))
-    cursor = db.cursor()
     h5_filename = os.path.join(image_directory, 'images.h5')
     with h5py.File(h5_filename, 'r') as h5:
         conditions = h5.keys()
@@ -158,11 +157,11 @@ def main(image_directory):
         thread = threading.Thread(target=thread_find_clusters_otsu, args=(h5_filename, condition, results_queue))
         thread.start()
         threads.append(thread)
-
     for thread in threads:
         log.debug("joining for thread")
         thread.join()
     log.debug("about to start infiniloop")
+    cursor = db.cursor()
     while True:
         try:
             center_of_masses, condition, fov_row, fov_column = results_queue.get_nowait()
@@ -170,6 +169,8 @@ def main(image_directory):
             write_cluster_locations(center_of_masses, condition, fov_row, fov_column, cursor)
         except Empty:
             break
+    db.commit()
+    db.close()
     log.debug("done")
 
 
