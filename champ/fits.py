@@ -144,7 +144,7 @@ def main(image_directory):
     cursor.execute("CREATE TABLE clusters ("
                    "field_of_view_id INTEGER, "
                    "r FLOAT, "
-                   "c FLOAT)")
+                   "c FLOAT, PRIMARY KEY (field_of_view_id, r, c)) WITHOUT ROWID")
     cursor.execute("CREATE TABLE fields_of_view ("
                    "id INTEGER PRIMARY KEY ASC, "
                    "condition MEDIUMINT UNSIGNED, "
