@@ -65,13 +65,6 @@ def find_center_of_masses_using_otsu(image):
     return center_of_masses
 
 
-def write_cluster_locations(locations, condition, fov_row, fov_column, cursor):
-    # out.write('\n'.join("%s\t%s" % (r, c) for r, c in locations))
-    # condition int, fov_row int, fov_column int, row real, column real)
-    query = "INSERT INTO clusters VALUES (%s, %s, %s, ?, ?)" % (condition, fov_row, fov_column)
-    cursor.executemany(query, locations)
-
-
 class SEConfig(object):
     def __enter__(self):
         self._create_config_files()
@@ -145,33 +138,49 @@ def create_fits_files(h5_filename, condition):
 
 def main(image_directory):
     db = sqlite3.connect(os.path.join(image_directory, 'champ.db'))
+    cursor = db.cursor()
+    cursor.execute("DROP TABLE IF EXISTS clusters")
+    cursor.execute("DROP TABLE IF EXISTS fields_of_view")
+    cursor.execute("CREATE TABLE clusters ("
+                   "field_of_view_id INTEGER, "
+                   "r FLOAT, "
+                   "c FLOAT)")
+    cursor.execute("CREATE TABLE fields_of_view ("
+                   "id INTEGER PRIMARY KEY ASC, "
+                   "condition MEDIUMINT UNSIGNED, "
+                   "r TINYINT UNSIGNED, "
+                   "c SMALLINT UNSIGNED)")
+    db.commit()
+
     h5_filename = os.path.join(image_directory, 'images.h5')
     with h5py.File(h5_filename, 'r') as h5:
         conditions = h5.keys()
-    log.debug("Using %s threads for source extraction" % len(conditions))
     # Assign each HDF5 file to a thread, which converts it to a "fits" file
     results_queue = Queue()
     threads = []
     for condition in conditions:
-        log.debug("Starting thread for %s" % condition)
         thread = threading.Thread(target=thread_find_clusters_otsu, args=(h5_filename, condition, results_queue))
         thread.start()
         threads.append(thread)
     for thread in threads:
-        log.debug("joining for thread")
         thread.join()
-    log.debug("about to start infiniloop")
     cursor = db.cursor()
     while True:
         try:
             center_of_masses, condition, fov_row, fov_column = results_queue.get_nowait()
-            log.debug("writing: %s %s %s" % (condition, fov_row, fov_column))
-            write_cluster_locations(center_of_masses, condition, fov_row, fov_column, cursor)
+            cursor.execute("INSERT INTO fields_of_view (condition, r, c) VALUES ({condition}, {row}, {column})".format(
+                condition=condition,
+                row=fov_row,
+                column=fov_column
+            ))
+            # write_field_of_view(condition, fov_row, fov_column)
+            # write_cluster_locations(center_of_masses, cursor.lastrowid, cursor)
+            query = "INSERT INTO clusters VALUES ({field_of_view_id}, ?, ?)".format(field_of_view_id=cursor.lastrowid)
+            cursor.executemany(query, center_of_masses)
         except Empty:
             break
     db.commit()
     db.close()
-    log.debug("done")
 
 
 def thread_find_clusters_otsu(h5_filename, condition, results_queue):
