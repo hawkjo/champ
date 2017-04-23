@@ -484,3 +484,4 @@ class KdFitIA(object):
                                                          Imax_name.replace(' ', '_'))
             fig.savefig(os.path.join(out_dir, out_bname + '.png'), dpi=300)
             fig.savefig(os.path.join(out_dir, out_bname + '.eps'))
+
