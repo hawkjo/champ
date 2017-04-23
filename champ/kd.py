@@ -353,8 +353,6 @@ class KdFitIA(object):
 
     def plot_normalized_fit(self, ax, seq, Kd, Imin, Imax):
         self.IA.plot_normalized_intensities(ax, seq, Imin, Imax, xvals=self.nM_concentrations)
-        Imin = misc.list_if_scalar(Imin, self.IA.course_len)
-        Imax = misc.list_if_scalar(Imax, self.IA.course_len)
         nM_Kd = Kd / 1000.0
 
         def Iobs(x, Kd):
