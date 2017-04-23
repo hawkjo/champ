@@ -108,11 +108,6 @@ class CommandLineArguments(object):
         return self._arguments['OUTPUT_DIRECTORY']
 
     @property
-    def parsed_reads(self):
-        # TODO: This needs to be merged into mapped_reads
-        return self._arguments['READ_NAMES_DIRECTORY']
-
-    @property
     def perfect_target_name(self):
         return self._arguments['--perfect-target-name'] or False
 
