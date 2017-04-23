@@ -8,8 +8,6 @@ bases_set = set(bases)
 
 
 class IntensityArray(object):
-    def __init__(self):
-        pass
 
     def parse_intensities_file(self, fpath):
         """
