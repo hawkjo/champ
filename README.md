@@ -24,11 +24,11 @@ virtualenv env
 . env/bin/activate
 ```
 
-Now install Python packages:
+Now install Python packages and CHAMP:
 
 ```
-pip install numpy && pip install scipy && pip install -r requirements.txt
-python setup.py install
+pip install numpy==1.11.1 && pip install scipy==0.18.0 && pip install -r requirements.txt && python setup.py install
+
 ```
 
 ### Typical Pipeline
