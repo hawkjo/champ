@@ -6,8 +6,7 @@ from champ.error import fail
 def save(clargs):
     filename = os.path.join(clargs.image_directory, 'champ.yml')
     with open(filename, 'w+') as f:
-        data = {'chip_name': clargs.chip_name,
-                'mapped_reads': os.path.abspath(clargs.mapped_reads),
+        data = {'mapped_reads': os.path.abspath(clargs.mapped_reads),
                 'parsed_reads': os.path.abspath(clargs.parsed_reads),
                 'microns_per_pixel': clargs.microns_per_pixel,
                 'chip_type': str(clargs.chip),
