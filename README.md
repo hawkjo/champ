@@ -53,8 +53,6 @@ associate some metadata about the experiment with the image files. There are sev
 
 `IMAGE_DIRECTORY` the directory that contains all of the TIF files (and will contain the HDF5 files)
 
-`CHIP_NAME` the unique ID of the chip. This will show up in some graphs, but is mostly for recordkeeping.
-
 `READ_NAMES_DIRECTORY` the path to the directory that contains the text files produced by the `champ map` command.
 
 `ALIGNMENT_CHANNEL` the name of the color channel that phiX is visible in. We actually recommend (require?) that a
