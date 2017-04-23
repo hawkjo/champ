@@ -22,6 +22,7 @@ class ScoredRead(object):
         self.prev = None
         self.next = None
 
+
 class DoublyLinkedScoreList(object):
     """A doubly-linked list with ScoredReads as nodes. O(1) append/remove sorted list given sorted input."""
     head = None
@@ -106,6 +107,7 @@ class DoublyLinkedScoreList(object):
     def min_end(self):
         return self._min_end
 
+
 class KdFitGenome(object):
     """Class to fit Kds at every position of of interest in a genome."""
     # Class runs through reads in a given bam file, piling reads up for Kd fitting.
@@ -130,7 +132,7 @@ class KdFitGenome(object):
             self.all_read_names.update(
                 self.int_scores.score_given_read_name_in_channel[h5_fpath][signal_channel].keys()
             )
-        self.concentrations = map(misc.pM_concentration_given_fpath, self.h5_fpaths)
+        self.concentrations = map(misc.parse_concentration, self.h5_fpaths)
 
         self.IAKdData = IAKdData(IA_Kd_fpath)
         assert self.concentrations == self.IAKdData.concentrations, (self.concentrations,
