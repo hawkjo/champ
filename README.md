@@ -36,14 +36,13 @@ python setup.py install
 #### Mapping Reads
 
 When a new chip is received, it needs to be analyzed once to determine which reads are fiducial markers (that is,
-clusters of phiX genomic DNA) and which are to be used in the experiment. Sometimes this binary classification is not
-enough - for example, you may have several different targets of interest on the same chip.
+clusters of phiX genomic DNA) and which are to be used in the experiment. Target sequences are kept in a file in 
+YAML format. Short read alignment files produced by Bowtie2 are used to classify genomic DNA. In the example below,
+the phiX files are in a directory called `phix_bowtie` and the prefix `phix` is provided since the files all begin with
+that (this is what Bowtie requires). `min-len` and `max-len` refer to the minimum and maximum length of the sequences
+of interest (note that for CRISPR systems, this length includes the PAM).
 
-In the example below, our chip has two targets that we care about, plus phiX. It may have some other reads that belong
-to none of the groups, and those will get thrown into a catch-all file called "unclassified". Reads in this file will
-still be used for later calculations.
-
-`champ map SA16032/all_fastqs SA16032/mapped_reads ~/my_bamfiles/phix ~/my_bamfiles/target_1 ~/my_bamfiles/target_2`
+`champ map SA16032/all_fastqs SA16032/read_names --target-sequence-file targets.yml --phix-bamfiles phix_bowtie/phix --min-len 24 --max-len 46`
 
 #### Setting Up a New Analysis
 
@@ -62,13 +61,13 @@ associate some metadata about the experiment with the image files. There are sev
 subset of phiX be labeled in channels that proteins are visible in, to help with alignment of low concentrations, but
 this refers specifically to the channel where 100% of phiX clusters are visible.
 
-`LDA_WEIGHTS` the path to the LDA weights file
-
-`--perfect-target-name` the label used to identify your perfect target
+`--perfect-target-name` the key used in the dictionary in the target YAML file that identifies your target sequence
 
 `--alternate-perfect-reads` the path to a text file of read names that should be treated as the perfect target reads. Usually this is for experimenting with reads in case you're not sure what the protein might bind to
 
 `--alternate-good-reads` just like alternate perfect reads above, except it is assumed that it contains some reads that will not bind as well
+
+`--alternate-fiducial-reads` use read names in a given text file instead of phiX for the rough alignment step
 
 `--microns-per-pixel` the size of a side of one pixel, in microns
 
@@ -81,21 +80,29 @@ flag is passed.
 `--flipud` invert all images through the horizontal axis (i.e. run numpy.flipud() on all images). This was added to handle
 a quirk with the way MicroManager saves images.
 
-`--fliplr` invert all images through the vertical axis (i.e. run numpy.fliplr() on all images). We have not needed this,
-but if your images don't align you may try passing it in.
+`--fliplr` invert all images through the vertical axis (i.e. run numpy.fliplr() on all images). If your images don't 
+align you may try passing it in.
 
 `-v -vv -vvv` set the verbosity level (-vvv is debug mode).
 
 #### Aligning Images
 
-CHAMP will attempt to align as many images as possible. The output will be the coordinates of each FASTQ read within an image, saved in text files in the `results` directory, along with a file containing the alignment parameters.
+CHAMP will attempt to align as many images as possible. The output will be the coordinates of each FASTQ read within 
+an image, saved in text files in the `results` directory, along with a file containing the alignment parameters.
 
 `IMAGE_DIRECTORY` the directory that contains all of the HDF5 image files
 
+`--rotation-adjustment` rotational adjustment to apply to read coordinates before attempting alignment. Can be negative!
+Even misalignment by a degree can prevent the rough alignment from working. If your alignments don't work, try a range 
+of values from -5 to 5 degrees in 0.5 degree increments.
+
 `--min-hits` the minimum number of exclusive hits required for a precision alignment to be considered valid
 
-`--snr` the minimum signal-to-noise ratio (relative to random alignments) to consider a rough alignment valid
+`--snr` the minimum signal-to-noise ratio (relative to random alignments) to consider a rough alignment valid. We have
+found that 1.4 to be ideal under most scenarios.
 
 `--make-pdfs` produce some diagnostic PDFs to examine the quality of the alignment
+
+`--fiducial-only` only align the channel with the fiducial markers. 
 
 `-v -vv -vvv` set the verbosity level (-vvv is debug mode).
