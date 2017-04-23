@@ -33,7 +33,11 @@ class BaseTifStack(object):
 
 
 class TifsPerFieldOfView(BaseTifStack):
-    # What we've had for a while now, produced by microscope 2
+    """
+    This class handles the scenario where MicroManager creates a separate TIF for each image taken during a 
+    multidimensional acquisition.
+    
+    """
     @property
     def axes(self):
         if not self._axes:
@@ -85,7 +89,11 @@ class TifsPerFieldOfView(BaseTifStack):
 
 
 class TifsPerConcentration(BaseTifStack):
-    # the new format from microscope 4
+    """
+    This class handles the scenario where MicroManager can put all images taken during a multidimensional acquisition 
+    into a single file. 
+     
+    """
     @property
     def axes(self):
         if not self._axes:
