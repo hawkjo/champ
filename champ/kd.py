@@ -484,3 +484,45 @@ class KdFitIA(object):
                                                          Imax_name.replace(' ', '_'))
             fig.savefig(os.path.join(out_dir, out_bname + '.png'), dpi=300)
             fig.savefig(os.path.join(out_dir, out_bname + '.eps'))
+
+
+class IAKdData(object):
+    def __init__(self, Kd_fpath):
+        self.concentrations, self.Imin, self.Imax, = [], [], []
+        self.Kd, self.Kd_error, self.ABA, self.ABA_error = {}, {}, {}, {}
+        with open(Kd_fpath) as f:
+            line = next(f)
+            assert line.startswith('# Target:')
+            self.target = line.strip().split(': ')[1]
+            line = next(f)
+            assert line.startswith('# Neg Control')
+            self.neg_control_target = line.strip().split(': ')[1]
+            line = next(f)
+            assert line.startswith('# Concentration\tImin\tImax')
+            line = next(f)
+            while not line.startswith('#'):
+                conc, imn, imx = map(float, line.strip().split())
+                self.concentrations.append(conc)
+                self.Imin.append(imn)
+                self.Imax.append(imx)
+                line = next(f)
+            assert line.startswith('# Seq')
+            for line in f:
+                if line.startswith('#'):
+                    continue
+                words = line.strip().split()
+                seq = words[0]
+                assert seq not in self.Kd, seq
+                Kd, Kd_err, ABA, ABA_err = map(float, words[1:])
+                self.Kd[seq] = Kd
+                self.Kd_error[seq] = Kd_err
+                self.ABA[seq] = ABA
+                self.ABA_error[seq] = ABA_err
+        self.neg_control_Kd = self.Kd[self.neg_control_target]
+        self.log_neg_control_Kd = np.log(self.neg_control_Kd)
+        self.target_ABA = self.ABA[self.target]
+
+    def ABA_given_Kd(self, Kd):
+        if Kd is None:
+            return None
+        return self.log_neg_control_Kd - np.log(Kd)
