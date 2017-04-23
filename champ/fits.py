@@ -148,8 +148,8 @@ def main(image_directory):
                    "c INTEGER)")
     cursor.execute("CREATE TABLE clusters ("
                    "field_of_view_id INTEGER, "
-                   "r DOUBLE,"
-                   "c DOUBLE,"
+                   "r DECIMAL(4,10),"
+                   "c DECIMAL(4,10),"
                    "FOREIGN KEY(field_of_view_id) REFERENCES fields_of_view(id))")
     db.commit()
 
