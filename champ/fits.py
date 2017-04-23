@@ -148,11 +148,11 @@ def main(image_directory):
                    "c INTEGER)")
     cursor.execute("CREATE TABLE clusters ("
                    "field_of_view_id INTEGER, "
-                   "r DECIMAL(4,10),"
-                   "c DECIMAL(4,10),"
+                   "r DOUBLE,"
+                   "c DOUBLE,"
                    "FOREIGN KEY(field_of_view_id) REFERENCES fields_of_view(id))")
     db.commit()
-    # comment
+
     h5_filename = os.path.join(image_directory, 'images.h5')
     with h5py.File(h5_filename, 'r') as h5:
         conditions = h5.keys()
