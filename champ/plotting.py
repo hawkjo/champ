@@ -5,6 +5,7 @@ from matplotlib.patches import Ellipse
 
 
 def plot_hit_hists(fia, ax=None):
+    """ Plots histograms of the different quality cluster alignment categories. """
     if ax is None:
         fig, ax = plt.subplots(figsize=(8, 8))
     non_mut_dists = fia.hit_dists(fia.non_mutual_hits)
@@ -27,6 +28,7 @@ def plot_hit_hists(fia, ax=None):
 
 
 def plot_hits(fia, hits, color, ax, kwargs={}):
+    """ Draws circles where hits are located. """
     for i, j in hits:
         ax.plot([fia.clusters.point_rcs[i, 1], fia.aligned_rcs_in_frame[j, 1]],
                 [fia.clusters.point_rcs[i, 0], fia.aligned_rcs_in_frame[j, 0]],
@@ -45,7 +47,11 @@ def plot_ellipses(fia, ax, alpha=1.0, color=(1, 0, 0)):
 
 def plot_all_hits(fia, im_kwargs={}, line_kwargs={}, fqpt_kwargs={}, sext_kwargs={},
                  title_kwargs={}, legend_kwargs={}):
-
+    """ 
+    Creates a plot of a field of view with the raw microscope image in the background and 
+    hit locations drawn over them. Provides a very obvious measure of whether the alignment worked or not. 
+    
+    """
     fig, ax = plt.subplots(figsize=(15, 15))
 
     kwargs = {'cmap': plt.get_cmap('Blues')}
