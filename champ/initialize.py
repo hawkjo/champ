@@ -9,7 +9,6 @@ def save(clargs):
         data = {'chip_name': clargs.chip_name,
                 'mapped_reads': os.path.abspath(clargs.mapped_reads),
                 'parsed_reads': os.path.abspath(clargs.parsed_reads),
-                'lda_weights': os.path.abspath(clargs.nonneg_lda_weights_path),
                 'microns_per_pixel': clargs.microns_per_pixel,
                 'chip_type': str(clargs.chip),
                 'ports_on_right': clargs.ports_on_right,

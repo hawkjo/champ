@@ -108,10 +108,6 @@ class CommandLineArguments(object):
         return int(self._arguments['--min-len'] or 1)
 
     @property
-    def nonneg_lda_weights_path(self):
-        return self._arguments['LDA_WEIGHTS']
-
-    @property
     def output_directory(self):
         return self._arguments['OUTPUT_DIRECTORY']
 
