@@ -35,10 +35,6 @@ class CommandLineArguments(object):
         return chip(self.ports_on_right)
 
     @property
-    def chip_name(self):
-        return self._arguments['CHIP_NAME']
-
-    @property
     def command(self):
         # We have to do this weird loop to deal with the way docopt stores the command name
         for possible_command in ('map',
