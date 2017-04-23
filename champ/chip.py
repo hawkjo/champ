@@ -41,8 +41,6 @@ class BaseChip(object):
         return tile_map
 
     def _format_tile_number(self, number):
-        # this definitely looks like a temporary hack that will end up becoming the most enduring
-        # part of this codebase
         return 'lane1tile{0}'.format(number)
 
     @property
@@ -75,7 +73,7 @@ class Miseq(BaseChip):
 class Hiseq(BaseChip):
     def __init__(self, ports_on_right):
         super(Hiseq, self).__init__(100)
-        raise NotImplementedError("We haven't implemented hiseq chips yet.")
+        raise NotImplementedError("HiSeq alignment has not been ported from the older codebase yet.")
 
     def __str__(self):
         return 'hiseq'
