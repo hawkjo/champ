@@ -141,15 +141,16 @@ def main(image_directory):
     cursor = db.cursor()
     cursor.execute("DROP TABLE IF EXISTS clusters")
     cursor.execute("DROP TABLE IF EXISTS fields_of_view")
-    cursor.execute("CREATE TABLE clusters ("
-                   "field_of_view_id INTEGER, "
-                   "r FLOAT, "
-                   "c FLOAT, PRIMARY KEY (field_of_view_id, r, c)) WITHOUT ROWID")
     cursor.execute("CREATE TABLE fields_of_view ("
                    "id INTEGER PRIMARY KEY ASC, "
-                   "condition MEDIUMINT UNSIGNED, "
-                   "r TINYINT UNSIGNED, "
-                   "c SMALLINT UNSIGNED)")
+                   "condition INTEGER, "
+                   "r INTEGER, "
+                   "c INTEGER)")
+    cursor.execute("CREATE TABLE clusters ("
+                   "field_of_view_id INTEGER, "
+                   "r DOUBLE,"
+                   "c DOUBLE,"
+                   "FOREIGN KEY(field_of_view_id) REFERENCES fields_of_view(id))")
     db.commit()
 
     h5_filename = os.path.join(image_directory, 'images.h5')
