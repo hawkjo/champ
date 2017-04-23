@@ -5,6 +5,7 @@ import itertools
 class BaseChip(object):
     def __init__(self, tile_count):
         self._tile_count = tile_count
+        self._lane = 1
 
     def expected_tile_map(self, left_tiles, right_tiles, min_column, max_column):
         # Creates a dictionary that relates each column of microscope images to its expected tile, +/- 1.
@@ -40,8 +41,8 @@ class BaseChip(object):
                 tile_map[tile_map_column].append(self._format_tile_number(expected - 1))
         return tile_map
 
-    def _format_tile_number(self, number):
-        return 'lane1tile{0}'.format(number)
+    def _format_tile_number(self, tile):
+        return 'lane{lane}tile{tile}'.format(lane=self._lane, tile=tile)
 
     @property
     def tile_count(self):
@@ -57,6 +58,7 @@ class Miseq(BaseChip):
         self._ports_on_right = ports_on_right
         self.tile_width = 935.0
         self.rotation_estimate = 180.0
+        self._lane = 1
 
     def __str__(self):
         return 'miseq'
@@ -71,12 +73,25 @@ class Miseq(BaseChip):
 
 
 class Hiseq(BaseChip):
-    def __init__(self, ports_on_right):
-        super(Hiseq, self).__init__(100)
-        raise NotImplementedError("HiSeq alignment has not been ported from the older codebase yet.")
+    def __init__(self, ports_on_right, lane=4, side=2):
+        super(Hiseq, self).__init__(28)
+        self._lower_tiles = [self._format_tile_number(int("%d100" % side) + num) for num in range(1, 14)]
+        self._higher_tiles = [self._format_tile_number(int("%d100" % side) + num) for num in reversed(range(15, 28))]
+        self._ports_on_right = ports_on_right
+        self._lane = lane
+        self.tile_width = 1097.0
+        self.rotation_estimate = 180.0
 
     def __str__(self):
         return 'hiseq'
+
+    @property
+    def right_side_tiles(self):
+        return self._higher_tiles if not self._ports_on_right else self._lower_tiles
+
+    @property
+    def left_side_tiles(self):
+        return self._lower_tiles if not self._ports_on_right else self._higher_tiles
 
 
 def load(chip_name):
