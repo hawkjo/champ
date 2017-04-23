@@ -152,7 +152,7 @@ def main(image_directory):
                    "c DECIMAL(4,10),"
                    "FOREIGN KEY(field_of_view_id) REFERENCES fields_of_view(id))")
     db.commit()
-
+    # comment
     h5_filename = os.path.join(image_directory, 'images.h5')
     with h5py.File(h5_filename, 'r') as h5:
         conditions = h5.keys()
