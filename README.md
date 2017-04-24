@@ -42,7 +42,7 @@ the phiX files are in a directory called `phix_bowtie` and the prefix `phix` is 
 that (this is what Bowtie requires). `min-len` and `max-len` refer to the minimum and maximum length of the sequences
 of interest (note that for CRISPR systems, this length includes the PAM).
 
-`champ map SA16032/all_fastqs SA16032/read_names --target-sequence-file targets.yml --phix-bamfiles phix_bowtie/phix --min-len 24 --max-len 46`
+`champ map SA16032/all_fastqs SA16032/read_names --target-sequence-file targets.yml --phix-bowtie phix_bowtie/phix --min-len 24 --max-len 46`
 
 #### Setting Up a New Analysis
 
