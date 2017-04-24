@@ -104,3 +104,9 @@ found that 1.4 to be ideal under most scenarios.
 `--fiducial-only` only align the channel with the fiducial markers. 
 
 `-v -vv -vvv` set the verbosity level (-vvv is debug mode).
+
+#### Analyzing Results
+
+Analyses of sequence specificity are performed using the Jupyter notebooks provided in the `notebooks` directory. The 
+intended workflow is to copy them from this repo into each new experiment directory, edit the few variables as needed
+at the top of each notebook, and run them.
