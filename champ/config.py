@@ -112,9 +112,9 @@ class CommandLineArguments(object):
         return self._arguments['--perfect-target-name'] or False
 
     @property
-    def phix_bamfiles(self):
+    def phix_bowtie(self):
         # Whether or not phiX reads should be mapped
-        return self._arguments.get('--phix-bamfiles')
+        return self._arguments.get('--phix-bowtie')
 
     @property
     def ports_on_right(self):

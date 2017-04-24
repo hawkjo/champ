@@ -64,10 +64,10 @@ def main(clargs):
             formatted_name = 'target_%s' % target_name.replace('-', '_').lower()
             write_read_names(read_names, formatted_name, clargs.output_directory)
 
-    if clargs.phix_bamfiles:
+    if clargs.phix_bowtie:
         # Find all read names of the phiX fiducial markers
         log.info("Finding phiX reads.")
-        read_names = find_reads_using_bamfile(clargs.phix_bamfiles, fastq_files)
+        read_names = find_reads_using_bamfile(clargs.phix_bowtie, fastq_files)
         write_read_names(read_names, 'phix', clargs.output_directory)
 
     log.info("Parsing and saving all read names to disk.")
