@@ -27,7 +27,6 @@ Pressure plates used to keep tubing in place for efficient fluid flow through CH
 | Preview | File |
 | --- | --- |
 | <img src="stage/CHAMP_Tubing_Plates.png"> | [CHAMP_Tubing_Plates.scad](stage/CHAMP_Tubing_Plates.scad) |
-| <img src="stage/CHAMP_Tubing_Guide_1.png"> | [CHAMP_Tubing_Guide_1.dxf](stage/CHAMP_Tubing_Guide_1.dxf) |
 | <img src="stage/CHAMP_Tubing_Guide_2.png"> | [CHAMP_Tubing_Guide_2.dxf](stage/CHAMP_Tubing_Guide_2.dxf) |
 
 ### Tubing Holders 
