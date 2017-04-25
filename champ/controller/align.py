@@ -13,9 +13,9 @@ def preprocess(clargs, metadata):
     paths = convert.get_all_tif_paths(clargs.image_directory)
     # directories will have ".h5" appended to them to come up with the HDF5 names
     # tifs are relative paths to each tif file
-    log.debug("About to convert TIFs to HDF5.")
-    convert.main(paths, metadata['flipud'], metadata['fliplr'])
-    log.debug("Done converting TIFs to HDF5.")
+    # log.debug("About to convert TIFs to HDF5.")
+    # convert.main(paths, metadata['flipud'], metadata['fliplr'])
+    # log.debug("Done converting TIFs to HDF5.")
     log.debug("Fitsifying images from HDF5 files.")
     fits.main(clargs.image_directory)
     metadata['preprocessed'] = True
