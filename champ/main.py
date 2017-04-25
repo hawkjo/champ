@@ -6,6 +6,7 @@ Usage:
   champ init IMAGE_DIRECTORY READ_NAMES_DIRECTORY ALIGNMENT_CHANNEL [--perfect-target-name=PERFECT_TARGET_NAME] [--alternate-perfect-reads=ALTERNATE_PERFECT_READS] [--alternate-good-reads=ALTERNATE_GOOD_READS] [--alternate-fiducial-reads=ALTERNATE_FIDUCIAL_READS] [--microns-per-pixel=0.266666666] [--chip=miseq] [--ports-on-right] [--flipud] [--fliplr] [-v | -vv | -vvv ]
   champ align IMAGE_DIRECTORY [--rotation-adjustment=ROTATION_ADJUSTMENT] [--min-hits=MIN_HITS] [--snr=SNR] [--make-pdfs] [--fiducial-only] [-v | -vv | -vvv]
   champ info IMAGE_DIRECTORY
+  champ notebooks
 
 Options:
   -h --help     Show this screen.
@@ -16,13 +17,14 @@ Commands:
   init          Stores some metadata about a particular experiment
   align         Determines the sequence of fluorescent points in the microscope data. Preprocesses images if not already done.
   info          View the metadata associated with an experiment
+  notebooks     Creates copies of the standard Jupyter analysis notebooks in the current directory
 
 """
 import logging
 import os
 from champ.config import CommandLineArguments
 from champ.constants import VERSION
-from champ.controller import align, initialize, mapreads, info
+from champ.controller import align, initialize, mapreads, info, notebooks
 from docopt import docopt
 
 
@@ -41,7 +43,8 @@ def main(**kwargs):
     commands = {'align': align,
                 'init': initialize,
                 'map': mapreads,
-                'info': info}
+                'info': info,
+                'notebooks': notebooks}
 
     commands[arguments.command].main(arguments)
 
