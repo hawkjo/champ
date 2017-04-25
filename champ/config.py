@@ -40,7 +40,8 @@ class CommandLineArguments(object):
         for possible_command in ('map',
                                  'init',
                                  'align',
-                                 'info'):
+                                 'info',
+                                 'notebooks'):
             if self._arguments.get(possible_command):
                 return possible_command
 
