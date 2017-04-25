@@ -1,9 +1,6 @@
 import os
 import champ
-import logging
 import shutil
-
-log = logging.getLogger(__name__)
 
 
 def main(clargs):
