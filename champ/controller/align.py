@@ -8,7 +8,7 @@ log = logging.getLogger(__name__)
 cluster_strategies = ('se', 'otsu',)
 
 
-def preprocess(clargs, metadata):
+def preprocess(clargs, metadata, cache):
     log.debug("Preprocessing images.")
     paths = convert.get_all_tif_paths(clargs.image_directory)
     # directories will have ".h5" appended to them to come up with the HDF5 names
@@ -18,8 +18,8 @@ def preprocess(clargs, metadata):
     log.debug("Done converting TIFs to HDF5.")
     log.debug("Fitsifying images from HDF5 files.")
     fits.main(clargs.image_directory)
-    metadata['preprocessed'] = True
-    initialize.update(clargs.image_directory, metadata)
+    cache['preprocessed'] = True
+    initialize.save_cache(clargs.image_directory, cache)
 
 
 def load_filenames(image_directory):
@@ -28,12 +28,13 @@ def load_filenames(image_directory):
 
 
 def main(clargs):
-    metadata = initialize.load(clargs.image_directory)
-    if 'preprocessed' not in metadata or not metadata['preprocessed']:
+    metadata = initialize.load_metadata(clargs.image_directory)
+    cache = initialize.load_cache(clargs.image_directory)
+    if not cache['preprocessed']:
         for filename in load_filenames(clargs.image_directory):
             log.warn("Deleting (probably invalid) existing HDF5 file and recreating it: %s" % filename)
             os.unlink(filename)
-        preprocess(clargs, metadata)
+        preprocess(clargs, metadata, cache)
 
     h5_filenames = load_filenames(clargs.image_directory)
     if len(h5_filenames) == 0:
@@ -66,21 +67,21 @@ def main(clargs):
     log.debug("Loaded %s points" % sum([len(v) for v in alignment_tile_data.values()]))
     log.debug("FastQImageAligner loaded.")
 
-    if 'end_tiles' not in metadata:
+    if 'end_tiles' not in cache:
         end_tiles = align.get_end_tiles(cluster_strategies, clargs.rotation_adjustment, h5_filenames, metadata['alignment_channel'], clargs.snr, metadata, sequencing_chip, fia)
-        metadata['end_tiles'] = end_tiles
-        initialize.update(clargs.image_directory, metadata)
+        cache['end_tiles'] = end_tiles
+        initialize.save_cache(clargs.image_directory, cache)
     else:
         log.debug("End tiles already calculated.")
-        end_tiles = metadata['end_tiles']
+        end_tiles = cache['end_tiles']
     gc.collect()
 
-    if not metadata['phix_aligned']:
+    if not cache['phix_aligned']:
         for cluster_strategy in cluster_strategies:
             align.run(cluster_strategy, clargs.rotation_adjustment, h5_filenames, path_info, clargs.snr, clargs.min_hits, fia, end_tiles, metadata['alignment_channel'],
                       all_tile_data, metadata, clargs.make_pdfs, sequencing_chip)
-            metadata['phix_aligned'] = True
-            initialize.update(clargs.image_directory, metadata)
+            cache['phix_aligned'] = True
+            initialize.save_cache(clargs.image_directory, cache)
         else:
             log.debug("Phix already aligned.")
 
@@ -105,17 +106,17 @@ def main(clargs):
             gc.collect()
             if on_target_tile_data:
                 channel_combo = channel_name + "_on_target"
-                combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, clargs)
+                combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, cache, clargs)
             gc.collect()
             if perfect_tile_data:
                 channel_combo = channel_name + "_perfect_target"
-                combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, clargs)
+                combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, cache, clargs)
             gc.collect()
 
 
-def combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs):
+def combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, cache, clargs):
     log.info("Aligning %s" % channel_combo)
-    if channel_combo not in metadata['protein_channels_aligned']:
+    if channel_combo not in cache['protein_channels_aligned']:
         align.run_data_channel(cluster_strategy, h5_filenames, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs)
-        metadata['protein_channels_aligned'].append(channel_combo)
-        initialize.update(clargs.image_directory, metadata)
+        cache['protein_channels_aligned'].append(channel_combo)
+        initialize.save_cache(clargs.image_directory, cache)
