@@ -33,8 +33,6 @@ class IntensityArray(object):
             line = next(f)
             assert line == '# HDF5 Files\n', line
             self.h5_fpaths = [next(f).strip() for i in range(len(self.course_trait_list))]
-            for fpath in self.h5_fpaths:
-                assert os.path.exists(fpath), fpath
             line = next(f)
             assert line.startswith('# Channel:'), line
             self.channel = line.strip().split(': ')[1]
