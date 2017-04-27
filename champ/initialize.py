@@ -3,9 +3,9 @@ import yaml
 from champ.error import fail
 
 
-def save(clargs):
+def save_metadata(clargs):
     filename = os.path.join(clargs.image_directory, 'champ.yml')
-    with open(filename, 'w+') as f:
+    with open(filename, 'w') as f:
         data = {'mapped_reads': os.path.abspath(clargs.mapped_reads),
                 'microns_per_pixel': clargs.microns_per_pixel,
                 'chip_type': str(clargs.chip),
@@ -17,19 +17,17 @@ def save(clargs):
                 'flipud': clargs.flipud,
                 'fliplr': clargs.fliplr,
                 'perfect_target_name': clargs.perfect_target_name,
-                'phix_aligned': False,
-                'preprocessed': False,
-                'protein_channels_aligned': []}
+                }
         yaml.dump(data, f)
 
 
-def update(image_directory, metadata):
-    filename = get_existing_metadata_filename(image_directory)
-    with open(filename, 'w+') as f:
-        yaml.dump(metadata, f)
+def save_cache(image_directory, cache):
+    filename = os.path.join(image_directory, 'cache.yml')
+    with open(filename, 'w') as f:
+        yaml.dump(cache, f)
 
 
-def load(image_directory):
+def load_metadata(image_directory):
     filename = get_existing_metadata_filename(image_directory)
     try:
         with open(filename) as fh:
@@ -41,8 +39,19 @@ def load(image_directory):
         fail("Something is wrong with the metadata file in the image directory. Try rerunning 'champ init'.", 2)
 
 
+def load_cache(image_directory):
+    cache_path = os.path.join(image_directory, 'cache.yml')
+    if not os.path.exists(cache_path):
+        return {'phix_aligned': False,
+                'preprocessed': False,
+                'protein_channels_aligned': []}
+    with open(cache_path) as fh:
+        return yaml.load(fh)
+
+
 def get_existing_metadata_filename(image_directory):
-    # Look for the metadata file, and if it doesn't exist, try again with the old extension to allow backwards compatibility
+    # Look for the metadata file, and if it doesn't exist,
+    # try again with the old extension to allow backwards compatibility
     filename = os.path.join(image_directory, 'champ.yml')
     if not os.path.exists(filename):
         filename = os.path.join(image_directory, 'champ.yaml')
