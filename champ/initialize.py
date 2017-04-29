@@ -63,7 +63,7 @@ def determine_channel_names(image_directory):
     channels = set()
     paths = get_all_tif_paths(image_directory)
     for directory, tifs in paths.items():
-        stack = load_tiff_stack(tifs, ())
+        stack = load_tiff_stack(list(tifs), ())
         for fov in stack:
             for channel in fov.channels:
                 channels.add(channel)
