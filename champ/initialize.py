@@ -4,14 +4,14 @@ from champ.error import fail
 from champ.convert import load_tiff_stack, get_all_tif_paths
 
 
-def save_metadata(clargs):
+def save_metadata(clargs, alignment_channel):
     filename = os.path.join(clargs.image_directory, 'champ.yml')
     with open(filename, 'w') as f:
         data = {'mapped_reads': os.path.abspath(clargs.mapped_reads),
                 'microns_per_pixel': clargs.microns_per_pixel,
                 'chip_type': str(clargs.chip),
                 'ports_on_right': clargs.ports_on_right,
-                'alignment_channel': clargs.alignment_channel,
+                'alignment_channel': alignment_channel,
                 'alternate_fiducial_reads': clargs.alternate_fiducial_reads,
                 'alternate_perfect_target_reads_filename': clargs.alternate_perfect_target_reads_filename,
                 'alternate_good_target_reads_filename': clargs.alternate_good_target_reads_filename,
