@@ -11,7 +11,7 @@ def save_metadata(clargs, alignment_channel):
                 'microns_per_pixel': clargs.microns_per_pixel,
                 'chip_type': str(clargs.chip),
                 'ports_on_right': clargs.ports_on_right,
-                'alignment_channel': alignment_channel,
+                'alignment_channel': str(alignment_channel),
                 'alternate_fiducial_reads': clargs.alternate_fiducial_reads,
                 'alternate_perfect_target_reads_filename': clargs.alternate_perfect_target_reads_filename,
                 'alternate_good_target_reads_filename': clargs.alternate_good_target_reads_filename,
