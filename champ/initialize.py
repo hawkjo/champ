@@ -1,6 +1,7 @@
 import os
 import yaml
 from champ.error import fail
+from champ.convert import load_tiff_stack, get_all_tif_paths
 
 
 def save_metadata(clargs):
@@ -56,3 +57,31 @@ def get_existing_metadata_filename(image_directory):
     if not os.path.exists(filename):
         filename = os.path.join(image_directory, 'champ.yaml')
     return filename
+
+
+def determine_channel_names(image_directory):
+    channels = set()
+    paths = get_all_tif_paths(image_directory)
+    for directory, tifs in paths.items():
+        stack = load_tiff_stack(tifs, ())
+        for fov in stack:
+            for channel in fov.channels:
+                channels.add(channel)
+    return tuple(channels)
+
+
+def request_alignment_channel(channels):
+    while True:
+        print("Which channel should be used for rough alignment?")
+        channels = tuple(sorted(list(channels)))
+        for n, channel in enumerate(channels):
+            print("%d %s" % (n+1, channel))
+        choice = input("Enter a number: ")
+        try:
+            choice = int(choice) - 1
+            if choice < 0 or choice > len(channels):
+                print("Invalid choice.")
+                continue
+            return channels[choice]
+        except (ValueError, IndexError):
+            print("Invalid choice.")
