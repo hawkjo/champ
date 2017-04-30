@@ -31,9 +31,9 @@ def main(clargs):
     metadata = initialize.load_metadata(clargs.image_directory)
     cache = initialize.load_cache(clargs.image_directory)
     if not cache['preprocessed']:
-        for filename in load_filenames(clargs.image_directory):
-            log.warn("Deleting (probably invalid) existing HDF5 file and recreating it: %s" % filename)
-            os.unlink(filename)
+        # for filename in load_filenames(clargs.image_directory):
+        #     log.warn("Deleting (probably invalid) existing HDF5 file and recreating it: %s" % filename)
+        #     os.unlink(filename)
         preprocess(clargs, metadata, cache)
 
     h5_filenames = load_filenames(clargs.image_directory)
