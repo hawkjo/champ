@@ -63,13 +63,17 @@ def get_existing_metadata_filename(image_directory):
 
 
 def determine_channel_names(image_directory):
-    log.debug('Determine channel names for %s' % image_directory)
+    """
+    Looks at a single concentration/timepoint at random and gets all the channel names
+    
+    """
+    log.debug("Checking channel names.")
     channels = set()
     paths = get_all_tif_paths(image_directory)
-    log.debug("len(paths): %d" % len(paths))
     for directory, tifs in paths.items():
         for channel in load_channel_names(tifs):
             channels.add(channel)
+        break
     return tuple(channels)
 
 

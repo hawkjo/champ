@@ -11,10 +11,8 @@ log = logging.getLogger(__name__)
 
 
 def load_channel_names(tifs):
-    log.debug("load_channel_names")
     channels = set()
     for filename in tifs:
-        log.debug("load channel names for %s" % filename)
         tif = tifffile.TiffFile(filename)
         for channel in tif.micromanager_metadata['summary']['ChNames']:
             channels.add(sanitize_name(channel))
