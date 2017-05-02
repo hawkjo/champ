@@ -1,7 +1,7 @@
 import os
 import yaml
 from champ.error import fail
-from champ.convert import load_tiff_stack, get_all_tif_paths
+from champ.convert import get_all_tif_paths, load_channel_names
 
 
 def save_metadata(clargs, alignment_channel):
@@ -63,10 +63,8 @@ def determine_channel_names(image_directory):
     channels = set()
     paths = get_all_tif_paths(image_directory)
     for directory, tifs in paths.items():
-        stack = load_tiff_stack(list(tifs), ())
-        for fov in stack:
-            for channel in fov.channels:
-                channels.add(channel)
+        for channel in load_channel_names(tifs):
+            channels.add(channel)
     return tuple(channels)
 
 
