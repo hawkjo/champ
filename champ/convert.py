@@ -1,13 +1,22 @@
 import tifffile
 import os
 import numpy as np
-from champ.tiff import TifsPerConcentration, TifsPerFieldOfView
+from champ.tiff import TifsPerConcentration, TifsPerFieldOfView, sanitize_name
 from collections import defaultdict
 import h5py
 import logging
 
 
 log = logging.getLogger(__name__)
+
+
+def load_channel_names(tifs):
+    channels = set()
+    for filename in tifs:
+        tif = tifffile.TiffFile(filename)
+        for channel in tif.micromanager_metadata['summary']['ChNames']:
+            channels.add(sanitize_name(channel))
+    return tuple(channels)
 
 
 def load_tiff_stack(tifs, adjustments):

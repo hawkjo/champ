@@ -170,3 +170,7 @@ class TIFSingleFieldOfView(object):
     def __iter__(self):
         for channel, image in self._summed_images.items():
             yield channel, image
+
+    @property
+    def channels(self):
+        return self._summed_images.keys()
