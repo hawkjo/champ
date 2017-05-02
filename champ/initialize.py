@@ -2,6 +2,9 @@ import os
 import yaml
 from champ.error import fail
 from champ.convert import get_all_tif_paths, load_channel_names
+import logging
+
+log = logging.getLogger(__name__)
 
 
 def save_metadata(clargs, alignment_channel):
@@ -60,8 +63,10 @@ def get_existing_metadata_filename(image_directory):
 
 
 def determine_channel_names(image_directory):
+    log.debug('Determine channel names for %s' % image_directory)
     channels = set()
     paths = get_all_tif_paths(image_directory)
+    log.debug("len(paths): %d" % len(paths))
     for directory, tifs in paths.items():
         for channel in load_channel_names(tifs):
             channels.add(channel)
