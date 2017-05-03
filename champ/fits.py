@@ -182,7 +182,6 @@ def find_clusters_source_extractor(worker_pool, image_files):
         worker_pool.map_async(source_extract, base_files).get(timeout=sys.maxint)
         log.info("Done with Source Extractor! Took %s seconds" % round(time.time() - start, 0))
     log.debug("Deleting .fits and .model files")
-    print("CWD: %s" % os.getcwd())
     for directory in image_files.directories:
         fits_to_delete = glob.glob(os.path.join(directory, "*.fits"))
         model_to_delete = glob.glob(os.path.join(directory, "*.model"))
