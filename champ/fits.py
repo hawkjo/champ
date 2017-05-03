@@ -188,3 +188,4 @@ def find_clusters_source_extractor(worker_pool, image_files):
         model_to_delete = glob.glob(os.path.join(directory, "*.model"))
         for filename in (f for l in (fits_to_delete, model_to_delete) for f in l):
             log.debug("Deleting %s" % filename)
+            os.unlink(filename)
