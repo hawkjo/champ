@@ -41,10 +41,10 @@ class FastqTileRCs(object):
         # Make the ffts
         fq_image = self.image()
         padded_fq_im = misc.pad_to_size(fq_image, image_data.fft.shape)
-        fq_im_fft = np.fft.fft2(padded_fq_im)
+        fq_im_fft = np.fft.fft2(padded_fq_im).astype(np.csingle)
         # Align
         im_data_fft = image_data.fft
-        cross_corr = abs(np.fft.ifft2(np.conj(fq_im_fft) * im_data_fft))
+        cross_corr = abs(np.fft.ifft2(np.conj(fq_im_fft).astype(np.csingle) * im_data_fft))
         max_corr = cross_corr.max()
         max_idx = misc.max_2d_idx(cross_corr)
         align_tr = np.array(max_idx) - fq_image.shape
