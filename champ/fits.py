@@ -1,6 +1,7 @@
 from astropy.io import fits
 from champ.grid import GridImages
 import functools
+import glob
 import h5py
 import logging
 import multiprocessing
@@ -180,3 +181,10 @@ def find_clusters_source_extractor(worker_pool, image_files):
                       for base_file in get_base_file_names(h5_filename)]
         worker_pool.map_async(source_extract, base_files).get(timeout=sys.maxint)
         log.info("Done with Source Extractor! Took %s seconds" % round(time.time() - start, 0))
+    log.debug("Deleting .fits and .model files")
+    print("CWD: %s" % os.getcwd())
+    for directory in image_files.directories:
+        fits_to_delete = glob.glob(os.path.join(directory, "*.fits"))
+        model_to_delete = glob.glob(os.path.join(directory, "*.model"))
+        for filename in (f for l in (fits_to_delete, model_to_delete) for f in l):
+            log.debug("Deleting %s" % filename)
