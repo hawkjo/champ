@@ -27,6 +27,7 @@ def main(clargs):
     fastq_filenames = [os.path.join(clargs.fastq_directory, directory) for directory in os.listdir(clargs.fastq_directory)]
     fastq_files = FastqFiles(fastq_filenames)
     read_names_given_seq = {}
+    usable_read = lambda record_id: True if clargs.include_side_1 else lambda record_id: determine_side(record_id) == '2'
 
     if clargs.log_p_file_path:
         # We need to find the sequence of each read name
@@ -34,7 +35,7 @@ def main(clargs):
         with open(clargs.log_p_file_path) as f:
             log_p_struct = pickle.load(f)
 
-        read_names_given_seq = determine_sequences_of_read_names(clargs.min_len, clargs.max_len, log_p_struct, fastq_files, clargs.include_side_1)
+        read_names_given_seq = determine_sequences_of_read_names(clargs.min_len, clargs.max_len, log_p_struct, fastq_files, usable_read)
         write_read_names_by_sequence(read_names_given_seq, os.path.join(clargs.output_directory, 'read_names_by_seq.txt'))
 
     if not read_names_given_seq:
@@ -56,22 +57,22 @@ def main(clargs):
         log.info("Creating perfect target read name files.")
         for target_name, perfect_read_names in determine_perfect_target_reads(targets, read_names_given_seq):
             formatted_name = 'perfect_target_%s' % target_name.replace('-', '_').lower()
-            write_read_names(perfect_read_names, formatted_name, clargs.output_directory)
+            write_read_names(perfect_read_names, formatted_name, clargs.output_directory, usable_read)
 
         # find imperfect target reads
         log.info("Creating target read name files.")
         for target_name, read_names in determine_target_reads(targets, read_names_given_seq):
             formatted_name = 'target_%s' % target_name.replace('-', '_').lower()
-            write_read_names(read_names, formatted_name, clargs.output_directory)
+            write_read_names(read_names, formatted_name, clargs.output_directory, usable_read)
 
     if clargs.phix_bowtie:
         # Find all read names of the phiX fiducial markers
         log.info("Finding phiX reads.")
         read_names = find_reads_using_bamfile(clargs.phix_bowtie, fastq_files)
-        write_read_names(read_names, 'phix', clargs.output_directory)
+        write_read_names(read_names, 'phix', clargs.output_directory, usable_read)
 
     log.info("Parsing and saving all read names to disk.")
-    write_all_read_names(fastq_files, os.path.join(clargs.output_directory, 'all_read_names.txt'))
+    write_all_read_names(fastq_files, os.path.join(clargs.output_directory, 'all_read_names.txt'), usable_read)
 
 
 class FastqFiles(object):
@@ -187,10 +188,10 @@ def determine_target_reads(targets, read_names_given_seq):
                 yield target_name, read_names
 
 
-def write_read_names(read_names, target_name, output_directory):
+def write_read_names(read_names, target_name, output_directory, usable_read):
     filename = os.path.join(output_directory, target_name + '_read_names.txt')
     with open(filename, 'a') as f:
-        f.write('\n'.join(set(read_names)) + '\n')
+        f.write('\n'.join(filter(lambda read_name: usable_read(read_name), set(read_names))) + '\n')
 
 
 def write_read_names_by_sequence(read_names_given_seq, out_file_path):
@@ -199,13 +200,13 @@ def write_read_names_by_sequence(read_names_given_seq, out_file_path):
             out.write('{}\t{}\n'.format(seq, '\t'.join(read_names)))
 
 
-def write_all_read_names(fastq_files, out_file_path):
+def write_all_read_names(fastq_files, out_file_path, usable_read):
     # Opens all FastQ files, finds every read name, and saves it in a file without any other data
     with open(out_file_path, 'w') as out:
         for (first, second) in fastq_files.paired:
             # only save read names from the second pair, otherwise we would include duplicates
             # and read names that were only found in the first run
-            for record in parse_fastq_lines(second):
+            for record in filter(lambda record: usable_read(record.id), parse_fastq_lines(second)):
                 out.write(record.name + '\n')
 
 
@@ -229,11 +230,10 @@ def get_max_ham_dists(min_len, max_len):
     return max_ham_dists
 
 
-def determine_sequences_of_read_names(min_len, max_len, log_p_struct, fastq_files, include_side_1):
+def determine_sequences_of_read_names(min_len, max_len, log_p_struct, fastq_files, usable_read):
     # --------------------------------------------------------------------------------
     # Pair fpaths and classify seqs
     # --------------------------------------------------------------------------------
-    usable_read = lambda record_id: True if include_side_1 else lambda record_id: determine_side(record_id) == '2'
     max_ham_dists = get_max_ham_dists(min_len, max_len)
     log.debug("Max ham dists: %s" % str(max_ham_dists))
     read_names_given_seq = defaultdict(list)
