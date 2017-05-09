@@ -39,7 +39,6 @@ def main(clargs):
             log_p_struct = pickle.load(f)
 
         read_names_given_seq = determine_sequences_of_read_names(clargs.min_len, clargs.max_len, log_p_struct, fastq_files, usable_read)
-        print("read names given seq: %d" % len(read_names_given_seq))
         write_read_names_by_sequence(read_names_given_seq, os.path.join(clargs.output_directory, 'read_names_by_seq.txt'))
 
     if not read_names_given_seq:
