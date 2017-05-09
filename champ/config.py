@@ -68,6 +68,10 @@ class CommandLineArguments(object):
         return self._arguments['IMAGE_DIRECTORY']
 
     @property
+    def include_side_1(self):
+        return self._arguments['--include-side-1']
+
+    @property
     def log_level(self):
         log_level = {0: logging.ERROR,
                      1: logging.WARN,

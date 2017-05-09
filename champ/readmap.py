@@ -34,7 +34,7 @@ def main(clargs):
         with open(clargs.log_p_file_path) as f:
             log_p_struct = pickle.load(f)
 
-        read_names_given_seq = determine_sequences_of_read_names(clargs.min_len, clargs.max_len, log_p_struct, fastq_files)
+        read_names_given_seq = determine_sequences_of_read_names(clargs.min_len, clargs.max_len, log_p_struct, fastq_files, clargs.include_side_1)
         write_read_names_by_sequence(read_names_given_seq, os.path.join(clargs.output_directory, 'read_names_by_seq.txt'))
 
     if not read_names_given_seq:
@@ -229,10 +229,11 @@ def get_max_ham_dists(min_len, max_len):
     return max_ham_dists
 
 
-def determine_sequences_of_read_names(min_len, max_len, log_p_struct, fastq_files):
+def determine_sequences_of_read_names(min_len, max_len, log_p_struct, fastq_files, include_side_1):
     # --------------------------------------------------------------------------------
     # Pair fpaths and classify seqs
     # --------------------------------------------------------------------------------
+    usable_read = lambda record_id: True if include_side_1 else lambda record_id: determine_side(record_id) == '2'
     max_ham_dists = get_max_ham_dists(min_len, max_len)
     log.debug("Max ham dists: %s" % str(max_ham_dists))
     read_names_given_seq = defaultdict(list)
@@ -244,6 +245,8 @@ def determine_sequences_of_read_names(min_len, max_len, log_p_struct, fastq_file
                 itertools.izip(parse_fastq_lines(fpath1),
                                parse_fastq_lines(fpath2))
         ):
+            if not usable_read(rec1.id):
+                continue
             total += 1
             seq = classify_seq(rec1, rec2, min_len, max_len, max_ham_dists, log_p_struct)
             if seq:
@@ -253,6 +256,15 @@ def determine_sequences_of_read_names(min_len, max_len, log_p_struct, fastq_file
         found = total - discarded
         log.debug('Found {} of {} ({:.1f}%)'.format(found, total, 100 * found / float(total)))
     return read_names_given_seq
+
+
+def determine_side(record_id):
+    """ 
+    DNA is sequenced on both sides of the chip, however the TIRF microscope can only see one side, so we want to 
+    be able to ignore reads that we can't see just to save time/memory. 
+    
+    """
+    return record_id.split(":")[4][0]
 
 
 def classify_seq(rec1, rec2, min_len, max_len, max_ham_dists, log_p_struct):
