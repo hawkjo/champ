@@ -211,7 +211,6 @@ def build_interesting_sequences(read_names_by_seq_filepath, interesting_sequence
             for interesting_sequence in interesting_sequences:
                 if interesting_sequence in rough_sequence:
                     interesting_read_names[interesting_sequence].update(read_names)
-                    break
     return interesting_read_names
 
 
