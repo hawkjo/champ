@@ -2,7 +2,7 @@
 Chip-Hybridized Affinity Mapping Platform
 
 Usage:
-  champ map FASTQ_DIRECTORY OUTPUT_DIRECTORY [--log-p-file=LOG_P_FILE] [--target-sequence-file=TARGET_SEQUENCE_FILE] [--phix-bowtie=PHIX_BOWTIE] [--min-len=MIN_LEN] [--max-len=MAX_LEN] [-v | -vv | -vvv]
+  champ map FASTQ_DIRECTORY OUTPUT_DIRECTORY [--log-p-file=LOG_P_FILE] [--target-sequence-file=TARGET_SEQUENCE_FILE] [--phix-bowtie=PHIX_BOWTIE] [--min-len=MIN_LEN] [--max-len=MAX_LEN] [--include-side-1] [-v | -vv | -vvv]
   champ init IMAGE_DIRECTORY READ_NAMES_DIRECTORY [ALIGNMENT_CHANNEL] [--perfect-target-name=PERFECT_TARGET_NAME] [--alternate-perfect-reads=ALTERNATE_PERFECT_READS] [--alternate-good-reads=ALTERNATE_GOOD_READS] [--alternate-fiducial-reads=ALTERNATE_FIDUCIAL_READS] [--microns-per-pixel=0.266666666] [--chip=miseq] [--ports-on-right] [--flipud] [--fliplr] [-v | -vv | -vvv ]
   champ align IMAGE_DIRECTORY [--rotation-adjustment=ROTATION_ADJUSTMENT] [--min-hits=MIN_HITS] [--snr=SNR] [--make-pdfs] [--fiducial-only] [-v | -vv | -vvv]
   champ info IMAGE_DIRECTORY

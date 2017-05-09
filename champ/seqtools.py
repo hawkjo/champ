@@ -198,6 +198,22 @@ def build_read_names_given_seq(target,
     return interesting_reads
 
 
+def build_interesting_sequences(read_names_by_seq_filepath, interesting_sequences):
+    interesting_read_names = {}
+    with open(read_names_by_seq_filepath) as f:
+        for i, line in enumerate(f):
+            if i % 10000 == 0:
+                sys.stdout.write('.')
+                sys.stdout.flush()
+            words = line.strip().split()
+            rough_sequence = words[0]
+            read_names = words[1:]
+            for interesting_sequence in interesting_sequences:
+                if interesting_sequence in rough_sequence:
+                    interesting_read_names[interesting_sequence] = read_names
+    return interesting_read_names
+
+
 def plot_library_comp_by_hamming_distance(ax,
                                           target,
                                           max_ham,
