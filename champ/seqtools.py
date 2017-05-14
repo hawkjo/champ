@@ -202,7 +202,7 @@ def build_interesting_sequences(read_names_by_seq_filepath, interesting_sequence
     interesting_read_names = defaultdict(set)
     with open(read_names_by_seq_filepath) as f:
         for i, line in enumerate(f):
-            if i % 10000 == 0:
+            if i % 1000 == 0:
                 sys.stdout.write('.')
                 sys.stdout.flush()
             words = line.strip().split()
