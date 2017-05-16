@@ -1,6 +1,5 @@
 import logging
 import re
-
 import numpy as np
 
 log = logging.getLogger(__name__)
@@ -66,7 +65,13 @@ class GridImages(object):
 
     @property
     def height(self):
+        # number of rows
         return self._height
+
+    @property
+    def width(self):
+        # number of columns
+        return self._width
 
     @property
     def columns(self):
