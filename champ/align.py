@@ -244,6 +244,7 @@ def find_bounds(pool, h5_filenames, base_column_checker, columns, possible_tile_
 
 def check_column_for_alignment(cluster_strategy, rotation_adjustment, channel, snr, sequencing_chip, um_per_pixel, fia,
                                end_tiles, column, possible_tile_keys, h5_filename):
+    print("check col for alignment")
     base_name = os.path.splitext(h5_filename)[0]
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
@@ -309,11 +310,15 @@ def load_read_names(file_path):
 
 
 def process_alignment_image(cluster_strategy, rotation_adjustment, snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, fia):
+    print("set image data")
     fia.set_image_data(image, um_per_pixel)
     sexcat_fpath = os.path.join(base_name, '%s.clusters.%s' % (image.index, cluster_strategy))
     if not os.path.exists(sexcat_fpath):
+        print("no sexcat fpath")
         return fia
+    print("set_sexcat_from_file")
     fia.set_sexcat_from_file(sexcat_fpath, cluster_strategy)
+    print("rough align")
     fia.rough_align(possible_tile_keys,
                     sequencing_chip.rotation_estimate + rotation_adjustment,
                     sequencing_chip.tile_width,
