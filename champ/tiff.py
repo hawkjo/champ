@@ -134,7 +134,7 @@ class TifsPerConcentration(BaseTifStack):
 
                 # if the images are larger than 512x512, we need to subdivide them
                 subrows, subcolumns = range(height / 512), range(width / 512)
-
+                log.debug("subrows: %d, subcolumns: %d" % (subrows, subcolumns))
                 # Find channel names and assert unique
                 channel_names = [sanitize_name(name) for name in summary['ChNames']]
                 assert summary['Channels'] == len(channel_names) == len(set(channel_names)), channel_names
@@ -153,6 +153,7 @@ class TifsPerConcentration(BaseTifStack):
                         for subcolumn in subcolumns:
                             major_axis_label = (major_axis_position * len(subcolumns)) - len(subcolumns) + subcolumn
                             dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_label, minor_axis_label)
+                            log.debug(dataset_name)
                             summed_images = defaultdict(lambda *x: np.zeros((height, width), dtype=np.int))
 
                             # Add images
