@@ -16,8 +16,8 @@ Options:
 Commands:
   map           Maps all the reads in the fastq files. This needs to be done before any other processing
   init          Stores some metadata about a particular experiment
-  h5            Converts TIFFs to HDF5
-  align         Determines the sequence of fluorescent points in the microscope data. Preprocesses images if not already done.
+  h5            Looks into all directories in IMAGE_DIRECTORY and converts any valid TIFFs it finds into HDF5 files
+  align         Determines the sequence of fluorescent points in the microscope data. Preprocesses images if not already done
   info          View the metadata associated with an experiment
   notebooks     Creates copies of the standard Jupyter analysis notebooks in the current directory
 
