@@ -126,6 +126,15 @@ class TifsPerConcentration(BaseTifStack):
             all_pages = defaultdict(list)
             with tifffile.TiffFile(file_path) as tif:
                 summary = tif.micromanager_metadata['summary']
+
+                # if the images are large, we need to break them up
+                height, width = summary['Height'], summary['Width']
+                if height % 512 != 0 or width % 512 != 0:
+                    raise ValueError("CHAMP currently only supports images with sides that are multiples of 512 pixels.")
+
+                # if the images are larger than 512x512, we need to subdivide them
+                subrows, subcolumns = range(height / 512), range(width / 512)
+
                 # Find channel names and assert unique
                 channel_names = [sanitize_name(name) for name in summary['ChNames']]
                 assert summary['Channels'] == len(channel_names) == len(set(channel_names)), channel_names
@@ -139,16 +148,20 @@ class TifsPerConcentration(BaseTifStack):
 
                 for position_text, channel_pages in all_pages.items():
                     major_axis_position, minor_axis_position = self.axes[file_path][position_text]
-                    dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_position, minor_axis_position)
-                    summed_images = defaultdict(lambda *x: np.zeros((height, width), dtype=np.int))
+                    for subrow in subrows:
+                        minor_axis_label = (minor_axis_position * len(subrows)) - len(subrows) + subrow
+                        for subcolumn in subcolumns:
+                            major_axis_label = (major_axis_position * len(subcolumns)) - len(subcolumns) + subcolumn
+                            dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_label, minor_axis_label)
+                            summed_images = defaultdict(lambda *x: np.zeros((height, width), dtype=np.int))
 
-                    # Add images
-                    for channel, page in channel_pages:
-                        image = page.asarray()
-                        for adjustment in self._adjustments:
-                            image = adjustment(image)
-                        summed_images[channel] += image
-                    yield TIFSingleFieldOfView(summed_images, dataset_name)
+                            # Add images
+                            for channel, page in channel_pages:
+                                image = page.asarray()
+                                for adjustment in self._adjustments:
+                                    image = adjustment(image)
+                                summed_images[channel] += image
+                            yield TIFSingleFieldOfView(summed_images, dataset_name)
 
 
 class TIFSingleFieldOfView(object):
