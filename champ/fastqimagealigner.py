@@ -109,26 +109,34 @@ class FastqImageAligner(object):
         self.fq_im_scaled_dims = (self.fq_im_scaled_maxes + [1, 1]).astype(np.int)
 
     def find_hitting_tiles(self, possible_tile_keys, snr_thresh=1.2):
+        print("in find hitting tiles")
         possible_tiles = [self.fastq_tiles[key] for key in possible_tile_keys
                           if key in self.fastq_tiles]
         impossible_tiles = [tile for tile in self.fastq_tiles.values() if tile not in possible_tiles]
         impossible_tiles.sort(key=lambda tile: -len(tile.read_names))
+        print("pos/impos tiles: %d %d" % (len(possible_tiles), len(impossible_tiles)))
         control_tiles = impossible_tiles[:2]
+        print("create image fft")
         self.image_data.set_fft(self.fq_im_scaled_dims)
         self.control_corr = 0
-
+        print("control alignment")
         for control_tile in control_tiles:
             corr, _ = control_tile.fft_align_with_im(self.image_data)
+            print("control corr %s" % corr)
             if corr > self.control_corr:
                 self.control_corr = corr
         del control_tiles
         self.hitting_tiles = []
+        print("possible alignment")
         for tile in possible_tiles:
             max_corr, align_tr = tile.fft_align_with_im(self.image_data)
+            print("max corr %s" % max_corr)
             if max_corr > snr_thresh * self.control_corr:
+                print("set aligned rcs")
                 tile.set_aligned_rcs(align_tr)
                 tile.snr = max_corr / self.control_corr
                 self.hitting_tiles.append(tile)
+                print("done setting best")
 
     def find_points_in_frame(self, consider_tiles='all'):
         self.rcs_in_frame = []
