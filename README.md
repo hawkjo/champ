@@ -46,7 +46,7 @@ of interest (note that for CRISPR systems, this length includes the PAM).
 
 #### Setting Up a New Analysis
 
-When a new experiment is run and the image files are uploaded to the server, you'll need to run "champ init" to
+When a new experiment is run and the image files are uploaded to the server, you'll need to run `champ init` to
 associate some metadata about the experiment with the image files. There are several mandatory pieces of information and
  some optional ones. This creates a file `champ.yml` that holds this metadata, and which is used during the alignment process
  to checkpoint progress.
@@ -82,6 +82,12 @@ a quirk with the way MicroManager saves images.
 align you may try passing it in.
 
 `-v -vv -vvv` set the verbosity level (-vvv is debug mode).
+
+#### Generating HDF5 files
+
+CHAMP uses HDF5 files with a specific format. If you're using MicroManager and generating OME-TIFF files, CHAMP's
+built-in conversion tool (`champ h5`) will work out of the box. If your raw image files aren't formatted and named 
+exactly as necessary, you'll need to generate the HDF5s yourself.
 
 #### Aligning Images
 
