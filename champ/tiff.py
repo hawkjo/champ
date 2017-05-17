@@ -73,9 +73,9 @@ class TifsPerFieldOfView(BaseTifStack):
             for file_path in self._filenames:
                 major_axis_position, minor_axis_position = self.axes[file_path]
                 for subrow in subrows:
-                    minor_axis_label = (minor_axis_position * len(subrows)) - len(subrows) + subrow + 1
+                    minor_axis_label = (minor_axis_position * len(subrows)) - len(subrows) + subrow
                     for subcolumn in subcolumns:
-                        major_axis_label = (major_axis_position * len(subcolumns)) - len(subcolumns) + subcolumn + 1
+                        major_axis_label = (major_axis_position * len(subcolumns)) - len(subcolumns) + subcolumn + 2
                         dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_label, minor_axis_label)
 
                         with tifffile.TiffFile(file_path) as tif:
