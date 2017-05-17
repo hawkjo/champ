@@ -8,18 +8,11 @@ log = logging.getLogger(__name__)
 cluster_strategies = ('se', 'otsu',)
 
 
-def preprocess(clargs, metadata, cache):
-    log.debug("Preprocessing images.")
-    paths = convert.get_all_tif_paths(clargs.image_directory)
-    # directories will have ".h5" appended to them to come up with the HDF5 names
-    # tifs are relative paths to each tif file
-    log.debug("About to convert TIFs to HDF5.")
-    convert.main(paths, metadata['flipud'], metadata['fliplr'])
-    log.debug("Done converting TIFs to HDF5.")
+def preprocess(image_directory, cache):
     log.debug("Fitsifying images from HDF5 files.")
-    fits.main(clargs.image_directory)
+    fits.main(image_directory)
     cache['preprocessed'] = True
-    initialize.save_cache(clargs.image_directory, cache)
+    initialize.save_cache(image_directory, cache)
 
 
 def load_filenames(image_directory):
@@ -31,10 +24,7 @@ def main(clargs):
     metadata = initialize.load_metadata(clargs.image_directory)
     cache = initialize.load_cache(clargs.image_directory)
     if not cache['preprocessed']:
-        for filename in load_filenames(clargs.image_directory):
-            log.warn("Deleting (probably invalid) existing HDF5 file and recreating it: %s" % filename)
-            os.unlink(filename)
-        preprocess(clargs, metadata, cache)
+        preprocess(clargs.image_directory, cache)
 
     h5_filenames = load_filenames(clargs.image_directory)
     if len(h5_filenames) == 0:

@@ -39,6 +39,7 @@ class CommandLineArguments(object):
         # We have to do this weird loop to deal with the way docopt stores the command name
         for possible_command in ('map',
                                  'init',
+                                 'h5',
                                  'align',
                                  'info',
                                  'notebooks'):
