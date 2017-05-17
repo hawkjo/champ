@@ -318,7 +318,7 @@ def process_alignment_image(cluster_strategy, rotation_adjustment, snr, sequenci
         return fia
     print("set_sexcat_from_file")
     fia.set_sexcat_from_file(sexcat_fpath, cluster_strategy)
-    print("rough align")
+    print("rough align pre-enter", possible_tile_keys, sequencing_chip.rotation_estimate + rotation_adjustment, sequencing_chip.tile_width, snr)
     fia.rough_align(possible_tile_keys,
                     sequencing_chip.rotation_estimate + rotation_adjustment,
                     sequencing_chip.tile_width,
