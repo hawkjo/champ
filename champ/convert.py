@@ -52,6 +52,9 @@ def main(paths, flipud, fliplr):
 
     for directory, tifs in paths.items():
         hdf5_filename = directory + ".h5"
+        if os.path.exists(hdf5_filename):
+            log.warn("HDF5 file already exists, skipping creation: %s" % hdf5_filename)
+            continue
         with h5py.File(hdf5_filename, 'a') as h5:
             tiff_stack = load_tiff_stack(list(tifs), image_adjustments)
             for t in tiff_stack:
