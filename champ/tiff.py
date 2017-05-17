@@ -90,7 +90,7 @@ class TifsPerFieldOfView(BaseTifStack):
 
                             # Setup defaultdict
                             height, width = summary['Height'], summary['Width']
-                            summed_images = defaultdict(lambda *x: np.zeros((height, width), dtype=np.int))
+                            summed_images = defaultdict(lambda *x: np.zeros((512, 512), dtype=np.int))
 
                             # Add images
                             for channel, page in zip(channels, tif.pages):
@@ -167,7 +167,7 @@ class TifsPerConcentration(BaseTifStack):
                         for subcolumn in subcolumns:
                             major_axis_label = (major_axis_position * len(subcolumns)) - len(subcolumns) + subcolumn + 1
                             dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_label, minor_axis_label)
-                            summed_images = defaultdict(lambda *x: np.zeros((height, width), dtype=np.int))
+                            summed_images = defaultdict(lambda *x: np.zeros((512, 512), dtype=np.int))
                             # Add images
                             for channel, page in channel_pages:
                                 image = page.asarray()
