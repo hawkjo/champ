@@ -26,7 +26,7 @@ class ImageData(object):
         h = misc.next_power_of_2(totaly)
         print("w, h", w, h)
         padded_im = np.pad(self.image,
-                           ((int(padding[0]), int(w-totalx)), (int(padding[1]), int(h-totaly))),
+                           ((int(padding[0]), int(w) - int(totalx)), (int(padding[1]), int(h) - int(totaly))),
                            mode='constant')
         print("padimshape", padded_im.shape)
         self.fft = np.fft.fft2(padded_im)
