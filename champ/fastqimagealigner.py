@@ -312,11 +312,16 @@ class FastqImageAligner(object):
         return found_good_mapping
 
     def rough_align(self, possible_tile_keys, rotation_est, fq_w_est=927, snr_thresh=1.2):
+        print("fia rough align")
         self.fq_w = fq_w_est
+        print("pre set_fastq_tile_mappings")
         self.set_fastq_tile_mappings()
+        print("pre set_all_fastq_image_data")
         self.set_all_fastq_image_data()
+        print("pre rotate_all_fastq_data")
         self.rotate_all_fastq_data(rotation_est)
         start_time = time.time()
+        print("pre find_hitting_tiles")
         self.find_hitting_tiles(possible_tile_keys, snr_thresh)
         log.debug('Rough alignment time: %.3f seconds' % (time.time() - start_time))
 
