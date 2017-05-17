@@ -21,9 +21,13 @@ class ImageData(object):
 
     def set_fft(self, padding):
         totalx, totaly = np.array(padding) + np.array(self.image.shape)
+        print("totalx, totaly", totalx, totaly)
         w = misc.next_power_of_2(totalx)
         h = misc.next_power_of_2(totaly)
+        print("w, h", w, h)
         padded_im = np.pad(self.image,
                            ((int(padding[0]), int(w-totalx)), (int(padding[1]), int(h-totaly))),
                            mode='constant')
+        print("padimshape", padded_im.shape)
         self.fft = np.fft.fft2(padded_im)
+        print("set fft just fine")
