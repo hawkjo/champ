@@ -149,9 +149,9 @@ class TifsPerConcentration(BaseTifStack):
                 for position_text, channel_pages in all_pages.items():
                     major_axis_position, minor_axis_position = self.axes[file_path][position_text]
                     for subrow in subrows:
-                        minor_axis_label = (minor_axis_position * len(subrows)) - len(subrows) + subrow
+                        minor_axis_label = (minor_axis_position * len(subrows)) - len(subrows) + subrow + 1
                         for subcolumn in subcolumns:
-                            major_axis_label = (major_axis_position * len(subcolumns)) - len(subcolumns) + subcolumn
+                            major_axis_label = (major_axis_position * len(subcolumns)) - len(subcolumns) + subcolumn + 1
                             dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_label, minor_axis_label)
                             log.debug(dataset_name)
                             summed_images = defaultdict(lambda *x: np.zeros((height, width), dtype=np.int))
