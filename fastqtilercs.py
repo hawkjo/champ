@@ -17,7 +17,7 @@ class FastqTileRCs(object):
     def set_fastq_image_data(self, offset, scale, scaled_dims, w, um_per_pixel, force=False, verbose=True):
         self.offset = offset
         self.scale = scale
-        self.image_shape = scaled_dims
+        self.image_shape = map(int, scaled_dims)
         self.w = w  # width in um
         self.um_per_pixel = um_per_pixel
         self.mapped_rcs = scale * (self.rcs + np.tile(offset, (self.rcs.shape[0], 1)))
@@ -27,7 +27,7 @@ class FastqTileRCs(object):
         self.rotation_degrees += degrees
         self.mapped_rcs = np.dot(self.mapped_rcs, misc.right_rotation_matrix(degrees, degrees=True))
         self.mapped_rcs -= np.tile(self.mapped_rcs.min(axis=0), (self.mapped_rcs.shape[0], 1))
-        self.image_shape = self.mapped_rcs.max(axis=0) + 1
+        self.image_shape = map(int, self.mapped_rcs.max(axis=0) + 1)
         return self.image_shape
 
     def image(self):
@@ -103,7 +103,7 @@ class FastqTileRCs(object):
 
     def set_correlation(self, im):
         """Sets alignment correlation. Only works when image need not be flipped or rotated."""
-        self.best_max_corr =  sum(im[pt[0], pt[1]] for pt in self.aligned_rcs
+        self.best_max_corr =  sum(im[pt[0], pt[1]] for pt in self.aligned_rcs.astype(np.int)
                                   if 0 <= pt[0] < im.shape[0] and 0 <= pt[1] < im.shape[1])
 
     def set_snr(self, snr):
