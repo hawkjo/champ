@@ -72,9 +72,7 @@ class TargetSequence(object):
             for j in range(i):
                 for mismatch_base_j in bases.replace(self._sequence[j], ''):
                     for mismatch_base_i in bases.replace(self._sequence[i], ''):
-                        sequence = self._sequence[:j] + mismatch_base_j + self._sequence[
-                                                                          j + 1:i] + mismatch_base_i + self._sequence[
-                                                                                                       i + 1:]
+                        sequence = self._sequence[:j] + mismatch_base_j + self._sequence[j + 1:i] + mismatch_base_i + self._sequence[i + 1:]
                         yield i, j, mismatch_base_i, mismatch_base_j, sequence
 
         # Add in single mismatch data for comparison
@@ -126,8 +124,6 @@ class MismatchMatrix(SubstitutionMatrix):
         self._values[r][c] = value
 
 
-
-
 class InsertionMatrix(SubstitutionMatrix):
     def __init__(self, sequence, bases='ACGT'):
         super(InsertionMatrix, self).__init__(sequence, 4, bases)
@@ -139,4 +135,3 @@ class InsertionMatrix(SubstitutionMatrix):
     @property
     def data(self):
         return self._values
-
