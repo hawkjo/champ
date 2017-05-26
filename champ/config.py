@@ -103,7 +103,7 @@ class CommandLineArguments(object):
 
     @property
     def min_hits(self):
-        return int(self._arguments['--min-hits'] or 15)
+        return int(self._arguments['--min-hits'] or 150)
 
     @property
     def min_len(self):
