@@ -1,5 +1,6 @@
 from collections import defaultdict
 import numpy as np
+from Bio.Seq import Seq
 
 
 class TargetSequence(object):
@@ -81,10 +82,39 @@ class TargetSequence(object):
                 sequence = self._sequence[:i] + mismatch_base + self._sequence[i + 1:]
                 yield i, i, mismatch_base, mismatch_base, sequence
 
+    @property
+    def single_insertions(self):
+        bases = 'ACGT'
+        for insertion_base in bases:
+            for i, nt in enumerate(self._sequence):
+                sequence = self._sequence[:i] + insertion_base + self._sequence[i:]
+                yield i, insertion_base, sequence
 
-class SubstitutionMatrix(object):
+    @property
+    def double_insertions(self):
+        bases = 'ACGT'
+        for i in range(len(self._sequence)):
+            for j in range(i):
+                for insertion_base_1 in bases:
+                    for insertion_base_2 in bases:
+                        yield self._sequence[:j] + insertion_base_1 + self._sequence[j:i] + insertion_base_2 + self._sequence[i:]
+
+        # single insertions for the diagonal
+        for i in range(len(self._sequence)):
+            for insertion_base in bases:
+                yield self._sequence[:i] + insertion_base + self._sequence[i:]
+
+    @property
+    def complement_stretches(self):
+        for stop in range(len(self._sequence)):
+            for start in range(stop):
+                yield self._sequence[:start] + str(Seq(self._sequence[start:stop + 1]).complement()) + self._sequence[stop + 1:]
+
+
+class TwoDMatrix(object):
     """
-    For mismatches and insertions
+    Base class for storing 2D penalty data (where the axes are sequences of some kind)
+    This was intended for mismatches and insertions, but now that I look at it, it might also work for deletions
 
     """
 
@@ -113,7 +143,7 @@ class SubstitutionMatrix(object):
         return data
 
 
-class MismatchMatrix(SubstitutionMatrix):
+class MismatchMatrix(TwoDMatrix):
     def __init__(self, sequence, bases='ACGT'):
         super(MismatchMatrix, self).__init__(sequence, 3, bases)
 
@@ -124,7 +154,7 @@ class MismatchMatrix(SubstitutionMatrix):
         self._values[r][c] = value
 
 
-class InsertionMatrix(SubstitutionMatrix):
+class InsertionMatrix(TwoDMatrix):
     def __init__(self, sequence, bases='ACGT'):
         super(InsertionMatrix, self).__init__(sequence, 4, bases)
 
@@ -135,3 +165,11 @@ class InsertionMatrix(SubstitutionMatrix):
     @property
     def data(self):
         return self._values
+
+
+class DeletionMatrix(TwoDMatrix):
+    def __init__(self, sequence):
+        super(DeletionMatrix, self).__init__(sequence, 1, 'ACGT')
+
+    def set_value(self, position1, position2, value):
+        self._values[position1, position2] = value
