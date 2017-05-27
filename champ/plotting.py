@@ -70,15 +70,20 @@ def plot_all_hits(fia, im_kwargs={}, line_kwargs={}, fqpt_kwargs={}, sext_kwargs
     plot_hits(fia, fia.bad_mutual_hits, 'b', ax, line_kwargs)
     plot_hits(fia, fia.good_mutual_hits, 'magenta', ax, line_kwargs)
     plot_hits(fia, fia.exclusive_hits, 'r', ax, line_kwargs)
-    ax.set_title('All Hits: %s vs. %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s, SNR: %s'
-            % (fia.image_data.fname,
-               ','.join(tile.key for tile in fia.hitting_tiles),
-               ','.join('%.2f' % tile.rotation_degrees for tile in fia.hitting_tiles),
-               ','.join('%.2f' % tile.width for tile in fia.hitting_tiles),
-               ','.join('%.5f' % tile.scale for tile in fia.hitting_tiles),
-               ','.join('%.1f' % tile.best_max_corr for tile in fia.hitting_tiles),
-               ','.join('%.2f' % tile.snr if hasattr(tile, 'snr') else '-' for tile in fia.hitting_tiles),
-               ), **title_kwargs)
+    try:
+        ax.set_title('All Hits: %s vs. %s\nRot: %s deg, Fq width: %s um, Scale: %s px/fqu, Corr: %s, SNR: %s'
+                % (fia.image_data.fname,
+                   ','.join(tile.key for tile in fia.hitting_tiles),
+                   ','.join('%.2f' % tile.rotation_degrees for tile in fia.hitting_tiles),
+                   ','.join('%.2f' % tile.width for tile in fia.hitting_tiles),
+                   ','.join('%.5f' % tile.scale for tile in fia.hitting_tiles),
+                   ','.join('%.1f' % tile.best_max_corr for tile in fia.hitting_tiles),
+                   ','.join('%.2f' % tile.snr if hasattr(tile, 'snr') else '-' for tile in fia.hitting_tiles),
+                   ), **title_kwargs)
+    except AttributeError:
+        print("*** It was in plotting ***")
+        raise AttributeError
+
     ax.set_xlim([0, fia.image_data.image.shape[1]])
     ax.set_ylim([fia.image_data.image.shape[0], 0])
 
