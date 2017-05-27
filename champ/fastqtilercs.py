@@ -83,8 +83,4 @@ class FastqTileRCs(object):
                                  if 0.0 <= x < im.shape[0] and 0.0 <= y < im.shape[1])
 
     def set_snr_with_control_corr(self, control_corr):
-        try:
-            self.snr = self.best_max_corr / control_corr
-        except AttributeError:
-            print(self.__dict__)
-            raise AttributeError
+        self.snr = self.best_max_corr / control_corr
