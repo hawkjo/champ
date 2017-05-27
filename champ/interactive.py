@@ -97,18 +97,18 @@ class TargetSequence(object):
             for j in range(i):
                 for insertion_base_1 in bases:
                     for insertion_base_2 in bases:
-                        yield self._sequence[:j] + insertion_base_1 + self._sequence[j:i] + insertion_base_2 + self._sequence[i:]
+                        yield i, j, insertion_base_1, insertion_base_2, self._sequence[:j] + insertion_base_1 + self._sequence[j:i] + insertion_base_2 + self._sequence[i:]
 
         # single insertions for the diagonal
         for i in range(len(self._sequence)):
             for insertion_base in bases:
-                yield self._sequence[:i] + insertion_base + self._sequence[i:]
+                yield i, i, insertion_base, insertion_base, self._sequence[:i] + insertion_base + self._sequence[i:]
 
     @property
     def complement_stretches(self):
         for stop in range(len(self._sequence)):
             for start in range(stop):
-                yield self._sequence[:start] + str(Seq(self._sequence[start:stop + 1]).complement()) + self._sequence[stop + 1:]
+                yield start, stop, self._sequence[:start] + str(Seq(self._sequence[start:stop + 1]).complement()) + self._sequence[stop + 1:]
 
 
 class TwoDMatrix(object):
