@@ -79,7 +79,6 @@ def plot_all_hits(fia, im_kwargs={}, line_kwargs={}, fqpt_kwargs={}, sext_kwargs
                ','.join('%.1f' % tile.best_max_corr if hasattr(tile, 'best_max_corr') else '0.0' for tile in fia.hitting_tiles),
                ','.join('%.2f' % tile.snr if hasattr(tile, 'snr') else '-' for tile in fia.hitting_tiles),
                ), **title_kwargs)
-
     ax.set_xlim([0, fia.image_data.image.shape[1]])
     ax.set_ylim([fia.image_data.image.shape[0], 0])
 
