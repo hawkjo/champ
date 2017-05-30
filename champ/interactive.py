@@ -160,7 +160,7 @@ class InsertionMatrix(TwoDMatrix):
 
     def set_value(self, position1, position2, base1, base2, value):
         r, c = position1 * self._slots + self._bases.index(base1), position2 * self._slots + self._bases.index(base2)
-        self._values[r, c] = value
+        self._values[r][c] = value
 
     @property
     def data(self):
@@ -172,4 +172,4 @@ class DeletionMatrix(TwoDMatrix):
         super(DeletionMatrix, self).__init__(sequence, 1, 'ACGT')
 
     def set_value(self, position1, position2, value):
-        self._values[position1, position2] = value
+        self._values[position1][position2] = value
