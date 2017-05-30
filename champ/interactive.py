@@ -85,10 +85,10 @@ class TargetSequence(object):
     @property
     def single_insertions(self):
         bases = 'ACGT'
-        for insertion_base in bases:
+        for j, insertion_base in enumerate(bases):
             for i, nt in enumerate(self._sequence):
                 sequence = self._sequence[:i] + insertion_base + self._sequence[i:]
-                yield i, insertion_base, sequence
+                yield i, j, insertion_base, sequence
 
     @property
     def double_insertions(self):
