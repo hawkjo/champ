@@ -61,9 +61,9 @@ class TargetSequence(object):
     def single_mismatches(self):
         # produces all mismatch bases. Includes the correct base since we want to graph it
         for i in range(len(self._sequence)):
-            for mismatch_base in 'ACGT':
+            for j, mismatch_base in enumerate('ACGT'):
                 seq = self._sequence[:i] + mismatch_base + self._sequence[i + 1:]
-                yield i, mismatch_base, seq
+                yield i, j, mismatch_base, seq
 
     @property
     def double_mismatches(self):
