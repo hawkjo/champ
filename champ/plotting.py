@@ -192,7 +192,6 @@ def plot_2d_mismatches(sequence, human_readable_indexes, protein_name, lower_ABA
     height_ratios = [len(sequence) * dimension, 1, .5]
     fig = plt.figure(figsize=(sum(width_ratios) / 3, sum(height_ratios) / 3))
 
-    cmap = plt.cm.get_cmap("viridis")
     gs = gridspec.GridSpec(3, 4,
                            width_ratios=width_ratios,
                            height_ratios=height_ratios,
@@ -257,6 +256,70 @@ def plot_2d_mismatches(sequence, human_readable_indexes, protein_name, lower_ABA
     data_ax.set_yticks([])
     data_ax.set_xticks([])
     fig.suptitle('%s Double Mismatch Binding Affinities' % protein_name, fontsize=fontsize*3)
+
+    # Add a color bar to the right side to quantify the colors in the main figure
+    cbar_ax = fig.add_subplot(gs[cbar_index])
+    cbar_ax.tick_params(labelsize=18)
+    cbar = plt.colorbar(ms, cax=cbar_ax)
+    cbar.set_label('$ABA (k_{B}T)$', fontsize=fontsize*2)
+
+
+def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
+    width_ratios = [.5, len(sequence), 1]
+    height_ratios = [len(sequence), .5]
+    fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
+
+    gs = gridspec.GridSpec(2, 3,
+                           width_ratios=width_ratios,
+                           height_ratios=height_ratios,
+                           wspace=0.01, hspace=0.01)
+    data_index = 1
+    left_sequence_index = 0
+    bottom_sequence_index = 4
+    cbar_index = 2
+
+    # Add the sequence labels to the left of the figure
+    left_sequence_ax = fig.add_subplot(gs[left_sequence_index])
+    left_sequence_ax.set_yticklabels(sequence_labels[::-1], fontsize=fontsize)
+    left_sequence_ax.set_yticks([x + 0.5 for x in range(len(sequence))])
+    left_sequence_ax.set_ylim([0, len(sequence)])
+    left_sequence_ax.spines['top'].set_visible(False)
+    left_sequence_ax.spines['right'].set_visible(False)
+    left_sequence_ax.spines['bottom'].set_visible(False)
+    left_sequence_ax.spines['left'].set_visible(False)
+    left_sequence_ax.tick_params(top="off")
+    left_sequence_ax.tick_params(bottom="off")
+    left_sequence_ax.tick_params(right="off")
+    left_sequence_ax.tick_params(left="off")
+    left_sequence_ax.set_xticklabels([])
+
+    # Add the sequence labels to the bottom of the figure
+    bottom_sequence_ax = fig.add_subplot(gs[bottom_sequence_index])
+    bottom_sequence_ax.set_xticklabels(sequence_labels, fontsize=fontsize)
+    bottom_sequence_ax.set_xticks([x + 0.5 for x in range(len(sequence))])
+    bottom_sequence_ax.set_xlim([0, len(sequence)])
+    bottom_sequence_ax.spines['top'].set_visible(False)
+    bottom_sequence_ax.spines['right'].set_visible(False)
+    bottom_sequence_ax.spines['bottom'].set_visible(False)
+    bottom_sequence_ax.spines['left'].set_visible(False)
+    bottom_sequence_ax.tick_params(top="off")
+    bottom_sequence_ax.tick_params(bottom="off")
+    bottom_sequence_ax.tick_params(right="off")
+    bottom_sequence_ax.tick_params(left="off")
+    bottom_sequence_ax.set_yticklabels([])
+
+    # Add data to the main part of the figure
+    data_ax = fig.add_subplot(gs[data_index])
+    data_ax.set_axis_bgcolor(0.87 * np.array([1, 1, 1]))
+    if upper_ABA_matrix is None:
+        ms = data_ax.matshow(lower_ABA_matrix, cmap='viridis')
+    else:
+        # we "add" the arrays, retaining NaNs, to create a comparison matrix
+        # both matrices should have their include_diagonal_values=False or else those will sum,
+        # and if one is on it will be misleading
+        ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap='viridis')
+    data_ax.set_yticks([])
+    data_ax.set_xticks([])
 
     # Add a color bar to the right side to quantify the colors in the main figure
     cbar_ax = fig.add_subplot(gs[cbar_index])
