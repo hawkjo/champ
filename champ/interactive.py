@@ -150,6 +150,9 @@ class TwoDMatrix(object):
                 if flip_sequence:
                     c = self._dimension - column - 1
                     r = self._dimension - row - 1
+                else:
+                    c = column
+                    r = row
                 if side == 'lower':
                     data[r, c] = value
                 elif side == 'upper':
