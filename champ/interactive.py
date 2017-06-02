@@ -108,7 +108,7 @@ class TargetSequence(object):
             for j in range(i):
                 for insertion_base_1 in bases:
                     for insertion_base_2 in bases:
-                        yield i, j, insertion_base_1, insertion_base_2, self._sequence[:i] + insertion_base_1 + self._sequence[i:j] + insertion_base_2 + self._sequence[j:]
+                        yield i, j, insertion_base_1, insertion_base_2, self._sequence[:j] + insertion_base_1 + self._sequence[j:i] + insertion_base_2 + self._sequence[i:]
 
         # single insertions for the diagonal
         for i in range(len(self._sequence)):
