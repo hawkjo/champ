@@ -184,7 +184,7 @@ def sum_nan_arrays(a, b):
     return np.where(ma & mb, np.nan, np.where(ma, 0, a) + np.where(mb, 0, b))
 
 
-def plot_2d_mismatches(sequence, human_readable_indexes, protein_name, lower_ABA_matrix, base_colors=None, upper_ABA_matrix=None, fontsize=18):
+def plot_2d_mismatches(sequence, human_readable_indexes, lower_ABA_matrix, base_colors=None, upper_ABA_matrix=None, fontsize=18):
     if base_colors is None:
         base_colors = {'A': flabpal.blue, 'C': flabpal.yellow, 'G': flabpal.green, 'T': flabpal.red}
     dimension = 3
@@ -255,7 +255,6 @@ def plot_2d_mismatches(sequence, human_readable_indexes, protein_name, lower_ABA
         ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap='viridis')
     data_ax.set_yticks([])
     data_ax.set_xticks([])
-    fig.suptitle('%s Double Mismatch Binding Affinities' % protein_name, fontsize=fontsize*3)
 
     # Add a color bar to the right side to quantify the colors in the main figure
     cbar_ax = fig.add_subplot(gs[cbar_index])
@@ -317,6 +316,85 @@ def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_mat
         # we "add" the arrays, retaining NaNs, to create a comparison matrix
         # both matrices should have their include_diagonal_values=False or else those will sum,
         # and if one is on it will be misleading
+        ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap='viridis')
+    data_ax.set_yticks([])
+    data_ax.set_xticks([])
+
+    # Add a color bar to the right side to quantify the colors in the main figure
+    cbar_ax = fig.add_subplot(gs[cbar_index])
+    cbar_ax.tick_params(labelsize=18)
+    cbar = plt.colorbar(ms, cax=cbar_ax)
+    cbar.set_label('$ABA (k_{B}T)$', fontsize=fontsize*2)
+
+
+def plot_2d_insertions(sequence, human_readable_indexes, lower_ABA_matrix, base_colors=None, upper_ABA_matrix=None, fontsize=18):
+    if base_colors is None:
+        base_colors = {'A': flabpal.blue, 'C': flabpal.yellow, 'G': flabpal.green, 'T': flabpal.red}
+    dimension = 4
+    width_ratios = [.5, 1, len(sequence) * dimension, 3]
+    height_ratios = [len(sequence) * dimension, 1, .5]
+    fig = plt.figure(figsize=(sum(width_ratios) / 3, sum(height_ratios) / 3))
+
+    gs = gridspec.GridSpec(3, 4,
+                           width_ratios=width_ratios,
+                           height_ratios=height_ratios,
+                           wspace=0.01, hspace=0.01
+                           )
+    data_index = 2
+    left_sequence_index = 0
+    bottom_sequence_index = 10
+    left_color_index = 1
+    bottom_color_index = 6
+    cbar_index = 3
+
+    sequence_labels = ["$%s_{%d}$" % (base, index) for base, index in human_readable_indexes]
+
+    # Add the sequence labels to the left of the figure
+    left_sequence_ax = fig.add_subplot(gs[left_sequence_index])
+    left_sequence_ax.set_yticklabels(sequence_labels[::-1], fontsize=8*dimension)
+    left_sequence_ax.set_yticks([dimension * x + dimension / 2.0 for x in range(len(sequence))])
+    left_sequence_ax.set_ylim([0, len(sequence) * dimension])
+    left_sequence_ax.spines['top'].set_visible(False)
+    left_sequence_ax.spines['right'].set_visible(False)
+    left_sequence_ax.spines['bottom'].set_visible(False)
+    left_sequence_ax.spines['left'].set_visible(False)
+    left_sequence_ax.tick_params(top="off")
+    left_sequence_ax.tick_params(bottom="off")
+    left_sequence_ax.tick_params(right="off")
+    left_sequence_ax.tick_params(left="off")
+    left_sequence_ax.set_xticklabels([])
+
+    # Add the sequence labels to the bottom of the figure
+    bottom_sequence_ax = fig.add_subplot(gs[bottom_sequence_index])
+    bottom_sequence_ax.set_xticklabels(sequence_labels, fontsize=8*dimension)
+    bottom_sequence_ax.set_xticks([dimension * x + 1.5 for x in range(len(sequence))])
+    bottom_sequence_ax.set_xlim([0, len(sequence) * dimension - 1])
+    bottom_sequence_ax.spines['top'].set_visible(False)
+    bottom_sequence_ax.spines['right'].set_visible(False)
+    bottom_sequence_ax.spines['bottom'].set_visible(False)
+    bottom_sequence_ax.spines['left'].set_visible(False)
+    bottom_sequence_ax.tick_params(top="off")
+    bottom_sequence_ax.tick_params(bottom="off")
+    bottom_sequence_ax.tick_params(right="off")
+    bottom_sequence_ax.tick_params(left="off")
+    bottom_sequence_ax.set_yticklabels([])
+
+    # Add the color bars to the left and bottom of the figure to indicate which base the mismatch has been converted to
+    insertion_bases = 'ACGT' * len(sequence)
+    left_color_codes_ax = fig.add_subplot(gs[left_color_index])
+    build_base_colorcode_axis(left_color_codes_ax, insertion_bases, base_colors, vertical=True)
+    bottom_color_codes_ax = fig.add_subplot(gs[bottom_color_index])
+    build_base_colorcode_axis(bottom_color_codes_ax, insertion_bases, base_colors)
+
+    # Add data to the main part of the figure
+    data_ax = fig.add_subplot(gs[data_index])
+    data_ax.set_axis_bgcolor(0.87 * np.array([1, 1, 1]))
+    if upper_ABA_matrix is None:
+        ms = data_ax.matshow(lower_ABA_matrix, cmap='viridis')
+    else:
+        # we "add" the arrays, retaining NaNs, to create a comparison matrix
+        # both matrices should have their include_diagonal_values=False or else those will sum,
+        # or if one is on it will be misleading
         ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap='viridis')
     data_ax.set_yticks([])
     data_ax.set_xticks([])
