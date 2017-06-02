@@ -98,3 +98,54 @@ def plot_all_hits(fia, im_kwargs={}, line_kwargs={}, fqpt_kwargs={}, sext_kwargs
     legend = ax.legend(handles=handles, **legend_kwargs)
     legend.get_frame().set_color('white')
     return ax
+
+
+def get_cluster_counts(ia, seq):
+    """
+    Each concentration could have different numbers of clusters, since they won't all successfully align each time.
+    We take the lowest number of clusters in a single concentration and use that as the count.
+    This assumes that all images that align in that concentration align in all the others,
+    and that the images were taken in the same place on the chip during each acquisition. All lists in the intensity array are the same length
+    but contain None when that cluster was not found in a particular concentration.
+
+    """
+    cluster_counts = []
+    for lol in ia.intensity_lol_given_seq[seq]:
+        cluster_counts.append(len([i for i in lol if i is not None]))
+    return min(cluster_counts) if cluster_counts else 0
+
+
+def configure_position_penalty_axes(target, fig, penalty_axes, count_axes, xticklabels, fontsize, tick_fontsize, title,
+                                    yaxis_type, base_color, target_name, legend=True):
+    if yaxis_type == 'kd':
+        yaxis_label = '$K_{d} (nM)$'
+    elif yaxis_type == 'ddG':
+        yaxis_label = '$\Delta \Delta G\ (K_{B}T)$'
+    elif yaxis_type == 'ABA':
+        yaxis_label = '$ABA\ (K_{B}T)$'
+    else:
+        yaxis_label = '?????'
+
+    penalty_axes.xaxis.grid(False)
+    penalty_axes.set_xlim((-0.5, len(target)-0.5))
+    penalty_axes.set_xticks(range(len(target)))
+    penalty_axes.set_xticklabels(xticklabels, fontsize=tick_fontsize)
+    count_axes.set_yscale('log')
+    count_axes.set_xlim((-0.5, len(target)-0.5))
+    count_axes.set_xticks(range(len(target)))
+    count_axes.set_xticklabels(xticklabels, fontsize=tick_fontsize)
+    ylim = penalty_axes.get_ylim()
+    for i, c in enumerate(target):
+        # color the background with the correct base
+        penalty_axes.fill_between([i-0.5, i+0.5], [ylim[0]]*2, [ylim[1]]*2, color=base_color[c], alpha=0.14)
+    penalty_axes.set_ylim(ylim)
+    penalty_axes.set_title(title, fontsize=fontsize)
+    count_axes.set_title("Unique Clusters Per Mismatch Sequence", fontsize=fontsize)
+    count_axes.set_ylabel("Count", fontsize=fontsize)
+    count_axes.xaxis.set_ticks_position('none')
+    penalty_axes.set_xlabel('Target {target_name} Reference Sequence (Background Color)'.format(target_name=target_name), fontsize=fontsize)
+    penalty_axes.set_ylabel(yaxis_label, fontsize=fontsize)
+    if legend:
+        penalty_axes.legend(loc='best')
+    penalty_axes.xaxis.set_ticks_position('none')
+    fig.tight_layout()
