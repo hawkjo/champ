@@ -129,10 +129,9 @@ class TwoDMatrix(object):
 
     """
 
-    def __init__(self, sequence, slots_per_position, bases='ACGT', flip_sequence=False):
+    def __init__(self, sequence, slots_per_position, bases='ACGT'):
         self._bases = bases
         self._sequence = sequence
-        self._flip_sequence = flip_sequence
         self._slots = slots_per_position
         self._values = defaultdict(dict)
 
@@ -140,7 +139,7 @@ class TwoDMatrix(object):
     def _dimension(self):
         return self._slots * len(self._sequence)
 
-    def to_matrix(self, side='lower', include_diagonal_values=True):
+    def to_matrix(self, side='lower', include_diagonal_values=True, flip_sequence=False):
         assert side in ('lower', 'upper')
         data = np.zeros((self._dimension, self._dimension))
         data[:] = np.nan
@@ -148,7 +147,7 @@ class TwoDMatrix(object):
             for column, value in column_data.items():
                 if not include_diagonal_values and row == column:
                     continue
-                if self._flip_sequence:
+                if flip_sequence:
                     row = self._dimension - row
                     column = self._dimension - column
                 if side == 'lower':
