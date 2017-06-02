@@ -159,6 +159,7 @@ class MismatchMatrix(TwoDMatrix):
         super(MismatchMatrix, self).__init__(sequence, 3, bases)
 
     def set_value(self, position1, position2, base1, base2, value):
+        print(position1, position2, self._sequence[position1], self._sequence[position2], base1, base2)
         index1 = self._bases.replace(self._sequence[position1], '').index(base1)
         index2 = self._bases.replace(self._sequence[position2], '').index(base2)
         r, c = position1 * self._slots + index1, position2 * self._slots + index2
