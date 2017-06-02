@@ -153,9 +153,9 @@ class TwoDMatrix(object):
                 else:
                     c = column
                     r = row
-                if side == 'lower':
+                if (side == 'lower' and not flip_sequence) or (side == 'upper' and flip_sequence):
                     data[r, c] = value
-                elif side == 'upper':
+                elif (side == 'upper' and not flip_sequence) or (side == 'lower' and flip_sequence):
                     data[c, r] = value
         return data
 
