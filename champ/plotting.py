@@ -118,7 +118,7 @@ def get_cluster_counts(ia, seq):
     return min(cluster_counts) if cluster_counts else 0
 
 
-def configure_position_penalty_axes(target, fig, penalty_axes, count_axes, xticklabels, fontsize, tick_fontsize, title,
+def configure_position_penalty_axes(target, fig, penalty_axes, count_axes, xticklabels, fontsize, tick_fontsize,
                                     yaxis_type, base_color, target_name, legend=True):
     if yaxis_type == 'kd':
         yaxis_label = '$K_{d} (nM)$'
@@ -142,7 +142,6 @@ def configure_position_penalty_axes(target, fig, penalty_axes, count_axes, xtick
         # color the background with the correct base
         penalty_axes.fill_between([i-0.5, i+0.5], [ylim[0]]*2, [ylim[1]]*2, color=base_color[c], alpha=0.14)
     penalty_axes.set_ylim(ylim)
-    penalty_axes.set_title(title, fontsize=fontsize)
     count_axes.set_title("Unique Clusters Per Mismatch Sequence", fontsize=fontsize)
     count_axes.set_ylabel("Count", fontsize=fontsize)
     count_axes.xaxis.set_ticks_position('none')
