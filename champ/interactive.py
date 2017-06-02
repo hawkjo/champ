@@ -129,9 +129,10 @@ class TwoDMatrix(object):
 
     """
 
-    def __init__(self, sequence, slots_per_position, bases='ACGT'):
+    def __init__(self, sequence, slots_per_position, bases='ACGT', flip_sequence=False):
         self._bases = bases
         self._sequence = sequence
+        self._flip_sequence = flip_sequence
         self._slots = slots_per_position
         self._values = defaultdict(dict)
 
@@ -147,6 +148,9 @@ class TwoDMatrix(object):
             for column, value in column_data.items():
                 if not include_diagonal_values and row == column:
                     continue
+                if self._flip_sequence:
+                    row = self._dimension - row
+                    column = self._dimension - column
                 if side == 'lower':
                     data[row, column] = value
                 elif side == 'upper':
