@@ -104,8 +104,8 @@ class TargetSequence(object):
     @property
     def double_insertions(self):
         bases = 'ACGT'
-        for i in range(len(self._sequence)):
-            for j in range(i):
+        for j in range(len(self._sequence)):
+            for i in range(j):
                 for insertion_base_1 in bases:
                     for insertion_base_2 in bases:
                         yield i, j, insertion_base_1, insertion_base_2, self._sequence[:j] + insertion_base_1 + self._sequence[j:i] + insertion_base_2 + self._sequence[i:]
