@@ -148,8 +148,8 @@ class TwoDMatrix(object):
                 if not include_diagonal_values and row == column:
                     continue
                 if flip_sequence:
-                    c = self._dimension - column
-                    r = self._dimension - row
+                    c = self._dimension - column - 1
+                    r = self._dimension - row - 1
                 if side == 'lower':
                     data[r, c] = value
                 elif side == 'upper':
