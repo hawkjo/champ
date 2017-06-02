@@ -334,7 +334,7 @@ def plot_mismatch_diff(sequence, sequence_labels, lower_ABA_matrix, base_colors=
     cbar_ax = fig.add_subplot(gs[cbar_index])
     cbar_ax.tick_params(labelsize=18)
     cbar = plt.colorbar(ms, cax=cbar_ax)
-    cbar.ax.set_ylim([-1.0, 1.0])
+    cbar.set_clim(-1.0, 1.0)
     cbar.set_label('$ABA (k_{B}T)$', fontsize=fontsize*2)
 
 
