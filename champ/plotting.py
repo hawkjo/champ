@@ -113,7 +113,7 @@ def get_cluster_counts(ia, seq):
 
     """
     cluster_counts = []
-    for lol in ia.intensity_lol_given_seq[seq]:
+    for lol in ia.intensity_lol_given_seq.get(seq, []):
         cluster_counts.append(len([i for i in lol if i is not None]))
     return min(cluster_counts) if cluster_counts else 0
 
