@@ -362,7 +362,7 @@ def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, base_colors=
     # Add the sequence labels to the bottom of the figure
     bottom_sequence_ax = fig.add_subplot(gs[bottom_sequence_index])
     bottom_sequence_ax.set_xticklabels(sequence_labels, fontsize=8*dimension)
-    bottom_sequence_ax.set_xticks([dimension * x + 1.5 for x in range(len(sequence))])
+    bottom_sequence_ax.set_xticks([dimension * x + 2.0 for x in range(len(sequence))])
     bottom_sequence_ax.set_xlim([0, len(sequence) * dimension])
     bottom_sequence_ax.spines['top'].set_visible(False)
     bottom_sequence_ax.spines['right'].set_visible(False)
