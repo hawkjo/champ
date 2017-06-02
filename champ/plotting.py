@@ -4,6 +4,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse
 from matplotlib import gridspec
 import matplotlib as mpl
+import flabpal
 
 
 def plot_hit_hists(fia, ax=None):
@@ -183,7 +184,9 @@ def sum_nan_arrays(a, b):
     return np.where(ma & mb, np.nan, np.where(ma, 0, a) + np.where(mb, 0, b))
 
 
-def plot_2d_mismatches(sequence, human_readable_indexes, protein_name, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
+def plot_2d_mismatches(sequence, human_readable_indexes, protein_name, lower_ABA_matrix, base_colors=None, upper_ABA_matrix=None, fontsize=18):
+    if base_colors is None:
+        base_colors = {'A': flabpal.blue, 'C': flabpal.yellow, 'G': flabpal.green, 'T': flabpal.red}
     dimension = 3
     width_ratios = [.5, 1, len(sequence) * dimension, 3]
     height_ratios = [len(sequence) * dimension, 1, .5]
@@ -237,9 +240,9 @@ def plot_2d_mismatches(sequence, human_readable_indexes, protein_name, lower_ABA
     # Add the color bars to the left and bottom of the figure to indicate which base the mismatch has been converted to
     mm_bases = ''.join(['ACGT'.replace(base, '') for base in sequence])
     left_color_codes_ax = fig.add_subplot(gs[left_color_index])
-    build_base_colorcode_axis(left_color_codes_ax, mm_bases, vertical=True)
+    build_base_colorcode_axis(left_color_codes_ax, mm_bases, base_colors, vertical=True)
     bottom_color_codes_ax = fig.add_subplot(gs[bottom_color_index])
-    build_base_colorcode_axis(bottom_color_codes_ax, mm_bases)
+    build_base_colorcode_axis(bottom_color_codes_ax, mm_bases, base_colors)
 
     # Add data to the main part of the figure
     data_ax = fig.add_subplot(gs[data_index])
