@@ -11,17 +11,18 @@ class TargetSequence(object):
         :param pam_length: 
         """
         self._sequence = sequence
-        self._pam_side = pam_side
+        self._pam_side = int(pam_side)
+        self._pam_length = pam_length
         self._human_indexes = {}
 
         if pam_length is not None:
-            if pam_side == 3 or pam_side == '3':
+            if self._pam_side == 3:
                 self._guide_sequence = sequence[:-pam_length]
                 for i in range(pam_length):
                     self._human_indexes[len(sequence) - pam_length + i] = -i - 1
                 for i in range(len(sequence) - pam_length):
                     self._human_indexes[i] = len(sequence) - i - pam_length
-            elif pam_side == 5 or pam_side == '5':
+            elif self._pam_side == 5:
                 self._guide_sequence = sequence[pam_length:]
                 for i in range(pam_length):
                     self._human_indexes[i] = i - pam_length
@@ -32,6 +33,16 @@ class TargetSequence(object):
         else:
             for i in range(len(sequence)):
                 self._human_indexes[i] = len(sequence) - i if pam_side == 3 else i + 1
+
+    @property
+    def pam(self):
+        if self._pam_side == 3:
+            return self._sequence[-self._pam_length:]
+        return self._sequence[:self._pam_length]
+
+    @property
+    def pam_side(self):
+        return self._pam_side
 
     @property
     def guide(self):
