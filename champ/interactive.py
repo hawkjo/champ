@@ -1,55 +1,186 @@
-import matplotlib.pyplot as plt
-import h5py
-from champ.clusters import Clusters
-import os
-from champ.grid import GridImages
-from champ import align
-from champ.fastqimagealigner import FastqImageAligner
-from champ.chip import Miseq
+from collections import defaultdict
+import numpy as np
+from Bio.Seq import Seq
 
 
-def cluster_filepath(filename, image):
-    return os.path.join(basename(filename), '%s.cat' % image.index)
+class TargetSequence(object):
+    def __init__(self, sequence, pam_side=None, pam_length=None):
+        """
+        :param sequence: 
+        :param pam_side: should be the integer 5 or 3 
+        :param pam_length: 
+        """
+        self._sequence = sequence
+        self._pam_side = int(pam_side)
+        self._pam_length = pam_length
+        self._human_indexes = {}
+
+        if pam_length is not None:
+            if self._pam_side == 3:
+                self._guide_sequence = sequence[:-pam_length]
+                for i in range(pam_length):
+                    self._human_indexes[len(sequence) - pam_length + i] = -i - 1
+                for i in range(len(sequence) - pam_length):
+                    self._human_indexes[i] = len(sequence) - i - pam_length
+            elif self._pam_side == 5:
+                self._guide_sequence = sequence[pam_length:]
+                for i in range(pam_length):
+                    self._human_indexes[i] = i - pam_length
+                for i in range(len(sequence) - pam_length):
+                    self._human_indexes[i + pam_length] = i + 1
+            else:
+                raise ValueError("Invalid PAM side. Only use 3 or 5")
+        else:
+            for i in range(len(sequence)):
+                self._human_indexes[i] = len(sequence) - i if pam_side == 3 else i + 1
+
+    @property
+    def pam(self):
+        if self._pam_side == 3:
+            return self._sequence[-self._pam_length:]
+        return self._sequence[:self._pam_length]
+
+    @property
+    def pam_side(self):
+        return self._pam_side
+
+    @property
+    def guide(self):
+        return TargetSequence(self._guide_sequence, pam_side=self._pam_side)
+
+    @property
+    def sequence(self):
+        return self._sequence
+
+    @property
+    def human_readable_indexes(self):
+        return [(base, self._human_indexes[i]) for i, base in enumerate(self._sequence)]
+
+    @property
+    def single_deletions(self):
+        for i in range(len(self._sequence)):
+            yield i, self._sequence[:i] + self._sequence[i + 1:]
+
+    @property
+    def double_deletions(self):
+        for i in range(len(self._sequence)):
+            for j in range(i):
+                seq = self._sequence[:j] + self._sequence[j + 1:i] + self._sequence[i + 1:]
+                yield i, j, seq
+
+    @property
+    def single_mismatches(self):
+        # produces all mismatch bases. Includes the correct base since we want to graph it
+        for i in range(len(self._sequence)):
+            for j, mismatch_base in enumerate('ACGT'):
+                seq = self._sequence[:i] + mismatch_base + self._sequence[i + 1:]
+                yield i, j, mismatch_base, seq
+
+    @property
+    def double_mismatches(self):
+        bases = 'ACGT'
+        # Double mismatch sequences
+        for i in range(len(self._sequence)):
+            for j in range(i):
+                for mismatch_base_j in bases.replace(self._sequence[j], ''):
+                    for mismatch_base_i in bases.replace(self._sequence[i], ''):
+                        sequence = self._sequence[:j] + mismatch_base_j + self._sequence[j + 1:i] + mismatch_base_i + self._sequence[i + 1:]
+                        yield i, j, mismatch_base_i, mismatch_base_j, sequence
+
+        # Add in single mismatch data for comparison
+        for i in range(len(self._sequence)):
+            for mismatch_base in bases.replace(self._sequence[i], ''):
+                sequence = self._sequence[:i] + mismatch_base + self._sequence[i + 1:]
+                yield i, i, mismatch_base, mismatch_base, sequence
+
+    @property
+    def single_insertions(self):
+        bases = 'ACGT'
+        for j, insertion_base in enumerate(bases):
+            for i, nt in enumerate(self._sequence):
+                sequence = self._sequence[:i] + insertion_base + self._sequence[i:]
+                yield i, j, insertion_base, sequence
+
+    @property
+    def double_insertions(self):
+        bases = 'ACGT'
+        for i in range(len(self._sequence)):
+            for j in range(i):
+                for insertion_base_1 in bases:
+                    for insertion_base_2 in bases:
+                        yield i, j, insertion_base_1, insertion_base_2, self._sequence[:j] + insertion_base_1 + self._sequence[j:i] + insertion_base_2 + self._sequence[i:]
+
+        # single insertions for the diagonal
+        for i in range(len(self._sequence)):
+            for insertion_base in bases:
+                yield i, i, insertion_base, insertion_base, self._sequence[:i] + insertion_base + self._sequence[i:]
+
+    @property
+    def complement_stretches(self):
+        for stop in range(len(self._sequence)):
+            for start in range(stop):
+                yield start, stop, self._sequence[:start] + str(Seq(self._sequence[start:stop + 1]).complement()) + self._sequence[stop + 1:]
 
 
-def basename(filename):
-    return os.path.splitext(filename)[0]
+class TwoDMatrix(object):
+    """
+    Base class for storing 2D penalty data (where the axes are sequences of some kind)
+    This was intended for mismatches and insertions, but now that I look at it, it might also work for deletions
+
+    """
+
+    def __init__(self, sequence, slots_per_position, bases='ACGT'):
+        self._bases = bases
+        self._sequence = sequence
+        self._slots = slots_per_position
+        self._values = defaultdict(dict)
+
+    @property
+    def _dimension(self):
+        return self._slots * len(self._sequence)
+
+    def to_matrix(self, side='lower', include_diagonal_values=True):
+        assert side in ('lower', 'upper')
+        data = np.zeros((self._dimension, self._dimension))
+        data[:] = np.nan
+        for row, column_data in self._values.items():
+            for column, value in column_data.items():
+                if not include_diagonal_values and row == column:
+                    continue
+                if side == 'lower':
+                    data[row, column] = value
+                elif side == 'upper':
+                    data[column, row] = value
+        return data
 
 
-def load_image(filename, channel, row, column):
-    with h5py.File(filename, 'r') as h5:
-        grid = GridImages(h5, channel)
-        return grid.get(row, column)
+class MismatchMatrix(TwoDMatrix):
+    def __init__(self, sequence, bases='ACGT'):
+        super(MismatchMatrix, self).__init__(sequence, 3, bases)
+
+    def set_value(self, position1, position2, base1, base2, value):
+        index1 = self._bases.replace(self._sequence[position1], '').index(base1)
+        index2 = self._bases.replace(self._sequence[position2], '').index(base2)
+        r, c = position1 * self._slots + index1, position2 * self._slots + index2
+        self._values[r][c] = value
 
 
-def imshow(filename, channel, row, column):
-    image = load_image(filename, channel, row, column)
-    cluster_path = cluster_filepath(filename, image)
-    with open(cluster_path) as f:
-        clusters = Clusters(f)
-        fig = plt.figure(figsize=(15, 15))
-        plt.imshow(image, cmap='viridis')
-        plt.scatter(clusters.cs(), clusters.rs(), facecolors='none', edgecolors='red', alpha=0.7)
-        plt.show()
+class InsertionMatrix(TwoDMatrix):
+    def __init__(self, sequence, bases='ACGT'):
+        super(InsertionMatrix, self).__init__(sequence, 4, bases)
+
+    def set_value(self, position1, position2, base1, base2, value):
+        r, c = position1 * self._slots + self._bases.index(base1), position2 * self._slots + self._bases.index(base2)
+        self._values[r][c] = value
+
+    @property
+    def data(self):
+        return self._values
 
 
-def get_fastq_image_aligner(read_names_path):
-    reads = align.load_read_names(read_names_path)
-    fia = FastqImageAligner(0.2666666)
-    fia.load_reads(reads)
-    return fia
+class DeletionMatrix(TwoDMatrix):
+    def __init__(self, sequence):
+        super(DeletionMatrix, self).__init__(sequence, 1, 'ACGT')
 
-
-def align_one_image(filename, channel, row, column, read_names_path):
-    fia = get_fastq_image_aligner(read_names_path)
-    image = load_image(filename, channel, row, column)
-    cluster_path = cluster_filepath(filename, image)
-    miseq_chip = Miseq(False)
-    for tiles in (miseq_chip.left_side_tiles, miseq_chip.right_side_tiles):
-        fia.set_image_data(image, 0.26666666666)
-        fia.set_clusters_from_file(cluster_path)
-        fia.rough_align(tiles, miseq_chip.rotation_estimate, miseq_chip.tile_width, snr_thresh=1.2)
-        if fia.hitting_tiles:
-            print("Image aligned to %s", fia.hitting_tiles)
-            return fia
-    print("Image did not align to any tiles!")
+    def set_value(self, position1, position2, value):
+        self._values[position1][position2] = value
