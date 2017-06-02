@@ -149,7 +149,7 @@ class TwoDMatrix(object):
                     continue
                 if flip_sequence:
                     row = 5
-                    column = 5
+                    column = 8
                 if side == 'lower':
                     data[row, column] = value
                 elif side == 'upper':
