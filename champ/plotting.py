@@ -183,7 +183,7 @@ def sum_nan_arrays(a, b):
     return np.where(ma & mb, np.nan, np.where(ma, 0, a) + np.where(mb, 0, b))
 
 
-def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, base_colors=None, upper_ABA_matrix=None, fontsize=18):
+def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, base_colors=None, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
     if base_colors is None:
         base_colors = {'A': flabpal.blue, 'C': flabpal.yellow, 'G': flabpal.green, 'T': flabpal.red}
     dimension = 3
@@ -244,12 +244,12 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, base_colors=
     data_ax = fig.add_subplot(gs[data_index])
     data_ax.set_axis_bgcolor(0.87 * np.array([1, 1, 1]))
     if upper_ABA_matrix is None:
-        ms = data_ax.matshow(lower_ABA_matrix, cmap='viridis')
+        ms = data_ax.matshow(lower_ABA_matrix, cmap=cmap)
     else:
         # we "add" the arrays, retaining NaNs, to create a comparison matrix
         # both matrices should have their include_diagonal_values=False or else those will sum,
         # or if one is on it will be misleading
-        ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap='viridis')
+        ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap=cmap)
     data_ax.set_yticks([])
     data_ax.set_xticks([])
 
