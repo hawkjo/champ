@@ -183,7 +183,7 @@ def sum_nan_arrays(a, b):
     return np.where(ma & mb, np.nan, np.where(ma, 0, a) + np.where(mb, 0, b))
 
 
-def plot_2d_mismatches(sequence, human_readable_indexes, lower_ABA_matrix, base_colors=None, upper_ABA_matrix=None, fontsize=18):
+def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, base_colors=None, upper_ABA_matrix=None, fontsize=18):
     if base_colors is None:
         base_colors = {'A': flabpal.blue, 'C': flabpal.yellow, 'G': flabpal.green, 'T': flabpal.red}
     dimension = 3
@@ -202,8 +202,6 @@ def plot_2d_mismatches(sequence, human_readable_indexes, lower_ABA_matrix, base_
     left_color_index = 1
     bottom_color_index = 6
     cbar_index = 3
-
-    sequence_labels = ["$%s_{%d}$" % (base, index) for base, index in human_readable_indexes]
 
     # Add the sequence labels to the left of the figure
     left_sequence_ax = fig.add_subplot(gs[left_sequence_index])
@@ -326,7 +324,7 @@ def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_mat
     cbar.set_label('$ABA (k_{B}T)$', fontsize=fontsize*2)
 
 
-def plot_2d_insertions(sequence, human_readable_indexes, lower_ABA_matrix, base_colors=None, upper_ABA_matrix=None, fontsize=18):
+def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, base_colors=None, upper_ABA_matrix=None, fontsize=18):
     if base_colors is None:
         base_colors = {'A': flabpal.blue, 'C': flabpal.yellow, 'G': flabpal.green, 'T': flabpal.red}
     dimension = 4
@@ -345,8 +343,6 @@ def plot_2d_insertions(sequence, human_readable_indexes, lower_ABA_matrix, base_
     left_color_index = 1
     bottom_color_index = 6
     cbar_index = 3
-
-    sequence_labels = ["$%s_{%d}$" % (base, index) for base, index in human_readable_indexes]
 
     # Add the sequence labels to the left of the figure
     left_sequence_ax = fig.add_subplot(gs[left_sequence_index])
@@ -367,7 +363,7 @@ def plot_2d_insertions(sequence, human_readable_indexes, lower_ABA_matrix, base_
     bottom_sequence_ax = fig.add_subplot(gs[bottom_sequence_index])
     bottom_sequence_ax.set_xticklabels(sequence_labels, fontsize=8*dimension)
     bottom_sequence_ax.set_xticks([dimension * x + 1.5 for x in range(len(sequence))])
-    bottom_sequence_ax.set_xlim([0, len(sequence) * dimension - 1])
+    bottom_sequence_ax.set_xlim([0, len(sequence) * dimension])
     bottom_sequence_ax.spines['top'].set_visible(False)
     bottom_sequence_ax.spines['right'].set_visible(False)
     bottom_sequence_ax.spines['bottom'].set_visible(False)
