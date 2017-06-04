@@ -209,16 +209,13 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, base_colors=
 
     # Add the color bars to the left and bottom of the figure to indicate which base the mismatch has been converted to
     mismatch_bases = ''.join(['ACGT'.replace(base, '') for base in sequence])
-    add_color_bars(fig, gs[left_color_index], gs[bottom_color_index], base_colors, mismatch_bases)
+    add_color_axes(fig, gs[left_color_index], gs[bottom_color_index], base_colors, mismatch_bases)
 
     # Add data to the main part of the figure
     ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix)
 
     # Add a color bar to the right side to quantify the colors in the main figure
-    cbar_ax = fig.add_subplot(gs[cbar_index])
-    cbar_ax.tick_params(labelsize=18)
-    cbar = plt.colorbar(ms, cax=cbar_ax)
-    cbar.set_label('$ABA (k_{B}T)$', fontsize=fontsize*2)
+    add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
 
 def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
@@ -239,13 +236,10 @@ def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     add_sequence_labels(fig, gs[left_sequence_index], gs[bottom_sequence_index], 1, sequence_labels)
 
     # Add data to the main part of the figure
-    add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap='RdYlBu')
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap='RdYlBu')
 
     # Add a color bar to the right side to quantify the colors in the main figure
-    cbar_ax = fig.add_subplot(gs[cbar_index])
-    cbar_ax.tick_params(labelsize=18)
-    cbar = plt.colorbar(ms, cax=cbar_ax)
-    cbar.set_label('$\Delta\ ABA (k_{B}T)$', fontsize=fontsize * 2)
+    add_colorbar(fig, gs[cbar_index], ms, fontsize, label='$\Delta\ ABA (k_{B}T)$')
 
 
 def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
@@ -269,20 +263,16 @@ def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_mat
     ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix)
 
     # Add a color bar to the right side to quantify the colors in the main figure
-    cbar_ax = fig.add_subplot(gs[cbar_index])
-    cbar_ax.tick_params(labelsize=18)
-    cbar = plt.colorbar(ms, cax=cbar_ax)
-    cbar.set_label('$ABA (k_{B}T)$', fontsize=fontsize*2)
+    add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
 
 def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, base_colors=None, upper_ABA_matrix=None, fontsize=18):
     if base_colors is None:
         base_colors = {'A': flabpal.blue, 'C': flabpal.yellow, 'G': flabpal.green, 'T': flabpal.red}
     dimension = 4
+
     width_ratios = [.5, 1, len(sequence) * dimension, 3]
     height_ratios = [len(sequence) * dimension, 1, .5]
-    fig = plt.figure(figsize=(sum(width_ratios) / 3, sum(height_ratios) / 3))
-
     gs = gridspec.GridSpec(3, 4,
                            width_ratios=width_ratios,
                            height_ratios=height_ratios,
@@ -295,21 +285,42 @@ def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, base_colors=
     bottom_color_index = 6
     cbar_index = 3
 
+    fig = plt.figure(figsize=(sum(width_ratios) / 3, sum(height_ratios) / 3))
+
     # Add sequence labels to left and bottom
     add_sequence_labels(fig, gs[left_sequence_index], gs[bottom_sequence_index], dimension, sequence_labels)
 
     # Add the color bars to the left and bottom of the figure to indicate which base was inserted
     insertion_bases = 'ACGT' * len(sequence)
-    add_color_bars(fig, gs[left_color_index], gs[bottom_color_index], base_colors, insertion_bases)
+    add_color_axes(fig, gs[left_color_index], gs[bottom_color_index], base_colors, insertion_bases)
 
     # Add data to the main part of the figure
     ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix)
 
     # Add a color bar to the right side to quantify the colors in the main figure
-    cbar_ax = fig.add_subplot(gs[cbar_index])
+    add_colorbar(fig, gs[cbar_index], ms, fontsize)
+
+
+def get_gridspec(show_color_transition_axes):
+    if show_color_transition_axes:
+        gs = gridspec.GridSpec(3, 4,
+                               width_ratios=width_ratios,
+                               height_ratios=height_ratios,
+                               wspace=0.01, hspace=0.01
+                               )
+        data_index = 2
+        left_sequence_index = 0
+        bottom_sequence_index = 10
+        left_color_index = 1
+        bottom_color_index = 6
+        cbar_index = 3
+        return gs,
+
+def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$ABA (k_{B}T)$'):
+    cbar_ax = fig.add_subplot(colorbar_grid)
     cbar_ax.tick_params(labelsize=18)
     cbar = plt.colorbar(ms, cax=cbar_ax)
-    cbar.set_label('$ABA (k_{B}T)$', fontsize=fontsize*2)
+    cbar.set_label(label, fontsize=fontsize*2)
 
 
 def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, cmap='viridis'):
@@ -327,7 +338,7 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, cmap='viridis')
     return ms
 
 
-def add_color_bars(fig, left_color_grid, bottom_color_grid, base_colors, base_sequence):
+def add_color_axes(fig, left_color_grid, bottom_color_grid, base_colors, base_sequence):
     left_color_codes_ax = fig.add_subplot(left_color_grid)
     build_base_colorcode_axis(left_color_codes_ax, base_sequence, base_colors, vertical=True)
     bottom_color_codes_ax = fig.add_subplot(bottom_color_grid)
