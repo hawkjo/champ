@@ -9,7 +9,7 @@ import flabpal
 
 def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
     dimension = 3
-    gs, indexes, (width_ratios, height_ratios) = get_gridspec(True, sequence, dimension)
+    gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
     data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios) / 3, sum(height_ratios) / 3))
     # Add the sequence labels to the left of the figure
@@ -24,7 +24,7 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
 
 
 def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
-    gs, indexes, (width_ratios, height_ratios) = get_gridspec(True, sequence, 1)
+    gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
     # Add the sequence labels to the left of the figure
@@ -36,7 +36,7 @@ def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
 
 
 def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
-    gs, indexes, (width_ratios, height_ratios) = get_gridspec(True, sequence, 1)
+    gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
     # Add the sequence labels to the left of the figure
@@ -49,7 +49,7 @@ def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_mat
 
 def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
     dimension = 4
-    gs, indexes, (width_ratios, height_ratios) = get_gridspec(True, sequence, dimension)
+    gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
     data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios) / 3, sum(height_ratios) / 3))
     # Add sequence labels to left and bottom
@@ -95,8 +95,8 @@ def sum_nan_arrays(a, b):
     return np.where(ma & mb, np.nan, np.where(ma, 0, a) + np.where(mb, 0, b))
 
 
-def get_gridspec(show_color_transition_axes, sequence, dimension):
-    if show_color_transition_axes:
+def get_gridspec(sequence, dimension):
+    if dimension > 1:
         width_ratios = [.5, 1, len(sequence) * dimension, 3]
         height_ratios = [len(sequence) * dimension, 1, .5]
         gs = gridspec.GridSpec(3, 4,
