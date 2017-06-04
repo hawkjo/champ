@@ -52,8 +52,7 @@ def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
     # Add the sequence labels to the left of the figure
-    left_sequence_ax, bottom_sequence_ax = add_sequence_labels(fig, gs[left_seq_index], gs[bottom_seq_index], 1,
-                                                               [i for i in range(len(sequence_labels))])
+    left_sequence_ax, bottom_sequence_ax = add_sequence_labels(fig, gs[left_seq_index], gs[bottom_seq_index], 1, sequence_labels)
     left_sequence_ax.set_ylabel("Stop", fontsize=fontsize*2)
     bottom_sequence_ax.set_xlabel("Start", fontsize=fontsize*2)
     # Add data to the main part of the figure
