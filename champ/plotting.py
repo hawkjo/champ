@@ -208,24 +208,11 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, base_colors=
     add_sequence_labels(fig, gs[left_sequence_index], gs[bottom_sequence_index], 1, sequence_labels)
 
     # Add the color bars to the left and bottom of the figure to indicate which base the mismatch has been converted to
-    mm_bases = ''.join(['ACGT'.replace(base, '') for base in sequence])
-    left_color_codes_ax = fig.add_subplot(gs[left_color_index])
-    build_base_colorcode_axis(left_color_codes_ax, mm_bases, base_colors, vertical=True)
-    bottom_color_codes_ax = fig.add_subplot(gs[bottom_color_index])
-    build_base_colorcode_axis(bottom_color_codes_ax, mm_bases, base_colors)
+    mismatch_bases = ''.join(['ACGT'.replace(base, '') for base in sequence])
+    add_color_bars(fig, gs[left_color_index], gs[bottom_color_index], base_colors, mismatch_bases)
 
     # Add data to the main part of the figure
-    data_ax = fig.add_subplot(gs[data_index])
-    data_ax.set_axis_bgcolor(0.87 * np.array([1, 1, 1]))
-    if upper_ABA_matrix is None:
-        ms = data_ax.matshow(lower_ABA_matrix, cmap=cmap)
-    else:
-        # we "add" the arrays, retaining NaNs, to create a comparison matrix
-        # both matrices should have their include_diagonal_values=False or else those will sum,
-        # or if one is on it will be misleading
-        ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap=cmap)
-    data_ax.set_yticks([])
-    data_ax.set_xticks([])
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix)
 
     # Add a color bar to the right side to quantify the colors in the main figure
     cbar_ax = fig.add_subplot(gs[cbar_index])
@@ -252,17 +239,7 @@ def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     add_sequence_labels(fig, gs[left_sequence_index], gs[bottom_sequence_index], 1, sequence_labels)
 
     # Add data to the main part of the figure
-    data_ax = fig.add_subplot(gs[data_index])
-    data_ax.set_axis_bgcolor(0.87 * np.array([1, 1, 1]))
-    if upper_ABA_matrix is None:
-        ms = data_ax.matshow(lower_ABA_matrix, cmap='RdYlBu')
-    else:
-        # we "add" the arrays, retaining NaNs, to create a comparison matrix
-        # both matrices should have their include_diagonal_values=False or else those will sum,
-        # and if one is on it will be misleading
-        ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap='RdYlBu')
-    data_ax.set_yticks([])
-    data_ax.set_xticks([])
+    add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap='RdYlBu')
 
     # Add a color bar to the right side to quantify the colors in the main figure
     cbar_ax = fig.add_subplot(gs[cbar_index])
@@ -289,17 +266,7 @@ def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_mat
     add_sequence_labels(fig, gs[left_sequence_index], gs[bottom_sequence_index], 1, sequence_labels)
 
     # Add data to the main part of the figure
-    data_ax = fig.add_subplot(gs[data_index])
-    data_ax.set_axis_bgcolor(0.87 * np.array([1, 1, 1]))
-    if upper_ABA_matrix is None:
-        ms = data_ax.matshow(lower_ABA_matrix, cmap='viridis')
-    else:
-        # we "add" the arrays, retaining NaNs, to create a comparison matrix
-        # both matrices should have their include_diagonal_values=False or else those will sum,
-        # and if one is on it will be misleading
-        ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap='viridis')
-    data_ax.set_yticks([])
-    data_ax.set_xticks([])
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix)
 
     # Add a color bar to the right side to quantify the colors in the main figure
     cbar_ax = fig.add_subplot(gs[cbar_index])
@@ -328,20 +295,28 @@ def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, base_colors=
     bottom_color_index = 6
     cbar_index = 3
 
+    # Add sequence labels to left and bottom
     add_sequence_labels(fig, gs[left_sequence_index], gs[bottom_sequence_index], dimension, sequence_labels)
 
-    # Add the color bars to the left and bottom of the figure to indicate which base the mismatch has been converted to
+    # Add the color bars to the left and bottom of the figure to indicate which base was inserted
     insertion_bases = 'ACGT' * len(sequence)
-    left_color_codes_ax = fig.add_subplot(gs[left_color_index])
-    build_base_colorcode_axis(left_color_codes_ax, insertion_bases, base_colors, vertical=True)
-    bottom_color_codes_ax = fig.add_subplot(gs[bottom_color_index])
-    build_base_colorcode_axis(bottom_color_codes_ax, insertion_bases, base_colors)
+    add_color_bars(fig, gs[left_color_index], gs[bottom_color_index], base_colors, insertion_bases)
 
     # Add data to the main part of the figure
-    data_ax = fig.add_subplot(gs[data_index])
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix)
+
+    # Add a color bar to the right side to quantify the colors in the main figure
+    cbar_ax = fig.add_subplot(gs[cbar_index])
+    cbar_ax.tick_params(labelsize=18)
+    cbar = plt.colorbar(ms, cax=cbar_ax)
+    cbar.set_label('$ABA (k_{B}T)$', fontsize=fontsize*2)
+
+
+def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, cmap='viridis'):
+    data_ax = fig.add_subplot(data_grid)
     data_ax.set_axis_bgcolor(0.87 * np.array([1, 1, 1]))
     if upper_ABA_matrix is None:
-        ms = data_ax.matshow(lower_ABA_matrix, cmap='viridis')
+        ms = data_ax.matshow(lower_ABA_matrix, cmap=cmap)
     else:
         # we "add" the arrays, retaining NaNs, to create a comparison matrix
         # both matrices should have their include_diagonal_values=False or else those will sum,
@@ -349,12 +324,14 @@ def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, base_colors=
         ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap='viridis')
     data_ax.set_yticks([])
     data_ax.set_xticks([])
+    return ms
 
-    # Add a color bar to the right side to quantify the colors in the main figure
-    cbar_ax = fig.add_subplot(gs[cbar_index])
-    cbar_ax.tick_params(labelsize=18)
-    cbar = plt.colorbar(ms, cax=cbar_ax)
-    cbar.set_label('$ABA (k_{B}T)$', fontsize=fontsize*2)
+
+def add_color_bars(fig, left_color_grid, bottom_color_grid, base_colors, base_sequence):
+    left_color_codes_ax = fig.add_subplot(left_color_grid)
+    build_base_colorcode_axis(left_color_codes_ax, base_sequence, base_colors, vertical=True)
+    bottom_color_codes_ax = fig.add_subplot(bottom_color_grid)
+    build_base_colorcode_axis(bottom_color_codes_ax, base_sequence, base_colors)
 
 
 def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels):
