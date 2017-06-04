@@ -46,14 +46,13 @@ class Comparator(object):
         else:
             normalize_by1 = None
             normalize_by2 = None
+        print("normalize", normalize_by1, normalize_by2)
 
         matrix = self._determine_matrix_type(experiment1, experiment2, type1, type2)
-
-        # if
         merge_positions = not self._directly_comparable(experiment1, experiment2, type1, type2)
+        print("merge positions", merge_positions)
         flip_sequence = self._experiments[experiment1]['ts'].pam_side == self._experiments[experiment2]['ts'].pam_side
-
-
+        print("flip sequence", flip_sequence)
 
         if guide_only:
             display_sequence1 = self._experiments[experiment1]['ts'].guide.sequence
@@ -62,11 +61,15 @@ class Comparator(object):
             display_sequence1 = self._experiments[experiment1]['ts'].sequence
             display_sequence2 = self._experiments[experiment2]['ts'].sequence
 
+        print("display_sequence1", display_sequence1)
+        print("display_sequence2", display_sequence2)
+
         # if one sequence is longer than the other (which will happen if the "sequence" is the same
         # but the PAM is a different length)
         sequence_length = min(len(display_sequence1), len(display_sequence2))
         em1 = matrix(display_sequence1[:sequence_length])
         em2 = matrix(display_sequence2[:sequence_length])
+        print("sequence_length", sequence_length)
 
         load_func = {'mismatches': self._load_mismatches,
                      'insertions': self._load_insertions,
