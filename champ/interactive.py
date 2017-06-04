@@ -153,8 +153,9 @@ class TwoDMatrix(object):
                 else:
                     c = column
                     r = row
-                value = np.mean(values)
-                if normalize_by is not None:
+                clean_values = tuple(v for v in values if v is not None)
+                value = np.mean(clean_values) if clean_values else None
+                if normalize_by is not None and value is not None:
                     value /= normalize_by
                 if (side == 'lower' and not flip_sequence) or (side == 'upper' and flip_sequence):
                     data[r, c] = value
