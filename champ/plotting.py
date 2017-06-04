@@ -47,6 +47,21 @@ def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_mat
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
 
+def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
+    gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
+    data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
+    fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
+    # Add the sequence labels to the left of the figure
+    left_sequence_ax, bottom_sequence_ax = add_sequence_labels(fig, gs[left_seq_index], gs[bottom_seq_index], 1,
+                                                               [i for i in range(len(sequence_labels))])
+    left_sequence_ax.set_ylabel("Stop", fontsize=fontsize)
+    bottom_sequence_ax.set_ylabel("Start", fontsize=fontsize)
+    # Add data to the main part of the figure
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix)
+    # Add a color bar to the right side to quantify the colors in the main figure
+    add_colorbar(fig, gs[cbar_index], ms, fontsize)
+
+
 def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
     dimension = 4
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
@@ -185,6 +200,8 @@ def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels)
     bottom_sequence_ax.tick_params(right="off")
     bottom_sequence_ax.tick_params(left="off")
     bottom_sequence_ax.set_yticklabels([])
+
+    return left_sequence_ax, bottom_sequence_ax
 
 
 def plot_hit_hists(fia, ax=None):
