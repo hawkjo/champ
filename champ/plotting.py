@@ -205,34 +205,7 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, base_colors=
     cbar_index = 3
 
     # Add the sequence labels to the left of the figure
-    left_sequence_ax = fig.add_subplot(gs[left_sequence_index])
-    left_sequence_ax.set_yticklabels(sequence_labels[::-1], fontsize=8*dimension)
-    left_sequence_ax.set_yticks([dimension * x + dimension / 2.0 for x in range(len(sequence))])
-    left_sequence_ax.set_ylim([0, len(sequence) * dimension])
-    left_sequence_ax.spines['top'].set_visible(False)
-    left_sequence_ax.spines['right'].set_visible(False)
-    left_sequence_ax.spines['bottom'].set_visible(False)
-    left_sequence_ax.spines['left'].set_visible(False)
-    left_sequence_ax.tick_params(top="off")
-    left_sequence_ax.tick_params(bottom="off")
-    left_sequence_ax.tick_params(right="off")
-    left_sequence_ax.tick_params(left="off")
-    left_sequence_ax.set_xticklabels([])
-
-    # Add the sequence labels to the bottom of the figure
-    bottom_sequence_ax = fig.add_subplot(gs[bottom_sequence_index])
-    bottom_sequence_ax.set_xticklabels(sequence_labels, fontsize=8*dimension)
-    bottom_sequence_ax.set_xticks([dimension * x + 1.5 for x in range(len(sequence))])
-    bottom_sequence_ax.set_xlim([0, len(sequence) * dimension - 1])
-    bottom_sequence_ax.spines['top'].set_visible(False)
-    bottom_sequence_ax.spines['right'].set_visible(False)
-    bottom_sequence_ax.spines['bottom'].set_visible(False)
-    bottom_sequence_ax.spines['left'].set_visible(False)
-    bottom_sequence_ax.tick_params(top="off")
-    bottom_sequence_ax.tick_params(bottom="off")
-    bottom_sequence_ax.tick_params(right="off")
-    bottom_sequence_ax.tick_params(left="off")
-    bottom_sequence_ax.set_yticklabels([])
+    add_sequence_labels(fig, gs[left_sequence_index], gs[bottom_sequence_index], 1, sequence_labels)
 
     # Add the color bars to the left and bottom of the figure to indicate which base the mismatch has been converted to
     mm_bases = ''.join(['ACGT'.replace(base, '') for base in sequence])
@@ -261,7 +234,7 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, base_colors=
     cbar.set_label('$ABA (k_{B}T)$', fontsize=fontsize*2)
 
 
-def plot_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
+def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
     width_ratios = [.5, len(sequence), 1]
     height_ratios = [len(sequence), .5]
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
@@ -276,34 +249,7 @@ def plot_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None
     cbar_index = 2
 
     # Add the sequence labels to the left of the figure
-    left_sequence_ax = fig.add_subplot(gs[left_sequence_index])
-    left_sequence_ax.set_yticklabels(sequence_labels[::-1], fontsize=fontsize)
-    left_sequence_ax.set_yticks([x + 0.5 for x in range(len(sequence))])
-    left_sequence_ax.set_ylim([0, len(sequence)])
-    left_sequence_ax.spines['top'].set_visible(False)
-    left_sequence_ax.spines['right'].set_visible(False)
-    left_sequence_ax.spines['bottom'].set_visible(False)
-    left_sequence_ax.spines['left'].set_visible(False)
-    left_sequence_ax.tick_params(top="off")
-    left_sequence_ax.tick_params(bottom="off")
-    left_sequence_ax.tick_params(right="off")
-    left_sequence_ax.tick_params(left="off")
-    left_sequence_ax.set_xticklabels([])
-
-    # Add the sequence labels to the bottom of the figure
-    bottom_sequence_ax = fig.add_subplot(gs[bottom_sequence_index])
-    bottom_sequence_ax.set_xticklabels(sequence_labels, fontsize=fontsize)
-    bottom_sequence_ax.set_xticks([x + 0.5 for x in range(len(sequence))])
-    bottom_sequence_ax.set_xlim([0, len(sequence)])
-    bottom_sequence_ax.spines['top'].set_visible(False)
-    bottom_sequence_ax.spines['right'].set_visible(False)
-    bottom_sequence_ax.spines['bottom'].set_visible(False)
-    bottom_sequence_ax.spines['left'].set_visible(False)
-    bottom_sequence_ax.tick_params(top="off")
-    bottom_sequence_ax.tick_params(bottom="off")
-    bottom_sequence_ax.tick_params(right="off")
-    bottom_sequence_ax.tick_params(left="off")
-    bottom_sequence_ax.set_yticklabels([])
+    add_sequence_labels(fig, gs[left_sequence_index], gs[bottom_sequence_index], 1, sequence_labels)
 
     # Add data to the main part of the figure
     data_ax = fig.add_subplot(gs[data_index])
@@ -340,34 +286,7 @@ def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_mat
     cbar_index = 2
 
     # Add the sequence labels to the left of the figure
-    left_sequence_ax = fig.add_subplot(gs[left_sequence_index])
-    left_sequence_ax.set_yticklabels(sequence_labels[::-1], fontsize=fontsize)
-    left_sequence_ax.set_yticks([x + 0.5 for x in range(len(sequence))])
-    left_sequence_ax.set_ylim([0, len(sequence)])
-    left_sequence_ax.spines['top'].set_visible(False)
-    left_sequence_ax.spines['right'].set_visible(False)
-    left_sequence_ax.spines['bottom'].set_visible(False)
-    left_sequence_ax.spines['left'].set_visible(False)
-    left_sequence_ax.tick_params(top="off")
-    left_sequence_ax.tick_params(bottom="off")
-    left_sequence_ax.tick_params(right="off")
-    left_sequence_ax.tick_params(left="off")
-    left_sequence_ax.set_xticklabels([])
-
-    # Add the sequence labels to the bottom of the figure
-    bottom_sequence_ax = fig.add_subplot(gs[bottom_sequence_index])
-    bottom_sequence_ax.set_xticklabels(sequence_labels, fontsize=fontsize)
-    bottom_sequence_ax.set_xticks([x + 0.5 for x in range(len(sequence))])
-    bottom_sequence_ax.set_xlim([0, len(sequence)])
-    bottom_sequence_ax.spines['top'].set_visible(False)
-    bottom_sequence_ax.spines['right'].set_visible(False)
-    bottom_sequence_ax.spines['bottom'].set_visible(False)
-    bottom_sequence_ax.spines['left'].set_visible(False)
-    bottom_sequence_ax.tick_params(top="off")
-    bottom_sequence_ax.tick_params(bottom="off")
-    bottom_sequence_ax.tick_params(right="off")
-    bottom_sequence_ax.tick_params(left="off")
-    bottom_sequence_ax.set_yticklabels([])
+    add_sequence_labels(fig, gs[left_sequence_index], gs[bottom_sequence_index], 1, sequence_labels)
 
     # Add data to the main part of the figure
     data_ax = fig.add_subplot(gs[data_index])
@@ -409,35 +328,7 @@ def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, base_colors=
     bottom_color_index = 6
     cbar_index = 3
 
-    # Add the sequence labels to the left of the figure
-    left_sequence_ax = fig.add_subplot(gs[left_sequence_index])
-    left_sequence_ax.set_yticklabels(sequence_labels[::-1], fontsize=8*dimension)
-    left_sequence_ax.set_yticks([dimension * x + dimension / 2.0 for x in range(len(sequence))])
-    left_sequence_ax.set_ylim([0, len(sequence) * dimension])
-    left_sequence_ax.spines['top'].set_visible(False)
-    left_sequence_ax.spines['right'].set_visible(False)
-    left_sequence_ax.spines['bottom'].set_visible(False)
-    left_sequence_ax.spines['left'].set_visible(False)
-    left_sequence_ax.tick_params(top="off")
-    left_sequence_ax.tick_params(bottom="off")
-    left_sequence_ax.tick_params(right="off")
-    left_sequence_ax.tick_params(left="off")
-    left_sequence_ax.set_xticklabels([])
-
-    # Add the sequence labels to the bottom of the figure
-    bottom_sequence_ax = fig.add_subplot(gs[bottom_sequence_index])
-    bottom_sequence_ax.set_xticklabels(sequence_labels, fontsize=8*dimension)
-    bottom_sequence_ax.set_xticks([dimension * x + 2.0 for x in range(len(sequence))])
-    bottom_sequence_ax.set_xlim([0, len(sequence) * dimension])
-    bottom_sequence_ax.spines['top'].set_visible(False)
-    bottom_sequence_ax.spines['right'].set_visible(False)
-    bottom_sequence_ax.spines['bottom'].set_visible(False)
-    bottom_sequence_ax.spines['left'].set_visible(False)
-    bottom_sequence_ax.tick_params(top="off")
-    bottom_sequence_ax.tick_params(bottom="off")
-    bottom_sequence_ax.tick_params(right="off")
-    bottom_sequence_ax.tick_params(left="off")
-    bottom_sequence_ax.set_yticklabels([])
+    add_sequence_labels(fig, gs[left_sequence_index], gs[bottom_sequence_index], dimension, sequence_labels)
 
     # Add the color bars to the left and bottom of the figure to indicate which base the mismatch has been converted to
     insertion_bases = 'ACGT' * len(sequence)
@@ -464,3 +355,37 @@ def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, base_colors=
     cbar_ax.tick_params(labelsize=18)
     cbar = plt.colorbar(ms, cax=cbar_ax)
     cbar.set_label('$ABA (k_{B}T)$', fontsize=fontsize*2)
+
+
+def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels):
+    # Add the sequence labels to the left of the figure
+    left_sequence_ax = fig.add_subplot(left_grid)
+    left_sequence_ax.set_yticklabels(sequence_labels[::-1], fontsize=8*dimension)
+    left_sequence_ax.set_yticks([dimension * x + dimension / 2.0 for x in range(len(sequence_labels))])
+    left_sequence_ax.set_ylim([0, len(sequence_labels) * dimension])
+    left_sequence_ax.spines['top'].set_visible(False)
+    left_sequence_ax.spines['right'].set_visible(False)
+    left_sequence_ax.spines['bottom'].set_visible(False)
+    left_sequence_ax.spines['left'].set_visible(False)
+    left_sequence_ax.tick_params(top="off")
+    left_sequence_ax.tick_params(bottom="off")
+    left_sequence_ax.tick_params(right="off")
+    left_sequence_ax.tick_params(left="off")
+    left_sequence_ax.set_xticklabels([])
+
+    # Add the sequence labels to the bottom of the figure
+    bottom_sequence_ax = fig.add_subplot(bottom_grid)
+    bottom_sequence_ax.set_xticklabels(sequence_labels, fontsize=8*dimension)
+    bottom_sequence_ax.set_xticks([dimension * x + dimension / 2.0 for x in range(len(sequence_labels))])
+    bottom_sequence_ax.set_xlim([0, len(sequence_labels) * dimension])
+    bottom_sequence_ax.spines['top'].set_visible(False)
+    bottom_sequence_ax.spines['right'].set_visible(False)
+    bottom_sequence_ax.spines['bottom'].set_visible(False)
+    bottom_sequence_ax.spines['left'].set_visible(False)
+    bottom_sequence_ax.tick_params(top="off")
+    bottom_sequence_ax.tick_params(bottom="off")
+    bottom_sequence_ax.tick_params(right="off")
+    bottom_sequence_ax.tick_params(left="off")
+    bottom_sequence_ax.set_yticklabels([])
+
+    return left_sequence_ax, bottom_sequence_ax
