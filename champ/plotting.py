@@ -51,7 +51,7 @@ class Comparator(object):
         matrix = self._determine_matrix_type(experiment1, experiment2, type1, type2)
         merge_positions = not self._directly_comparable(experiment1, experiment2, type1, type2)
         print("merge positions", merge_positions)
-        flip_sequence = self._experiments[experiment1]['ts'].pam_side == self._experiments[experiment2]['ts'].pam_side
+        flip_sequence = self._experiments[experiment1]['ts'].pam_side != self._experiments[experiment2]['ts'].pam_side
         print("flip sequence", flip_sequence)
 
         if guide_only:
