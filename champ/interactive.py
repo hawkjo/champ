@@ -139,12 +139,12 @@ class TwoDMatrix(object):
     def _dimension(self):
         return self._slots * len(self._sequence)
 
-    def to_matrix(self, side='lower', include_diagonal_values=True, flip_sequence=False):
+    def to_matrix(self, side='lower', include_diagonal_values=True, flip_sequence=False, normalize_by=None):
         assert side in ('lower', 'upper')
         data = np.zeros((self._dimension, self._dimension))
         data[:] = np.nan
         for row, column_data in self._values.items():
-            for column, value in column_data.items():
+            for column, values in column_data.items():
                 if not include_diagonal_values and row == column:
                     continue
                 if flip_sequence:
@@ -153,11 +153,21 @@ class TwoDMatrix(object):
                 else:
                     c = column
                     r = row
+                value = np.mean(values)
+                if normalize_by is not None:
+                    value /= normalize_by
                 if (side == 'lower' and not flip_sequence) or (side == 'upper' and flip_sequence):
                     data[r, c] = value
                 elif (side == 'upper' and not flip_sequence) or (side == 'lower' and flip_sequence):
                     data[c, r] = value
         return data
+
+    def _safe_append(self, r, c, value):
+        current = self._values[r].get(c)
+        if not current:
+            self._values[r][c] = [value]
+        else:
+            self._values[r][c].append(value)
 
 
 class MismatchMatrix(TwoDMatrix):
@@ -179,14 +189,45 @@ class InsertionMatrix(TwoDMatrix):
         r, c = position1 * self._slots + self._bases.index(base1), position2 * self._slots + self._bases.index(base2)
         self._values[r][c] = value
 
-    @property
-    def data(self):
-        return self._values
 
-
-class DeletionMatrix(TwoDMatrix):
+class SinglePositionMatrix(TwoDMatrix):
+    """ Used for deletions, and for comparing two incompatible sequences by position alone. """
     def __init__(self, sequence):
-        super(DeletionMatrix, self).__init__(sequence, 1, 'ACGT')
+        super(SinglePositionMatrix, self).__init__(sequence, 1, 'ACGT')
 
     def set_value(self, position1, position2, value):
         self._values[position1][position2] = value
+
+    def add_value(self, position1, position2, value):
+        self._safe_append(position1, position2, value)
+
+
+def load_ABAs(filename):
+    ABAs = {}
+    ABA_error = {}
+    with open(filename) as f:
+        line = next(f)
+        assert line.startswith('# Target:')
+        target = line.strip().split(': ')[1]
+        line = next(f)
+        assert line.startswith('# Neg Control')
+        neg_control_target = line.strip().split(': ')[1]
+        line = next(f)
+        assert line.startswith('# Concentration')
+        line = next(f)
+        while not line.startswith('#'):
+            max_concentration = float(line.strip().split()[0])
+            line = next(f)
+        assert line.startswith('# Seq')
+        for line in f:
+            if line.startswith('#'):
+                continue
+            words = line.strip().split()
+            seq = words[0]
+            assert seq not in ABAs, "Duplicate sequence found in ABA file: {}".format(seq)
+            ABA, ABA_err = map(float, words[3:])
+            ABAs[seq] = max(ABA, 0.0)
+            ABA_error[seq] = ABA_err
+    if not ABAs:
+        print("Warning: no ABAs found!")
+    return ABAs, ABA_error

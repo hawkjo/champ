@@ -7,6 +7,36 @@ import matplotlib as mpl
 import flabpal
 
 
+class Comparitor(object):
+    """
+    manages data access, lining things up, flipping things
+    decides if you get the good plot with all bases or a position plot (except for deletions obvs)
+    produces single matrices, already merged, for various types of polymorphisms
+    also keep in mind you need to do that scatterplot
+    a bunch of functions that just take a comparator
+    also you need to be able to compare different types of data within a single experiment (e.g. insertions vs mismatches)
+
+    generalize the comparison plots or write all three kinds
+
+    """
+    def __init__(self):
+        self._experiments = {}
+
+    def add_experiment(self, label, target_sequence, ABAs):
+        self._experiments[label] = {'ts': target_sequence, 'ABAs': ABAs}
+
+    def compare(self, experiment1, experiment2, type1, type2):
+        """
+        This method is mostly used internally, but it does permit the user to compare two different sequence types.
+        For example, it would allow you to look at a single experiment and compare mismatches to insertions.
+
+        """
+        assert type1 in ('mismatches', 'insertions', 'deletions', 'complement_stretches')
+        assert type2 in ('mismatches', 'insertions', 'deletions', 'complement_stretches')
+        matrix_type = self._determine_matrix_type(experiment1, experiment2)
+
+
+
 def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
     dimension = 3
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
