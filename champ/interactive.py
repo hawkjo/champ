@@ -321,6 +321,7 @@ class Comparator(object):
                          sequence_length, merge_positions)
         load_func[type2](em2, ABAs2, self._experiments[experiment2]['ts'], guide_only,
                          sequence_length, merge_positions)
+        print("flip_sequence", flip_sequence)
         return return_sequence, sequence_labels, em1.to_matrix(normalize_by=normalize_by1) - em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2)
 
     def _load_2d_mismatches(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
