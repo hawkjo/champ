@@ -23,7 +23,7 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
 
-def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, normalize=True, fontsize=18):
+def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, normalize=True, fontsize=18, base_identities=True):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
@@ -185,7 +185,7 @@ def add_color_axes(fig, left_color_grid, bottom_color_grid, base_sequence):
     build_base_colorcode_axis(bottom_color_codes_ax, base_sequence)
 
 
-def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels, base_identities=True):
+def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels, positions_are_merged=False):
     # Add the sequence labels to the left of the figure
     left_sequence_ax = fig.add_subplot(left_grid)
     left_sequence_ax.set_yticklabels(sequence_labels[::-1], fontsize=18)
@@ -200,7 +200,7 @@ def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels,
     left_sequence_ax.tick_params(right="off")
     left_sequence_ax.tick_params(left="off")
     left_sequence_ax.set_xticklabels([])
-    if not base_identities:
+    if positions_are_merged:
         left_sequence_ax.set_ylabel("Distance from PAM (bp)")
 
     # Add the sequence labels to the bottom of the figure
@@ -217,7 +217,7 @@ def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels,
     bottom_sequence_ax.tick_params(right="off")
     bottom_sequence_ax.tick_params(left="off")
     bottom_sequence_ax.set_yticklabels([])
-    if not base_identities:
+    if positions_are_merged:
         bottom_sequence_ax.set_xlabel("Distance from PAM (bp)")
 
     return left_sequence_ax, bottom_sequence_ax
