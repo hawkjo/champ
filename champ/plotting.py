@@ -140,7 +140,7 @@ def get_gridspec(sequence, dimension):
     return gs, indexes, (width_ratios, height_ratios)
 
 
-def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$ABA (k_{B}T)$'):
+def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$Relative Normalized ABA (k_{B}T)$'):
     cbar_ax = fig.add_subplot(colorbar_grid)
     cbar_ax.tick_params(labelsize=18)
     cbar = plt.colorbar(ms, cax=cbar_ax)
