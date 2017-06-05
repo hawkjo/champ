@@ -23,7 +23,7 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
 
-def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, normalize=True, fontsize=18, positions_are_merged=True):
+def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, normalize=True, fontsize=18, positions_are_merged=True, colorbar_label='Relative Normalized ABAs ($k_{B}T$)'):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
@@ -32,7 +32,7 @@ def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     # Add data to the main part of the figure
     ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, normalize=normalize, cmap='RdYlBu')
     # Add a color bar to the right side to quantify the colors in the main figure
-    add_colorbar(fig, gs[cbar_index], ms, fontsize, label='Relative Normalized ABAs ($k_{B}T$)')
+    add_colorbar(fig, gs[cbar_index], ms, fontsize, label=colorbar_label)
 
 
 def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
