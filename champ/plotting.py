@@ -5,6 +5,7 @@ from matplotlib.patches import Ellipse
 from matplotlib import gridspec
 import matplotlib as mpl
 import flabpal
+import matplotlib.patches as mpatches
 
 
 def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
@@ -181,6 +182,12 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
 
 
 def add_color_axes(fig, left_color_grid, bottom_color_grid, base_sequence):
+    a_patch = mpatches.Patch(color=flabpal.blue, label='A')
+    c_patch = mpatches.Patch(color=flabpal.yellow, label='C')
+    g_patch = mpatches.Patch(color=flabpal.green, label='G')
+    t_patch = mpatches.Patch(color=flabpal.red, label='T')
+    fig.legend(handles=[a_patch, c_patch, g_patch, t_patch])
+
     left_color_codes_ax = fig.add_subplot(left_color_grid)
     build_base_colorcode_axis(left_color_codes_ax, base_sequence, vertical=True)
     bottom_color_codes_ax = fig.add_subplot(bottom_color_grid)
