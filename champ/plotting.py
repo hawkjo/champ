@@ -7,7 +7,7 @@ import matplotlib as mpl
 import flabpal
 
 
-def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
+def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
     dimension = 3
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
     data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index = indexes
@@ -18,7 +18,7 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     mismatch_bases = ''.join(['ACGT'.replace(base, '') for base in sequence])
     add_color_axes(fig, gs[left_color_index], gs[bottom_color_index], mismatch_bases)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
@@ -35,19 +35,19 @@ def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     add_colorbar(fig, gs[cbar_index], ms, fontsize, label='$\Delta\ ABA (k_{B}T)$')
 
 
-def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
+def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
     # Add the sequence labels to the left of the figure
     add_sequence_labels(fig, gs[left_seq_index], gs[bottom_seq_index], 1, sequence_labels)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
 
-def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
+def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
@@ -56,12 +56,12 @@ def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper
     left_sequence_ax.set_ylabel("Stop", fontsize=fontsize*2)
     bottom_sequence_ax.set_xlabel("Start", fontsize=fontsize*2)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
 
-def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
+def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
     dimension = 4
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
     data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index = indexes
@@ -72,7 +72,7 @@ def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     insertion_bases = 'ACGT' * len(sequence)
     add_color_axes(fig, gs[left_color_index], gs[bottom_color_index], insertion_bases)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
