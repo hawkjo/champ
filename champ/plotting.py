@@ -186,7 +186,7 @@ def add_color_axes(fig, left_color_grid, bottom_color_grid, base_sequence):
     c_patch = mpatches.Patch(color=flabpal.yellow, label='C')
     g_patch = mpatches.Patch(color=flabpal.green, label='G')
     t_patch = mpatches.Patch(color=flabpal.red, label='T')
-    fig.legend(handles=[a_patch, c_patch, g_patch, t_patch], ['A', 'C', 'G', 'T'])
+    fig.legend([a_patch, c_patch, g_patch, t_patch], ['A', 'C', 'G', 'T'])
 
     left_color_codes_ax = fig.add_subplot(left_color_grid)
     build_base_colorcode_axis(left_color_codes_ax, base_sequence, vertical=True)
