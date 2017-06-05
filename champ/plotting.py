@@ -21,6 +21,7 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
+    # color the labels
 
 
 def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, normalize=True, fontsize=18,
@@ -355,7 +356,7 @@ def configure_position_penalty_axes(target, fig, penalty_axes, xticklabels, font
         # color the background with the correct base
         penalty_axes.fill_between([i-0.5, i+0.5], [ylim[0]]*2, [ylim[1]]*2, color=base_color[c], alpha=0.14)
     penalty_axes.set_ylim(ylim)
-    penalty_axes.set_xlabel('Target {target_name} Reference Sequence (Background Color)'.format(target_name=target_name), fontsize=fontsize)
+    penalty_axes.set_xlabel('Target {target_name} Reference Sequence'.format(target_name=target_name), fontsize=fontsize)
     penalty_axes.set_ylabel(yaxis_label, fontsize=fontsize)
     if legend:
         penalty_axes.legend(loc='best')
