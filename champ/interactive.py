@@ -238,3 +238,163 @@ def load_ABAs(filename):
     if not ABAs:
         print("Warning: no ABAs found!")
     return ABAs, ABA_error
+
+
+class Comparator(object):
+    """
+    produces single matrices, already merged, for various types of polymorphisms
+    also keep in mind you need to do that scatterplot
+    also you need to be able to compare different types of data within a single experiment (e.g. insertions vs mismatches)
+
+    generalize the comparison plots or write all three kinds
+
+    """
+    def __init__(self):
+        self._experiments = {}
+
+    def add_experiment(self, label, target_sequence, ABAs):
+        self._experiments[label] = {'ts': target_sequence, 'ABAs': ABAs}
+
+    def compare1d(self, experiment1, experiment2, type1, type2, guide_only=False, normalize=False):
+        pass
+
+    def compare_2d_mismatches(self, experiment1, experiment2, guide_only=False, normalize=False):
+        return self.compare2d(experiment1, experiment2, 'mismatches', 'mismatches', guide_only=guide_only, normalize=normalize)
+
+    def compare_2d_insertions(self, experiment1, experiment2, guide_only=False, normalize=False):
+        return self.compare2d(experiment1, experiment2, 'insertions', 'insertions', guide_only=guide_only, normalize=normalize)
+
+    def compare_2d_deletions(self, experiment1, experiment2, guide_only=False, normalize=False):
+        return self.compare2d(experiment1, experiment2, 'deletions', 'deletions', guide_only=guide_only, normalize=normalize)
+
+    def compare_2d_complement_stretches(self, experiment1, experiment2, guide_only=False, normalize=False):
+        return self.compare2d(experiment1, experiment2, 'complement_stretches', 'complement_stretches', guide_only=guide_only, normalize=normalize)
+
+    def compare2d(self, experiment1, experiment2, type1, type2, guide_only=False, normalize=False):
+        """
+        This method is mostly used internally, but it does permit the user to compare two different sequence types.
+        For example, it would allow you to look at a single experiment and compare mismatches to insertions.
+
+        """
+        assert type1 in ('mismatches', 'insertions', 'deletions', 'complement_stretches'), 'Invalid experiment type: %s' % type1
+        assert type2 in ('mismatches', 'insertions', 'deletions', 'complement_stretches'), 'Invalid experiment type: %s' % type2
+
+        ABAs1 = self._experiments[experiment1]['ABAs']
+        ABAs2 = self._experiments[experiment2]['ABAs']
+        if normalize:
+            normalize_by1 = ABAs1[self._experiments[experiment1]['ts'].sequence]
+            normalize_by2 = ABAs2[self._experiments[experiment2]['ts'].sequence]
+        else:
+            normalize_by1 = None
+            normalize_by2 = None
+
+        matrix = self._determine_matrix_type(experiment1, experiment2, type1, type2)
+        merge_positions = not self._directly_comparable(experiment1, experiment2, type1, type2)
+        flip_sequence = self._experiments[experiment1]['ts'].pam_side != self._experiments[experiment2]['ts'].pam_side
+
+        if guide_only:
+            display_sequence1 = self._experiments[experiment1]['ts'].guide.sequence
+            display_sequence2 = self._experiments[experiment2]['ts'].guide.sequence
+        else:
+            display_sequence1 = self._experiments[experiment1]['ts'].sequence
+            display_sequence2 = self._experiments[experiment2]['ts'].sequence
+        # if one sequence is longer than the other (which will happen if the "sequence" is the same
+        # but the PAM is a different length)
+        sequence_length = min(len(display_sequence1), len(display_sequence2))
+        em1 = matrix(display_sequence1[:sequence_length])
+        em2 = matrix(display_sequence2[:sequence_length])
+
+        load_func = {'mismatches': self._load_2d_mismatches,
+                     'insertions': self._load_2d_insertions,
+                     'deletions': self._load_2d_deletions,
+                     'complement_stretches': self._load_2d_complement_stretches}
+
+        load_func[type1](em1, ABAs1, self._experiments[experiment1]['ts'], guide_only,
+                         sequence_length, merge_positions)
+        load_func[type2](em2, ABAs2, self._experiments[experiment2]['ts'], guide_only,
+                         sequence_length, merge_positions)
+        return em1.to_matrix(normalize_by=normalize_by1) - em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2)
+
+    def _load_2d_mismatches(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
+        iterable = target_sequence.guide if guide_only else target_sequence
+        for i, j, base_i, base_j, seq in iterable.double_mismatches:
+            if i >= sequence_length:
+                continue
+            if guide_only:
+                sequence = target_sequence.pam + seq if target_sequence.pam_side == 5 else seq + target_sequence.pam
+            else:
+                sequence = seq
+            affinity = ABAs.get(sequence)
+            if merge_positions:
+                matrix.add_value(i, j, affinity)
+            else:
+                matrix.set_value(i, j, base_i, base_j, affinity)
+        return matrix
+
+    def _load_2d_insertions(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
+        iterable = target_sequence.guide if guide_only else target_sequence
+        for i, j, base_i, base_j, seq in iterable.double_insertions:
+            if i >= sequence_length:
+                continue
+            if guide_only:
+                sequence = target_sequence.pam + seq if target_sequence.pam_side == 5 else seq + target_sequence.pam
+            else:
+                sequence = seq
+            affinity = ABAs.get(sequence)
+            if merge_positions:
+                matrix.add_value(i, j, affinity)
+            else:
+                matrix.set_value(i, j, base_i, base_j, affinity)
+        return matrix
+
+    def _load_2d_deletions(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
+        iterable = target_sequence.guide if guide_only else target_sequence
+        for i, j, seq in iterable.double_deletions:
+            if i >= sequence_length:
+                continue
+            if guide_only:
+                sequence = target_sequence.pam + seq if target_sequence.pam_side == 5 else seq + target_sequence.pam
+            else:
+                sequence = seq
+            affinity = ABAs.get(sequence)
+            if merge_positions:
+                matrix.add_value(i, j, affinity)
+            else:
+                matrix.set_value(i, j, affinity)
+        return matrix
+
+    def _load_2d_complement_stretches(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
+        iterable = target_sequence.guide if guide_only else target_sequence
+        for start, stop, seq in iterable.complement_stretches:
+            if start >= sequence_length:
+                continue
+            if guide_only:
+                sequence = target_sequence.pam + seq if target_sequence.pam_side == 5 else seq + target_sequence.pam
+            else:
+                sequence = seq
+            affinity = ABAs.get(sequence)
+            if merge_positions:
+                matrix.add_value(start, stop, affinity)
+            else:
+                matrix.set_value(start, stop, affinity)
+        return matrix
+
+    def _directly_comparable(self, experiment1, experiment2, type1, type2):
+        if type1 != type2:
+            return False
+        directions_same = self._experiments[experiment1]['ts'].pam_side == self._experiments[experiment2]['ts'].pam_side
+        sequence_same = self._experiments[experiment1]['ts'].sequence == self._experiments[experiment2]['ts'].sequence
+        if not directions_same or not sequence_same:
+            return False
+        return True
+
+    def _determine_matrix_type(self, experiment1, experiment2, type1, type2):
+        if not self._directly_comparable(experiment1, experiment2, type1, type2):
+            return SinglePositionMatrix
+        if type1 in ('complement_stretches', 'deletions'):
+            return SinglePositionMatrix
+        if type1 == 'mismatches':
+            return MismatchMatrix
+        if type1 == 'insertions':
+            return InsertionMatrix
+        raise ValueError("Could not determine matrix type!")
