@@ -283,6 +283,7 @@ def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$ABA (k_{B}T)$'):
 
 def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis'):
     vmin, vmax = (None, None) if not normalize else (-1.0, 1.0)
+    print(vmin, vmax)
     data_ax = fig.add_subplot(data_grid)
     data_ax.set_axis_bgcolor(0.87 * np.array([1, 1, 1]))
     if upper_ABA_matrix is None:
