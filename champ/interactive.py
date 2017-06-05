@@ -67,6 +67,8 @@ class TargetSequence(object):
             for j in range(i):
                 seq = self._sequence[:j] + self._sequence[j + 1:i] + self._sequence[i + 1:]
                 yield i, j, seq
+            seq = self._sequence[:i] + self._sequence[i + 1:]
+            yield i, i, seq
 
     @property
     def single_mismatches(self):
