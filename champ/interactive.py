@@ -302,7 +302,7 @@ class Comparator(object):
         # figure out what sequence to use for plotting and if we can show actual bases or just positions
         return_sequence = display_sequence1 if len(display_sequence1) < len(display_sequence2) else display_sequence2
         if merge_positions:
-            sequence_labels = [str(i) for i in range(len(return_sequence))]
+            sequence_labels = [str(i + 1) for i in range(len(return_sequence))]
         else:
             sequence_labels = ['$%s_{%d}$' % (base, i + 1) for i, base in enumerate(return_sequence)]
 
