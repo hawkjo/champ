@@ -280,16 +280,18 @@ def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$ABA (k_{B}T)$'):
     cbar = plt.colorbar(ms, cax=cbar_ax)
     cbar.set_label(label, fontsize=fontsize*2)
 
-def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, cmap='viridis'):
+
+def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis'):
+    vmin, vmax = (None, None) if not normalize else (-1.0, 1.0)
     data_ax = fig.add_subplot(data_grid)
     data_ax.set_axis_bgcolor(0.87 * np.array([1, 1, 1]))
     if upper_ABA_matrix is None:
-        ms = data_ax.matshow(lower_ABA_matrix, cmap=cmap)
+        ms = data_ax.matshow(lower_ABA_matrix, cmap=cmap, vmin=vmin, vmax=vmax)
     else:
         # we "add" the arrays, retaining NaNs, to create a comparison matrix
         # both matrices should have their include_diagonal_values=False or else those will sum,
         # or if one is on it will be misleading
-        ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap='viridis')
+        ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), vmin=vmin, vmax=vmax, cmap='viridis')
     data_ax.set_yticks([])
     data_ax.set_xticks([])
     return ms
