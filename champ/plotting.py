@@ -300,7 +300,7 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
         else:
             largest_magnitude = max(np.max(np.abs(upper_ABA_matrix)), np.max(np.abs(lower_ABA_matrix)))
             vmin, vmax = -largest_magnitude, largest_magnitude
-        ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap='viridis', vmin=vmin, vmax=vmax)
+        ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap='viridis')
     data_ax.set_yticks([])
     data_ax.set_xticks([])
     return ms
