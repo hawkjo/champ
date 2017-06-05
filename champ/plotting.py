@@ -201,7 +201,7 @@ def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels,
     left_sequence_ax.tick_params(left="off")
     left_sequence_ax.set_xticklabels([])
     if positions_are_merged:
-        left_sequence_ax.set_ylabel("Distance from PAM (bp)")
+        left_sequence_ax.set_ylabel("Distance from PAM (bp)", fontsize=18)
 
     # Add the sequence labels to the bottom of the figure
     bottom_sequence_ax = fig.add_subplot(bottom_grid)
@@ -218,7 +218,7 @@ def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels,
     bottom_sequence_ax.tick_params(left="off")
     bottom_sequence_ax.set_yticklabels([])
     if positions_are_merged:
-        bottom_sequence_ax.set_xlabel("Distance from PAM (bp)")
+        bottom_sequence_ax.set_xlabel("Distance from PAM (bp)", fontsize=18)
 
     return left_sequence_ax, bottom_sequence_ax
 
