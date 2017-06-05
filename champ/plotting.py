@@ -342,7 +342,7 @@ def configure_position_penalty_axes(target, fig, penalty_axes, xticklabels, font
     elif yaxis_type == 'ddG':
         yaxis_label = '$\Delta \Delta G\ (K_{B}T)$'
     elif yaxis_type == 'ABA':
-        yaxis_label = '$ABA\ (K_{B}T)$'
+        yaxis_label = '$\Delta ABA\ (K_{B}T)$'
     else:
         yaxis_label = '?????'
 
