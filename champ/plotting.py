@@ -18,7 +18,7 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     mismatch_bases = ''.join(['ACGT'.replace(base, '') for base in sequence])
     add_color_axes(fig, gs[left_color_index], gs[bottom_color_index], mismatch_bases)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, normalize=True, cmap=cmap)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
