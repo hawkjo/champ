@@ -19,7 +19,7 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     mismatch_bases = ''.join(['ACGT'.replace(base, '') for base in sequence])
     add_color_axes(fig, gs[left_color_index], gs[bottom_color_index], mismatch_bases)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, show_base_legend=True)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
     # color the labels
@@ -75,7 +75,7 @@ def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     insertion_bases = 'ACGT' * len(sequence)
     add_color_axes(fig, gs[left_color_index], gs[bottom_color_index], insertion_bases)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, show_base_legend=True)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
