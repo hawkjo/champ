@@ -83,8 +83,8 @@ class Comparator(object):
         return em1.to_matrix(normalize_by=normalize_by1) - em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2)
 
     def _load_mismatches(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
-        iterable = target_sequence.guide.double_mismatches if guide_only else target_sequence.double_mismatches
-        for i, j, base_i, base_j, seq in iterable:
+        iterable = target_sequence.guide if guide_only else target_sequence
+        for i, j, base_i, base_j, seq in iterable.double_mismatches:
             if i >= sequence_length:
                 continue
             if guide_only:
@@ -98,8 +98,21 @@ class Comparator(object):
                 matrix.set_value(i, j, base_i, base_j, affinity)
         return matrix
 
-    def _load_insertions(self):
-        pass
+    def _load_insertions(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
+        iterable = target_sequence.guide if guide_only else target_sequence
+        for i, j, base_i, base_j, seq in iterable.double_insertions:
+            if i >= sequence_length:
+                continue
+            if guide_only:
+                sequence = target_sequence.pam + seq if target_sequence.pam_side == 5 else seq + target_sequence.pam
+            else:
+                sequence = seq
+            affinity = ABAs.get(sequence)
+            if merge_positions:
+                matrix.add_value(i, j, affinity)
+            else:
+                matrix.set_value(i, j, base_i, base_j, affinity)
+        return matrix
 
     def _load_deletions(self):
         pass
@@ -126,7 +139,6 @@ class Comparator(object):
         if type1 == 'insertions':
             return InsertionMatrix
         raise ValueError("Could not determine matrix type!")
-
 
 
 def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
