@@ -304,7 +304,7 @@ class Comparator(object):
         if merge_positions:
             sequence_labels = [str(i) for i in range(len(return_sequence))]
         else:
-            sequence_labels = ['$%s_{%d}$' % (base, i) for i, base in enumerate(return_sequence)]
+            sequence_labels = ['$%s_{%d}$' % (base, i + 1) for i, base in enumerate(return_sequence)]
 
         # if one sequence is longer than the other (which will happen if the "sequence" is the same
         # but the PAM is a different length)
