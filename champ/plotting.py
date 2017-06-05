@@ -150,7 +150,7 @@ def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$\Delta ABA\ (k_{B}T)$
     cbar.set_label(label, fontsize=fontsize*2)
 
 
-def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis'):
+def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis', show_base_legend=False):
     """
 
     vmin and vmax are the extents of the colorbar. We set the lowest and highest values so that the brightest part
@@ -159,6 +159,12 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
     """
     data_ax = fig.add_subplot(data_grid)
     data_ax.set_axis_bgcolor(0.87 * np.array([1, 1, 1]))
+    if show_base_legend:
+        a_patch = mpatches.Patch(color=flabpal.blue, label='A')
+        c_patch = mpatches.Patch(color=flabpal.yellow, label='C')
+        g_patch = mpatches.Patch(color=flabpal.green, label='G')
+        t_patch = mpatches.Patch(color=flabpal.red, label='T')
+        data_ax.legend([a_patch, c_patch, g_patch, t_patch], ['A', 'C', 'G', 'T'])
     if upper_ABA_matrix is None:
         if not normalize:
             vmin, vmax = None, None
@@ -182,12 +188,6 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
 
 
 def add_color_axes(fig, left_color_grid, bottom_color_grid, base_sequence):
-    a_patch = mpatches.Patch(color=flabpal.blue, label='A')
-    c_patch = mpatches.Patch(color=flabpal.yellow, label='C')
-    g_patch = mpatches.Patch(color=flabpal.green, label='G')
-    t_patch = mpatches.Patch(color=flabpal.red, label='T')
-    fig.legend([a_patch, c_patch, g_patch, t_patch], ['A', 'C', 'G', 'T'])
-
     left_color_codes_ax = fig.add_subplot(left_color_grid)
     build_base_colorcode_axis(left_color_codes_ax, base_sequence, vertical=True)
     bottom_color_codes_ax = fig.add_subplot(bottom_color_grid)
