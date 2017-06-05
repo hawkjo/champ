@@ -382,9 +382,9 @@ class Comparator(object):
                 sequence = seq
             affinity = ABAs.get(sequence)
             if merge_positions:
-                matrix.add_value(start, stop, affinity)
+                matrix.add_value(stop, start, affinity)
             else:
-                matrix.set_value(start, stop, affinity)
+                matrix.set_value(stop, start, affinity)
         return matrix
 
     def _directly_comparable(self, experiment1, experiment2, type1, type2):
