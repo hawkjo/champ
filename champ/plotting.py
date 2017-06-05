@@ -185,7 +185,7 @@ def add_color_axes(fig, left_color_grid, bottom_color_grid, base_sequence):
     build_base_colorcode_axis(bottom_color_codes_ax, base_sequence)
 
 
-def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels):
+def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels, base_identities=True):
     # Add the sequence labels to the left of the figure
     left_sequence_ax = fig.add_subplot(left_grid)
     left_sequence_ax.set_yticklabels(sequence_labels[::-1], fontsize=18)
@@ -200,6 +200,8 @@ def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels)
     left_sequence_ax.tick_params(right="off")
     left_sequence_ax.tick_params(left="off")
     left_sequence_ax.set_xticklabels([])
+    if not base_identities:
+        left_sequence_ax.set_ylabel("Distance from PAM (bp)")
 
     # Add the sequence labels to the bottom of the figure
     bottom_sequence_ax = fig.add_subplot(bottom_grid)
@@ -215,6 +217,8 @@ def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels)
     bottom_sequence_ax.tick_params(right="off")
     bottom_sequence_ax.tick_params(left="off")
     bottom_sequence_ax.set_yticklabels([])
+    if not base_identities:
+        bottom_sequence_ax.set_xlabel("Distance from PAM (bp)")
 
     return left_sequence_ax, bottom_sequence_ax
 
