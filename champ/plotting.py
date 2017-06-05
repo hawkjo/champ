@@ -23,7 +23,8 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
 
-def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, normalize=True, fontsize=18, positions_are_merged=True, colorbar_label='Relative Normalized ABAs ($k_{B}T$)'):
+def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, normalize=True, fontsize=18,
+                       positions_are_merged=True, colorbar_label='Relative Normalized ABAs ($k_{B}T$)'):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
@@ -334,8 +335,8 @@ def get_cluster_counts(ia, seq):
     return min(cluster_counts) if cluster_counts else 0
 
 
-def configure_position_penalty_axes(target, fig, penalty_axes, count_axes, xticklabels, fontsize, tick_fontsize,
-                                    yaxis_type, base_color, target_name, legend=True):
+def configure_position_penalty_axes(target, fig, penalty_axes, xticklabels, fontsize, tick_fontsize,
+                                    yaxis_type, base_color, target_name, legend=True, count_axes=None):
     if yaxis_type == 'kd':
         yaxis_label = '$K_{d} (nM)$'
     elif yaxis_type == 'ddG':
@@ -349,21 +350,24 @@ def configure_position_penalty_axes(target, fig, penalty_axes, count_axes, xtick
     penalty_axes.set_xlim((-0.5, len(target)-0.5))
     penalty_axes.set_xticks(range(len(target)))
     penalty_axes.set_xticklabels(xticklabels, fontsize=tick_fontsize)
-    count_axes.set_yscale('log')
-    count_axes.set_xlim((-0.5, len(target)-0.5))
-    count_axes.set_xticks(range(len(target)))
-    count_axes.set_xticklabels(xticklabels, fontsize=tick_fontsize)
     ylim = penalty_axes.get_ylim()
     for i, c in enumerate(target):
         # color the background with the correct base
         penalty_axes.fill_between([i-0.5, i+0.5], [ylim[0]]*2, [ylim[1]]*2, color=base_color[c], alpha=0.14)
     penalty_axes.set_ylim(ylim)
-    count_axes.set_title("Unique Clusters Per Mismatch Sequence", fontsize=fontsize)
-    count_axes.set_ylabel("Count", fontsize=fontsize)
-    count_axes.xaxis.set_ticks_position('none')
     penalty_axes.set_xlabel('Target {target_name} Reference Sequence (Background Color)'.format(target_name=target_name), fontsize=fontsize)
     penalty_axes.set_ylabel(yaxis_label, fontsize=fontsize)
     if legend:
         penalty_axes.legend(loc='best')
     penalty_axes.xaxis.set_ticks_position('none')
+
+    if count_axes is not None:
+        count_axes.set_yscale('log')
+        count_axes.set_xlim((-0.5, len(target)-0.5))
+        count_axes.set_xticks(range(len(target)))
+        count_axes.set_xticklabels(xticklabels, fontsize=tick_fontsize)
+        count_axes.set_title("Unique Clusters Per Mismatch Sequence", fontsize=fontsize)
+        count_axes.set_ylabel("Count", fontsize=fontsize)
+        count_axes.xaxis.set_ticks_position('none')
+
     fig.tight_layout()
