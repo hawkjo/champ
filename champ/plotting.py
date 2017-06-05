@@ -190,7 +190,7 @@ def add_color_axes(fig, left_color_grid, bottom_color_grid, base_sequence):
 def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels, positions_are_merged=False):
     # Add the sequence labels to the left of the figure
     left_sequence_ax = fig.add_subplot(left_grid)
-    left_sequence_ax.set_yticklabels(sequence_labels[::-1], fontsize=18)
+    left_sequence_ax.set_yticklabels(sequence_labels[::-1], fontsize=36)
     left_sequence_ax.set_yticks([dimension * x + dimension / 2.0 for x in range(len(sequence_labels))])
     left_sequence_ax.set_ylim([0, len(sequence_labels) * dimension])
     left_sequence_ax.spines['top'].set_visible(False)
@@ -207,7 +207,7 @@ def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels,
 
     # Add the sequence labels to the bottom of the figure
     bottom_sequence_ax = fig.add_subplot(bottom_grid)
-    bottom_sequence_ax.set_xticklabels(sequence_labels, fontsize=18)
+    bottom_sequence_ax.set_xticklabels(sequence_labels, fontsize=36)
     bottom_sequence_ax.set_xticks([dimension * x + dimension / 2.0 for x in range(len(sequence_labels))])
     bottom_sequence_ax.set_xlim([0, len(sequence_labels) * dimension])
     bottom_sequence_ax.spines['top'].set_visible(False)
