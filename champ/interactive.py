@@ -298,6 +298,14 @@ class Comparator(object):
         else:
             display_sequence1 = self._experiments[experiment1]['ts'].sequence
             display_sequence2 = self._experiments[experiment2]['ts'].sequence
+
+        # figure out what sequence to use for plotting and if we can show actual bases or just positions
+        return_sequence = display_sequence1 if len(display_sequence1) < len(display_sequence2) else display_sequence2
+        if merge_positions:
+            sequence_labels = [str(i) for i in range(len(return_sequence))]
+        else:
+            sequence_labels = ['$%s_{%d}$' % (base, i) for i, base in enumerate(return_sequence)]
+
         # if one sequence is longer than the other (which will happen if the "sequence" is the same
         # but the PAM is a different length)
         sequence_length = min(len(display_sequence1), len(display_sequence2))
@@ -313,7 +321,7 @@ class Comparator(object):
                          sequence_length, merge_positions)
         load_func[type2](em2, ABAs2, self._experiments[experiment2]['ts'], guide_only,
                          sequence_length, merge_positions)
-        return em1.to_matrix(normalize_by=normalize_by1) - em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2)
+        return return_sequence, sequence_labels, em1.to_matrix(normalize_by=normalize_by1) - em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2)
 
     def _load_2d_mismatches(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
         iterable = target_sequence.guide if guide_only else target_sequence

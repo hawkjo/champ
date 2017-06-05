@@ -5,7 +5,6 @@ from matplotlib.patches import Ellipse
 from matplotlib import gridspec
 import matplotlib as mpl
 import flabpal
-from champ.interactive import SinglePositionMatrix, MismatchMatrix, InsertionMatrix
 
 
 def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18):
