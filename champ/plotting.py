@@ -279,7 +279,7 @@ def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$ABA (k_{B}T)$'):
     cbar_ax.tick_params(labelsize=18)
     cbar = plt.colorbar(ms, cax=cbar_ax)
     cbar.set_label(label, fontsize=fontsize*2)
-    cbar_ax.set_yticks([-1.0, 0.0, 1.0])
+    cbar_ax.set_ticks([-1.0, 0.0, 1.0])
 
 def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis'):
     data_ax = fig.add_subplot(data_grid)
