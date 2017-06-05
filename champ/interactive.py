@@ -311,7 +311,6 @@ class Comparator(object):
         sequence_length = min(len(display_sequence1), len(display_sequence2))
         em1 = matrix(display_sequence1[:sequence_length])
         em2 = matrix(display_sequence2[:sequence_length])
-        print("em sequence: %s" % display_sequence1[:sequence_length])
 
         load_func = {'mismatches': self._load_2d_mismatches,
                      'insertions': self._load_2d_insertions,
@@ -322,7 +321,7 @@ class Comparator(object):
                          sequence_length, merge_positions)
         load_func[type2](em2, ABAs2, self._experiments[experiment2]['ts'], guide_only,
                          sequence_length, merge_positions)
-        return return_sequence, sequence_labels, em1.to_matrix(normalize_by=normalize_by1) - em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2), em1.to_matrix(normalize_by=normalize_by1), em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2)
+        return return_sequence, sequence_labels, em1.to_matrix(normalize_by=normalize_by1) - em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2)
 
     def _load_2d_mismatches(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
         iterable = target_sequence.guide if guide_only else target_sequence
