@@ -32,7 +32,7 @@ def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     # Add data to the main part of the figure
     ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, normalize=normalize, cmap='RdYlBu')
     # Add a color bar to the right side to quantify the colors in the main figure
-    add_colorbar(fig, gs[cbar_index], ms, fontsize, label='$Relative Normalized ABAs (k_{B}T)$')
+    add_colorbar(fig, gs[cbar_index], ms, fontsize, label='Relative Normalized ABAs ($k_{B}T$)')
 
 
 def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
