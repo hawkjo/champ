@@ -184,7 +184,11 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
         ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap='viridis', vmin=vmin, vmax=vmax)
     data_ax.set_yticks([])
     data_ax.set_xticks([])
-    data_ax.grid(color='red', linestyle='-', linewidth=2)
+    xlim = data_ax.get_xlim()
+    ylim = data_ax.get_ylim()
+    for i in np.arange(2.5, lower_ABA_matrix.shape[0], 3):
+        data_ax.plot(xlim, [i, i], 'w', alpha=1, linewidth=1)
+        data_ax.plot([i, i], ylim, 'w', alpha=1, linewidth=1)
     return ms
 
 
