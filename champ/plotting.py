@@ -129,8 +129,8 @@ def get_gridspec(sequence, dimension):
         cbar_index = 3
         indexes = data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index
     else:
-        width_ratios = [.5, len(sequence), 1]
-        height_ratios = [len(sequence), .5]
+        width_ratios = [.25, len(sequence), 1]
+        height_ratios = [len(sequence), .25]
         gs = gridspec.GridSpec(2, 3,
                                width_ratios=width_ratios,
                                height_ratios=height_ratios,
