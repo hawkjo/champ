@@ -67,6 +67,8 @@ class TargetSequence(object):
             for j in range(i):
                 seq = self._sequence[:j] + self._sequence[j + 1:i] + self._sequence[i + 1:]
                 yield i, j, seq
+            seq = self._sequence[:i] + self._sequence[i + 1:]
+            yield i, i, seq
 
     @property
     def single_mismatches(self):
@@ -120,6 +122,8 @@ class TargetSequence(object):
         for stop in range(len(self._sequence)):
             for start in range(stop):
                 yield start, stop, self._sequence[:start] + str(Seq(self._sequence[start:stop + 1]).complement()) + self._sequence[stop + 1:]
+        for position in range(len(self._sequence)):
+            yield position, position, self._sequence[:position] + str(Seq(self._sequence[position]).complement()) + self._sequence[position + 1:]
 
 
 class TwoDMatrix(object):
@@ -139,19 +143,42 @@ class TwoDMatrix(object):
     def _dimension(self):
         return self._slots * len(self._sequence)
 
-    def to_matrix(self, side='lower', include_diagonal_values=True):
+    def to_matrix(self, side='lower', include_diagonal_values=True, flip_sequence=False, normalize_by=None):
         assert side in ('lower', 'upper')
         data = np.zeros((self._dimension, self._dimension))
         data[:] = np.nan
         for row, column_data in self._values.items():
-            for column, value in column_data.items():
+            for column, values in column_data.items():
                 if not include_diagonal_values and row == column:
                     continue
-                if side == 'lower':
-                    data[row, column] = value
-                elif side == 'upper':
-                    data[column, row] = value
+                if flip_sequence:
+                    c = self._dimension - column - 1
+                    r = self._dimension - row - 1
+                else:
+                    c = column
+                    r = row
+                if type(values) is list:
+                    # we have multiple values for a single position, so we need to take the average in order to make
+                    # a meaningful plot
+                    clean_values = tuple(v for v in values if v is not None)
+                    value = np.mean(clean_values) if clean_values else None
+                else:
+                    # values is just a single float, so alias it for the next few lines
+                    value = values
+                if normalize_by is not None and value is not None:
+                    value /= normalize_by
+                if (side == 'lower' and not flip_sequence) or (side == 'upper' and flip_sequence):
+                    data[r, c] = value
+                elif (side == 'upper' and not flip_sequence) or (side == 'lower' and flip_sequence):
+                    data[c, r] = value
         return data
+
+    def _safe_append(self, r, c, value):
+        current = self._values[r].get(c)
+        if not current:
+            self._values[r][c] = [value]
+        else:
+            self._values[r][c].append(value)
 
 
 class MismatchMatrix(TwoDMatrix):
@@ -173,14 +200,213 @@ class InsertionMatrix(TwoDMatrix):
         r, c = position1 * self._slots + self._bases.index(base1), position2 * self._slots + self._bases.index(base2)
         self._values[r][c] = value
 
-    @property
-    def data(self):
-        return self._values
 
-
-class DeletionMatrix(TwoDMatrix):
+class SinglePositionMatrix(TwoDMatrix):
+    """ Used for deletions, and for comparing two incompatible sequences by position alone. """
     def __init__(self, sequence):
-        super(DeletionMatrix, self).__init__(sequence, 1, 'ACGT')
+        super(SinglePositionMatrix, self).__init__(sequence, 1, 'ACGT')
 
     def set_value(self, position1, position2, value):
         self._values[position1][position2] = value
+
+    def add_value(self, position1, position2, value):
+        self._safe_append(position1, position2, value)
+
+
+def load_ABAs(filename):
+    ABAs = {}
+    ABA_error = {}
+    with open(filename) as f:
+        line = next(f)
+        assert line.startswith('# Target:')
+        target = line.strip().split(': ')[1]
+        line = next(f)
+        assert line.startswith('# Neg Control')
+        neg_control_target = line.strip().split(': ')[1]
+        line = next(f)
+        assert line.startswith('# Concentration')
+        line = next(f)
+        while not line.startswith('#'):
+            max_concentration = float(line.strip().split()[0])
+            line = next(f)
+        assert line.startswith('# Seq')
+        for line in f:
+            if line.startswith('#'):
+                continue
+            words = line.strip().split()
+            seq = words[0]
+            assert seq not in ABAs, "Duplicate sequence found in ABA file: {}".format(seq)
+            ABA, ABA_err = map(float, words[3:])
+            ABAs[seq] = max(ABA, 0.0)
+            ABA_error[seq] = ABA_err
+    if not ABAs:
+        print("Warning: no ABAs found!")
+    return ABAs, ABA_error
+
+
+class Comparator(object):
+    """
+    produces single matrices, already merged, for various types of polymorphisms
+    also keep in mind you need to do that scatterplot
+    also you need to be able to compare different types of data within a single experiment (e.g. insertions vs mismatches)
+
+    generalize the comparison plots or write all three kinds
+
+    """
+    def __init__(self):
+        self._experiments = {}
+
+    def add_experiment(self, label, target_sequence, ABAs):
+        self._experiments[label] = {'ts': target_sequence, 'ABAs': ABAs}
+
+    def compare1d(self, experiment1, experiment2, type1, type2, guide_only=False, normalize=False):
+        pass
+
+    def compare_2d_mismatches(self, experiment1, experiment2, guide_only=False, normalize=False):
+        return self.compare2d(experiment1, experiment2, 'mismatches', 'mismatches', guide_only=guide_only, normalize=normalize)
+
+    def compare_2d_insertions(self, experiment1, experiment2, guide_only=False, normalize=False):
+        return self.compare2d(experiment1, experiment2, 'insertions', 'insertions', guide_only=guide_only, normalize=normalize)
+
+    def compare_2d_deletions(self, experiment1, experiment2, guide_only=False, normalize=False):
+        return self.compare2d(experiment1, experiment2, 'deletions', 'deletions', guide_only=guide_only, normalize=normalize)
+
+    def compare_2d_complement_stretches(self, experiment1, experiment2, guide_only=False, normalize=False):
+        return self.compare2d(experiment1, experiment2, 'complement_stretches', 'complement_stretches', guide_only=guide_only, normalize=normalize)
+
+    def compare2d(self, experiment1, experiment2, type1, type2, guide_only=False, normalize=False):
+        """
+        This method is mostly used internally, but it does permit the user to compare two different sequence types.
+        For example, it would allow you to look at a single experiment and compare mismatches to insertions.
+
+        """
+        assert type1 in ('mismatches', 'insertions', 'deletions', 'complement_stretches'), 'Invalid experiment type: %s' % type1
+        assert type2 in ('mismatches', 'insertions', 'deletions', 'complement_stretches'), 'Invalid experiment type: %s' % type2
+
+        ABAs1 = self._experiments[experiment1]['ABAs']
+        ABAs2 = self._experiments[experiment2]['ABAs']
+        if normalize:
+            normalize_by1 = ABAs1[self._experiments[experiment1]['ts'].sequence]
+            normalize_by2 = ABAs2[self._experiments[experiment2]['ts'].sequence]
+        else:
+            normalize_by1 = None
+            normalize_by2 = None
+
+        matrix = self._determine_matrix_type(experiment1, experiment2, type1, type2)
+        merge_positions = not self._directly_comparable(experiment1, experiment2, type1, type2)
+        flip_sequence = self._experiments[experiment1]['ts'].pam_side != self._experiments[experiment2]['ts'].pam_side
+
+        if guide_only:
+            display_sequence1 = self._experiments[experiment1]['ts'].guide.sequence
+            display_sequence2 = self._experiments[experiment2]['ts'].guide.sequence
+        else:
+            display_sequence1 = self._experiments[experiment1]['ts'].sequence
+            display_sequence2 = self._experiments[experiment2]['ts'].sequence
+
+        # figure out what sequence to use for plotting and if we can show actual bases or just positions
+        return_sequence = display_sequence1 if len(display_sequence1) < len(display_sequence2) else display_sequence2
+        if merge_positions:
+            sequence_labels = [str(i + 1) for i in range(len(return_sequence))]
+        else:
+            sequence_labels = ['$%s_{%d}$' % (base, i + 1) for i, base in enumerate(return_sequence)]
+
+        # if one sequence is longer than the other (which will happen if the "sequence" is the same
+        # but the PAM is a different length)
+        sequence_length = min(len(display_sequence1), len(display_sequence2))
+        em1 = matrix(display_sequence1[:sequence_length])
+        em2 = matrix(display_sequence2[:sequence_length])
+
+        load_func = {'mismatches': self._load_2d_mismatches,
+                     'insertions': self._load_2d_insertions,
+                     'deletions': self._load_2d_deletions,
+                     'complement_stretches': self._load_2d_complement_stretches}
+
+        load_func[type1](em1, ABAs1, self._experiments[experiment1]['ts'], guide_only,
+                         sequence_length, merge_positions)
+        load_func[type2](em2, ABAs2, self._experiments[experiment2]['ts'], guide_only,
+                         sequence_length, merge_positions)
+        return return_sequence, sequence_labels, merge_positions, em1.to_matrix(normalize_by=normalize_by1) - em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2)
+
+    def _load_2d_mismatches(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
+        iterable = target_sequence.guide if guide_only else target_sequence
+        for i, j, base_i, base_j, seq in iterable.double_mismatches:
+            if i >= sequence_length:
+                continue
+            if guide_only:
+                sequence = target_sequence.pam + seq if target_sequence.pam_side == 5 else seq + target_sequence.pam
+            else:
+                sequence = seq
+            affinity = ABAs.get(sequence)
+            if merge_positions:
+                matrix.add_value(i, j, affinity)
+            else:
+                matrix.set_value(i, j, base_i, base_j, affinity)
+        return matrix
+
+    def _load_2d_insertions(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
+        iterable = target_sequence.guide if guide_only else target_sequence
+        for i, j, base_i, base_j, seq in iterable.double_insertions:
+            if i >= sequence_length:
+                continue
+            if guide_only:
+                sequence = target_sequence.pam + seq if target_sequence.pam_side == 5 else seq + target_sequence.pam
+            else:
+                sequence = seq
+            affinity = ABAs.get(sequence)
+            if merge_positions:
+                matrix.add_value(i, j, affinity)
+            else:
+                matrix.set_value(i, j, base_i, base_j, affinity)
+        return matrix
+
+    def _load_2d_deletions(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
+        iterable = target_sequence.guide if guide_only else target_sequence
+        for i, j, seq in iterable.double_deletions:
+            if i >= sequence_length:
+                continue
+            if guide_only:
+                sequence = target_sequence.pam + seq if target_sequence.pam_side == 5 else seq + target_sequence.pam
+            else:
+                sequence = seq
+            affinity = ABAs.get(sequence)
+            if merge_positions:
+                matrix.add_value(i, j, affinity)
+            else:
+                matrix.set_value(i, j, affinity)
+        return matrix
+
+    def _load_2d_complement_stretches(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
+        iterable = target_sequence.guide if guide_only else target_sequence
+        for start, stop, seq in iterable.complement_stretches:
+            if start >= sequence_length:
+                continue
+            if guide_only:
+                sequence = target_sequence.pam + seq if target_sequence.pam_side == 5 else seq + target_sequence.pam
+            else:
+                sequence = seq
+            affinity = ABAs.get(sequence)
+            if merge_positions:
+                matrix.add_value(stop, start, affinity)
+            else:
+                matrix.set_value(stop, start, affinity)
+        return matrix
+
+    def _directly_comparable(self, experiment1, experiment2, type1, type2):
+        if type1 != type2:
+            return False
+        directions_same = self._experiments[experiment1]['ts'].pam_side == self._experiments[experiment2]['ts'].pam_side
+        sequence_same = self._experiments[experiment1]['ts'].sequence == self._experiments[experiment2]['ts'].sequence
+        if not directions_same or not sequence_same:
+            return False
+        return True
+
+    def _determine_matrix_type(self, experiment1, experiment2, type1, type2):
+        if not self._directly_comparable(experiment1, experiment2, type1, type2):
+            return SinglePositionMatrix
+        if type1 in ('complement_stretches', 'deletions'):
+            return SinglePositionMatrix
+        if type1 == 'mismatches':
+            return MismatchMatrix
+        if type1 == 'insertions':
+            return InsertionMatrix
+        raise ValueError("Could not determine matrix type!")
