@@ -217,7 +217,7 @@ def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels,
     left_sequence_ax.set_xticklabels([])
     if positions_are_merged:
         left_sequence_ax.set_ylabel("Distance from PAM (bp)", fontsize=36)
-    for tl, correct_base in zip(left_sequence_ax.get_xticklabels(), target_sequence):
+    for tl, correct_base in zip(left_sequence_ax.get_yticklabels(), target_sequence):
         tl.set_color(base_color[correct_base])
 
     # Add the sequence labels to the bottom of the figure
