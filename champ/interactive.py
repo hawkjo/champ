@@ -121,7 +121,6 @@ class TargetSequence(object):
     def complement_stretches(self):
         for stop in range(len(self._sequence)):
             for start in range(stop):
-                print(start, stop)
                 yield start, stop, self._sequence[:start] + str(Seq(self._sequence[start:stop + 1]).complement()) + self._sequence[stop + 1:]
         for position in range(len(self._sequence)):
             yield position, position, self._sequence[:position] + str(Seq(self._sequence[position]).complement()) + self._sequence[position + 1:]
