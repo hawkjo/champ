@@ -19,7 +19,7 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     mismatch_bases = ''.join(['ACGT'.replace(base, '') for base in sequence])
     add_color_axes(fig, gs[left_color_index], gs[bottom_color_index], mismatch_bases)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, show_base_legend=True)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, show_base_legend=True, grid_line_spacing=dimension)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
     # color the labels
@@ -45,7 +45,7 @@ def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_mat
     # Add the sequence labels to the left of the figure
     add_sequence_labels(fig, gs[left_seq_index], gs[bottom_seq_index], 1, sequence_labels)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, grid_line_spacing=1)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
@@ -59,7 +59,7 @@ def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper
     left_sequence_ax.set_ylabel("Stop", fontsize=fontsize*2)
     bottom_sequence_ax.set_xlabel("Start", fontsize=fontsize*2)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, grid_line_spacing=1)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
@@ -75,7 +75,7 @@ def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     insertion_bases = 'ACGT' * len(sequence)
     add_color_axes(fig, gs[left_color_index], gs[bottom_color_index], insertion_bases)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, show_base_legend=True)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, show_base_legend=True, grid_line_spacing=dimension)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
@@ -150,7 +150,7 @@ def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$\Delta ABA\ (k_{B}T)$
     cbar.set_label(label, fontsize=fontsize*2)
 
 
-def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis', show_base_legend=False):
+def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis', show_base_legend=False, grid_line_spacing=None):
     """
 
     vmin and vmax are the extents of the colorbar. We set the lowest and highest values so that the brightest part
@@ -184,12 +184,12 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
         ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap='viridis', vmin=vmin, vmax=vmax)
     data_ax.set_yticks([])
     data_ax.set_xticks([])
-    xlim = data_ax.get_xlim()
-    ylim = data_ax.get_ylim()
-    for i in np.arange(-.5, lower_ABA_matrix.shape[0]-3, 3):
-        data_ax.plot((xlim[0], i+3.0), [i, i], 'w', alpha=1, linewidth=1)
-        data_ax.plot([i+3.0, i+3.0], (ylim[0], i), 'w', alpha=1, linewidth=1)
-
+    if grid_line_spacing is not None:
+        xlim = data_ax.get_xlim()
+        ylim = data_ax.get_ylim()
+        for i in np.arange(-.5, lower_ABA_matrix.shape[0]-grid_line_spacing, grid_line_spacing):
+            data_ax.plot((xlim[0], i+grid_line_spacing), [i, i], 'w', alpha=1, linewidth=1)
+            data_ax.plot([i+grid_line_spacing, i+grid_line_spacing], (ylim[0], i), 'w', alpha=1, linewidth=1)
     return ms
 
 
