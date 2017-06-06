@@ -256,8 +256,8 @@ class Comparator(object):
     def __init__(self):
         self._experiments = {}
 
-    def add_experiment(self, label, target_sequence, ABAs):
-        self._experiments[label] = {'ts': target_sequence, 'ABAs': ABAs}
+    def add_experiment(self, label, target_sequence, ABAs, ABA_errors):
+        self._experiments[label] = {'ts': target_sequence, 'ABAs': ABAs, 'ABA_errors': ABA_errors}
 
     def compare1d(self, experiment1, experiment2, type1, type2, guide_only=False, normalize=False):
         pass
@@ -285,12 +285,19 @@ class Comparator(object):
 
         ABAs1 = self._experiments[experiment1]['ABAs']
         ABAs2 = self._experiments[experiment2]['ABAs']
+        ABA_errors1 = self._experiments[experiment1]['ABA_errors']
+        ABA_errors2 = self._experiments[experiment2]['ABA_errors']
+
         if normalize:
             normalize_by1 = ABAs1[self._experiments[experiment1]['ts'].sequence]
             normalize_by2 = ABAs2[self._experiments[experiment2]['ts'].sequence]
+            normalize_errors_by1 = ABA_errors1[self._experiments[experiment1]['ts'].sequence]
+            normalize_errors_by2 = ABA_errors2[self._experiments[experiment2]['ts'].sequence]
         else:
             normalize_by1 = None
             normalize_by2 = None
+            normalize_errors_by1 = None
+            normalize_errors_by2 = None
 
         matrix = self._determine_matrix_type(experiment1, experiment2, type1, type2)
         merge_positions = not self._directly_comparable(experiment1, experiment2, type1, type2)
@@ -315,22 +322,27 @@ class Comparator(object):
         sequence_length = min(len(display_sequence1), len(display_sequence2))
         em1 = matrix(display_sequence1[:sequence_length])
         em2 = matrix(display_sequence2[:sequence_length])
+        errm1 = matrix(display_sequence1[:sequence_length])
+        errm2 = matrix(display_sequence2[:sequence_length])
 
         load_func = {'mismatches': self._load_2d_mismatches,
                      'insertions': self._load_2d_insertions,
                      'deletions': self._load_2d_deletions,
                      'complement_stretches': self._load_2d_complement_stretches}
 
-        load_func[type1](em1, ABAs1, self._experiments[experiment1]['ts'], guide_only,
+        load_func[type1](em1, errm1, ABAs1, ABA_errors1, self._experiments[experiment1]['ts'], guide_only,
                          sequence_length, merge_positions)
-        load_func[type2](em2, ABAs2, self._experiments[experiment2]['ts'], guide_only,
+        load_func[type2](em2, errm2, ABAs2, ABA_errors2, self._experiments[experiment2]['ts'], guide_only,
                          sequence_length, merge_positions)
         if not return_each_matrix:
             return return_sequence, sequence_labels, merge_positions, em1.to_matrix(normalize_by=normalize_by1) - em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2)
         else:
-            return em1.to_matrix(normalize_by=normalize_by1), em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2)
+            return em1.to_matrix(normalize_by=normalize_by1), \
+                   em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2), \
+                   errm1.to_matrix(normalize_by=normalize_errors_by1), \
+                   errm2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_errors_by2)
 
-    def _load_2d_mismatches(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
+    def _load_2d_mismatches(self, matrix, error_matrix, ABAs, ABA_errors, target_sequence, guide_only, sequence_length, merge_positions):
         iterable = target_sequence.guide if guide_only else target_sequence
         for i, j, base_i, base_j, seq in iterable.double_mismatches:
             if i >= sequence_length:
@@ -340,13 +352,15 @@ class Comparator(object):
             else:
                 sequence = seq
             affinity = ABAs.get(sequence)
+            error = ABA_errors.get(sequence)
             if merge_positions:
                 matrix.add_value(i, j, affinity)
+                error_matrix.add_value(i, j, error)
             else:
                 matrix.set_value(i, j, base_i, base_j, affinity)
-        return matrix
+                error_matrix.set_value(i, j, base_i, base_j, error)
 
-    def _load_2d_insertions(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
+    def _load_2d_insertions(self, matrix, error_matrix, ABAs, ABA_errors, target_sequence, guide_only, sequence_length, merge_positions):
         iterable = target_sequence.guide if guide_only else target_sequence
         for i, j, base_i, base_j, seq in iterable.double_insertions:
             if i >= sequence_length:
@@ -356,13 +370,15 @@ class Comparator(object):
             else:
                 sequence = seq
             affinity = ABAs.get(sequence)
+            error = ABA_errors.get(sequence)
             if merge_positions:
                 matrix.add_value(i, j, affinity)
+                error_matrix.add_value(i, j, error)
             else:
                 matrix.set_value(i, j, base_i, base_j, affinity)
-        return matrix
+                error_matrix.add_value(i, j, base_i, base_j, error)
 
-    def _load_2d_deletions(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
+    def _load_2d_deletions(self, matrix, error_matrix, ABAs, ABA_errors, target_sequence, guide_only, sequence_length, merge_positions):
         iterable = target_sequence.guide if guide_only else target_sequence
         for i, j, seq in iterable.double_deletions:
             if i >= sequence_length:
@@ -372,13 +388,15 @@ class Comparator(object):
             else:
                 sequence = seq
             affinity = ABAs.get(sequence)
+            error = ABA_errors.get(sequence)
             if merge_positions:
                 matrix.add_value(i, j, affinity)
+                error_matrix.add_value(i, j, error)
             else:
                 matrix.set_value(i, j, affinity)
-        return matrix
+                error_matrix.set_value(i, j, error)
 
-    def _load_2d_complement_stretches(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
+    def _load_2d_complement_stretches(self, matrix, error_matrix, ABAs, ABA_errors, target_sequence, guide_only, sequence_length, merge_positions):
         iterable = target_sequence.guide if guide_only else target_sequence
         for start, stop, seq in iterable.complement_stretches:
             if start >= sequence_length:
@@ -388,11 +406,13 @@ class Comparator(object):
             else:
                 sequence = seq
             affinity = ABAs.get(sequence)
+            error = ABA_errors.get(sequence)
             if merge_positions:
                 matrix.add_value(stop, start, affinity)
+                error_matrix.add_value(stop, start, error)
             else:
                 matrix.set_value(stop, start, affinity)
-        return matrix
+                error_matrix.set_value(stop, start, error)
 
     def _directly_comparable(self, experiment1, experiment2, type1, type2):
         if type1 != type2:
