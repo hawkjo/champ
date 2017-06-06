@@ -353,6 +353,7 @@ class Comparator(object):
                 sequence = seq
             affinity = ABAs.get(sequence)
             error = ABA_errors.get(sequence)
+            print("error %s" % error)
             if merge_positions:
                 matrix.add_value(i, j, affinity)
                 error_matrix.add_value(i, j, error)
