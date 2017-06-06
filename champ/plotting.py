@@ -186,7 +186,7 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
     data_ax.set_xticks([])
     xlim = data_ax.get_xlim()
     ylim = data_ax.get_ylim()
-    for i in np.arange(-.5, lower_ABA_matrix.shape[0], 3):
+    for i in np.arange(-.5, lower_ABA_matrix.shape[0]-3, 3):
         data_ax.plot((xlim[0], i+3.0), [i, i], 'w', alpha=1, linewidth=1)
         data_ax.plot([i+3.0, i+3.0], (ylim[0], i), 'w', alpha=1, linewidth=1)
 
