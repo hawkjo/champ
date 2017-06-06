@@ -164,7 +164,7 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
         c_patch = mpatches.Patch(color=flabpal.yellow, label='C')
         g_patch = mpatches.Patch(color=flabpal.green, label='G')
         t_patch = mpatches.Patch(color=flabpal.red, label='T')
-        data_ax.legend([a_patch, c_patch, g_patch, t_patch], ['A', 'C', 'G', 'T'])
+        data_ax.legend([a_patch, c_patch, g_patch, t_patch], ['A', 'C', 'G', 'T'], fontsize=30)
     if upper_ABA_matrix is None:
         if not normalize:
             vmin, vmax = None, None
