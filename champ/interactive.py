@@ -296,6 +296,8 @@ class Comparator(object):
         else:
             normalize_by1 = None
             normalize_by2 = None
+            normalize_errors_by1 = None
+            normalize_errors_by2 = None
 
         matrix = self._determine_matrix_type(experiment1, experiment2, type1, type2)
         merge_positions = not self._directly_comparable(experiment1, experiment2, type1, type2)
