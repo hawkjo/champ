@@ -67,8 +67,6 @@ class TargetSequence(object):
             for j in range(i):
                 seq = self._sequence[:j] + self._sequence[j + 1:i] + self._sequence[i + 1:]
                 yield i, j, seq
-            seq = self._sequence[:i] + self._sequence[i + 1:]
-            yield i, i, seq
 
     @property
     def single_mismatches(self):
@@ -89,12 +87,6 @@ class TargetSequence(object):
                         sequence = self._sequence[:j] + mismatch_base_j + self._sequence[j + 1:i] + mismatch_base_i + self._sequence[i + 1:]
                         yield i, j, mismatch_base_i, mismatch_base_j, sequence
 
-        # Add in single mismatch data for comparison
-        for i in range(len(self._sequence)):
-            for mismatch_base in bases.replace(self._sequence[i], ''):
-                sequence = self._sequence[:i] + mismatch_base + self._sequence[i + 1:]
-                yield i, i, mismatch_base, mismatch_base, sequence
-
     @property
     def single_insertions(self):
         bases = 'ACGT'
@@ -112,16 +104,14 @@ class TargetSequence(object):
                     for insertion_base_2 in bases:
                         yield i, j, insertion_base_1, insertion_base_2, self._sequence[:j] + insertion_base_1 + self._sequence[j:i] + insertion_base_2 + self._sequence[i:]
 
-        # single insertions for the diagonal
-        for i in range(len(self._sequence)):
-            for insertion_base in bases:
-                yield i, i, insertion_base, insertion_base, self._sequence[:i] + insertion_base + self._sequence[i:]
-
     @property
     def complement_stretches(self):
         for stop in range(len(self._sequence)):
             for start in range(stop):
                 yield start, stop, self._sequence[:start] + str(Seq(self._sequence[start:stop + 1]).complement()) + self._sequence[stop + 1:]
+
+    @property
+    def single_complements(self):
         for position in range(len(self._sequence)):
             yield position, position, self._sequence[:position] + str(Seq(self._sequence[position]).complement()) + self._sequence[position + 1:]
 
