@@ -274,7 +274,7 @@ class Comparator(object):
     def compare_2d_complement_stretches(self, experiment1, experiment2, guide_only=False, normalize=False):
         return self.compare2d(experiment1, experiment2, 'complement_stretches', 'complement_stretches', guide_only=guide_only, normalize=normalize)
 
-    def compare2d(self, experiment1, experiment2, type1, type2, guide_only=False, normalize=False):
+    def compare2d(self, experiment1, experiment2, type1, type2, guide_only=False, normalize=False, return_each_matrix=False):
         """
         This method is mostly used internally, but it does permit the user to compare two different sequence types.
         For example, it would allow you to look at a single experiment and compare mismatches to insertions.
@@ -325,7 +325,10 @@ class Comparator(object):
                          sequence_length, merge_positions)
         load_func[type2](em2, ABAs2, self._experiments[experiment2]['ts'], guide_only,
                          sequence_length, merge_positions)
-        return return_sequence, sequence_labels, merge_positions, em1.to_matrix(normalize_by=normalize_by1) - em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2)
+        if not return_each_matrix:
+            return return_sequence, sequence_labels, merge_positions, em1.to_matrix(normalize_by=normalize_by1) - em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2)
+        else:
+            return em1.to_matrix(normalize_by=normalize_by1), em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2)
 
     def _load_2d_mismatches(self, matrix, ABAs, target_sequence, guide_only, sequence_length, merge_positions):
         iterable = target_sequence.guide if guide_only else target_sequence
