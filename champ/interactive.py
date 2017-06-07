@@ -376,7 +376,7 @@ class Comparator(object):
                 error_matrix.add_value(i, j, error)
             else:
                 matrix.set_value(i, j, base_i, base_j, affinity)
-                error_matrix.add_value(i, j, base_i, base_j, error)
+                error_matrix.set_value(i, j, base_i, base_j, error)
 
     def _load_2d_deletions(self, matrix, error_matrix, ABAs, ABA_errors, target_sequence, guide_only, sequence_length, merge_positions):
         iterable = target_sequence.guide if guide_only else target_sequence
