@@ -150,7 +150,7 @@ def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$\Delta ABA\ (k_{B}T)$
     cbar.set_label(label, fontsize=fontsize*2)
 
 
-def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis', show_base_legend=False, grid_line_spacing=None):
+def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis', show_base_legend=False, grid_line_spacing=None, force_full_bounds=True):
     """
 
     vmin and vmax are the extents of the colorbar. We set the lowest and highest values so that the brightest part
@@ -170,7 +170,10 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
             vmin, vmax = None, None
         else:
             largest_magnitude = np.nanmax(np.abs(lower_ABA_matrix))
-            vmin, vmax = -largest_magnitude, largest_magnitude
+            if force_full_bounds:
+                vmin, vmax = -1, 1
+            else:
+                vmin, vmax = -largest_magnitude, largest_magnitude
         ms = data_ax.matshow(lower_ABA_matrix, cmap=cmap, vmin=vmin, vmax=vmax)
     else:
         # we "add" the arrays, retaining NaNs, to create a comparison matrix
@@ -179,8 +182,11 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
         if not normalize:
             vmin, vmax = None, None
         else:
-            largest_magnitude = max(np.nanmax(np.abs(upper_ABA_matrix)), np.nanmax(np.abs(lower_ABA_matrix)))
-            vmin, vmax = -largest_magnitude, largest_magnitude
+            if force_full_bounds:
+                vmin, vmax = -1, 1
+            else:
+                largest_magnitude = max(np.nanmax(np.abs(upper_ABA_matrix)), np.nanmax(np.abs(lower_ABA_matrix)))
+                vmin, vmax = -largest_magnitude, largest_magnitude
         ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap='viridis', vmin=vmin, vmax=vmax)
     data_ax.set_yticks([])
     data_ax.set_xticks([])
