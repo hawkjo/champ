@@ -111,6 +111,8 @@ def sum_nan_arrays(a, b):
     mb = np.isnan(b)
     summed = np.where(ma & mb, np.nan, np.where(ma, 0, a) + np.where(mb, 0, b))
     # Null out any diagonal values since they no longer hold any meaning, or at best will be deceptive
+    print("summed", summed)
+    print("summed.shape", summed.shape)
     for i in range(summed.shape[0]):
         summed[i, i] = np.nan
 
