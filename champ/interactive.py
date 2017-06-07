@@ -262,17 +262,17 @@ class Comparator(object):
     def compare1d(self, experiment1, experiment2, type1, type2, guide_only=False, normalize=False):
         pass
 
-    def compare_2d_mismatches(self, experiment1, experiment2, guide_only=False, normalize=False):
-        return self.compare2d(experiment1, experiment2, 'mismatches', 'mismatches', guide_only=guide_only, normalize=normalize)
+    def compare_2d_mismatches(self, experiment1, experiment2, guide_only=False, normalize=False, side='lower'):
+        return self.compare2d(experiment1, experiment2, 'mismatches', 'mismatches', guide_only=guide_only, normalize=normalize, side=side)
 
-    def compare_2d_insertions(self, experiment1, experiment2, guide_only=False, normalize=False):
-        return self.compare2d(experiment1, experiment2, 'insertions', 'insertions', guide_only=guide_only, normalize=normalize)
+    def compare_2d_insertions(self, experiment1, experiment2, guide_only=False, normalize=False, side='lower'):
+        return self.compare2d(experiment1, experiment2, 'insertions', 'insertions', guide_only=guide_only, normalize=normalize, side=side)
 
-    def compare_2d_deletions(self, experiment1, experiment2, guide_only=False, normalize=False):
-        return self.compare2d(experiment1, experiment2, 'deletions', 'deletions', guide_only=guide_only, normalize=normalize)
+    def compare_2d_deletions(self, experiment1, experiment2, guide_only=False, normalize=False, side='lower'):
+        return self.compare2d(experiment1, experiment2, 'deletions', 'deletions', guide_only=guide_only, normalize=normalize, side=side)
 
-    def compare_2d_complement_stretches(self, experiment1, experiment2, guide_only=False, normalize=False):
-        return self.compare2d(experiment1, experiment2, 'complement_stretches', 'complement_stretches', guide_only=guide_only, normalize=normalize)
+    def compare_2d_complement_stretches(self, experiment1, experiment2, guide_only=False, normalize=False, side='lower'):
+        return self.compare2d(experiment1, experiment2, 'complement_stretches', 'complement_stretches', guide_only=guide_only, normalize=normalize, side=side)
 
     def compare2d(self, experiment1, experiment2, type1, type2, guide_only=False, normalize=False, return_each_matrix=False, side='lower'):
         """
