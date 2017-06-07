@@ -113,8 +113,9 @@ def sum_nan_arrays(a, b):
     # Null out any diagonal values since they no longer hold any meaning, or at best will be deceptive
     print("summed", summed)
     print("summed.shape", summed.shape)
+    print("one shape", summed.shape[0])
     for i in range(summed.shape[0]):
-        summed[i, i] = np.nan
+        summed[i, i] = None
 
 
 def get_gridspec(sequence, dimension):
