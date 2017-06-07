@@ -300,26 +300,31 @@ class Comparator(object):
             normalize_errors_by2 = None
 
         matrix = self._determine_matrix_type(experiment1, experiment2, type1, type2)
+        print("matrix", matrix)
         merge_positions = not self._directly_comparable(experiment1, experiment2, type1, type2)
+        print("merge_positions", merge_positions)
         flip_sequence = self._experiments[experiment1]['ts'].pam_side != self._experiments[experiment2]['ts'].pam_side
-
+        print("flip_sequence", flip_sequence)
         if guide_only:
             display_sequence1 = self._experiments[experiment1]['ts'].guide.sequence
             display_sequence2 = self._experiments[experiment2]['ts'].guide.sequence
         else:
             display_sequence1 = self._experiments[experiment1]['ts'].sequence
             display_sequence2 = self._experiments[experiment2]['ts'].sequence
-
+        print("display_sequence1", display_sequence1)
+        print("display_sequence2", display_sequence2)
         # figure out what sequence to use for plotting and if we can show actual bases or just positions
         return_sequence = display_sequence1 if len(display_sequence1) < len(display_sequence2) else display_sequence2
+        print("return_sequence", return_sequence)
         if merge_positions:
             sequence_labels = [str(i + 1) for i in range(len(return_sequence))]
         else:
             sequence_labels = ['$%s_{%d}$' % (base, i + 1) for i, base in enumerate(return_sequence)]
-
+        print("sequence_labels", sequence_labels)
         # if one sequence is longer than the other (which will happen if the "sequence" is the same
         # but the PAM is a different length)
         sequence_length = min(len(display_sequence1), len(display_sequence2))
+        print("sequence_length", sequence_length)
         em1 = matrix(display_sequence1[:sequence_length])
         em2 = matrix(display_sequence2[:sequence_length])
         errm1 = matrix(display_sequence1[:sequence_length])
@@ -416,9 +421,12 @@ class Comparator(object):
 
     def _directly_comparable(self, experiment1, experiment2, type1, type2):
         if type1 != type2:
+            print("type1 != type2", type1, type2)
             return False
         directions_same = self._experiments[experiment1]['ts'].pam_side == self._experiments[experiment2]['ts'].pam_side
         sequence_same = self._experiments[experiment1]['ts'].sequence == self._experiments[experiment2]['ts'].sequence
+        print("directions_same", directions_same)
+        print("sequence_same", sequence_same)
         if not directions_same or not sequence_same:
             return False
         return True
