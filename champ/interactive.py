@@ -335,7 +335,7 @@ class Comparator(object):
         load_func[type2](em2, errm2, ABAs2, ABA_errors2, self._experiments[experiment2]['ts'], guide_only,
                          sequence_length, merge_positions)
         if not return_each_matrix:
-            return return_sequence, sequence_labels, merge_positions, em1.to_matrix(normalize_by=normalize_by1) - em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2)
+            return return_sequence, sequence_labels, merge_positions, em1.to_matrix(normalize_by=normalize_by1, side=side) - em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2, side=side)
         else:
             return em1.to_matrix(normalize_by=normalize_by1, side=side), \
                    em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2, side=side), \
