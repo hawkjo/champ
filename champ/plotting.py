@@ -192,6 +192,7 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
                 largest_magnitude = max(np.nanmax(np.abs(upper_ABA_matrix)), np.nanmax(np.abs(lower_ABA_matrix)))
                 vmin, vmax = -largest_magnitude, largest_magnitude
         ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap=cmap, vmin=vmin, vmax=vmax)
+    print("vmin, vmax", vmin, vmax)
     data_ax.set_yticks([])
     data_ax.set_xticks([])
     if grid_line_spacing is not None:
