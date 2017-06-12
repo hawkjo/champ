@@ -73,7 +73,7 @@ class TifsPerFieldOfView(BaseTifStack):
             for file_path in self._filenames:
                 major_axis_position, minor_axis_position = self.axes[file_path]
                 for subrow in subrows:
-                    minor_axis_label = (minor_axis_position * len(subrows)) - len(subrows) + subrow
+                    minor_axis_label = (minor_axis_position * len(subrows)) + subrow
                     for subcolumn in subcolumns:
                         major_axis_label = (major_axis_position * len(subcolumns)) - len(subcolumns) + subcolumn + 2
                         dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_label, minor_axis_label)
@@ -163,7 +163,7 @@ class TifsPerConcentration(BaseTifStack):
                 for position_text, channel_pages in all_pages.items():
                     major_axis_position, minor_axis_position = self.axes[file_path][position_text]
                     for subrow in subrows:
-                        minor_axis_label = (minor_axis_position * len(subrows)) - len(subrows) + subrow + 1
+                        minor_axis_label = (minor_axis_position * len(subrows)) + subrow
                         for subcolumn in subcolumns:
                             major_axis_label = (major_axis_position * len(subcolumns)) - len(subcolumns) + subcolumn + 1
                             dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_label, minor_axis_label)
