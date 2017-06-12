@@ -61,31 +61,46 @@ class TifsPerFieldOfView(BaseTifStack):
         return self._axes
 
     def __iter__(self):
-        for file_path in self._filenames:
-            major_axis_position, minor_axis_position = self.axes[file_path]
-            dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_position, minor_axis_position)
+        first_filename = self._filenames[0]
+        with tifffile.TiffFile(first_filename) as tif:
+            summary = tif.micromanager_metadata['summary']
+            height, width = summary['Height'], summary['Width']
+            if height % 512 != 0 or width % 512 != 0:
+                raise ValueError("CHAMP currently only supports images with sides that are multiples of 512 pixels.")
+            # if the images are larger than 512x512, we need to subdivide them
+            subrows, subcolumns = range(height / 512), range(width / 512)
 
-            with tifffile.TiffFile(file_path) as tif:
-                summary = tif.micromanager_metadata['summary']
+            for file_path in self._filenames:
+                major_axis_position, minor_axis_position = self.axes[file_path]
+                for subrow in subrows:
+                    minor_axis_label = (minor_axis_position * len(subrows)) + subrow
+                    for subcolumn in subcolumns:
+                        major_axis_label = (major_axis_position * len(subcolumns)) - len(subcolumns) + subcolumn + 2
+                        dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_label, minor_axis_label)
 
-                # Find channel names and assert unique
-                channel_names = [sanitize_name(name) for name in summary['ChNames']]
-                assert summary['Channels'] == len(channel_names) == len(set(channel_names)), channel_names
+                        with tifffile.TiffFile(file_path) as tif:
+                            summary = tif.micromanager_metadata['summary']
 
-                # channel_idxs map tif pages to channels
-                channels = [channel_names[i] for i in tif.micromanager_metadata['index_map']['channel']]
+                            # Find channel names and assert unique
+                            channel_names = [sanitize_name(name) for name in summary['ChNames']]
+                            assert summary['Channels'] == len(channel_names) == len(set(channel_names)), channel_names
 
-                # Setup defaultdict
-                height, width = summary['Height'], summary['Width']
-                summed_images = defaultdict(lambda *x: np.zeros((height, width), dtype=np.int))
+                            # channel_idxs map tif pages to channels
+                            channels = [channel_names[i] for i in tif.micromanager_metadata['index_map']['channel']]
 
-                # Add images
-                for channel, page in zip(channels, tif.pages):
-                    image = page.asarray()
-                    for adjustment in self._adjustments:
-                        image = adjustment(image)
-                    summed_images[channel] += image
-                yield TIFSingleFieldOfView(summed_images, dataset_name)
+                            # Setup defaultdict
+                            height, width = summary['Height'], summary['Width']
+                            summed_images = defaultdict(lambda *x: np.zeros((512, 512), dtype=np.int))
+
+                            # Add images
+                            for channel, page in zip(channels, tif.pages):
+                                image = page.asarray()
+                                # this subdivision might be incorrect formally, it might be putting them in the wrong part of the larger "box"
+                                image = image[subrow * 512: (subrow * 512) + 512, subcolumn * 512: (subcolumn * 512) + 512]
+                                for adjustment in self._adjustments:
+                                    image = adjustment(image)
+                                summed_images[channel] += image
+                            yield TIFSingleFieldOfView(summed_images, dataset_name)
 
 
 class TifsPerConcentration(BaseTifStack):
@@ -126,6 +141,14 @@ class TifsPerConcentration(BaseTifStack):
             all_pages = defaultdict(list)
             with tifffile.TiffFile(file_path) as tif:
                 summary = tif.micromanager_metadata['summary']
+
+                # if the images are large, we need to break them up
+                height, width = summary['Height'], summary['Width']
+                if height % 512 != 0 or width % 512 != 0:
+                    raise ValueError("CHAMP currently only supports images with sides that are multiples of 512 pixels.")
+
+                # if the images are larger than 512x512, we need to subdivide them
+                subrows, subcolumns = range(height / 512), range(width / 512)
                 # Find channel names and assert unique
                 channel_names = [sanitize_name(name) for name in summary['ChNames']]
                 assert summary['Channels'] == len(channel_names) == len(set(channel_names)), channel_names
@@ -139,16 +162,21 @@ class TifsPerConcentration(BaseTifStack):
 
                 for position_text, channel_pages in all_pages.items():
                     major_axis_position, minor_axis_position = self.axes[file_path][position_text]
-                    dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_position, minor_axis_position)
-                    summed_images = defaultdict(lambda *x: np.zeros((height, width), dtype=np.int))
-
-                    # Add images
-                    for channel, page in channel_pages:
-                        image = page.asarray()
-                        for adjustment in self._adjustments:
-                            image = adjustment(image)
-                        summed_images[channel] += image
-                    yield TIFSingleFieldOfView(summed_images, dataset_name)
+                    for subrow in subrows:
+                        minor_axis_label = (minor_axis_position * len(subrows)) + subrow
+                        for subcolumn in subcolumns:
+                            major_axis_label = (major_axis_position * len(subcolumns)) - len(subcolumns) + subcolumn + 1
+                            dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_label, minor_axis_label)
+                            summed_images = defaultdict(lambda *x: np.zeros((512, 512), dtype=np.int))
+                            # Add images
+                            for channel, page in channel_pages:
+                                image = page.asarray()
+                                # this subdivision might be incorrect formally, it might be putting them in the wrong part of the larger "box"
+                                image = image[subrow * 512: (subrow * 512) + 512, subcolumn * 512: (subcolumn * 512) + 512]
+                                for adjustment in self._adjustments:
+                                    image = adjustment(image)
+                                summed_images[channel] += image
+                            yield TIFSingleFieldOfView(summed_images, dataset_name)
 
 
 class TIFSingleFieldOfView(object):
