@@ -33,7 +33,7 @@ def plot_position_diff(sequence, sequence_labels, base_color, lower_ABA_matrix, 
     # Add the sequence labels to the left of the figure
     add_sequence_labels(fig, gs[left_seq_index], gs[bottom_seq_index], 1, sequence_labels, sequence, base_color, positions_are_merged)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, normalize=normalize, cmap=cmap, force_full_bounds=normalize)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, normalize=normalize, cmap=cmap)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize, label=colorbar_label)
 
@@ -154,7 +154,7 @@ def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$\Delta ABA\ (k_{B}T)$
     cbar.set_label(label, fontsize=fontsize*2)
 
 
-def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis', show_base_legend=False, grid_line_spacing=None, force_full_bounds=True):
+def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis', show_base_legend=False, grid_line_spacing=None):
     """
 
     vmin and vmax are the extents of the colorbar. We set the lowest and highest values so that the brightest part
@@ -170,29 +170,13 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
         t_patch = mpatches.Patch(color=flabpal.red, label='T')
         data_ax.legend([a_patch, c_patch, g_patch, t_patch], ['A', 'C', 'G', 'T'], fontsize=30)
     if upper_ABA_matrix is None:
-        if not normalize:
-            vmin, vmax = None, None
-        else:
-            largest_magnitude = np.nanmax(np.abs(lower_ABA_matrix))
-            if force_full_bounds:
-                vmin, vmax = -1, 1
-            else:
-                vmin, vmax = -largest_magnitude, largest_magnitude
+        largest_magnitude = np.nanmax(np.abs(lower_ABA_matrix))
+        vmin, vmax = (-1, 1) if normalize else (-largest_magnitude, largest_magnitude)
         ms = data_ax.matshow(lower_ABA_matrix, cmap=cmap, vmin=vmin, vmax=vmax)
     else:
-        # we "add" the arrays, retaining NaNs, to create a comparison matrix
-        # both matrices should have their include_diagonal_values=False or else those will sum,
-        # or if one is on it will be misleading
-        if not normalize:
-            vmin, vmax = None, None
-        else:
-            if force_full_bounds:
-                vmin, vmax = -1, 1
-            else:
-                largest_magnitude = max(np.nanmax(np.abs(upper_ABA_matrix)), np.nanmax(np.abs(lower_ABA_matrix)))
-                vmin, vmax = -largest_magnitude, largest_magnitude
+        largest_magnitude = max(np.nanmax(np.abs(upper_ABA_matrix)), np.nanmax(np.abs(lower_ABA_matrix)))
+        vmin, vmax = (-1, 1) if normalize else (-largest_magnitude, largest_magnitude)
         ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap=cmap, vmin=vmin, vmax=vmax)
-    print("vmin, vmax", vmin, vmax)
     data_ax.set_yticks([])
     data_ax.set_xticks([])
     if grid_line_spacing is not None:
