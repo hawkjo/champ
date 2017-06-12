@@ -26,7 +26,7 @@ def plot_2d_mismatches(sequence, sequence_labels, base_color, lower_ABA_matrix, 
 
 
 def plot_position_diff(sequence, sequence_labels, base_color, lower_ABA_matrix, upper_ABA_matrix=None, normalize=True, fontsize=18,
-                       positions_are_merged=True, colorbar_label='Relative Normalized ABAs ($k_{B}T$)', cmap='RdBu'):
+                       positions_are_merged=True, colorbar_label='Relative Normalized ABAs', cmap='RdBu'):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
