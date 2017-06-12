@@ -47,6 +47,7 @@ class FastqTileRCs(object):
         print("fq_im_fft shape", fq_im_fft.shape)
         # Align
         im_data_fft = image_data.fft
+        print("image shape", image_data.image.shape)
         print("im_data_fft shape", im_data_fft.shape)
         cross_corr = abs(np.fft.ifft2(np.conj(fq_im_fft) * im_data_fft))
         max_corr = cross_corr.max()
