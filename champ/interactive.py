@@ -291,13 +291,10 @@ class Comparator(object):
         if normalize:
             normalize_by1 = ABAs1[self._experiments[experiment1]['ts'].sequence]
             normalize_by2 = ABAs2[self._experiments[experiment2]['ts'].sequence]
-            normalize_errors_by1 = ABA_errors1[self._experiments[experiment1]['ts'].sequence]
-            normalize_errors_by2 = ABA_errors2[self._experiments[experiment2]['ts'].sequence]
         else:
             normalize_by1 = None
             normalize_by2 = None
-            normalize_errors_by1 = None
-            normalize_errors_by2 = None
+
 
         matrix = self._determine_matrix_type(experiment1, experiment2, type1, type2)
         merge_positions = not self._directly_comparable(experiment1, experiment2, type1, type2)
@@ -339,8 +336,8 @@ class Comparator(object):
         else:
             return em1.to_matrix(normalize_by=normalize_by1, side=side), \
                    em2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2, side=side), \
-                   errm1.to_matrix(normalize_by=normalize_errors_by1, side=side), \
-                   errm2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_errors_by2, side=side)
+                   errm1.to_matrix(normalize_by=normalize_by1, side=side), \
+                   errm2.to_matrix(flip_sequence=flip_sequence, normalize_by=normalize_by2, side=side)
 
     def _load_2d_mismatches(self, matrix, error_matrix, ABAs, ABA_errors, target_sequence, guide_only, sequence_length, merge_positions):
         iterable = target_sequence.guide if guide_only else target_sequence
