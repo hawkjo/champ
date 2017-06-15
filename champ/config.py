@@ -127,6 +127,11 @@ class CommandLineArguments(object):
         return self._arguments['--ports-on-right']
 
     @property
+    def process_limit(self):
+        # 0 indicates unlimited
+        return int(self._arguments['--process-limit'] or 0)
+
+    @property
     def rotation_adjustment(self):
         return float(self._arguments['--rotation-adjustment'] or 0.0)
 

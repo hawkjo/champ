@@ -20,9 +20,11 @@ log = logging.getLogger(__name__)
 stats_regex = re.compile(r'''^(\w+)_(?P<row>\d+)_(?P<column>\d+)_stats\.txt$''')
 
 
-def run(cluster_strategy, rotation_adjustment, h5_filenames, path_info, snr, min_hits, fia, end_tiles, alignment_channel, all_tile_data, metadata, make_pdfs, sequencing_chip):
+def run(cluster_strategy, rotation_adjustment, h5_filenames, path_info, snr, min_hits, fia, end_tiles, alignment_channel, all_tile_data, metadata, make_pdfs, sequencing_chip, process_limit):
     image_count = count_images(h5_filenames, alignment_channel)
     num_processes, chunksize = calculate_process_count(image_count)
+    if process_limit > 0:
+        num_processes = min(process_limit, num_processes)
     log.debug("Aligning alignment images with %d cores with chunksize %d" % (num_processes, chunksize))
 
     # Iterate over images that are probably inside an Illumina tile, attempt to align them, and if they
@@ -39,9 +41,11 @@ def run(cluster_strategy, rotation_adjustment, h5_filenames, path_info, snr, min
     log.debug("Done aligning!")
 
 
-def run_data_channel(cluster_strategy, h5_filenames, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs):
+def run_data_channel(cluster_strategy, h5_filenames, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs, process_limit):
     image_count = count_images(h5_filenames, channel_name)
     num_processes, chunksize = calculate_process_count(image_count)
+    if process_limit > 0:
+        num_processes = min(process_limit, num_processes)
     log.debug("Aligning data images with %d cores with chunksize %d" % (num_processes, chunksize))
 
     log.debug("Loading reads into FASTQ Image Aligner.")
