@@ -53,7 +53,6 @@ class IntensityArray(object):
             self.intensity_lolol = []
             while True:
                 seq = line.strip()
-                assert set(seq) <= bases_set, seq
                 self.seqs.append(seq)
                 line = next(f)
                 self.read_names.append(line.strip().split('\t'))
@@ -144,8 +143,33 @@ class IntensityArray(object):
         IA.build_derived_objects()
         return IA
 
-    def medians_given_seq(self, seq):
-        return map(np.median, self.intensity_loarr_given_seq[seq])
+    def medians_given_seq(self, seq, bootstrap=False, max_clust=None):
+        if not bootstrap:
+            return map(np.median, self.intensity_loarr_given_seq[seq])
+        else:
+            if max_clust is None:
+                max_clust = len(self.intensity_lol_given_seq[seq][0])
+            inten_meds = []
+            for inten_list in self.intensity_lol_given_seq[seq]:
+                tmp_idx = np.random.choice(
+                    np.arange(len(inten_list)),
+                    size=max_clust,
+                    replace=True
+                )
+                tmp_inten = np.array([inten_list[idx] for idx in tmp_idx if inten_list[idx] != None])
+                inten_meds.append(np.median(tmp_inten))
+            return inten_meds
+
+    def averages_given_seq(self, seq, bootstrap=False, max_clust=None):
+        if not bootstrap:
+            return map(np.average, self.intensity_loarr_given_seq[seq])
+        else:
+            n_clust = len(self.intensity_lol_given_seq[seq][0])
+            if max_clust is None:
+                max_clust = n_clust
+            tmp_idx = np.random.randint(0, n_clust, size=max_clust)
+            return [np.average([inten_list[idx] for idx in tmp_idx if inten_list[idx] != None])
+                    for inten_list in self.intensity_lol_given_seq[seq]]
 
     def modes_given_seq(self, seq):
         return map(misc.get_mode, self.intensity_loarr_given_seq[seq])
