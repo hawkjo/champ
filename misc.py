@@ -246,9 +246,9 @@ def read_names_and_points_given_rcs_fpath(rcs_fpath):
 def get_mode(vals):
     h = 1.06 * np.std(vals) * len(vals)**(-1.0/5.0)
     kdf = KernelDensity(bandwidth=h)
-    kdf.fit(np.array(vals).reshape(len(vals), 1))
+    kdf.fit(np.array(vals).reshape(-1, 1))
     def neg_kdf(x):
-        return -kdf.score(x)
+        return -kdf.score(x.reshape(-1, 1))
     res = minimize(neg_kdf, x0=np.median(vals), method='Nelder-Mead')
     assert res.success, res
     return float(res.x)
