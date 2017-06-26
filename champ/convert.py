@@ -26,6 +26,7 @@ def load_tiff_stack(tifs, adjustments, min_column, max_column):
     tif = tifffile.TiffFile(tifs[0])
     if len(tif) > tif.micromanager_metadata['summary']['Positions']:
         # We have a single file that contains every image for an entire concentration
+        print("** tifs:", tifs)
         return TifsPerConcentration(tifs, adjustments, min_column, max_column)
     # Each field of view is in its own tif
     return TifsPerFieldOfView(tifs, adjustments, min_column, max_column)
