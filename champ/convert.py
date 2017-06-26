@@ -24,11 +24,11 @@ def load_tiff_stack(tifs, adjustments, min_column, max_column):
     # or if each tif contains every image for every field of view in a single concentration
     # then put the files into the appropriate class
     tif = tifffile.TiffFile(tifs[0])
-    if len(tif) > tif.micromanager_metadata['summary']['Positions']:
-        # We have a single file that contains every image for an entire concentration
-        return TifsPerConcentration(tifs, adjustments, min_column, max_column)
-    # Each field of view is in its own tif
-    return TifsPerFieldOfView(tifs, adjustments, min_column, max_column)
+    if len(tifs) == tif.micromanager_metadata['summary']['Positions']:
+        # Each field of view is in its own tif. These may be tif stacks if multiple exposures were taken
+        return TifsPerFieldOfView(tifs, adjustments, min_column, max_column)
+    # We have a single file that contains every image for an entire concentration
+    return TifsPerConcentration(tifs, adjustments, min_column, max_column)
 
 
 def get_all_tif_paths(root_directory):
@@ -63,6 +63,9 @@ def main(paths, flipud, fliplr, min_column, max_column):
                         group = h5.create_group(channel)
                     else:
                         group = h5[channel]
-                    dataset = group.create_dataset(t.dataset_name, image.shape, dtype=image.dtype)
+                    if t.dataset_name not in group:
+                        dataset = group.create_dataset(t.dataset_name, image.shape, dtype=image.dtype)
+                    else:
+                        dataset = group[t.dataset_name]
                     dataset[...] = image
         log.debug("Done with %s" % hdf5_filename)
