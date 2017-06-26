@@ -43,7 +43,7 @@ def get_all_tif_paths(root_directory):
     return paths
 
 
-def main(paths, flipud, fliplr):
+def main(paths, flipud, fliplr, min_column, max_column):
     image_adjustments = []
     if flipud:
         image_adjustments.append(lambda x: np.flipud(x))

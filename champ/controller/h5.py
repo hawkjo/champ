@@ -11,5 +11,5 @@ def main(clargs):
     log.debug("Preprocessing images.")
     paths = convert.get_all_tif_paths(clargs.image_directory)
     log.debug("About to convert TIFs to HDF5.")
-    convert.main(paths, metadata['flipud'], metadata['fliplr'])
+    convert.main(paths, metadata['flipud'], metadata['fliplr'], clargs.min_column, clargs.max_column)
     log.debug("Done converting TIFs to HDF5.")

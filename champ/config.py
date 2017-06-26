@@ -102,6 +102,16 @@ class CommandLineArguments(object):
         return float(self._arguments['--microns-per-pixel'] or 0.2666666666666666666)
 
     @property
+    def min_column(self):
+        min_column = self._arguments['--min-column']
+        return int(min_column) if min_column is not None else None
+
+    @property
+    def max_column(self):
+        max_column = self._arguments['--max-column']
+        return int(max_column) if max_column is not None else None
+
+    @property
     def min_hits(self):
         return int(self._arguments['--min-hits'] or 150)
 

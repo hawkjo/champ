@@ -18,10 +18,12 @@ def sanitize_name(name):
 
 
 class BaseTifStack(object):
-    def __init__(self, filenames, adjustments):
+    def __init__(self, filenames, adjustments, min_column, max_column):
         self._filenames = filenames
         self._adjustments = adjustments
         self._axes = {}
+        self._min_column = min_column
+        self._max_column = max_column
 
     @abstractproperty
     def axes(self):
@@ -72,6 +74,12 @@ class TifsPerFieldOfView(BaseTifStack):
 
             for file_path in self._filenames:
                 major_axis_position, minor_axis_position = self.axes[file_path]
+                # let the user ignore images in certain columns. This is useful when an experiment is started and
+                # only afterwards do we discover that data on the edges isn't useful.
+                if self._min_column is not None and major_axis_position < self._min_column:
+                    continue
+                if self._max_column is not None and major_axis_position > self._max_column:
+                    continue
                 for subrow in subrows:
                     minor_axis_label = (minor_axis_position * len(subrows)) + subrow
                     for subcolumn in subcolumns:
@@ -162,6 +170,12 @@ class TifsPerConcentration(BaseTifStack):
 
                 for position_text, channel_pages in all_pages.items():
                     major_axis_position, minor_axis_position = self.axes[file_path][position_text]
+                    # let the user ignore images in certain columns. This is useful when an experiment is started and
+                    # only afterwards do we discover that data on the edges isn't useful.
+                    if self._min_column is not None and major_axis_position < self._min_column:
+                        continue
+                    if self._max_column is not None and major_axis_position > self._max_column:
+                        continue
                     for subrow in subrows:
                         minor_axis_label = (minor_axis_position * len(subrows)) + subrow
                         for subcolumn in subcolumns:
