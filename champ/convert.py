@@ -60,7 +60,7 @@ def main(paths, flipud, fliplr, min_column, max_column):
         with h5py.File(hdf5_filename, 'a') as h5:
             tiff_stack = load_tiff_stack(list(tifs), image_adjustments, min_column, max_column)
             for t in tiff_stack:
-                print("position", t.micromanager_metadata['PositionName'])
+                print("position", t.dataset_name)
                 for channel, image in t:
                     if channel not in h5:
                         group = h5.create_group(channel)
