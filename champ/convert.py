@@ -51,13 +51,16 @@ def main(paths, flipud, fliplr, min_column, max_column):
         image_adjustments.append(lambda x: np.fliplr(x))
 
     for directory, tifs in paths.items():
+        print("tifs", tifs)
         hdf5_filename = directory + ".h5"
         if os.path.exists(hdf5_filename):
             log.warn("HDF5 file already exists, skipping creation: %s" % hdf5_filename)
             continue
+        print("creating h5", hdf5_filename)
         with h5py.File(hdf5_filename, 'a') as h5:
             tiff_stack = load_tiff_stack(list(tifs), image_adjustments, min_column, max_column)
             for t in tiff_stack:
+                print("position", t.micromanager_metadata['PositionName'])
                 for channel, image in t:
                     if channel not in h5:
                         group = h5.create_group(channel)
