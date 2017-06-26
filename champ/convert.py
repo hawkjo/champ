@@ -19,16 +19,16 @@ def load_channel_names(tifs):
     return tuple(channels)
 
 
-def load_tiff_stack(tifs, adjustments):
+def load_tiff_stack(tifs, adjustments, min_column, max_column):
     # figure out if we have one tif per field of view and concentration,
     # or if each tif contains every image for every field of view in a single concentration
     # then put the files into the appropriate class
     tif = tifffile.TiffFile(tifs[0])
     if len(tif) > tif.micromanager_metadata['summary']['Positions']:
         # We have a single file that contains every image for an entire concentration
-        return TifsPerConcentration(tifs, adjustments)
+        return TifsPerConcentration(tifs, adjustments, min_column, max_column)
     # Each field of view is in its own tif
-    return TifsPerFieldOfView(tifs, adjustments)
+    return TifsPerFieldOfView(tifs, adjustments, min_column, max_column)
 
 
 def get_all_tif_paths(root_directory):
@@ -56,7 +56,7 @@ def main(paths, flipud, fliplr, min_column, max_column):
             log.warn("HDF5 file already exists, skipping creation: %s" % hdf5_filename)
             continue
         with h5py.File(hdf5_filename, 'a') as h5:
-            tiff_stack = load_tiff_stack(list(tifs), image_adjustments)
+            tiff_stack = load_tiff_stack(list(tifs), image_adjustments, min_column, max_column)
             for t in tiff_stack:
                 for channel, image in t:
                     if channel not in h5:
