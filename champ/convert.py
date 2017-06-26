@@ -66,6 +66,9 @@ def main(paths, flipud, fliplr, min_column, max_column):
                         group = h5.create_group(channel)
                     else:
                         group = h5[channel]
-                    dataset = group.create_dataset(t.dataset_name, image.shape, dtype=image.dtype)
+                    if t.dataset_name not in group:
+                        dataset = group.create_dataset(t.dataset_name, image.shape, dtype=image.dtype)
+                    else:
+                        dataset = group[t.dataset_name]
                     dataset[...] = image
         log.debug("Done with %s" % hdf5_filename)
