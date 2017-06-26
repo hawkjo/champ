@@ -130,7 +130,7 @@ class TifsPerConcentration(BaseTifStack):
                         position_text = tif.micromanager_metadata['PositionName']
                         axis_positions = name_regex.search(position_text)
                         if not axis_positions:
-                            print("FAIL: %s" % position_text)
+                            print("Unable to determine the position of this field of view: %s" % position_text)
                         else:
                             first = int(axis_positions.group(1))
                             second = int(axis_positions.group(2))
