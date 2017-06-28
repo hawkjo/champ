@@ -315,6 +315,7 @@ class FastqImageAligner(object):
 
             alpha, beta, x_offset, y_offset = np.linalg.lstsq(A, b)[0]
             offset = np.array([x_offset, y_offset])
+            print("lstsq offset: {}".format(offset))
             theta = np.arctan2(beta, alpha)
             lbda = alpha / np.cos(theta)
             tile.set_aligned_rcs_given_transform(lbda, theta, offset)

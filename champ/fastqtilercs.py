@@ -56,8 +56,11 @@ class FastqTileRCs(object):
     def set_aligned_rcs(self, align_tr):
         """Returns aligned rcs. Only works when image need not be flipped or rotated."""
         self.aligned_rcs = deepcopy(self.mapped_rcs)
+        print("aligned_rcs min max: ", np.min(self.aligned_rcs, axis=0), np.max(self.aligned_rcs, axis=0))
         self.aligned_rcs -= np.tile(self.aligned_rcs.min(axis=0), (self.aligned_rcs.shape[0], 1))
+        print("aligned_rcs ZEROED min max: ", np.min(self.aligned_rcs, axis=0), np.max(self.aligned_rcs, axis=0))
         self.aligned_rcs += np.tile(align_tr, (self.aligned_rcs.shape[0], 1))
+        print("aligned_rcs ALIGN_TR min max: ", np.min(self.aligned_rcs, axis=0), np.max(self.aligned_rcs, axis=0))
 
     def set_aligned_rcs_given_transform(self, lbda, theta, offset):
         """Performs transform calculated in FastqImageCorrelator.least_squares_mapping."""
