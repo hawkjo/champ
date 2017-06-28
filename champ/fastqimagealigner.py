@@ -138,8 +138,8 @@ class FastqImageAligner(object):
             if max_corr > snr_thresh * self.control_corr:
                 print("tile {} set-aligned-rcs".format(tile.key))
                 tile.set_aligned_rcs(align_tr)
-                print("tile {} snr: {}".format(tile.key, tile.snr))
                 tile.snr = max_corr / self.control_corr
+                print("tile {} snr: {}".format(tile.key, tile.snr))
                 self.hitting_tiles.append(tile)
 
     def find_points_in_frame(self, consider_tiles='all'):
