@@ -134,7 +134,7 @@ class IntensityScores(object):
                         continue
                     r, c = map(misc.stoftoi, (r, c))
                     if (side_px <= r < im.shape[0] - side_px - 1
-                        and side_px <= c < im.shape[0] - side_px - 1):
+                        and side_px <= c < im.shape[1] - side_px - 1):
                         x = im[r-side_px:r+side_px+1, c-side_px:c+side_px+1].astype(np.float)
                         score = float(np.multiply(lda_weights, x).sum())
                         self.scores[h5_fpath][channel][pos_tup][read_name] = score
