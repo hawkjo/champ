@@ -94,7 +94,6 @@ class FastqImageAligner(object):
         print("self.fq_im_scaled_dims: {}".format(self.fq_im_scaled_dims))
         for tile in self.fastq_tiles_list:
             tile.image_shape = self.fq_im_scaled_dims
-            print("tile: {}, tile.image_shape: {}".format(tile.key, tile.image_shape))
 
     def set_fastq_tile_mappings(self):
         """Calculate parameters for mapping fastq tiles for ffts."""
