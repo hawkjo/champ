@@ -4,6 +4,7 @@
 *.ipynb_checkpoints
 kmerHMM
 env/
+envchamp/
 
 .gitignore
 # Byte-compiled / optimized / DLL files
