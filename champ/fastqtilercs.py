@@ -22,6 +22,7 @@ class FastqTileRCs(object):
         self.width = width  # width in um
         self.mapped_rcs = scale * (self.rcs + np.tile(offset, (self.rcs.shape[0], 1)))
         self.rotation_degrees = 0
+        print("set_fastq_image_data for {}".format(self.key))
 
     def rotate_data(self, degrees):
         self.rotation_degrees += degrees
@@ -38,6 +39,7 @@ class FastqTileRCs(object):
         return image
 
     def fft_align_with_im(self, image_data):
+        print("fft_align_with_im")
         # Make the ffts
         fq_image = self.image()
         padded_fq_im = misc.pad_to_size(fq_image, image_data.fft.shape)
@@ -48,6 +50,7 @@ class FastqTileRCs(object):
         max_corr = cross_corr.max()
         max_idx = misc.max_2d_idx(cross_corr)
         align_tr = np.array(max_idx) - fq_image.shape
+        print("cross_corr: {}, max_corr: {}, max_idx: {}, align_tr: {}".format(cross_corr, max_corr, max_idx, align_tr))
         return max_corr, align_tr
 
     def set_aligned_rcs(self, align_tr):
