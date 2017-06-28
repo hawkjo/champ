@@ -313,8 +313,10 @@ def load_read_names(file_path):
 
 
 def process_alignment_image(cluster_strategy, rotation_adjustment, snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, fia):
+    print("image index", image.index)
     fia.set_image_data(image, um_per_pixel)
     sexcat_fpath = os.path.join(base_name, '%s.clusters.%s' % (image.index, cluster_strategy))
+    print("sexcat_fpath", sexcat_fpath)
     if not os.path.exists(sexcat_fpath):
         return fia
     fia.set_sexcat_from_file(sexcat_fpath, cluster_strategy)
