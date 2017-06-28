@@ -63,6 +63,7 @@ class FastqTileRCs(object):
         print("set_aligned_rcs shape: ", self.aligned_rcs.shape)
 
     def set_aligned_rcs_given_transform(self, lbda, theta, offset):
+        print("set_aligned_rcs_given_transform, lbda, theta, offset:", lbda, theta, offset)
         """Performs transform calculated in FastqImageCorrelator.least_squares_mapping."""
         A = np.zeros((2*len(self.rcs), 4))
         for i, pt in enumerate(self.rcs):
@@ -74,7 +75,8 @@ class FastqTileRCs(object):
                       lbda * np.sin(theta),
                       offset[0],
                       offset[1]])
-
+        print("A.shape", A.shape)
+        print("x.shape", x.shape)
         # First update w since it depends on previous scale setting
         self.width = lbda * float(self.width) / self.scale
         self.scale = lbda
