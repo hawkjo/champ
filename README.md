@@ -2,10 +2,10 @@
 
 This software was used for analyses described in the manuscript:
 
-### Massively parallel biophysical analysis of a CRISPR-Cas complex on repurposed next generation sequencing chips
+### Massively Parallel Biophysical Analysis of CRISPR-Cas Complexes on Next Generation Sequencing Chips
 ##### Cheulhee Jung, John Hawkins, Stephen K. Jones Jr, Yibei Xiao, James Rybarski, Kaylee Dillard, Jeffrey Hussmann, Mashelfatema A Saifuddin, Cagri A. Savran,  Andrew Ellington, Ailong Ke, William H. Press, and Ilya J. Finkelstein
-##### Submitted 2016
-
+##### Cell 170, 35–47, June 29, 2017
+##### [http://dx.doi.org/10.1016/j.cell.2017.05.044](http://dx.doi.org/10.1016/j.cell.2017.05.044)
 
 ### Installation
 
