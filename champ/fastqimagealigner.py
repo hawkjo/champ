@@ -82,6 +82,8 @@ class FastqImageAligner(object):
 
     def set_all_fastq_image_data(self):
         for key, tile in self.fastq_tiles.items():
+            print("setting")
+            print(self.fq_im_offset, self.fq_im_scale, self.fq_im_scaled_dims, self.fq_w)
             tile.set_fastq_image_data(self.fq_im_offset,
                                       self.fq_im_scale,
                                       self.fq_im_scaled_dims,
