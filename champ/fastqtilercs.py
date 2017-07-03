@@ -39,6 +39,8 @@ class FastqTileRCs(object):
 
     def fft_align_with_im(self, image_data):
         print("fft_align_with_im")
+        print("image_data.image =================== ")
+        print(image_data.image)
         # Make the ffts
         fq_image = self.image()
         padded_fq_im = misc.pad_to_size(fq_image, image_data.fft.shape)
