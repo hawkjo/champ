@@ -44,6 +44,8 @@ class FastqTileRCs(object):
         # Make the ffts
         fq_image = self.image()
         padded_fq_im = misc.pad_to_size(fq_image, image_data.fft.shape)
+        print("Padded Tile Image")
+        print(padded_fq_im)
         fq_im_fft = np.fft.fft2(padded_fq_im)
         print("Tile FFT")
         print(fq_im_fft)
