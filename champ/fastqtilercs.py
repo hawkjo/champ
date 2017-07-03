@@ -54,9 +54,9 @@ class FastqTileRCs(object):
         cross_corr = abs(np.fft.ifft2(np.conj(fq_im_fft) * im_data_fft))
         max_corr = cross_corr.max()
         max_idx = misc.max_2d_idx(cross_corr)
-        print("maxidx", max_idx)
         align_tr = np.array(max_idx) - fq_image.shape
-        print("cross_corr: {}, max_corr: {}, max_idx: {}, align_tr: {}".format(cross_corr, max_corr, max_idx, align_tr))
+        print("max_corr: {}, max_idx: {}, align_tr: {}".format(max_corr, max_idx, align_tr))
+        print("\n\n\n\n\n")
         return max_corr, align_tr
 
     def set_aligned_rcs(self, align_tr):
