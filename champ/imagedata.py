@@ -21,6 +21,8 @@ class ImageData(object):
 
     def set_fft(self, padding):
         totalx, totaly = np.array(padding) + np.array(self.image.shape)
+        print("SECRET PADDING")
+        print(padding)
         w = misc.next_power_of_2(totalx)
         h = misc.next_power_of_2(totaly)
         padded_im = np.pad(self.image,
