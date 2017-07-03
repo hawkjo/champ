@@ -113,18 +113,20 @@ class FastqImageAligner(object):
                           if key in self.fastq_tiles]
         impossible_tiles = [tile for tile in self.fastq_tiles.values() if tile not in possible_tiles]
         impossible_tiles.sort(key=lambda tile: -len(tile.read_names))
-        control_tiles = impossible_tiles[:2]
+        control_tiles = impossible_tiles
         self.image_data.set_fft(self.fq_im_scaled_dims)
         self.control_corr = 0
 
         for control_tile in control_tiles:
             corr, _ = control_tile.fft_align_with_im(self.image_data)
+            print("control %s\t%s" % (control_tile.key, corr))
             if corr > self.control_corr:
                 self.control_corr = corr
         del control_tiles
         self.hitting_tiles = []
         for tile in possible_tiles:
             max_corr, align_tr = tile.fft_align_with_im(self.image_data)
+            print("possible %s\t%s" % (tile.key, max_corr))
             if max_corr > snr_thresh * self.control_corr:
                 tile.set_aligned_rcs(align_tr)
                 tile.snr = max_corr / self.control_corr
