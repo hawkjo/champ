@@ -251,6 +251,7 @@ def check_column_for_alignment(cluster_strategy, rotation_adjustment, channel, s
     base_name = os.path.splitext(h5_filename)[0]
     with h5py.File(h5_filename) as h5:
         grid = GridImages(h5, channel)
+        print("grid.height, grid.width", grid.height, grid.width)
         # we assume odd numbers of rows, and good enough for now
         if grid.height > 2:
             center_row = grid.height / 2
@@ -258,11 +259,14 @@ def check_column_for_alignment(cluster_strategy, rotation_adjustment, channel, s
         else:
             # just one or two rows, might as well try them all
             rows_to_check = tuple([i for i in range(grid.height)])
+        print("Rows to check:", rows_to_check)
         for row in rows_to_check:
             image = grid.get(row, column)
+            print(image)
             if image is None:
                 log.warn("Could not find an image for %s Row %d Column %d" % (base_name, row, column))
                 return
+            print("checking row %s" % row)
             log.debug("Aligning %s Row %d Column %d against PhiX" % (base_name, row, column))
             fia = process_alignment_image(cluster_strategy, rotation_adjustment, snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(fia))
             if fia.hitting_tiles:
