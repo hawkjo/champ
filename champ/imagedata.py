@@ -26,6 +26,8 @@ class ImageData(object):
         padded_im = np.pad(self.image,
                            ((int(padding[0]), int(w) - int(totalx)), (int(padding[1]), int(h) - int(totaly))),
                            mode='constant')
+        print("PADDED IMAGE")
+        print(padded_im)
         if padded_im.shape != (h, w):
             raise ValueError("FFT of microscope image is not a power of 2, this will cause the program to stall.")
         self.fft = np.fft.fft2(padded_im)
