@@ -320,8 +320,12 @@ class FastqImageAligner(object):
 
             print("A")
             print(A)
+            print("Amax,min")
+            print(np.max(A), np.min(A))
             print("b")
             print(b)
+            print("bmax,min")
+            print(np.max(b), np.min(b))
             alpha, beta, x_offset, y_offset = np.linalg.lstsq(A, b)[0]
             print("alpha, beta, x_offset, y_offset ", alpha, beta, x_offset, y_offset)
             offset = np.array([x_offset, y_offset])
