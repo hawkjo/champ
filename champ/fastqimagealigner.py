@@ -305,6 +305,10 @@ class FastqImageAligner(object):
                 found_good_mapping = True
             A = np.zeros((2 * len(hits), 4))
             b = np.zeros((2 * len(hits),))
+            print("RCS IN FRAME")
+            print(self.rcs_in_frame)
+            print("CLUSTER POINT RCS")
+            print(self.clusters.point_rcs)
             for i, (cluster_index, in_frame_idx) in enumerate(hits):
                 tile_key, (xir, yir) = self.rcs_in_frame[in_frame_idx]
                 A[2*i, :] = [xir, -yir, 1, 0]
@@ -314,7 +318,12 @@ class FastqImageAligner(object):
                 b[2*i] = xis
                 b[2*i+1] = yis
 
+            print("A")
+            print(A)
+            print("b")
+            print(b)
             alpha, beta, x_offset, y_offset = np.linalg.lstsq(A, b)[0]
+            print("alpha, beta, x_offset, y_offset ", alpha, beta, x_offset, y_offset)
             offset = np.array([x_offset, y_offset])
             print("lstsq offset: {}".format(offset))
             theta = np.arctan2(beta, alpha)
