@@ -5,7 +5,7 @@ from champ.config import PathInfo
 import gc
 
 log = logging.getLogger(__name__)
-cluster_strategies = ('se', 'otsu',)
+cluster_strategies = ('se',)
 
 
 def preprocess(image_directory, cache):
