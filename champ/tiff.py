@@ -83,7 +83,7 @@ class TifsPerFieldOfView(BaseTifStack):
                 for subrow in subrows:
                     minor_axis_label = (minor_axis_position * len(subrows)) + subrow
                     for subcolumn in subcolumns:
-                        major_axis_label = (major_axis_position * len(subcolumns)) - len(subcolumns) + subcolumn + 2
+                        major_axis_label = (major_axis_position * len(subcolumns)) + subcolumn
                         dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_label, minor_axis_label)
 
                         with tifffile.TiffFile(file_path) as tif:
@@ -97,7 +97,6 @@ class TifsPerFieldOfView(BaseTifStack):
                             channels = [channel_names[i] for i in tif.micromanager_metadata['index_map']['channel']]
 
                             # Setup defaultdict
-                            height, width = summary['Height'], summary['Width']
                             summed_images = defaultdict(lambda *x: np.zeros((512, 512), dtype=np.int))
 
                             # Add images
@@ -162,8 +161,6 @@ class TifsPerConcentration(BaseTifStack):
                 assert summary['Channels'] == len(channel_names) == len(set(channel_names)), channel_names
                 # channel_idxs map tif pages to channels
                 channels = [channel_names[i] for i in tif.micromanager_metadata['index_map']['channel']]
-                # Setup defaultdict
-                height, width = summary['Height'], summary['Width']
 
                 for channel, page in zip(channels, tif):
                     all_pages[page.micromanager_metadata['PositionName']].append((channel, page))
@@ -179,7 +176,7 @@ class TifsPerConcentration(BaseTifStack):
                     for subrow in subrows:
                         minor_axis_label = (minor_axis_position * len(subrows)) + subrow
                         for subcolumn in subcolumns:
-                            major_axis_label = (major_axis_position * len(subcolumns)) - len(subcolumns) + subcolumn + 1
+                            major_axis_label = (major_axis_position * len(subcolumns)) + subcolumn
                             dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_label, minor_axis_label)
                             summed_images = defaultdict(lambda *x: np.zeros((512, 512), dtype=np.int))
                             # Add images
