@@ -159,7 +159,9 @@ class TifsPerConcentration(BaseTifStack):
                 # Find channel names and assert unique
                 print("summary['ChNames']", summary['ChNames'])
                 if type(summary['ChNames']) == str:
-                    summary['ChNames'] = [summary['ChNames']]
+                    print("yep str")
+                    summary['ChNames'] = [sanitize_name(summary['ChNames'])]
+                print("sanitized name", summary['ChNames'])
                 channel_names = [sanitize_name(name) for name in summary['ChNames']]
                 assert summary['Channels'] == len(channel_names) == len(set(channel_names)), channel_names
                 # channel_idxs map tif pages to channels
