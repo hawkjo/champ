@@ -163,10 +163,13 @@ class TifsPerConcentration(BaseTifStack):
                     summary['ChNames'] = [sanitize_name(summary['ChNames'])]
                 print("sanitized name", summary['ChNames'])
                 channel_names = [sanitize_name(name) for name in summary['ChNames']]
+                print("summary['Channels']", summary['Channels'])
+                print("len(channel_names)", len(channel_names))
+                print("len(set(channel_names))", len(set(channel_names)))
                 assert summary['Channels'] == len(channel_names) == len(set(channel_names)), channel_names
                 # channel_idxs map tif pages to channels
                 channels = [channel_names[i] for i in tif.micromanager_metadata['index_map']['channel']]
-
+                print("channels", channels)
                 for channel, page in zip(channels, tif):
                     all_pages[page.micromanager_metadata['PositionName']].append((channel, page))
 
