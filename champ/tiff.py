@@ -150,7 +150,7 @@ class TifsPerConcentration(BaseTifStack):
                 summary = tif.micromanager_metadata['summary']
 
                 # if the images are large, we need to break them up
-                height, width = summary['Height'], summary['Width']
+                height, width = int(summary['Height']), int(summary['Width'])
                 if height % 512 != 0 or width % 512 != 0:
                     raise ValueError("CHAMP currently only supports images with sides that are multiples of 512 pixels.")
 
