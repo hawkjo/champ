@@ -158,7 +158,7 @@ class TifsPerConcentration(BaseTifStack):
                 subrows, subcolumns = range(height / 512), range(width / 512)
                 # Find channel names and assert unique
                 print("summary['ChNames']", summary['ChNames'])
-                if type(summary['ChNames']) == str:
+                if type(summary['ChNames']) in (str, unicode):
                     print("yep str")
                     summary['ChNames'] = [sanitize_name(summary['ChNames'])]
                 print("sanitized name", summary['ChNames'])
