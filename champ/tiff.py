@@ -166,6 +166,7 @@ class TifsPerConcentration(BaseTifStack):
                 print("summary['Channels']", summary['Channels'])
                 print("len(channel_names)", len(channel_names))
                 print("len(set(channel_names))", len(set(channel_names)))
+                summary['Channels'] = int(summary['Channels'])
                 assert summary['Channels'] == len(channel_names) == len(set(channel_names)), channel_names
                 # channel_idxs map tif pages to channels
                 channels = [channel_names[i] for i in tif.micromanager_metadata['index_map']['channel']]
