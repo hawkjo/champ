@@ -157,13 +157,13 @@ class TifsPerConcentration(BaseTifStack):
                 # if the images are larger than 512x512, we need to subdivide them
                 subrows, subcolumns = range(height / 512), range(width / 512)
                 # Find channel names and assert unique
-                if type(summary['ChNames']) == str:
-                    summary['ChNames'] = [summary['ChNames']]
+                if type(summary['ChNames']) in (str, unicode):
+                    summary['ChNames'] = [sanitize_name(summary['ChNames'])]
                 channel_names = [sanitize_name(name) for name in summary['ChNames']]
+                summary['Channels'] = int(summary['Channels'])
                 assert summary['Channels'] == len(channel_names) == len(set(channel_names)), channel_names
                 # channel_idxs map tif pages to channels
                 channels = [channel_names[i] for i in tif.micromanager_metadata['index_map']['channel']]
-
                 for channel, page in zip(channels, tif):
                     all_pages[page.micromanager_metadata['PositionName']].append((channel, page))
 
