@@ -14,7 +14,12 @@ def load_channel_names(tifs):
     channels = set()
     for filename in tifs:
         tif = tifffile.TiffFile(filename)
-        for channel in tif.micromanager_metadata['summary']['ChNames']:
+        raw_channel_names = tif.micromanager_metadata['summary']['ChNames']
+        if type(raw_channel_names) in (str, unicode):
+            channel_names = [raw_channel_names]
+        else:
+            channel_names = raw_channel_names
+        for channel in channel_names:
             channels.add(sanitize_name(channel))
     return tuple(channels)
 
