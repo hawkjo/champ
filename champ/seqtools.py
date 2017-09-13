@@ -198,7 +198,8 @@ def build_read_names_given_seq(target,
     return interesting_reads
 
 
-def build_interesting_sequences(read_names_by_seq_filepath, interesting_sequences):
+def build_interesting_sequences(read_names_by_seq_filepath, interesting_sequences, prefix, suffix):
+    affixed_string = "%s%%s%s" % (prefix, suffix)
     interesting_read_names = defaultdict(set)
     with open(read_names_by_seq_filepath) as f:
         for i, line in enumerate(f):
@@ -209,7 +210,7 @@ def build_interesting_sequences(read_names_by_seq_filepath, interesting_sequence
             rough_sequence = words[0]
             read_names = set(words[1:])
             for interesting_sequence in interesting_sequences:
-                if interesting_sequence in rough_sequence:
+                if (affixed_string % interesting_sequence) in rough_sequence:
                     interesting_read_names[interesting_sequence].update(read_names)
     return interesting_read_names
 
