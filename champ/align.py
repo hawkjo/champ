@@ -78,31 +78,35 @@ def perform_alignment(cluster_strategy, rotation_adjustment, path_info, snr, min
                       make_pdfs, prefia, image_data):
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
-    row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
+    try:
+        row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
 
-    image = load_image(h5_filename, channel, row, column)
-    stats_file_path = os.path.join(path_info.results_directory, base_name, '{}_stats.txt'.format(image.index))
-    if alignment_is_complete(stats_file_path):
-        log.debug("Already aligned %s from %s" % (image.index, h5_filename))
-        return
+        image = load_image(h5_filename, channel, row, column)
+        stats_file_path = os.path.join(path_info.results_directory, base_name, '{}_stats.txt'.format(image.index))
+        if alignment_is_complete(stats_file_path):
+            log.debug("Already aligned %s from %s" % (image.index, h5_filename))
+            return
 
-    log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
-    # first get the correlation to random tiles, so we can distinguish signal from noise
-    fia = process_alignment_image(cluster_strategy, rotation_adjustment, snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(prefia))
+        log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
+        # first get the correlation to random tiles, so we can distinguish signal from noise
+        fia = process_alignment_image(cluster_strategy, rotation_adjustment, snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(prefia))
 
-    if fia.hitting_tiles:
-        # The image data aligned with FastQ reads!
-        try:
-            fia.precision_align_only(min_hits=min_hits)
-        except ValueError:
-            log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
-        else:
-            result = write_output(stats_file_path, image.index, base_name, fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
-            print("Write alignment for %s: %s" % (image.index, result))
-    # Force the GC to run, since otherwise memory usage blows up
-    del fia
-    del image
-    gc.collect()
+        if fia.hitting_tiles:
+            # The image data aligned with FastQ reads!
+            try:
+                fia.precision_align_only(min_hits=min_hits)
+            except ValueError:
+                log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
+            else:
+                result = write_output(stats_file_path, image.index, base_name, fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
+                print("Write alignment for %s: %s" % (image.index, result))
+        # Force the GC to run, since otherwise memory usage blows up
+        del fia
+        del image
+        gc.collect()
+    except IndexError:
+        # This happens and we don't know why. We'll just throw out the data since it's very rare
+        pass
 
 
 def make_output_directories(h5_filenames, path_info):
