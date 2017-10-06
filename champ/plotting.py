@@ -162,7 +162,7 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
 
     """
     data_ax = fig.add_subplot(data_grid)
-    data_ax.set_face_color(0.87 * np.array([1, 1, 1]))
+    data_ax.set_axis_bgcolor(0.87 * np.array([1, 1, 1]))
     if show_base_legend:
         a_patch = mpatches.Patch(color=flabpal.blue, label='A')
         c_patch = mpatches.Patch(color=flabpal.yellow, label='C')
