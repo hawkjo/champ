@@ -83,7 +83,7 @@ def calculate_lda_scores(h5_paths, results_directories, normalization_constants,
                     r, c = map(misc.stoftoi, (r, c))
                     if (side_pixels <= r < im.shape[0] - side_pixels - 1 and side_pixels <= c < im.shape[0] - side_pixels - 1):
                         x = im[r - side_pixels:r + side_pixels + 1, c - side_pixels:c + side_pixels + 1].astype(np.float)
-                        norm_constant = normalization_constants[h5_fpath][channel]['Major, minor = (%d, %d)' % (int(major), int(minor))]
+                        norm_constant = normalization_constants[h5_fpath][channel]['(Major, minor) = (%d, %d)' % (int(major), int(minor))]
                         score = float(np.multiply(lda_weights, x).sum()) * norm_constant
                         scores[h5_fpath][channel][(major, minor)][read_name] = score
         break  # TODO: delete this line
