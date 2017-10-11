@@ -10,6 +10,7 @@ from collections import defaultdict
 import logging
 from multiprocessing import Process
 from multiprocessing.queues import SimpleQueue
+import time
 
 log = logging.getLogger(__name__)
 
@@ -31,12 +32,17 @@ def _thread_get_normalization_constants(h5_filename, results_queue):
         for channel, fov_and_image in h5.items():
             normalization_constant[channel] = {}
             image_modes = {}
+            start = time.time()
             for fov, image in fov_and_image.items():
                 image_modes[fov] = get_image_mode(image.value)
             median_of_modes = np.median(image_modes.values())
+            image_mode_duration = time.time() - start
+            print("image_mode_duration", image_mode_duration)
+            start = time.time()
             for fov, mode in image_modes.items():
                 normalization_constant[channel][fov] = mode / median_of_modes
-                print(h5_filename, channel, fov, normalization_constant[channel][fov])
+            constant_calculation_duration = time.time() - start
+            print("constant_calculation_duration", constant_calculation_duration)
     results_queue.put((h5_filename, normalization_constant))
 
 
@@ -53,8 +59,10 @@ def get_normalization_constants(h5_filenames):
     for _ in h5_filenames:
         h5_filename, constants = results_queue.get()
         normalization_constant[h5_filename] = constants
+    print("Done getting constants from queue")
     for p in processes:
         p.join()
+    print("Done joining procs")
     return normalization_constant
 
 
