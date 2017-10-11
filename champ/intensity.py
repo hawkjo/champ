@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
 import logging
+from multiprocessing import Process
+from multiprocessing.queues import SimpleQueue
 
 log = logging.getLogger(__name__)
 
@@ -23,19 +25,36 @@ def get_image_mode(image):
     return misc.get_mode(vals)
 
 
-def get_normalization_constants(h5_filenames):
+def _thread_get_normalization_constants(h5_filename, results_queue):
     normalization_constant = {}
+    with h5py.File(h5_filename, 'r') as h5:
+        for channel, fov_and_image in h5.items():
+            normalization_constant[channel] = {}
+            image_modes = {}
+            for fov, image in fov_and_image.items():
+                image_modes[fov] = get_image_mode(image.value)
+            median_of_modes = np.median(image_modes.values())
+            for fov, mode in image_modes.items():
+                normalization_constant[channel][fov] = mode / median_of_modes
+                print(h5_filename, channel, fov, normalization_constant[channel][fov])
+    results_queue.put((h5_filename, normalization_constant))
+
+
+def get_normalization_constants(h5_filenames):
+    results_queue = SimpleQueue()
+    processes = []
     for h5_filename in h5_filenames:
-        normalization_constant[h5_filename] = {}
-        with h5py.File(h5_filename, 'r') as h5:
-            for channel, fov_and_image in h5.items():
-                normalization_constant[h5_filename][channel] = {}
-                image_modes = {}
-                for fov, image in fov_and_image.items():
-                    image_modes[fov] = get_image_mode(image.value)
-                median_of_modes = np.median(image_modes.values())
-                for fov, mode in image_modes.items():
-                    normalization_constant[h5_filename][channel][fov] = mode / median_of_modes
+        print("Starting thread for %s" % h5_filename)
+        p = Process(target=_thread_get_normalization_constants, args=(h5_filename, results_queue))
+        processes.append(p)
+        p.start()
+    normalization_constant = {}
+    print("Playing the waiting game")
+    for _ in h5_filenames:
+        h5_filename, constants = results_queue.get()
+        normalization_constant[h5_filename] = constants
+    for p in processes:
+        p.join()
     return normalization_constant
 
 
