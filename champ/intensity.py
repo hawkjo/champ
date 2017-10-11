@@ -12,6 +12,33 @@ import logging
 log = logging.getLogger(__name__)
 
 
+def get_image_mode(image):
+    w = 200
+    hw = w / 2
+    rmid, cmid = int(image.shape[0] / 2), int(image.shape[1] / 2)
+    vmin, vmax = image.min(), image.max()
+    # remove saturation
+    pct95 = vmin + 0.95 * (vmax - vmin)
+    vals = [v for v in image[rmid - hw:rmid + hw, cmid - hw:cmid + hw].flatten() if v < pct95]
+    return misc.get_mode(vals)
+
+
+def get_normalization_constants(h5_filenames):
+    normalization_constant = {}
+    for h5_filename in h5_filenames:
+        normalization_constant[h5_filename] = {}
+        with h5py.File(h5_filename, 'r') as h5:
+            for channel, fov_and_image in h5.items():
+                normalization_constant[h5_filename][channel] = {}
+                image_modes = {}
+                for fov, image in fov_and_image.items():
+                    image_modes[fov] = get_image_mode(image.value)
+                median_of_modes = np.median(image_modes.values())
+                for fov, mode in image_modes.items():
+                    normalization_constant[h5_filename][channel][fov] = mode / median_of_modes
+    return normalization_constant
+
+
 class IntensityScores(object):
     def __init__(self, h5_fpaths):
         """Initialize h5_fpaths and scores. scores is a dict accessed as:
