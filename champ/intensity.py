@@ -10,7 +10,6 @@ from collections import defaultdict
 import logging
 from multiprocessing import Process
 from multiprocessing.queues import SimpleQueue
-import time
 
 log = logging.getLogger(__name__)
 
@@ -32,38 +31,63 @@ def _thread_get_normalization_constants(h5_filename, results_queue):
         for channel, fov_and_image in h5.items():
             normalization_constant[channel] = {}
             image_modes = {}
-            start = time.time()
             for fov, image in fov_and_image.items():
                 image_modes[fov] = get_image_mode(image.value)
             median_of_modes = np.median(image_modes.values())
-            image_mode_duration = time.time() - start
-            print("image_mode_duration", image_mode_duration)
-            start = time.time()
             for fov, mode in image_modes.items():
                 normalization_constant[channel][fov] = mode / median_of_modes
-            constant_calculation_duration = time.time() - start
-            print("constant_calculation_duration", constant_calculation_duration)
     results_queue.put((h5_filename, normalization_constant))
 
 
 def get_normalization_constants(h5_filenames):
+    """
+    Determines per-concentration pixel intensity normalization factors for each field of view.
+    Does not perform normalization!
+
+    """
     results_queue = SimpleQueue()
     processes = []
     for h5_filename in h5_filenames:
-        print("Starting thread for %s" % h5_filename)
         p = Process(target=_thread_get_normalization_constants, args=(h5_filename, results_queue))
         processes.append(p)
         p.start()
     normalization_constant = {}
-    print("Playing the waiting game")
     for _ in h5_filenames:
         h5_filename, constants = results_queue.get()
         normalization_constant[h5_filename] = constants
-    print("Done getting constants from queue")
     for p in processes:
         p.join()
-    print("Done joining procs")
     return normalization_constant
+
+
+def calculate_lda_scores(h5_paths, results_directories, normalization_constants, lda_weights_path):
+    side_pixels = 3
+    lda_weights = np.loadtxt(lda_weights_path)
+    image_parsing_regex = re.compile(r'^(?P<channel>.+)_(?P<minor>\d+)_(?P<major>\d+)_')
+    scores = {}
+    for h5_fpath, results_dir in zip(h5_paths, results_directories):
+        scores[h5_fpath] = defaultdict(dict)
+        results_paths = glob.glob(os.path.join(results_dir, '*_all_read_rcs.txt'))
+        for i, rfpath in enumerate(results_paths):
+            rfname = os.path.basename(rfpath)
+            m = image_parsing_regex.match(rfname)
+            channel = m.group('channel')
+            minor, major = int(m.group('minor')), int(m.group('major'))
+            pos_key = hdf5tools.get_image_key(major, minor)
+            scores[h5_fpath][channel][(major, minor)] = {}
+            with h5py.File(h5_fpath) as f:
+                im = np.array(f[channel][pos_key])
+            with open(rfpath) as f:
+                for line in f:
+                    read_name, r, c = line.strip().split()
+                    r, c = map(misc.stoftoi, (r, c))
+                    if (side_pixels <= r < im.shape[0] - side_pixels - 1 and side_pixels <= c < im.shape[0] - side_pixels - 1):
+                        x = im[r - side_pixels:r + side_pixels + 1, c - side_pixels:c + side_pixels + 1].astype(np.float)
+                        norm_constant = normalization_constants[h5_fpath][channel]['Major, minor = (%d, %d)' % (int(major), int(minor))]
+                        score = float(np.multiply(lda_weights, x).sum()) * norm_constant
+                        scores[h5_fpath][channel][(major, minor)][read_name] = score
+        break  # TODO: delete this line
+    return scores
 
 
 class IntensityScores(object):
