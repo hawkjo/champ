@@ -35,7 +35,14 @@ class GenomicSequence(object):
         if self._upstream is not None and self._downstream is not None:
             inferred_start = self.fasta_start + len(self._upstream)
             inferred_end = self.fasta_start + self.isize - len(self._downstream)
-            return ("%s%s%s" % (self._upstream, fasta[self.reference_id][inferred_start:inferred_end], self._downstream)).upper()
+            known_read_size = len(self._upstream) + len(self._downstream)
+            if self.isize > known_read_size:
+                # We weren't able to read the entire strand, so we infer the missing segment from the assembled genome
+                return ("%s%s%s" % (self._upstream, fasta[self.reference_id][inferred_start:inferred_end], self._downstream)).upper(), self.isize
+            else:
+                # When DNA is shorter than the paired end read length, we'll have overlap, so we don't need to look
+                # anything up.
+                return "%s%s" % (self._upstream, self._downstream[known_read_size-self.isize:]), self.isize
         return None
 
 
@@ -52,9 +59,10 @@ def get_genomic_read_sequences(fasta_path, bamfile_path):
         data[read.qname].add_sequence(read.seq, read.reference_name, read.reference_start, read.isize)
 
     for read_name, gs in data.items():
-        seq = gs.get_full_sequence(fasta)
-        if seq is not None:
-            yield read_name, seq
+        result = gs.get_full_sequence(fasta)
+        if result is not None:
+            seq, size = result
+            yield read_name, seq, size
 
 
 class ScoredRead(object):
