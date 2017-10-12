@@ -35,11 +35,6 @@ class GenomicSequence(object):
         if self._upstream is not None and self._downstream is not None:
             inferred_start = self.fasta_start + len(self._upstream)
             inferred_end = self.fasta_start + self.isize - len(self._downstream)
-            print(self._upstream[-6:])
-            print(fasta[self.reference_id][self.fasta_start:self.fasta_start + self.isize])
-            print(fasta[self.reference_id][inferred_start:inferred_end])
-            print(self._downstream[:6])
-            print('\n')
             return ("%s%s%s" % (self._upstream, fasta[self.reference_id][inferred_start:inferred_end], self._downstream)).upper()
         return None
 
@@ -49,8 +44,8 @@ def get_genomic_read_sequences(fasta_path, bamfile_path):
     sam = pysam.Samfile(bamfile_path)
     data = {}
     for read in sam:
+        # ignore DNAs shorter than a PAM + target sequence and impossibly large sequences
         if abs(read.isize) < 24 or read.isize > 5000:
-            # ignore DNAs shorter than a PAM + target sequence and impossibly large sequences
             continue
         if read.qname not in data:
             data[read.qname] = GenomicSequence(read.qname)
