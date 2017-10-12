@@ -122,18 +122,27 @@ def calculate_lda_scores(h5_paths, results_directories, normalization_constants,
     return scores
 
 
-def select_good_reads(h5_paths, scores, good_count_cutoff):
+def filter_good_reads(h5_paths, scores, good_count_cutoff):
+    good_scores = {}
     read_name_paths = defaultdict(set)
     for h5_path in h5_paths:
+        good_scores[h5_path] = {}
         for channel in scores[h5_path].keys():
-            for pos_tup in scores[h5_path][channel].keys():
-                for read_name in scores[h5_path][channel][pos_tup].keys():
-                    read_name_paths[read_name].add(h5_path)
+            good_scores[h5_path][channel] = {}
+            for read_name in scores[h5_path][channel].keys():
+                read_name_paths[read_name].add(h5_path)
+
     good_read_names = set()
     for read_name, paths in read_name_paths.items():
         if len(paths) >= good_count_cutoff:
             good_read_names.add(read_name)
-    return good_read_names
+
+    for h5_path in h5_paths:
+        for channel, read_name_scores in scores[h5_path].items():
+            for read_name, score in read_name_scores.items():
+                if read_name in good_read_names:
+                    good_scores[h5_path][channel][read_name] = score
+    return good_scores
 
 
 class IntensityScores(object):

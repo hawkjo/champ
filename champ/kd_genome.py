@@ -4,6 +4,52 @@ import misc
 from champ.kd import IAKdData
 from scipy.optimize import curve_fit
 from collections import defaultdict
+import pyfasta
+import pysam
+
+
+class GenomicSequence(object):
+    __slots__ = '_read_name', '_upstream', '_downstream', '_isize', 'fasta_start', 'reference_id', 'isize'
+
+    def __init__(self, read_name):
+        self._read_name = read_name
+        self._upstream = None
+        self._downstream = None
+        self._isize = None
+
+    def add_sequence(self, sequence, reference_id, fasta_start, isize):
+        assert isize != 0
+        if isize < 0:
+            self._downstream = sequence
+        else:
+            self.isize = isize
+            self._upstream = sequence
+            self.reference_id = reference_id
+            self.fasta_start = fasta_start
+
+    def get_full_sequence(self, fasta):
+        """ Gets the full sequence of the genomic DNA strand on the chip. If it's longer than 150 bp, we have to
+        use sequence information from the assembled genome."""
+        if self._upstream is not None and self._downstream is not None:
+            inferred_start = self.fasta_start + len(self._upstream)
+            inferred_end = self.fasta_start + self.isize - len(self._downstream)
+            return self._upstream + fasta[self.reference_id][inferred_start:inferred_end] + self._downstream
+        return None
+
+
+def get_genomic_read_sequences(fasta_path, bamfile_path):
+    fasta = pyfasta.Fasta(fasta_path, key_fn=lambda k: k.split()[0])
+    sam = pysam.Samfile(bamfile_path)
+    data = {}
+    for read in sam:
+        if read.qname not in data:
+            data[read.qname] = GenomicSequence(read.qname)
+        data[read.qname].add_sequence(read.seq, read.reference_name, read.reference_start, read.isize)
+
+    for read_name, gs in data.items():
+        seq = gs.get_full_sequence(fasta)
+        if seq is not None:
+            yield read_name, seq
 
 
 class ScoredRead(object):
