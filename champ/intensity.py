@@ -69,23 +69,30 @@ def calculate_lda_scores(h5_paths, results_directories, normalization_constants,
         scores[h5_fpath] = defaultdict(dict)
         results_paths = glob.glob(os.path.join(results_dir, '*_all_read_rcs.txt'))
         for i, rfpath in enumerate(results_paths):
+            print(i, rfpath)
             rfname = os.path.basename(rfpath)
             m = image_parsing_regex.match(rfname)
             channel = m.group('channel')
+            if channel not in scores[h5_fpath]:
+                scores[h5_fpath][channel] = defaultdict(list)
             minor, major = int(m.group('minor')), int(m.group('major'))
-            pos_key = hdf5tools.get_image_key(major, minor)
-            scores[h5_fpath][channel][(major, minor)] = {}
+            field_of_view = hdf5tools.get_image_key(major, minor)
+            norm_constant = normalization_constants[h5_fpath][channel][field_of_view]
             with h5py.File(h5_fpath) as f:
-                im = np.array(f[channel][pos_key])
+                im = f[channel][field_of_view].value
+
             with open(rfpath) as f:
                 for line in f:
                     read_name, r, c = line.strip().split()
                     r, c = map(misc.stoftoi, (r, c))
-                    if (side_pixels <= r < im.shape[0] - side_pixels - 1 and side_pixels <= c < im.shape[0] - side_pixels - 1):
-                        x = im[r - side_pixels:r + side_pixels + 1, c - side_pixels:c + side_pixels + 1].astype(np.float)
-                        norm_constant = normalization_constants[h5_fpath][channel]['(Major, minor) = (%d, %d)' % (int(major), int(minor))]
-                        score = float(np.multiply(lda_weights, x).sum()) * norm_constant
-                        scores[h5_fpath][channel][(major, minor)][read_name] = score
+                    far_enough_from_vertical_edges = side_pixels <= r < im.shape[0] - side_pixels - 1
+                    far_enough_from_horizontal_edges = side_pixels <= c < im.shape[0] - side_pixels - 1
+                    if not far_enough_from_vertical_edges or not far_enough_from_horizontal_edges:
+                        continue
+                    x = im[r - side_pixels:r + side_pixels + 1, c - side_pixels:c + side_pixels + 1].astype(np.float)
+                    score = float(np.multiply(lda_weights, x).sum()) * norm_constant
+                    # If a read shows up in multiple fields of view, we'll want to just take the mean value
+                    scores[h5_fpath][channel][read_name].append(score)
         break  # TODO: delete this line
     return scores
 
