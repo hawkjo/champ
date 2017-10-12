@@ -47,8 +47,8 @@ def get_genomic_read_sequences(fasta_path, bamfile_path):
     sam = pysam.Samfile(bamfile_path)
     data = {}
     for read in sam:
-        if abs(read.isize) < 24:
-            # ignore DNAs shorter than a PAM + target sequence
+        if abs(read.isize) < 24 or read.isize > 5000:
+            # ignore DNAs shorter than a PAM + target sequence and impossibly large sequences
             continue
         if read.qname not in data:
             data[read.qname] = GenomicSequence(read.qname)
