@@ -24,9 +24,6 @@ class GenomicSequence(object):
         if isize < 0:
             self._downstream = sequence
         else:
-            if isize > 2000:
-                print("crazy isize: %d", isize)
-                exit()
             self.isize = isize
             self._upstream = sequence
             self.reference_id = reference_id
