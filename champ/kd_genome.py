@@ -26,6 +26,7 @@ class GenomicSequence(object):
             self.isize = isize
             self._upstream = sequence
             self.reference_id = reference_id
+            assert fasta_start >= 0
             self.fasta_start = fasta_start
 
     def get_full_sequence(self, fasta):
