@@ -20,13 +20,16 @@ class GenomicSequence(object):
         self.fasta_start = None
 
     def add_sequence(self, sequence, reference_id, fasta_start, isize):
+        assert len(sequence) < 4000
         if isize < 0:
             self._downstream = sequence
         else:
+            if isize > 2000:
+                print("crazy isize: %d", isize)
+                exit()
             self.isize = isize
             self._upstream = sequence
             self.reference_id = reference_id
-            assert fasta_start >= 0
             self.fasta_start = fasta_start
 
     def get_full_sequence(self, fasta):
@@ -35,7 +38,6 @@ class GenomicSequence(object):
         if self._upstream is not None and self._downstream is not None:
             inferred_start = self.fasta_start + len(self._upstream)
             inferred_end = self.fasta_start + self.isize - len(self._downstream)
-            print(self._upstream.upper(), self._downstream.upper())
             return ("%s%s%s" % (self._upstream, fasta[self.reference_id][inferred_start:inferred_end], self._downstream)).upper()
         return None
 
