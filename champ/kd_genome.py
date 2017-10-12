@@ -38,11 +38,13 @@ class GenomicSequence(object):
             known_read_size = len(self._upstream) + len(self._downstream)
             if self.isize > known_read_size:
                 # We weren't able to read the entire strand, so we infer the missing segment from the assembled genome
-                return ("%s%s%s" % (self._upstream, fasta[self.reference_id][inferred_start:inferred_end], self._downstream)).upper(), self.isize
+                result = ("%s%s%s" % (self._upstream, fasta[self.reference_id][inferred_start:inferred_end], self._downstream)).upper()
             else:
                 # When DNA is shorter than the paired end read length, we'll have overlap, so we don't need to look
                 # anything up.
-                return "%s%s" % (self._upstream, self._downstream[known_read_size-self.isize:]), self.isize
+                result = ("%s%s" % (self._upstream, self._downstream[known_read_size-self.isize:])).upper()
+            assert len(result) == self.isize, "The combined reads are not the correct length."
+            return result
         return None
 
 
@@ -57,12 +59,10 @@ def get_genomic_read_sequences(fasta_path, bamfile_path):
         if read.qname not in data:
             data[read.qname] = GenomicSequence(read.qname)
         data[read.qname].add_sequence(read.seq, read.reference_name, read.reference_start, read.isize)
-
     for read_name, gs in data.items():
-        result = gs.get_full_sequence(fasta)
-        if result is not None:
-            seq, size = result
-            yield read_name, seq, size
+        seq = gs.get_full_sequence(fasta)
+        if seq is not None:
+            yield read_name, seq
 
 
 class ScoredRead(object):
