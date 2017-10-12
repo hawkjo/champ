@@ -60,45 +60,80 @@ def get_normalization_constants(h5_filenames):
     return normalization_constant
 
 
-def calculate_lda_scores(h5_paths, results_directories, normalization_constants, lda_weights_path):
+def _thread_calculate_lda_scores(h5_fpath, results_dir, normalization_constants, lda_weights, results_queue):
     side_pixels = 3
-    lda_weights = np.loadtxt(lda_weights_path)
     image_parsing_regex = re.compile(r'^(?P<channel>.+)_(?P<minor>\d+)_(?P<major>\d+)_')
-    scores = {}
-    for h5_fpath, results_dir in zip(h5_paths, results_directories):
-        scores[h5_fpath] = defaultdict(dict)
-        results_paths = glob.glob(os.path.join(results_dir, '*_all_read_rcs.txt'))
-        for i, rfpath in enumerate(results_paths):
-            print(i, rfpath)
-            rfname = os.path.basename(rfpath)
-            m = image_parsing_regex.match(rfname)
-            channel = m.group('channel')
-            if channel not in scores[h5_fpath]:
-                scores[h5_fpath][channel] = defaultdict(list)
-            minor, major = int(m.group('minor')), int(m.group('major'))
-            field_of_view = hdf5tools.get_image_key(major, minor)
-            norm_constant = normalization_constants[h5_fpath][channel][field_of_view]
-            with h5py.File(h5_fpath) as f:
-                im = f[channel][field_of_view].value
+    scores = defaultdict(dict)
+    results_paths = glob.glob(os.path.join(results_dir, '*_all_read_rcs.txt'))
+    for i, rfpath in enumerate(results_paths):
+        rfname = os.path.basename(rfpath)
+        m = image_parsing_regex.match(rfname)
+        channel = m.group('channel')
+        if channel not in scores:
+            scores[channel] = defaultdict(list)
+        minor, major = int(m.group('minor')), int(m.group('major'))
+        field_of_view = hdf5tools.get_image_key(major, minor)
+        norm_constant = normalization_constants[channel][field_of_view]
+        with h5py.File(h5_fpath) as f:
+            im = f[channel][field_of_view].value
 
-            with open(rfpath) as f:
-                for line in f:
-                    read_name, r, c = line.strip().split()
-                    r, c = map(misc.stoftoi, (r, c))
-                    far_enough_from_vertical_edges = side_pixels <= r < im.shape[0] - side_pixels - 1
-                    far_enough_from_horizontal_edges = side_pixels <= c < im.shape[0] - side_pixels - 1
-                    if not far_enough_from_vertical_edges or not far_enough_from_horizontal_edges:
-                        continue
-                    x = im[r - side_pixels:r + side_pixels + 1, c - side_pixels:c + side_pixels + 1].astype(np.float)
-                    score = float(np.multiply(lda_weights, x).sum()) * norm_constant
-                    # If a read shows up in multiple fields of view, we'll want to just take the mean value
-                    scores[h5_fpath][channel][read_name].append(score)
-    for h5_path, channel_data in scores.items():
-        for channel, read_name_data in channel_data.items():
-            for read_name, scores in read_name_data.items():
-                mean_score = np.mean(scores) if len(scores) > 1 else scores[0]
-                scores[h5_path][channel][read_name] = mean_score
+        with open(rfpath) as f:
+            for line in f:
+                read_name, r, c = line.strip().split()
+                r, c = map(misc.stoftoi, (r, c))
+                far_enough_from_vertical_edges = side_pixels <= r < im.shape[0] - side_pixels - 1
+                far_enough_from_horizontal_edges = side_pixels <= c < im.shape[0] - side_pixels - 1
+                if not far_enough_from_vertical_edges or not far_enough_from_horizontal_edges:
+                    continue
+                x = im[r - side_pixels:r + side_pixels + 1, c - side_pixels:c + side_pixels + 1].astype(np.float)
+                score = float(np.multiply(lda_weights, x).sum()) * norm_constant
+                # If a read shows up in multiple fields of view, we'll want to just take the mean value
+                scores[channel][read_name].append(score)
+                # all our data is in lists, with most lists having only a single member
+                # if a particular read was observed in more than one field of view, we take the mean of its values
+
+    mean_scores = {}
+    for channel, read_name_data in scores.items():
+        mean_scores[channel] = {}
+        for read_name, scores in read_name_data.items():
+            mean_score = np.mean(scores) if len(scores) > 1 else scores[0]
+            mean_scores[channel][read_name] = mean_score
+    results_queue.put((h5_fpath, mean_scores))
+
+
+def calculate_lda_scores(h5_paths, results_directories, normalization_constants, lda_weights_path):
+    processes = []
+    results_queue = SimpleQueue()
+    lda_weights = np.loadtxt(lda_weights_path)
+    for h5_fpath, results_dir in zip(h5_paths, results_directories):
+        p = Process(target=_thread_calculate_lda_scores, args=(h5_fpath,
+                                                               results_dir,
+                                                               normalization_constants[h5_fpath],
+                                                               lda_weights,
+                                                               results_queue))
+        processes.append(p)
+        p.start()
+    scores = {}
+    for _ in h5_paths:
+        h5_filename, score_data = results_queue.get()
+        scores[h5_filename] = score_data
+    for p in processes:
+        p.join()
     return scores
+
+
+def select_good_reads(h5_paths, scores, good_count_cutoff):
+    read_name_paths = defaultdict(set)
+    for h5_path in h5_paths:
+        for channel in scores[h5_path].keys():
+            for pos_tup in scores[h5_path][channel].keys():
+                for read_name in scores[h5_path][channel][pos_tup].keys():
+                    read_name_paths[read_name].add(h5_path)
+    good_read_names = set()
+    for read_name, paths in read_name_paths.items():
+        if len(paths) >= good_count_cutoff:
+            good_read_names.add(read_name)
+    return good_read_names
 
 
 class IntensityScores(object):
