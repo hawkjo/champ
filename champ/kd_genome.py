@@ -15,10 +15,11 @@ class GenomicSequence(object):
         self._read_name = read_name
         self._upstream = None
         self._downstream = None
-        self._isize = None
+        self.isize = None
+        self.reference_id = None
+        self.fasta_start = None
 
     def add_sequence(self, sequence, reference_id, fasta_start, isize):
-        assert isize != 0
         if isize < 0:
             self._downstream = sequence
         else:
@@ -42,6 +43,8 @@ def get_genomic_read_sequences(fasta_path, bamfile_path):
     sam = pysam.Samfile(bamfile_path)
     data = {}
     for read in sam:
+        if abs(read.isize) < 24:
+            continue
         if read.qname not in data:
             data[read.qname] = GenomicSequence(read.qname)
         data[read.qname].add_sequence(read.seq, read.reference_name, read.reference_start, read.isize)
