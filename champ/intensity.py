@@ -93,7 +93,11 @@ def calculate_lda_scores(h5_paths, results_directories, normalization_constants,
                     score = float(np.multiply(lda_weights, x).sum()) * norm_constant
                     # If a read shows up in multiple fields of view, we'll want to just take the mean value
                     scores[h5_fpath][channel][read_name].append(score)
-        break  # TODO: delete this line
+    for h5_path, channel_data in scores.items():
+        for channel, read_name_data in channel_data.items():
+            for read_name, scores in read_name_data.items():
+                mean_score = np.mean(scores) if len(scores) > 1 else scores[0]
+                scores[h5_path][channel][read_name] = mean_score
     return scores
 
 
