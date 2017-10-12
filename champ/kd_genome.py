@@ -34,7 +34,7 @@ class GenomicSequence(object):
         if self._upstream is not None and self._downstream is not None:
             inferred_start = self.fasta_start + len(self._upstream)
             inferred_end = self.fasta_start + self.isize - len(self._downstream)
-            print(self._upstream, fasta[self.reference_id][:], self._downstream)
+            print(self._upstream, fasta[self.reference_id][self.fasta_start:self.fasta_start + self.isize], self._downstream)
             return self._upstream + fasta[self.reference_id][inferred_start:inferred_end] + self._downstream
         return None
 
