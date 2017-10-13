@@ -1,5 +1,6 @@
 import os
 import glob
+import gc
 import re
 import h5py
 import misc
@@ -146,6 +147,7 @@ def calculate_lda_scores(h5_paths, results_directories, normalization_constants,
                 if read_name not in lda_scores:
                     lda_scores[read_name] = LDAScores(h5_paths, channels)
                 lda_scores[read_name].add(channel, h5_filename, score)
+        gc.collect()
     for p in processes:
         p.join()
     return lda_scores
