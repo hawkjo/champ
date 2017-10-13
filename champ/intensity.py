@@ -109,6 +109,8 @@ class LDAScores(object):
     were missing as they will have None instead of a float.
 
     """
+    __slots__ = '_conditions', '_scores'
+
     def __init__(self, conditions, channels):
         self._conditions = conditions
         self._scores = {channel: [None for _ in conditions] for channel in channels}
