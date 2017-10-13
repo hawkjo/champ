@@ -8,6 +8,8 @@ from champ import hdf5tools
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
+import biofits
+import multiprocessing
 import logging
 from multiprocessing import Process
 from multiprocessing.queues import SimpleQueue
@@ -151,6 +153,68 @@ def calculate_lda_scores(h5_paths, results_directories, normalization_constants,
     for p in processes:
         p.join()
     return lda_scores
+
+
+def get_reasonable_process_count():
+    # Determines how many processes to use for parallel tasks. For small machines, it uses all cores, but on
+    # larger systems it will leave a few cores available for other processes under the assumption
+    # that it needs to perform background functions and not interfere with SSH and such
+    try:
+        core_count = multiprocessing.cpu_count()
+    except NotImplementedError:
+        print("Could not determine number of cores. Using one process only!")
+        return 1
+    if core_count <= 4:
+        return core_count
+    if core_count <= 16:
+        return core_count - 1
+    return core_count - 4
+
+
+def _thread_calculate_kds(concentrations, lda_scores, channel, results_queue):
+    results = {}
+    update_level = int(len(lda_scores) / 10)
+    for n, (read_name, scores) in enumerate(lda_scores):
+        if n % update_level == 0:
+            print("%.1f%% done." % (float(n) / len(lda_scores)))
+        read_concentrations = []
+        read_intensities = []
+        for concentration, score in zip(concentrations, scores.get(channel)):
+            if score is not None:
+                read_concentrations.append(concentration)
+                read_intensities.append(score)
+        if len(read_intensities) < 4:
+            continue
+        _, _, _, _, kd, kd_stddev = biofits.fit_hyperbola(read_concentrations, read_intensities)
+        results[read_name] = (kd, kd_stddev)
+    results_queue.put(results)
+
+
+def calculate_kds(h5_paths, lda_scores):
+    import random
+    concentrations = [misc.parse_concentration(fpath) for fpath in h5_paths]
+    results_queue = SimpleQueue()
+    process_count = get_reasonable_process_count()
+    kds = {}
+    print("Calculating %d KDs" % len(lda_scores))
+    split_scores = [{} for _ in range(process_count)]
+    for n, (read_name, lda_score) in enumerate(lda_scores.items()):
+        if random.random() < 0.005:
+            split_scores[n % process_count][read_name] = lda_score
+
+    processes = []
+    for split_score in split_scores:
+        print("Sending %d LDA scores to a thread" % len(split_score))
+        p = Process(target=_thread_calculate_kds, args=(concentrations, split_score, results_queue))
+        processes.append(p)
+        p.start()
+    print("Waiting for results")
+    for _ in process_count:
+        results = results_queue.get()
+        kds.update(results)
+    for p in processes:
+        p.join()
+    return kds
 
 
 class IntensityScores(object):
