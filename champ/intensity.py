@@ -89,9 +89,9 @@ def _thread_calculate_lda_scores(h5_fpath, results_dir, normalization_constants,
                 score = float(np.multiply(lda_weights, x).sum()) * norm_constant
                 # If a read shows up in multiple fields of view, we'll want to just take the mean value
                 scores[channel][read_name].append(score)
-                # all our data is in lists, with most lists having only a single member
-                # if a particular read was observed in more than one field of view, we take the mean of its values
 
+    # all our data is in lists, with most lists having only a single member
+    # if a particular read was observed in more than one field of view, we take the mean of its values
     mean_scores = {}
     for channel, read_name_data in scores.items():
         mean_scores[channel] = {}
@@ -99,6 +99,27 @@ def _thread_calculate_lda_scores(h5_fpath, results_dir, normalization_constants,
             mean_score = np.mean(scores) if len(scores) > 1 else scores[0]
             mean_scores[channel][read_name] = mean_score
     results_queue.put((h5_fpath, mean_scores))
+
+
+class LDAScores(object):
+    """
+    This object simply marshals intensity data for a single DNA cluster from a multi-tier dictionary. Each DNA cluster
+    may or may not have an intensity value for each concentration under each color. We handle the fact that gaps exist
+    here by slotting in data as it arrives. Later, when we fit intensity curves, we can figure out which concentrations
+    were missing as they will have None instead of a float.
+
+    """
+    def __init__(self, conditions, channels):
+        self._conditions = conditions
+        self._scores = {channel: [None for _ in conditions] for channel in channels}
+
+    def add(self, channel, condition, score):
+        index = self._conditions.index(condition)
+        self._scores[channel][index] = score
+
+    def get(self, channel):
+        # it's not guaranteed that each read will appear in all channels
+        return self._scores.get(channel)
 
 
 def calculate_lda_scores(h5_paths, results_directories, normalization_constants, lda_weights_path):
@@ -113,36 +134,19 @@ def calculate_lda_scores(h5_paths, results_directories, normalization_constants,
                                                                results_queue))
         processes.append(p)
         p.start()
-    scores = {}
+
+    lda_scores = {}
     for _ in h5_paths:
         h5_filename, score_data = results_queue.get()
-        scores[h5_filename] = score_data
+        channels = score_data.key()
+        for channel, read_name_scores in score_data.items():
+            for read_name, score in read_name_scores.items():
+                if read_name not in lda_scores:
+                    lda_scores[read_name] = LDAScores(h5_paths, channels)
+                lda_scores[read_name].add(channel, h5_filename, score)
     for p in processes:
         p.join()
-    return scores
-
-
-def filter_good_reads(h5_paths, scores, good_count_cutoff):
-    good_scores = {}
-    read_name_paths = defaultdict(set)
-    for h5_path in h5_paths:
-        good_scores[h5_path] = {}
-        for channel in scores[h5_path].keys():
-            good_scores[h5_path][channel] = {}
-            for read_name in scores[h5_path][channel].keys():
-                read_name_paths[read_name].add(h5_path)
-
-    good_read_names = set()
-    for read_name, paths in read_name_paths.items():
-        if len(paths) >= good_count_cutoff:
-            good_read_names.add(read_name)
-
-    for h5_path in h5_paths:
-        for channel, read_name_scores in scores[h5_path].items():
-            for read_name, score in read_name_scores.items():
-                if read_name in good_read_names:
-                    good_scores[h5_path][channel][read_name] = score
-    return good_scores
+    return lda_scores
 
 
 class IntensityScores(object):
