@@ -195,7 +195,7 @@ def calculate_kds(h5_paths, lda_scores):
     concentrations = [misc.parse_concentration(fpath) for fpath in h5_paths]
     results_queue = SimpleQueue()
     process_count = get_reasonable_process_count()
-    print("Using %d cores" % len(process_count))
+    print("Using %d cores" % process_count)
     kds = {}
     print("Calculating %d KDs" % len(lda_scores))
     split_scores = [{} for _ in range(process_count)]
