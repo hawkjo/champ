@@ -190,7 +190,7 @@ def _thread_calculate_kds(concentrations, lda_scores, channel, results_queue):
     results_queue.put(results)
 
 
-def calculate_kds(h5_paths, lda_scores):
+def calculate_kds(h5_paths, lda_scores, channel):
     import random
     concentrations = [misc.parse_concentration(fpath) for fpath in h5_paths]
     results_queue = SimpleQueue()
@@ -206,7 +206,7 @@ def calculate_kds(h5_paths, lda_scores):
     processes = []
     for split_score in split_scores:
         print("Sending %d LDA scores to a thread" % len(split_score))
-        p = Process(target=_thread_calculate_kds, args=(concentrations, split_score, results_queue))
+        p = Process(target=_thread_calculate_kds, args=(concentrations, split_score, channel, results_queue))
         processes.append(p)
         p.start()
     print("Waiting for results")
