@@ -138,7 +138,7 @@ def calculate_lda_scores(h5_paths, results_directories, normalization_constants,
     lda_scores = {}
     for _ in h5_paths:
         h5_filename, score_data = results_queue.get()
-        channels = score_data.key()
+        channels = score_data.keys()
         for channel, read_name_scores in score_data.items():
             for read_name, score in read_name_scores.items():
                 if read_name not in lda_scores:
