@@ -185,8 +185,11 @@ def _thread_calculate_kds(concentrations, lda_scores, channel, results_queue):
                 read_intensities.append(score)
         if len(read_intensities) < 4:
             continue
-        _, _, _, _, kd, kd_stddev = biofits.fit_hyperbola(read_concentrations, read_intensities)
-        results[read_name] = (kd, kd_stddev)
+        try:
+            _, _, _, _, kd, kd_stddev = biofits.fit_hyperbola(read_concentrations, read_intensities)
+            results[read_name] = (kd, kd_stddev)
+        except RuntimeError:
+            continue
     results_queue.put(results)
 
 
