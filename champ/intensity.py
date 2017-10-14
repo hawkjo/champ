@@ -194,25 +194,19 @@ def _thread_calculate_kds(concentrations, lda_scores, channel, results_queue):
 
 
 def calculate_kds(h5_paths, lda_scores, channel):
-    import random
     concentrations = [misc.parse_concentration(fpath) for fpath in h5_paths]
     results_queue = SimpleQueue()
     process_count = get_reasonable_process_count()
-    print("Using %d cores" % process_count)
     kds = {}
-    print("Calculating %d KDs" % len(lda_scores))
     split_scores = [{} for _ in range(process_count)]
     for n, (read_name, lda_score) in enumerate(lda_scores.items()):
-        if random.random() < 0.005:
-            split_scores[n % process_count][read_name] = lda_score
+        split_scores[n % process_count][read_name] = lda_score
 
     processes = []
     for split_score in split_scores:
-        print("Sending %d LDA scores to a thread" % len(split_score))
         p = Process(target=_thread_calculate_kds, args=(concentrations, split_score, channel, results_queue))
         processes.append(p)
         p.start()
-    print("Waiting for results")
     for _ in range(process_count):
         results = results_queue.get()
         kds.update(results)
