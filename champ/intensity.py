@@ -181,6 +181,9 @@ def _thread_calculate_kds(concentrations, lda_scores, channel, results_queue):
             if score is not None:
                 read_concentrations.append(concentration)
                 read_intensities.append(score)
+        if len(read_intensities) < 4:
+            # these don't fit well
+            continue
         try:
             _, _, _, _, kd, kd_stddev = biofits.fit_hyperbola(read_concentrations, read_intensities)
             results[read_name] = (kd, kd_stddev)
