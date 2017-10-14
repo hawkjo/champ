@@ -174,7 +174,7 @@ def get_reasonable_process_count():
 def _thread_calculate_kds(concentrations, lda_scores, channel, results_queue):
     results = {}
     update_level = int(len(lda_scores) / 10)
-    for n, (read_name, scores) in enumerate(lda_scores):
+    for n, (read_name, scores) in enumerate(lda_scores.items()):
         if n % update_level == 0:
             print("%.1f%% done." % (float(n) / len(lda_scores)))
         read_concentrations = []
