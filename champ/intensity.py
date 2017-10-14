@@ -213,7 +213,7 @@ def calculate_kds(h5_paths, lda_scores, channel):
         processes.append(p)
         p.start()
     print("Waiting for results")
-    for _ in process_count:
+    for _ in range(process_count):
         results = results_queue.get()
         kds.update(results)
     for p in processes:
