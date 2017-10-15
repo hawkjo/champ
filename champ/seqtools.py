@@ -212,7 +212,6 @@ def _thread_build_interesting_sequences(read_name_sequences, interesting_sequenc
 
 
 def build_interesting_sequences(read_names_by_seq_filepath, interesting_sequences):
-    interesting_read_names = defaultdict(set)
     process_count = get_reasonable_process_count()
     read_name_sequences = [[] for _ in range(process_count)]
     with open(read_names_by_seq_filepath) as f:
@@ -225,16 +224,15 @@ def build_interesting_sequences(read_names_by_seq_filepath, interesting_sequence
     results_queue = SimpleQueue()
     processes = []
     for rns in read_name_sequences:
-        print("sending %d lines to thread" % len(rns))
         p = Process(target=_thread_build_interesting_sequences, args=(rns, interesting_sequences, results_queue))
         processes.append(p)
         p.start()
+
+    interesting_read_names = defaultdict(set)
     for _ in read_name_sequences:
         results = results_queue.get()
-        print("got %d results" % len(results))
-        for interesting_sequence, read_names in results:
+        for interesting_sequence, read_names in results.items():
             interesting_read_names[interesting_sequence].update(read_names)
-    print("joining")
     for p in processes:
         p.join()
     return interesting_read_names
