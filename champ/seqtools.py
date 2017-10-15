@@ -6,6 +6,9 @@ from champ.adapters_cython import simple_hamming_distance
 import scipy.misc
 import matplotlib as mpl
 import matplotlib.colors as mcolors
+from intensity import get_reasonable_process_count
+from multiprocessing import Process
+from multiprocessing.queues import SimpleQueue
 
 bases = 'ACGT'
 
@@ -198,19 +201,37 @@ def build_read_names_given_seq(target,
     return interesting_reads
 
 
+def _thread_build_interesting_sequences(read_name_sequences, interesting_sequences, results_queue):
+    results = {}
+    for rough_sequence, read_names in read_name_sequences:
+        if rough_sequence in interesting_sequences:
+            results[rough_sequence].update(read_names)
+    results_queue.put(results)
+
+
 def build_interesting_sequences(read_names_by_seq_filepath, interesting_sequences):
     interesting_read_names = defaultdict(set)
+    process_count = get_reasonable_process_count()
+    read_name_sequences = [[] for _ in range(process_count)]
     with open(read_names_by_seq_filepath) as f:
         for i, line in enumerate(f):
-            if i % 1000 == 0:
-                sys.stdout.write('.')
-                sys.stdout.flush()
             words = line.strip().split()
             rough_sequence = words[0]
             read_names = set(words[1:])
-            for interesting_sequence in interesting_sequences:
-                if interesting_sequence in rough_sequence:
-                    interesting_read_names[interesting_sequence].update(read_names)
+            read_name_sequences[i % process_count].append((rough_sequence, read_names))
+
+    results_queue = SimpleQueue()
+    processes = []
+    for rns in read_name_sequences:
+        p = Process(target=_thread_build_interesting_sequences, args=(rns, interesting_sequences, results_queue))
+        processes.append(p)
+        p.start()
+    for _ in read_name_sequences:
+        results = results_queue.get()
+        for interesting_sequence, read_names in results:
+            interesting_read_names[interesting_sequence].update(read_names)
+    for p in processes:
+        p.join()
     return interesting_read_names
 
 
