@@ -203,7 +203,6 @@ def build_read_names_given_seq(target,
 
 def _thread_build_interesting_sequences(read_name_sequences, interesting_sequences, results_queue):
     results = defaultdict(set)
-    print("thread has %d sequences to check" % len(interesting_sequences))
     for rough_sequence, read_names in read_name_sequences:
         for interesting_sequence in interesting_sequences:
             if interesting_sequence in rough_sequence:
