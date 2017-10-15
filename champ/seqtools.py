@@ -205,6 +205,8 @@ def _thread_build_interesting_sequences(read_name_sequences, interesting_sequenc
     results = defaultdict(set)
     print("thread has %d sequences to check" % len(interesting_sequences))
     for rough_sequence, read_names in read_name_sequences:
+        print(rough_sequence)
+        break
         if rough_sequence in interesting_sequences:
             results[rough_sequence].update(read_names)
     results_queue.put(results)
