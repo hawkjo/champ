@@ -141,14 +141,23 @@ def calculate_lda_scores(h5_paths, results_directories, normalization_constants,
         p.start()
 
     lda_scores = {}
+    tukey_contant = 1.5
     for _ in h5_paths:
         h5_filename, score_data = results_queue.get()
         channels = score_data.keys()
         for channel, read_name_scores in score_data.items():
+            # find the legitimate range of intensities so we can discard outliers
+            intensities = read_name_scores.values()
+            q1 = np.percentile(intensities, 25)
+            q3 = np.percentile(intensities, 75)
+            iqr = q3 - q1
+            min_range, max_range = (q1 - tukey_contant * iqr, q3 + tukey_contant * iqr)
+
             for read_name, score in read_name_scores.items():
                 if read_name not in lda_scores:
                     lda_scores[read_name] = LDAScores(h5_paths, channels)
-                lda_scores[read_name].add(channel, h5_filename, score)
+                if min_range <= score <= max_range:
+                    lda_scores[read_name].add(channel, h5_filename, score)
         gc.collect()
     for p in processes:
         p.join()
