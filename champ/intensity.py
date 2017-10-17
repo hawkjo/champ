@@ -152,7 +152,6 @@ def calculate_lda_scores(h5_paths, results_directories, normalization_constants,
             q3 = np.percentile(intensities, 75)
             iqr = q3 - q1
             min_range, max_range = (q1 - tukey_contant * iqr, q3 + tukey_contant * iqr)
-
             for read_name, score in read_name_scores.items():
                 if read_name not in lda_scores:
                     lda_scores[read_name] = LDAScores(h5_paths, channels)
@@ -181,6 +180,7 @@ def get_reasonable_process_count():
 
 
 def _thread_calculate_kds(concentrations, lda_scores, channel, results_queue):
+    min_reads = 5
     results = {}
     for n, (read_name, scores) in enumerate(lda_scores.items()):
         read_concentrations = []
@@ -189,7 +189,7 @@ def _thread_calculate_kds(concentrations, lda_scores, channel, results_queue):
             if score is not None:
                 read_concentrations.append(concentration)
                 read_intensities.append(score)
-        if len(read_intensities) < 4:
+        if len(read_intensities) < min_reads:
             # these don't fit well
             continue
         try:
