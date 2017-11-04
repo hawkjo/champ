@@ -1,5 +1,4 @@
 import sys
-import pysam
 import misc
 from champ.kd import IAKdData
 from scipy.optimize import curve_fit
@@ -43,7 +42,8 @@ class GenomicSequence(object):
                 # When DNA is shorter than the paired end read length, we'll have overlap, so we don't need to look
                 # anything up.
                 result = ("%s%s" % (self._upstream, self._downstream[known_read_size-self.isize:])).upper()
-            assert len(result) == self.isize, "The combined reads are not the correct length."
+            if len(result) != self.isize:
+                return None
             return result
         return None
 

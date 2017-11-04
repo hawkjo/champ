@@ -3,8 +3,7 @@ import glob
 import gc
 import re
 import h5py
-import misc
-from champ import hdf5tools
+from champ import hdf5tools, misc
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
@@ -263,8 +262,8 @@ class IntensityScores(object):
         for h5_fpath, results_dir in zip(self.h5_fpaths, results_dirs):
             results_fpaths = glob.glob(os.path.join(results_dir, '*_all_read_rcs.txt'))
             if verbose:
-                print h5_fpath
-                print 'Num results files:', len(results_fpaths)
+                print(h5_fpath)
+                print('Num results files:', len(results_fpaths))
 
             for i, rfpath in enumerate(results_fpaths):
                 rfname = os.path.basename(rfpath)
@@ -278,7 +277,7 @@ class IntensityScores(object):
                         channel = m.group('channel')
                         minor, major = int(m.group('minor')), int(m.group('major'))
                     except:
-                        print rfname
+                        print(rfname)
                         raise
 
                 pos_key = hdf5tools.get_image_key(major, minor)
@@ -324,7 +323,7 @@ class IntensityScores(object):
             for h5_fpath in self.h5_fpaths
             }
         for h5_fpath in self.h5_fpaths:
-            if verbose: print os.path.basename(h5_fpath)
+            if verbose: print(os.path.basename(h5_fpath))
             for channel in self.scores[h5_fpath].keys():
                 mode_given_pos_tup = {}
                 for pos_tup in self.raw_scores[h5_fpath][channel].keys():
@@ -343,7 +342,6 @@ class IntensityScores(object):
                         read_name: im_scores[read_name] / Z
                         for read_name in self.get_read_names_in_image(h5_fpath, channel, pos_tup)
                         }
-            if verbose: print
 
     def normalize_scores_by_ref_read_names(self, ref_read_names_given_channel, verbose=True):
         """Normalizes scores. The normalizing constant for each image is determined by
@@ -368,9 +366,9 @@ class IntensityScores(object):
                         & ref_read_names
                     )
                     if len(ref_read_names_in_image) < 10:
-                        print 'Warning: 10 > {} reference reads in im_idx {}'.format(
+                        print('Warning: 10 > {} reference reads in im_idx {}'.format(
                             len(ref_read_names_in_image), (h5_fpath, channel, pos_tup)
-                        )
+                        ))
 
                     med = np.median(
                         [self.raw_scores[h5_fpath][channel][pos_tup][read_name]
@@ -394,7 +392,7 @@ class IntensityScores(object):
             for h5_fpath in self.h5_fpaths
             }
         for h5_fpath in self.h5_fpaths:
-            print h5_fpath
+            print(h5_fpath)
             i = 0
             for channel in self.scores[h5_fpath].keys():
                 score_given_read_name = self.score_given_read_name_in_channel[h5_fpath][channel]
@@ -452,8 +450,8 @@ class IntensityScores(object):
             for channel in self.scores[h5_fpath].keys():
                 for score_given_read_name in self.scores[h5_fpath][channel].values():
                     reads_in_channel[channel].update(score_given_read_name.keys())
-        for channel, read_names in sorted(reads_in_channel.items()):
-            print 'All reads found in channel {}: {:,d}'.format(channel, len(read_names))
+        # for channel, read_names in sorted(reads_in_channel.items()):
+        #     print 'All reads found in channel {}: {:,d}'.format(channel, len(read_names))
 
     def build_good_read_names(self, good_num_ims_cutoff):
         pos_tups_given_read_name = defaultdict(set)

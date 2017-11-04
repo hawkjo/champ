@@ -45,8 +45,8 @@ def find_adapter_positions(read, adapter, int min_comparison_length, int max_dis
     cdef int adapter_length = len(adapter)
     cdef int max_start = len(read) - min_comparison_length
     cdef int distance, start
-        
-    positions = [] 
+
+    positions = []
     for start in range(max_start + 1):
         distance = hamming_distance(read, adapter, read_length, adapter_length, start)
         if distance <= max_distance:

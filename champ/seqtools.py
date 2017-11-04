@@ -6,7 +6,7 @@ from champ.adapters_cython import simple_hamming_distance
 import scipy.misc
 import matplotlib as mpl
 import matplotlib.colors as mcolors
-from intensity import get_reasonable_process_count
+from champ.intensity import get_reasonable_process_count
 from multiprocessing import Process
 from multiprocessing.queues import SimpleQueue
 

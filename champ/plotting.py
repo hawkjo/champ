@@ -8,7 +8,7 @@ import flabpal
 import matplotlib.patches as mpatches
 
 
-def plot_2d_mismatches(sequence, sequence_labels, base_color, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
+def plot_2d_mismatches(sequence, sequence_labels, base_color, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis_r'):
     dimension = 3
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
     data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index = indexes
@@ -38,7 +38,7 @@ def plot_position_diff(sequence, sequence_labels, base_color, lower_ABA_matrix, 
     add_colorbar(fig, gs[cbar_index], ms, fontsize, label=colorbar_label)
 
 
-def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
+def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis_r'):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
@@ -50,7 +50,7 @@ def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_mat
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
 
-def plot_complement_stretches(sequence, sequence_labels, base_color, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
+def plot_complement_stretches(sequence, sequence_labels, base_color, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis_r'):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
@@ -64,7 +64,7 @@ def plot_complement_stretches(sequence, sequence_labels, base_color, lower_ABA_m
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
 
-def plot_2d_insertions(sequence, sequence_labels, base_color, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
+def plot_2d_insertions(sequence, sequence_labels, base_color, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis_r'):
     dimension = 4
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
     data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index = indexes
@@ -165,7 +165,7 @@ def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$\Delta ABA\ (k_{B}T)$
     cbar.set_label(label, fontsize=fontsize*2)
 
 
-def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis', show_base_legend=False, grid_line_spacing=None, force_full_bounds=True):
+def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis_r', show_base_legend=False, grid_line_spacing=None, force_full_bounds=True):
     """
 
     vmin and vmax are the extents of the colorbar. We set the lowest and highest values so that the brightest part
@@ -380,7 +380,7 @@ def configure_position_penalty_axes(target, fig, penalty_axes, xticklabels, font
     elif yaxis_type == 'ddG':
         yaxis_label = '$\Delta \Delta G\ (K_{B}T)$'
     elif yaxis_type == 'ABA':
-        yaxis_label = '$\Delta ABA\ (K_{B}T)$'
+        yaxis_label = 'Normalized $\Delta ABA$'
     else:
         yaxis_label = '?????'
 
@@ -389,11 +389,11 @@ def configure_position_penalty_axes(target, fig, penalty_axes, xticklabels, font
     penalty_axes.set_xticks(range(len(target)))
     penalty_axes.set_xticklabels(xticklabels, fontsize=tick_fontsize)
     ylim = penalty_axes.get_ylim()
-    for i, c in enumerate(target):
-        # color the background with the correct base
-        penalty_axes.fill_between([i-0.5, i+0.5], [ylim[0]]*2, [ylim[1]]*2, color=base_color[c], alpha=0.14)
+    # for i, c in enumerate(target):
+    #     # color the background with the correct base
+    #     penalty_axes.fill_between([i-0.5, i+0.5], [ylim[0]]*2, [ylim[1]]*2, color=base_color[c], alpha=0.14)
     penalty_axes.set_ylim(ylim)
-    penalty_axes.set_xlabel('Target {target_name} Reference Sequence'.format(target_name=target_name), fontsize=fontsize)
+    # penalty_axes.set_xlabel('Target {target_name} Reference Sequence'.format(target_name=target_name), fontsize=fontsize)
     penalty_axes.set_ylabel(yaxis_label, fontsize=fontsize)
     if legend:
         penalty_axes.legend(loc='best', fontsize=tick_fontsize)
