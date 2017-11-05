@@ -42,9 +42,12 @@ class GenomicSequence(object):
                 # When DNA is shorter than the paired end read length, we'll have overlap, so we don't need to look
                 # anything up.
                 result = ("%s%s" % (self._upstream, self._downstream[known_read_size-self.isize:])).upper()
-            if len(result) != self.isize:
+            result_length = len(result)
+            if result_length != self.isize:
+                print("wrong size: expected %d, got %d" % (self.isize, result_length))
                 return None
             return result
+        print("Single end only")
         return None
 
 
@@ -55,6 +58,7 @@ def get_genomic_read_sequences(fasta_path, bamfile_path):
     for read in sam:
         # ignore DNAs shorter than a PAM + target sequence and impossibly large sequences
         if abs(read.isize) < 24 or read.isize > 5000:
+            print("crazy size: %d" % read.isize)
             continue
         if read.qname not in data:
             data[read.qname] = GenomicSequence(read.qname)
