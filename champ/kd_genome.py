@@ -47,7 +47,6 @@ class GenomicSequence(object):
                 print("wrong size: expected %d, got %d" % (self.isize, result_length))
                 return None
             return result
-        print("Single end only")
         return None
 
 
@@ -58,7 +57,6 @@ def get_genomic_read_sequences(fasta_path, bamfile_path):
     for read in sam:
         # ignore DNAs shorter than a PAM + target sequence and impossibly large sequences
         if abs(read.isize) < 24 or read.isize > 5000:
-            print("crazy size: %d" % read.isize)
             continue
         if read.qname not in data:
             data[read.qname] = GenomicSequence(read.qname)
