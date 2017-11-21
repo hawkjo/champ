@@ -32,11 +32,12 @@ def run(cluster_strategy, rotation_adjustment, h5_filenames, path_info, snr, min
     alignment_func = functools.partial(perform_alignment, cluster_strategy, rotation_adjustment, path_info, snr, min_hits, metadata['microns_per_pixel'],
                                        sequencing_chip, all_tile_data, make_pdfs, fia)
 
-    pool = multiprocessing.Pool(num_processes)
-    pool.map_async(alignment_func,
-                   iterate_all_images(h5_filenames, end_tiles, alignment_channel), chunksize=chunksize).get(timeout=sys.maxint)
-    pool.close()
-    pool.join()
+    for h5_filename in h5_filenames:
+        pool = multiprocessing.Pool(num_processes)
+        pool.map_async(alignment_func,
+                       iterate_all_images([h5_filename], end_tiles, alignment_channel), chunksize=chunksize).get(timeout=sys.maxint)
+        pool.close()
+        pool.join()
 
     log.debug("Done aligning!")
 
@@ -55,16 +56,17 @@ def run_data_channel(cluster_strategy, h5_filenames, channel_name, path_info, al
     second_processor = functools.partial(process_data_image, cluster_strategy, path_info, all_tile_data,
                                          clargs.microns_per_pixel, clargs.make_pdfs,
                                          channel_name, fastq_image_aligner, clargs.min_hits)
-    pool = multiprocessing.Pool(num_processes)
-    log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
-    pool.map_async(second_processor,
-                   load_aligned_stats_files(h5_filenames, metadata['alignment_channel'], path_info),
-                   chunksize=chunksize).get(sys.maxint)
-    pool.close()
-    pool.join()
+    for h5_filename in h5_filenames:
+        pool = multiprocessing.Pool(num_processes)
+        log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
+        pool.map_async(second_processor,
+                       load_aligned_stats_files([h5_filename], metadata['alignment_channel'], path_info),
+                       chunksize=chunksize).get(sys.maxint)
+        pool.close()
+        pool.join()
+        gc.collect()
 
     log.debug("Done aligning!")
-    gc.collect()
 
 
 def alignment_is_complete(stats_file_path):
