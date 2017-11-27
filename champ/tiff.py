@@ -184,7 +184,8 @@ class TifsPerConcentration(BaseTifStack):
                             # Add images
                             for channel, page in channel_pages:
                                 image = page.asarray()
-                                # this subdivision might be incorrect formally, it might be putting them in the wrong part of the larger "box"
+                                # this subdivision might be incorrect formally,
+                                # it might be putting them in the wrong part of the larger "box"
                                 image = image[subrow * 512: (subrow * 512) + 512, subcolumn * 512: (subcolumn * 512) + 512]
                                 for adjustment in self._adjustments:
                                     image = adjustment(image)
