@@ -39,6 +39,9 @@ class GenomicSequence(object):
                 # We weren't able to read the entire strand, so we infer the missing segment from the assembled genome
                 kind = "inferred"
                 result = ("%s%s%s" % (self._upstream, fasta[self.reference_id][inferred_start:inferred_end], self._downstream)).upper()
+            elif self.isize == known_read_size:
+                kind = "joined"
+                result = ("%s%s" % (self._upstream, self._downstream)).upper()
             else:
                 # When DNA is shorter than the paired end read length, we'll have overlap, so we don't need to look
                 # anything up.
@@ -49,6 +52,7 @@ class GenomicSequence(object):
                 print("wrong size for %s: readsize: %d, expected %d, got %d" % (kind, known_read_size, self.isize, result_length))
                 print("upstream\t%d\t%s" % (len(self._upstream), self._upstream.upper()))
                 print("downstream\t%d\t%s" % (len(self._downstream), self._downstream.upper()))
+                print("result\t%d\t%s" % (len(result), result))
                 return None
             return result
         return None
