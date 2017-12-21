@@ -53,6 +53,7 @@ class GenomicSequence(object):
                 print("upstream\t%d\t%s" % (len(self._upstream), self._upstream.upper()))
                 print("downstream\t%d\t%s" % (len(self._downstream), self._downstream.upper()))
                 print("result\t%d\t%s" % (len(result), result))
+                print("down in up? %s" % (self._downstream.upper() in self._upstream.upper()))
                 return None
             return result
         return None
