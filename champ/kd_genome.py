@@ -48,8 +48,10 @@ class GenomicSequence(object):
             if result_length != self.isize:
                 if result == self._upstream.upper():
                     return result
+                print("wrong size!")
                 return None
             return result
+        print("something wrong with this read")
         return None
 
 
