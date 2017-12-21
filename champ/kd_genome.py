@@ -46,7 +46,9 @@ class GenomicSequence(object):
                 result = ("%s%s" % (self._upstream, self._downstream[known_read_size-self.isize:])).upper()
             result_length = len(result)
             if result_length != self.isize:
-                print("wrong size for %s: expected %d, got %d" % (kind, self.isize, result_length))
+                print("wrong size for %s: readsize: %d, expected %d, got %d" % (kind, known_read_size, self.isize, result_length))
+                print("upstream\t%d\t%s" % (len(self._upstream), self._upstream.upper()))
+                print("downstream\t%d\t%s" % (len(self._downstream), self._downstream.upper()))
                 return None
             return result
         return None
