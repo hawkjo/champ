@@ -62,9 +62,13 @@ def get_genomic_read_sequences(fasta_path, bamfile_path):
             data[read.qname] = GenomicSequence(read.qname)
         data[read.qname].add_sequence(read.seq, read.reference_name, read.reference_start, read.isize)
     for read_name, gs in data.items():
-        seq = gs.get_full_sequence(fasta)
-        if seq is not None:
-            yield read_name, seq
+        try:
+            seq = gs.get_full_sequence(fasta)
+        except:
+            continue
+        else:
+            if seq is not None:
+                yield read_name, seq
 
 
 class ScoredRead(object):
