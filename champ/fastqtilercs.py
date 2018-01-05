@@ -33,7 +33,7 @@ class FastqTileRCs(object):
     def image(self):
         image = np.zeros(self.image_shape.astype(np.int))
         image[self.mapped_rcs.astype(np.int)[:, 0], self.mapped_rcs.astype(np.int)[:, 1]] = 1
-        sigma = 0.25 / self.microns_per_pixel  # Clusters have stdev ~= 0.25 um
+        sigma = 0.5 / self.microns_per_pixel  # Clusters have stdev ~= 0.25 um
         image = ndimage.gaussian_filter(image, sigma)
         return image
 

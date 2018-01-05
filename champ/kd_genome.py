@@ -48,10 +48,8 @@ class GenomicSequence(object):
             if result_length != self.isize:
                 if result == self._upstream.upper():
                     return result
-                print("wrong size!")
                 return None
             return result
-        print("something wrong with this read")
         return None
 
 
@@ -66,6 +64,7 @@ def get_genomic_read_sequences(fasta_path, bamfile_path):
         if read.qname not in data:
             data[read.qname] = GenomicSequence(read.qname)
         data[read.qname].add_sequence(read.seq, read.reference_name, read.reference_start, read.isize)
+
     for read_name, gs in data.items():
         try:
             seq = gs.get_full_sequence(fasta)
