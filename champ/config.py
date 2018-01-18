@@ -120,6 +120,10 @@ class CommandLineArguments(object):
         return int(self._arguments['--min-len'] or 1)
 
     @property
+    def neg_control_target_name(self):
+        return self._arguments['--neg-control-target-name'] or False
+
+    @property
     def output_directory(self):
         return self._arguments['OUTPUT_DIRECTORY']
 

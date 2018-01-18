@@ -21,6 +21,7 @@ def save_metadata(clargs, alignment_channel):
                 'flipud': clargs.flipud,
                 'fliplr': clargs.fliplr,
                 'perfect_target_name': clargs.perfect_target_name,
+                'neg_control_target_name': clargs.neg_control_target_name
                 }
         yaml.dump(data, f)
 
