@@ -2,6 +2,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from champ.grid import GridImages
+from champ.grid import Image
 from champ import plotting, fastqimagealigner, stats, error
 from collections import Counter, defaultdict
 import functools
