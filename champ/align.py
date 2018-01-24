@@ -299,7 +299,7 @@ def iterate_all_images(h5_filenames, end_tiles, channel, path_info):
                     if already_aligned:
                         log.debug("Image already aligned/checkpointed: {}/{}".format(h5_filename, image.index))
                         continue
-                    yield deepcopy(image), tile_map[image.column], base_name
+                    yield Image(image, image.row, image.column, image.channel), tile_map[image.column], base_name
 
 
 def load_read_names(file_path):
