@@ -81,13 +81,7 @@ def perform_alignment(cluster_strategy, rotation_adjustment, path_info, snr, min
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
     try:
-        row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
-
-        image = load_image(h5_filename, channel, row, column)
-        stats_file_path = os.path.join(path_info.results_directory, base_name, '{}_stats.txt'.format(image.index))
-        if alignment_is_complete(stats_file_path):
-            log.debug("Already aligned %s from %s" % (image.index, h5_filename))
-            return
+        image, possible_tile_keys, base_name = image_data
 
         log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
         # first get the correlation to random tiles, so we can distinguish signal from noise
@@ -294,8 +288,17 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
             for column in range(min_column, max_column):
                 for row in range(grid._height):
                     image = grid.get(row, column)
-                    if image is not None:
-                        yield row, column, channel, h5_filename, tile_map[image.column], base_name
+                    if image is None:
+                        continue
+                    stats_path = os.path.join(path_info.results_directory, base_name,
+                                              '{}_stats.txt'.format(image.index))
+                    alignment_path = os.path.join(path_info.results_directory, base_name,
+                                                  '{}_all_read_rcs.txt'.format(image.index))
+                    already_aligned = alignment_is_complete(stats_path) and os.path.exists(alignment_path)
+                    if already_aligned:
+                        log.debug("Image already aligned/checkpointed: {}/{}".format(h5_filename, image.index))
+                        continue
+                    yield image, tile_map[image.column], base_name
 
 
 def load_read_names(file_path):
