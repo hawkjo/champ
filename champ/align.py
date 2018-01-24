@@ -298,6 +298,7 @@ def iterate_all_images(h5_filenames, end_tiles, channel, path_info):
                     if already_aligned:
                         log.debug("Image already aligned/checkpointed: {}/{}".format(h5_filename, image.index))
                         continue
+                    print(image.row, image.column)
                     yield image, tile_map[image.column], base_name
 
 
