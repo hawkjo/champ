@@ -35,7 +35,7 @@ def run(cluster_strategy, rotation_adjustment, h5_filenames, path_info, snr, min
     for h5_filename in h5_filenames:
         pool = multiprocessing.Pool(num_processes)
         pool.map_async(alignment_func,
-                       iterate_all_images([h5_filename], end_tiles, alignment_channel), chunksize=chunksize).get(timeout=sys.maxint)
+                       iterate_all_images([h5_filename], end_tiles, alignment_channel, path_info), chunksize=chunksize).get(timeout=sys.maxint)
         pool.close()
         pool.join()
 
@@ -276,7 +276,7 @@ def check_column_for_alignment(cluster_strategy, rotation_adjustment, channel, s
     gc.collect()
 
 
-def iterate_all_images(h5_filenames, end_tiles, channel):
+def iterate_all_images(h5_filenames, end_tiles, channel, path_info):
     # We need an iterator over all images to feed the parallel processes. Since each image is
     # processed independently and in no particular order, we need to return information in addition
     # to the image itself that allow files to be written in the correct place and such
