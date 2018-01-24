@@ -82,7 +82,8 @@ def perform_alignment(cluster_strategy, rotation_adjustment, path_info, snr, min
     # FastQ reads to disk
     try:
         image, possible_tile_keys, base_name = image_data
-
+        print(image)
+        print(image.__dict__)
         log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
         # first get the correlation to random tiles, so we can distinguish signal from noise
         fia = process_alignment_image(cluster_strategy, rotation_adjustment, snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(prefia))
