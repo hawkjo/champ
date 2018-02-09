@@ -8,7 +8,7 @@ import flabpal
 import matplotlib.patches as mpatches
 
 
-def plot_2d_mismatches(sequence, sequence_labels, base_color, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
+def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False):
     dimension = 3
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
     data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index = indexes
@@ -19,13 +19,13 @@ def plot_2d_mismatches(sequence, sequence_labels, base_color, lower_ABA_matrix, 
     mismatch_bases = ''.join(['ACGT'.replace(base, '') for base in sequence])
     add_color_axes(fig, gs[left_color_index], gs[bottom_color_index], mismatch_bases)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, show_base_legend=True, grid_line_spacing=dimension)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, normalize=normalize, cmap=cmap, force_full_bounds=False, show_base_legend=True, grid_line_spacing=dimension)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
     # color the labels
 
 
-def plot_position_diff(sequence, sequence_labels, base_color, lower_ABA_matrix, upper_ABA_matrix=None, normalize=True, fontsize=18,
+def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, normalize=True, fontsize=18,
                        positions_are_merged=True, colorbar_label='Relative Normalized ABAs ($k_{B}T$)', cmap='RdBu'):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
@@ -50,7 +50,7 @@ def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_mat
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
 
-def plot_complement_stretches(sequence, sequence_labels, base_color, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
+def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
@@ -64,7 +64,7 @@ def plot_complement_stretches(sequence, sequence_labels, base_color, lower_ABA_m
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
 
-def plot_2d_insertions(sequence, sequence_labels, base_color, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
+def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
     dimension = 4
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
     data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index = indexes
@@ -181,14 +181,11 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
         t_patch = mpatches.Patch(color=flabpal.red, label='T')
         data_ax.legend([a_patch, c_patch, g_patch, t_patch], ['A', 'C', 'G', 'T'], fontsize=30)
     if upper_ABA_matrix is None:
+        largest_magnitude = np.nanmax(np.abs(lower_ABA_matrix))
         if not normalize:
-            vmin, vmax = None, None
+            vmin, vmax = -largest_magnitude, largest_magnitude
         else:
-            largest_magnitude = np.nanmax(np.abs(lower_ABA_matrix))
-            if force_full_bounds:
-                vmin, vmax = -1, 1
-            else:
-                vmin, vmax = -largest_magnitude, largest_magnitude
+            vmin, vmax = -1, 1
         ms = data_ax.matshow(lower_ABA_matrix, cmap=cmap, vmin=vmin, vmax=vmax)
     else:
         # we "add" the arrays, retaining NaNs, to create a comparison matrix

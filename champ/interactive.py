@@ -63,12 +63,12 @@ class TargetSequence(object):
 
     @property
     def double_deletions(self):
-        for i in range(len(self._sequence)):
-            for j in range(i):
-                seq = self._sequence[:j] + self._sequence[j + 1:i] + self._sequence[i + 1:]
-                yield i, j, seq
-            seq = self._sequence[:i] + self._sequence[i + 1:]
-            yield i, i, seq
+        for downstream_index in range(len(self._sequence)):
+            for upstream_index in range(downstream_index):
+                seq = self._sequence[:upstream_index] + self._sequence[upstream_index + 1:downstream_index] + self._sequence[downstream_index + 1:]
+                yield upstream_index, downstream_index, seq
+            seq = self._sequence[:downstream_index] + self._sequence[downstream_index + 1:]
+            yield downstream_index, downstream_index, seq
 
     @property
     def single_mismatches(self):
@@ -111,6 +111,20 @@ class TargetSequence(object):
                 for insertion_base_1 in bases:
                     for insertion_base_2 in bases:
                         yield i, j, insertion_base_1, insertion_base_2, self._sequence[:j] + insertion_base_1 + self._sequence[j:i] + insertion_base_2 + self._sequence[i:]
+
+        # single insertions for the diagonal
+        for i in range(len(self._sequence)):
+            for insertion_base in bases:
+                yield i, i, insertion_base, insertion_base, self._sequence[:i] + insertion_base + self._sequence[i:]
+
+    @property
+    def double_insertions(self):
+        bases = 'ACGT'
+        for downstream_index in range(len(self._sequence)):
+            for upstream_index in range(downstream_index):
+                for upstream_insertion_base in bases:
+                    for downstream_insertion_base in bases:
+                        yield downstream_index, upstream_index, upstream_insertion_base, downstream_insertion_base, self._sequence[:upstream_index] + upstream_insertion_base + self._sequence[upstream_index:downstream_index] + downstream_insertion_base + self._sequence[downstream_index:]
 
         # single insertions for the diagonal
         for i in range(len(self._sequence)):
@@ -197,7 +211,8 @@ class InsertionMatrix(TwoDMatrix):
         super(InsertionMatrix, self).__init__(sequence, 4, bases)
 
     def set_value(self, position1, position2, base1, base2, value):
-        r, c = position1 * self._slots + self._bases.index(base1), position2 * self._slots + self._bases.index(base2)
+        r = position1 * self._slots + self._bases.index(base1)
+        c = position2 * self._slots + self._bases.index(base2)
         self._values[r][c] = value
 
 
