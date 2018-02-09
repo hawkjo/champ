@@ -38,14 +38,14 @@ def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     add_colorbar(fig, gs[cbar_index], ms, fontsize, label=colorbar_label)
 
 
-def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
+def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
     # Add the sequence labels to the left of the figure
     add_sequence_labels(fig, gs[left_seq_index], gs[bottom_seq_index], 1, sequence_labels)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, grid_line_spacing=1)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, grid_line_spacing=1, normalize=normalize, force_full_bounds=force_full_bounds)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
@@ -64,7 +64,7 @@ def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
 
-def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis'):
+def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False):
     dimension = 4
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
     data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index = indexes
@@ -75,7 +75,7 @@ def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     insertion_bases = 'ACGT' * len(sequence)
     add_color_axes(fig, gs[left_color_index], gs[bottom_color_index], insertion_bases)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, show_base_legend=True, grid_line_spacing=dimension)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, show_base_legend=True, grid_line_spacing=dimension, normalize=normalize, force_full_bounds=force_full_bounds)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
 
