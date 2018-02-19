@@ -291,7 +291,7 @@ def plot_library_comp_by_hamming_distance(ax,
     ax.set_ylabel('Substitutions', fontsize=18)
     ax.set_yticks(range(max_ham + 1))
     ax.set_ylim((max_ham + 1, -1))
-    ax.set_axis_bgcolor('white')
+    ax.set_facecolor('white')
     ax.grid(False)
     for item in ax.get_xticklabels() + ax.get_yticklabels():
         item.set_fontsize(16)

@@ -182,9 +182,9 @@ class TwoDMatrix(object):
                 if normalize_by is not None and value is not None:
                     value /= normalize_by
                 if (side == 'lower' and not flip_sequence) or (side == 'upper' and flip_sequence):
-                    data[r, c] = value
-                elif (side == 'upper' and not flip_sequence) or (side == 'lower' and flip_sequence):
                     data[c, r] = value
+                elif (side == 'upper' and not flip_sequence) or (side == 'lower' and flip_sequence):
+                    data[r, c] = value
         return data
 
     def _safe_append(self, r, c, value):
