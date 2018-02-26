@@ -103,19 +103,19 @@ class TargetSequence(object):
                 sequence = self._sequence[:i] + insertion_base + self._sequence[i:]
                 yield i, j, insertion_base, sequence
 
-    @property
-    def double_insertions(self):
-        bases = 'ACGT'
-        for i in range(len(self._sequence)):
-            for j in range(i):
-                for insertion_base_1 in bases:
-                    for insertion_base_2 in bases:
-                        yield i, j, insertion_base_1, insertion_base_2, self._sequence[:j] + insertion_base_1 + self._sequence[j:i] + insertion_base_2 + self._sequence[i:]
-
-        # single insertions for the diagonal
-        for i in range(len(self._sequence)):
-            for insertion_base in bases:
-                yield i, i, insertion_base, insertion_base, self._sequence[:i] + insertion_base + self._sequence[i:]
+    # @property
+    # def double_insertions(self):
+    #     bases = 'ACGT'
+    #     for i in range(len(self._sequence)):
+    #         for j in range(i):
+    #             for insertion_base_1 in bases:
+    #                 for insertion_base_2 in bases:
+    #                     yield i, j, insertion_base_1, insertion_base_2, self._sequence[:j] + insertion_base_1 + self._sequence[j:i] + insertion_base_2 + self._sequence[i:]
+    #
+    #     # single insertions for the diagonal
+    #     for i in range(len(self._sequence)):
+    #         for insertion_base in bases:
+    #             yield i, i, insertion_base, insertion_base, self._sequence[:i] + insertion_base + self._sequence[i:]
 
     @property
     def double_insertions(self):
@@ -181,10 +181,14 @@ class TwoDMatrix(object):
                     value = values
                 if normalize_by is not None and value is not None:
                     value /= normalize_by
-                if (side == 'lower' and not flip_sequence) or (side == 'upper' and flip_sequence):
-                    data[c, r] = value
-                elif (side == 'upper' and not flip_sequence) or (side == 'lower' and flip_sequence):
-                    data[r, c] = value
+                try:
+                    if (side == 'lower' and not flip_sequence) or (side == 'upper' and flip_sequence):
+                        data[r, c] = value
+                    elif (side == 'upper' and not flip_sequence) or (side == 'lower' and flip_sequence):
+                        data[c, r] = value
+                except IndexError:
+                    # In case the sequences aren't the same length. This is not a good solution
+                    continue
         return data
 
     def _safe_append(self, r, c, value):

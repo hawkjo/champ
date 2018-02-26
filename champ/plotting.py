@@ -390,9 +390,6 @@ def configure_position_penalty_axes(target, fig, penalty_axes, xticklabels, font
     penalty_axes.set_xticks(range(len(target)))
     penalty_axes.set_xticklabels(xticklabels, fontsize=tick_fontsize)
     ylim = penalty_axes.get_ylim()
-    for i, c in enumerate(target):
-        # color the background with the correct base
-        penalty_axes.fill_between([i-0.5, i+0.5], [ylim[0]]*2, [ylim[1]]*2, color=base_colors[c], alpha=0.14)
     penalty_axes.set_ylim(ylim)
     penalty_axes.set_xlabel('Target {target_name} Reference Sequence'.format(target_name=target_name), fontsize=fontsize)
     penalty_axes.set_ylabel(yaxis_label, fontsize=fontsize)
