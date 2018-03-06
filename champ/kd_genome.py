@@ -4,6 +4,7 @@ import misc
 from champ.kd import IAKdData
 from scipy.optimize import curve_fit
 from collections import defaultdict
+import numpy as np
 
 
 class ScoredRead(object):
