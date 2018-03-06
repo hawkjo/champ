@@ -171,11 +171,12 @@ class KdFitGenome(object):
             if rs.end <= pos:
                 self.read_scores_list.remove(rs)
 
-    def Iobs(self, x, Kd):
-        return 1.0/(1 + (float(Kd)/x))
+    def Iobs(self, concentrations, yint, delta_y, kd):
+        return yint + ((delta_y * concentrations) / (concentrations + kd))
 
     def fit_one_Kd(self, concs, scores):
-        popt, pcov = curve_fit(self.Iobs, concs, scores, maxfev=100000)
+        popt, pcov = curve_fit(self.Iobs, concs, scores, bounds=((-np.inf, -np.inf, sys.float_info.min*1000000),
+                                                                 (np.inf, np.inf, np.inf)))
         return popt[0]
 
     def fit_Kds_at_pos(self, pos, out_fh):
