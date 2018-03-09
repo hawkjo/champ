@@ -5,6 +5,8 @@ import tifffile
 from collections import defaultdict
 import numpy as np
 import logging
+from misc import parse_concentration
+
 
 log = logging.getLogger(__name__)
 
@@ -146,6 +148,7 @@ class TifsPerConcentration(BaseTifStack):
     def __iter__(self):
         for file_path in self._filenames:
             all_pages = defaultdict(list)
+            concentration = parse_concentration(file_path)
             with tifffile.TiffFile(file_path) as tif:
                 summary = tif.micromanager_metadata['summary']
 
@@ -182,7 +185,12 @@ class TifsPerConcentration(BaseTifStack):
                             dataset_name = '(Major, minor) = ({}, {})'.format(major_axis_label, minor_axis_label)
                             summed_images = defaultdict(lambda *x: np.zeros((512, 512), dtype=np.int))
                             # Add images
-                            for channel, page in channel_pages:
+                            if concentration < 32000:
+                                limit = 6
+                            else:
+                                limit = 10
+                            print("**** USING %d FRAMES PER FIELD OF VIEW FOR %d pM!" % (limit, concentration))
+                            for n, (channel, page) in zip(range(limit), channel_pages):
                                 image = page.asarray()
                                 # this subdivision might be incorrect formally,
                                 # it might be putting them in the wrong part of the larger "box"
