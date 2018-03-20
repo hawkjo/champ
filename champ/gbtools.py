@@ -12,6 +12,7 @@ import time
 import pickle
 from collections import defaultdict
 import h5py
+import lomp
 
 
 class GeneAffinity(object):
