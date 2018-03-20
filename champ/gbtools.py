@@ -381,7 +381,7 @@ def load_genes(hdf5_filename=None):
             yield gene_id, name, contig, gene_start, gene_stop, cds_parts[gene_id]
 
 
-def _thread_build_gene_affinities(gene):
+def _thread_build_gene_affinities(gene, position_kds):
     gene_id, name, contig, gene_start, gene_stop, cds_parts = gene
     affinity_data = position_kds[contig]
     return GeneAffinity(name, affinity_data, gene_start, gene_stop, cds_parts)
