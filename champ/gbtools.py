@@ -378,3 +378,13 @@ def load_genes(hdf5_filename=None):
             cds_parts[gene_id].append((cds_start, cds_stop))
         for gene_id, name, contig, gene_start, gene_stop in h5['bounds'][:]:
             yield gene_id, name, contig, gene_start, gene_stop, cds_parts[gene_id]
+
+
+def build_gene_affinities(genes, position_kds):
+    gene_affinities = {}
+    for gene_id, name, contig, gene_start, gene_stop, cds_parts in genes:
+        affinity_data = position_kds[contig]
+        gaff = GeneAffinity(name, affinity_data, gene_start, gene_stop, cds_parts)
+        if not gaff.is_valid:
+            continue
+        gene_affinities[name] = gaff
