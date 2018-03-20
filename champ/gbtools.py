@@ -120,7 +120,7 @@ class GeneAffinity(object):
         """
         if self._exon_kds is None:
             exonic_positions = set()
-            for start, stop, _ in self._cds_parts:
+            for start, stop in self._cds_parts:
                 for position in range(start, stop):
                     exonic_positions.add(position)
             self._exon_kds = []
