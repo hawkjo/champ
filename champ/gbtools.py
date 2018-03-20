@@ -389,8 +389,32 @@ def _thread_build_gene_affinities(gene, position_kds):
 
 def build_gene_affinities(genes, position_kds):
     gene_affinities = {}
-    for gaff in lomp.parallel_map(genes, _thread_build_gene_affinities, args=(position_kds,), process_count=32):
+    for n, gaff in enumerate(lomp.parallel_map(genes,
+                                               _thread_build_gene_affinities,
+                                               args=(position_kds,),
+                                               process_count=32)):
         if not gaff.is_valid:
             continue
+        if n % 100 == 99:
+            sys.stdout.write('.')
+            sys.stdout.flush()
         gene_affinities[gaff.name] = gaff
     return gene_affinities
+
+
+def load_contig_names(h5):
+    contig_names = {}
+    data = h5['contigs'][:]
+    for contig_id, name in data:
+        contig_names[contig_id] = name
+    return contig_names
+
+
+def load_position_kds(h5, contig_names):
+    kds = defaultdict(dict)
+    data = h5['genome-kds'][:]
+    for contig_id, position, kd, minus_err, plus_err, count in data:
+        contig_name = contig_names[contig_id]
+        kds[contig_name][position] = kd, minus_err, plus_err, count
+    return kds
+
