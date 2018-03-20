@@ -388,7 +388,7 @@ def _thread_build_gene_affinities(gene):
 
 def build_gene_affinities(genes, position_kds):
     gene_affinities = {}
-    for gaff in lomp.parallel_map(genes, _thread_build_gene_affinities, args=(position_kds,)):
+    for gaff in lomp.parallel_map(genes, _thread_build_gene_affinities, args=(position_kds,), process_count=32):
         if not gaff.is_valid:
             continue
         gene_affinities[name] = gaff
