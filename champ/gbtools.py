@@ -30,8 +30,8 @@ class GeneAffinity(object):
         for position in range(self._start, self._end):
             position_data = affinity_data.get(position)
             if position_data is None:
-                self._kds.append(np.nan)
-                self._kd_error.append(np.nan)
+                self._kds.append(None)
+                self._kd_error.append(None)
                 self._counts.append(0)
                 if last_good_position is not None and last_good_position == position - 1:
                     # we just transitioned to a gap in coverage from a region with coverage
@@ -69,7 +69,7 @@ class GeneAffinity(object):
 
     @property
     def compressed_counts(self):
-        return [count for count in self._counts if count is not None]
+        return [count for count in self._counts if count > 0]
 
     @property
     def start(self):
@@ -110,7 +110,7 @@ class GeneAffinity(object):
 
     @property
     def compressed_95_percent_ci(self):
-        return np.array([err for err in self.all_kd_errors if err is not None])
+        return [err for err in self.all_kd_errors if err is not None]
 
     @property
     def exon_kds(self):
@@ -131,7 +131,7 @@ class GeneAffinity(object):
 
     @property
     def highest_affinity(self):
-        return np.nanmin(self._kds)
+        return np.min([k for k in self._kds if k is not None])
 
 
 def get_qualifier_force_single(feature, qual_name, allow_zero=False):
