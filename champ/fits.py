@@ -87,7 +87,7 @@ class SEConfig(object):
 
     def _create_config_files(self):
         # DETECT_MAXAREA 64
-        default_text = """DETECT_THRESH 1.5
+        default_text = """DETECT_THRESH 2.0
 DEBLEND_NTHRESH 64
 DEBLEND_MINCONT 0.00005
 """
