@@ -360,7 +360,7 @@ def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None):
         for n, (name, contig, gene_start, gene_end, cds_parts) in enumerate(parse_gbff(gbff_filename)):
             bounds.append((n, name, contig, gene_start, gene_end))
             for start, stop, _ in cds_parts:
-                all_cds_parts.append(n, start, stop)
+                all_cds_parts.append((n, start, stop))
 
         bounds_dataset = h5.create_dataset('/bounds', (len(bounds),), dtype=bounds_dt)
         bounds_dataset[...] = bounds
