@@ -158,7 +158,7 @@ def get_gridspec(sequence, dimension):
     return gs, indexes, (width_ratios, height_ratios)
 
 
-def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$K_{d} (nM)$'):
+def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$K_{D} (nM)$'):
     cbar_ax = fig.add_subplot(colorbar_grid)
     cbar_ax.tick_params(labelsize=30)
     cbar = plt.colorbar(ms, cax=cbar_ax)
