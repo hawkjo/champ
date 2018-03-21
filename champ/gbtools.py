@@ -406,12 +406,12 @@ def _thread_build_gene_affinities(gene, position_kds):
     return GeneAffinity(name, affinity_data, gene_start, gene_stop, cds_parts)
 
 
-def build_gene_affinities(genes, position_kds):
+def build_gene_affinities(genes, position_kds, process_count=8):
     gene_affinities = {}
     for n, gaff in enumerate(lomp.parallel_map(genes,
                                                _thread_build_gene_affinities,
                                                args=(position_kds,),
-                                               process_count=32)):
+                                               process_count=process_count)):
         if not gaff.is_valid:
             continue
         if n % 100 == 99:
