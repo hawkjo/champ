@@ -26,7 +26,7 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
 
 
 def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, normalize=True, fontsize=18,
-                       positions_are_merged=True, colorbar_label='Relative Normalized ABAs ($k_{B}T$)', cmap='RdBu'):
+                       positions_are_merged=True, colorbar_label='Relative Normalized $K_D$ (nM)', cmap='RdBu'):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
@@ -158,7 +158,7 @@ def get_gridspec(sequence, dimension):
     return gs, indexes, (width_ratios, height_ratios)
 
 
-def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$\Delta ABA\ (k_{B}T)$'):
+def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$K_{d} (nM)$'):
     cbar_ax = fig.add_subplot(colorbar_grid)
     cbar_ax.tick_params(labelsize=30)
     cbar = plt.colorbar(ms, cax=cbar_ax)
