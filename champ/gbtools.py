@@ -120,15 +120,34 @@ class GeneAffinity(object):
 
         """
         if self._exon_kds is None:
-            exonic_positions = set()
-            for start, stop in self._cds_parts:
-                for position in range(start, stop):
-                    exonic_positions.add(position)
-            self._exon_kds = []
-            for kd, position in zip(self.all_kds, self.all_positions):
-                if position in exonic_positions:
-                    self._exon_kds.append(kd)
+            self._calculate_exon_data()
         return self._exon_kds
+
+    @property
+    def exon_counts(self):
+        if self._exon_counts is None:
+            self._calculate_exon_data()
+        return self._exon_counts
+
+    @property
+    def exon_kd_errors(self):
+        if self._exon_kd_errors is None:
+            self._calculate_exon_data()
+        return self._exon_kd_errors
+
+    def _calculate_exon_data(self):
+        exonic_positions = set()
+        for start, stop in self._cds_parts:
+            for position in range(start, stop):
+                exonic_positions.add(position)
+        self._exon_kds = []
+        self._exon_kd_errors = []
+        self._exon_counts = []
+        for kd, error, position, count in zip(self.all_kds, self.all_kd_errors, self.all_positions, self.counts):
+            if position in exonic_positions:
+                self._exon_kds.append(kd)
+                self._exon_kd_errors.append(error)
+                self._exon_counts.append(count)
 
     @property
     def highest_affinity(self):
