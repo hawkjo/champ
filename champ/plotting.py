@@ -375,9 +375,9 @@ def get_cluster_counts(ia, seq):
 
 def configure_position_penalty_axes(target, fig, penalty_axes, xticklabels, fontsize, tick_fontsize,
                                     yaxis_type, target_name, legend=True, count_axes=None):
-    base_colors = {'A': flabpal.blue, 'C': flabpal.yellow, 'G': flabpal.green, 'T': flabpal.red}
     if yaxis_type == 'kd':
         yaxis_label = '$K_{d} (nM)$'
+        penalty_axes.set_yscale('log')
     elif yaxis_type == 'ddG':
         yaxis_label = '$\Delta \Delta G\ (K_{B}T)$'
     elif yaxis_type == 'ABA':
