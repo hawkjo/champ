@@ -24,6 +24,8 @@ class GeneAffinity(object):
         self._start = min(gene_start, gene_end)
         self._end = max(gene_end, gene_end)
         self._exon_kds = None
+        self._exon_kd_errors = None
+        self._exon_counts = None
         self._breaks = []
         self._is_valid = False
         last_good_position = None
