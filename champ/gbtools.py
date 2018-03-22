@@ -439,6 +439,7 @@ def parse_gene_affinities(contig, gene_start, gene_stop, position_kds):
 def build_gene_affinities(genes, position_kds):
     gene_affinities = []
     for gene_id, name, contig, gene_start, gene_stop, cds_parts in genes:
+        print(gene_id)
         kds, kd_high_errors, kd_low_errors, counts, breaks = parse_gene_affinities(contig,
                                                                                    gene_start,
                                                                                    gene_stop,
@@ -491,10 +492,14 @@ def load_position_kds(h5, contig_names):
 
 def main_gaff(genome_kds_hdf5_path):
     """ We assume that convert_gbff_to_hdf5() has already been run using the default file paths. """
+    print("\n\nLOADING GENE POSITIONS")
     genes = load_gene_positions()
+    print("\n\nLOADING CONTIGS AND KDS")
     with h5py.File(genome_kds_hdf5_path, 'r') as h5:
         # TODO: The code that writes these is in genome-kd-march20. That needs to be moved here.
         contig_names = load_contig_names(h5)
         position_kds = load_position_kds(h5, contig_names)
+    print("\n\nBUILDING GENE AFFINITIES")
     gene_affinities = build_gene_affinities(genes, position_kds)
+    print("\n\nSAVING GENE AFFINITIES")
     save_gene_affinities(gene_affinities)
