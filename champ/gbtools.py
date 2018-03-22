@@ -359,6 +359,9 @@ def parse_gbff(fpath):
 
 
 def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None):
+    """ This finds the positions of all coding sequences for all genes in a Refseq-formatted GBFF file and saves the
+    results to HDF5. It should be run once per flow cell. """
+
     # Use default paths if none are given
     if hdf5_filename is None:
         hdf5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
@@ -391,7 +394,7 @@ def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None):
         cds_parts_dataset[...] = all_cds_parts
 
 
-def load_genes(hdf5_filename=None):
+def load_gene_positions(hdf5_filename=None):
     if hdf5_filename is None:
         hdf5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
     with h5py.File(hdf5_filename, 'r') as h5:
@@ -402,25 +405,71 @@ def load_genes(hdf5_filename=None):
             yield gene_id, name, contig, gene_start, gene_stop, cds_parts[gene_id]
 
 
-def _thread_build_gene_affinities(gene, position_kds):
-    gene_id, name, contig, gene_start, gene_stop, cds_parts = gene
+def parse_gene_affinities(contig, gene_start, gene_stop, position_kds):
     affinity_data = position_kds[contig]
-    return GeneAffinity(name, affinity_data, gene_start, gene_stop, cds_parts)
+    coverage_counter = 0
+    last_good_position = None
+    kds = []
+    kd_high_errors = []
+    kd_low_errors = []
+    counts = []
+    breaks = []
+    for position in range(gene_start, gene_stop):
+        position_data = affinity_data.get(position)
+        if position_data is None:
+            kds.append(None)
+            kd_high_errors.append(None)
+            kd_low_errors.append(None)
+            counts.append(0)
+            if last_good_position is not None and last_good_position == position - 1:
+                # we just transitioned to a gap in coverage from a region with coverage
+                breaks.append(coverage_counter)
+        else:
+            kd, minus_err, plus_err, count = position_data
+            kds.append(kd)
+            kd_high_errors.append(plus_err)
+            kd_low_errors.append(minus_err)
+            counts.append(count)
+            last_good_position = position
+            coverage_counter += 1
+    return kds, kd_high_errors, kd_low_errors, counts, breaks
 
 
-def build_gene_affinities(genes, position_kds, process_count=8):
-    gene_affinities = {}
-    for n, gaff in enumerate(lomp.parallel_map(genes,
-                                               _thread_build_gene_affinities,
-                                               args=(position_kds,),
-                                               process_count=process_count)):
-        if not gaff.is_valid:
-            continue
-        if n % 100 == 99:
-            sys.stdout.write('.')
-            sys.stdout.flush()
-        gene_affinities[gaff.name] = gaff
+
+def build_gene_affinities(genes, position_kds):
+    gene_affinities = []
+    for gene_id, name, contig, gene_start, gene_stop, cds_parts in genes:
+        kds, kd_high_errors, kd_low_errors, counts, breaks = parse_gene_affinities(contig,
+                                                                                   gene_start,
+                                                                                   gene_stop,
+                                                                                   position_kds)
+        gene_affinities.append((gene_id, kds, kd_high_errors, kd_low_errors, counts, breaks))
     return gene_affinities
+
+
+def save_gene_affinities(gene_affinities, hdf5_filename=None):
+    hdf5_filename = hdf5_filename if hdf5_filename is not None else os.path.join('results', 'gene-affinities.h5')
+    float_vector_dt = h5py.special_dtype(vlen=np.float)
+    int_vector_dt = h5py.special_dtype(vlen=np.int32)
+    gene_affinities_dt = np.dtype([('gene_id', np.uint32),
+                                   ('kds', float_vector_dt),
+                                   ('kd_high_errors', float_vector_dt),
+                                   ('kd_low_errors', float_vector_dt),
+                                   ('counts', int_vector_dt),
+                                   ('breaks', int_vector_dt)])
+    gaffs = np.array(gene_affinities, dtype=gene_affinities_dt)
+    with h5py.File(hdf5_filename, 'w') as h5:
+        dataset = h5.create_dataset('/gene-affinities', (len(gaffs),), dtype=gene_affinities_dt)
+        dataset[...] = bounds
+
+# def load_gene_affinities(gene_affinities_hdf5_path, gene_boundaries_hdf5_filename=None):
+#     if gene_boundaries_hdf5_filename is None:
+#         gene_boundaries_hdf5_filename = os.path.join(os.path.expanduser('~'),
+#                                                      '.local',
+#                                                      'champ',
+#                                                      'gene-boundaries.h5')
+#     with h5py.File(gene_affinities_hdf5_path, 'r') as gaffh5, h5py.File(gene_boundaries_hdf5_filename, 'r') as boundh5:
+#
 
 
 def load_contig_names(h5):
@@ -439,3 +488,13 @@ def load_position_kds(h5, contig_names):
         kds[contig_name][position] = kd, minus_err, plus_err, count
     return kds
 
+
+def main_gaff(genome_kds_hdf5_path):
+    """ We assume that convert_gbff_to_hdf5() has already been run using the default file paths. """
+    genes = load_gene_positions()
+    with h5py.File(genome_kds_hdf5_path, 'r') as h5:
+        # TODO: The code that writes these is in genome-kd-march20. That needs to be moved here.
+        contig_names = load_contig_names(h5)
+        position_kds = load_position_kds(h5, contig_names)
+    gene_affinities = build_gene_affinities(genes, position_kds)
+    save_gene_affinities(gene_affinities)
