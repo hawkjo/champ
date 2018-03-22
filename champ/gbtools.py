@@ -470,13 +470,13 @@ def save_gene_affinities(gene_affinities, hdf5_filename=None):
         dataset[...] = gene_affinities
 
 
-def load_gene_affinities(gene_affinities_hdf5_path, gene_boundaries_hdf5_filename=None):
-    if gene_boundaries_hdf5_filename is None:
-        gene_boundaries_hdf5_filename = os.path.join(os.path.expanduser('~'),
-                                                     '.local',
-                                                     'champ',
-                                                     'gene-boundaries.h5')
-    with h5py.File(gene_affinities_hdf5_path, 'r') as gaffh5, h5py.File(gene_boundaries_hdf5_filename, 'r') as boundh5:
+# def load_gene_affinities(gene_affinities_hdf5_path, gene_boundaries_hdf5_filename=None):
+#     if gene_boundaries_hdf5_filename is None:
+#         gene_boundaries_hdf5_filename = os.path.join(os.path.expanduser('~'),
+#                                                      '.local',
+#                                                      'champ',
+#                                                      'gene-boundaries.h5')
+#     with h5py.File(gene_affinities_hdf5_path, 'r') as gaffh5, h5py.File(gene_boundaries_hdf5_filename, 'r') as boundh5:
 
 
 
