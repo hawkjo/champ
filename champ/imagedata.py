@@ -21,11 +21,11 @@ class ImageData(object):
 
     def set_fft(self, padding):
         totalx, totaly = np.array(padding) + np.array(self.image.shape)
-        w = misc.next_power_of_2(totalx)
-        h = misc.next_power_of_2(totaly)
+        dimension = int(max(misc.next_power_of_2(totalx),
+                        misc.next_power_of_2(totaly)))
         padded_im = np.pad(self.image,
-                           ((int(padding[0]), int(w) - int(totalx)), (int(padding[1]), int(h) - int(totaly))),
+                           ((int(padding[0]), dimension - int(totalx)), (int(padding[1]), dimension - int(totaly))),
                            mode='constant')
-        if padded_im.shape != (h, w):
+        if padded_im.shape != (dimension, dimension):
             raise ValueError("FFT of microscope image is not a power of 2, this will cause the program to stall.")
         self.fft = np.fft.fft2(padded_im)
