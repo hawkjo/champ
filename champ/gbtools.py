@@ -452,12 +452,13 @@ def build_gene_affinities(genes, position_kds):
                                                                                    gene_stop,
                                                                                    position_kds)
         yield (gene_id,
-                  (np.array(tuple(kds), dtype=float_vector_dt),
-                   np.array(tuple(kd_high_errors), dtype=float_vector_dt),
-                   np.array(tuple(kd_low_errors), dtype=float_vector_dt),
-                   np.array(tuple(counts), dtype=int_vector_dt),
-                   np.array(tuple(breaks), dtype=int_vector_dt))
-               )
+               (kds, kd_high_errors, kd_low_errors, counts, breaks))
+                  # (np.array(tuple(kds), dtype=float_vector_dt),
+                  #  np.array(tuple(kd_high_errors), dtype=float_vector_dt),
+                  #  np.array(tuple(kd_low_errors), dtype=float_vector_dt),
+                  #  np.array(tuple(counts), dtype=int_vector_dt),
+                  #  np.array(tuple(breaks), dtype=int_vector_dt))
+
 
 def save_gene_affinities(gene_affinities, hdf5_filename=None):
     hdf5_filename = hdf5_filename if hdf5_filename is not None else os.path.join('results', 'gene-affinities.h5')
@@ -465,7 +466,7 @@ def save_gene_affinities(gene_affinities, hdf5_filename=None):
         group = h5.create_group('gene-affinities')
         for gene_id, (kds, kd_high_errors, kd_low_errors, counts, breaks) in gene_affinities:
             dataset = group.create_dataset(str(gene_id), (1,), dtype=gene_affinity_dt)
-            dataset['kds'] = kds
+            dataset['kds'][...] = kds
             dataset['kd_high_errors'] = kd_high_errors
             dataset['kd_low_errors'] = kd_low_errors
             dataset['counts'] = counts
