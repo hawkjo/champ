@@ -466,7 +466,7 @@ def save_gene_affinities(gene_affinities, hdf5_filename=None):
         group = h5.create_group('gene-affinities')
         for gene_id, (kds, kd_high_errors, kd_low_errors, counts, breaks) in gene_affinities:
             dataset = group.create_dataset(str(gene_id), (1,), dtype=gene_affinity_dt)
-            dataset['kds'][...] = kds
+            dataset['kds'] = kds
             dataset['kd_high_errors'] = kd_high_errors
             dataset['kd_low_errors'] = kd_low_errors
             dataset['counts'] = counts
