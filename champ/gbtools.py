@@ -452,11 +452,11 @@ def build_gene_affinities(genes, position_kds):
                                                                                    gene_stop,
                                                                                    position_kds)
         yield (gene_id,
-                  (np.array(kds, dtype=np.float),
-                   np.array(kd_high_errors, dtype=np.float),
-                   np.array(kd_low_errors, dtype=np.float),
-                   np.array(counts, dtype=np.int32),
-                   np.array(breaks, dtype=np.int32))
+                  (np.array(tuple(kds), dtype=float_vector_dt),
+                   np.array(tuple(kd_high_errors), dtype=float_vector_dt),
+                   np.array(tuple(kd_low_errors), dtype=float_vector_dt),
+                   np.array(tuple(counts), dtype=int_vector_dt),
+                   np.array(tuple(breaks), dtype=int_vector_dt))
                )
 
 def save_gene_affinities(gene_affinities, hdf5_filename=None):
