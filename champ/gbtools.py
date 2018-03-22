@@ -10,9 +10,18 @@ from pysam import Samfile
 import numpy as np
 import time
 import pickle
-from collections import defaultdict
 import h5py
 import lomp
+
+
+float_vector_dt = h5py.special_dtype(vlen=np.float)
+int_vector_dt = h5py.special_dtype(vlen=np.int32)
+gene_affinities_dt = np.dtype([('gene_id', np.uint32),
+                               ('kds', float_vector_dt),
+                               ('kd_high_errors', float_vector_dt),
+                               ('kd_low_errors', float_vector_dt),
+                               ('counts', int_vector_dt),
+                               ('breaks', int_vector_dt)])
 
 
 class GeneAffinity(object):
@@ -444,33 +453,32 @@ def build_gene_affinities(genes, position_kds):
                                                                                    gene_start,
                                                                                    gene_stop,
                                                                                    position_kds)
-        gene_affinities.append((gene_id, kds, kd_high_errors, kd_low_errors, counts, breaks))
-    return gene_affinities
+        gene_affinities.append((gene_id,
+                                np.array(kds, dtype=np.float),
+                                np.array(kd_high_errors, dtype=np.float),
+                                np.array(kd_low_errors, dtype=np.float),
+                                np.array(counts, dtype=np.int32),
+                                np.array(breaks, dtype=np.int32))
+                               )
+    return np.array(gene_affinities, dtype=gene_affinities_dt)
 
 
 def save_gene_affinities(gene_affinities, hdf5_filename=None):
     hdf5_filename = hdf5_filename if hdf5_filename is not None else os.path.join('results', 'gene-affinities.h5')
-    float_vector_dt = h5py.special_dtype(vlen=np.float)
-    int_vector_dt = h5py.special_dtype(vlen=np.int32)
-    gene_affinities_dt = np.dtype([('gene_id', np.uint32),
-                                   ('kds', float_vector_dt),
-                                   ('kd_high_errors', float_vector_dt),
-                                   ('kd_low_errors', float_vector_dt),
-                                   ('counts', int_vector_dt),
-                                   ('breaks', int_vector_dt)])
-    gaffs = np.array(gene_affinities, dtype=gene_affinities_dt)
     with h5py.File(hdf5_filename, 'w') as h5:
-        dataset = h5.create_dataset('/gene-affinities', (len(gaffs),), dtype=gene_affinities_dt)
-        dataset[...] = bounds
+        dataset = h5.create_dataset('/gene-affinities', (len(gene_affinities),), dtype=gene_affinities_dt)
+        dataset[...] = gene_affinities
 
-# def load_gene_affinities(gene_affinities_hdf5_path, gene_boundaries_hdf5_filename=None):
-#     if gene_boundaries_hdf5_filename is None:
-#         gene_boundaries_hdf5_filename = os.path.join(os.path.expanduser('~'),
-#                                                      '.local',
-#                                                      'champ',
-#                                                      'gene-boundaries.h5')
-#     with h5py.File(gene_affinities_hdf5_path, 'r') as gaffh5, h5py.File(gene_boundaries_hdf5_filename, 'r') as boundh5:
-#
+
+def load_gene_affinities(gene_affinities_hdf5_path, gene_boundaries_hdf5_filename=None):
+    if gene_boundaries_hdf5_filename is None:
+        gene_boundaries_hdf5_filename = os.path.join(os.path.expanduser('~'),
+                                                     '.local',
+                                                     'champ',
+                                                     'gene-boundaries.h5')
+    with h5py.File(gene_affinities_hdf5_path, 'r') as gaffh5, h5py.File(gene_boundaries_hdf5_filename, 'r') as boundh5:
+
+
 
 
 def load_contig_names(h5):
