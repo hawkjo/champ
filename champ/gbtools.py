@@ -11,12 +11,22 @@ from scipy import stats
 MINIMUM_CLUSTER_COUNT = 6
 
 
-def load_gene_affinities(gene_boundaries_h5_filename=None):
+def load_genes(gene_boundaries_h5_filename=None):
     if gene_boundaries_h5_filename is None:
         gene_boundaries_h5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
     for gene_id, name, contig, gene_start, gene_stop, cds_parts in load_gene_positions(gene_boundaries_h5_filename):
         gaff = GeneAffinity(gene_id, name, contig)
         yield gaff.set_boundaries(gene_start, gene_stop, cds_parts)
+
+
+def load_gene_kd(gene_id, hdf5_filename=None):
+    hdf5_filename = hdf5_filename if hdf5_filename is not None else os.path.join('results', 'gene-affinities.h5')
+    with h5py.File(hdf5_filename, 'r') as h5:
+        kd = h5['kds/{gene_id}'.format(gene_id=gene_id)].value
+        kd_high_errors = h5['kd_high_errors/{gene_id}'.format(gene_id=gene_id)].value
+        kd_low_errors = h5['kd_low_errors/{gene_id}'.format(gene_id=gene_id)].value
+        counts = h5['counts/{gene_id}'.format(gene_id=gene_id)].value
+        return kd, kd_low_errors, kd_high_errors, counts
 
 
 class GeneAffinity(object):
