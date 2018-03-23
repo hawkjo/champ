@@ -11,7 +11,7 @@ from scipy import stats
 MINIMUM_CLUSTER_COUNT = 6
 
 
-class Gene(object):
+class GeneAffinity(object):
     def __init__(self, gene_id, name, contig):
         """
         Represents our KD measurements across a gene. We might not have data at each location, especially if using
@@ -59,6 +59,10 @@ class Gene(object):
         return self._kd_errors_high
 
     @property
+    def counts(self):
+        return self._counts
+
+    @property
     def exons(self):
         """ Collects data from exonic positions only, and repackages them into a Gene object. """
         positions = self._exonic
@@ -67,7 +71,7 @@ class Gene(object):
         kd_errors_high = self._kd_errors_high[positions]
         counts = self._counts[positions]
         exonic = np.ones(kds.shape, dtype=np.bool)
-        gene = Gene(self.id, "%s Exons" % self.name, self.contig)
+        gene = GeneAffinity(self.id, "%s Exons" % self.name, self.contig)
         gene = gene.set_measurements(kds, kd_errors_low, kd_errors_high, counts)
         gene = gene.set_exons(exonic)
         return gene
@@ -82,7 +86,7 @@ class Gene(object):
         kd_errors_high = self._kd_errors_high[positions]
         counts = self._counts[positions]
         exonic = self._exonic[positions]
-        gene = Gene(self.id, "%s Compressed" % self.name, self.contig)
+        gene = GeneAffinity(self.id, "%s Compressed" % self.name, self.contig)
         gene = gene.set_measurements(kds, kd_errors_low, kd_errors_high, counts)
         gene = gene.set_exons(exonic)
         return gene
@@ -90,148 +94,6 @@ class Gene(object):
     @property
     def highest_affinity(self):
         return np.nanmin(self._kds)
-
-
-# class GeneAffinity(object):
-#     # TODO TOMORROW: This no longer makes sense - we don't need to parse things
-#     def __init__(self, name, affinity_data, gene_start, gene_end, cds_parts):
-#         self._name = name
-#         self._kds = []
-#         self._kd_error = []  # standard error of the fit?
-#         self._counts = []
-#         self._start = min(gene_start, gene_end)
-#         self._end = max(gene_end, gene_end)
-#         self._exon_kds = None
-#         self._exon_kd_errors = None
-#         self._exon_counts = None
-#         self._breaks = []
-#         self._is_valid = False
-#         last_good_position = None
-#         coverage_counter = 0
-#         for position in range(self._start, self._end):
-#             position_data = affinity_data.get(position)
-#             if position_data is None:
-#                 self._kds.append(None)
-#                 self._kd_error.append(None)
-#                 self._counts.append(0)
-#                 if last_good_position is not None and last_good_position == position - 1:
-#                     # we just transitioned to a gap in coverage from a region with coverage
-#                     self._breaks.append(coverage_counter)
-#             else:
-#                 self._is_valid = True
-#                 kd, minus_err, plus_err, count = position_data
-#                 self._kds.append(kd)
-#                 self._kd_error.append((plus_err, minus_err))
-#                 self._counts.append(count)
-#                 last_good_position = position
-#                 coverage_counter += 1
-#         self._cds_parts = cds_parts
-#
-#     @property
-#     def is_valid(self):
-#         return self._is_valid
-#
-#     @property
-#     def name(self):
-#         return self._name
-#
-#     @property
-#     def breaks(self):
-#         """
-#         The rightmost position in a region where we have coverage. Typically these are the 3' boundary of an exon
-#         but our exon library also has some coverage of introns.
-#
-#         """
-#         return self._breaks
-#
-#     @property
-#     def counts(self):
-#         return self._counts
-#
-#     @property
-#     def compressed_counts(self):
-#         return [count for count in self._counts if count > 0]
-#
-#     @property
-#     def start(self):
-#         return self._start
-#
-#     @property
-#     def end(self):
-#         return self._end
-#
-#     @property
-#     def all_kds(self):
-#         """
-#         KDs at each position in the gene, including introns. Positions without data will be set to None.
-#
-#         """
-#         return self._kds
-#
-#     @property
-#     def all_kd_errors(self):
-#         return self._kd_error
-#
-#     @property
-#     def all_positions(self):
-#         """
-#         Coordinates of each base pair in the gene's chromosome.
-#
-#         """
-#         return np.arange(self._start, self._end)
-#
-#     @property
-#     def compressed_kds(self):
-#         """
-#         All KDs for this gene, in order, regardless of whether or not they are in an intron. Essentially just
-#         removing all the gaps in our coverage for easier interpretation.
-#
-#         """
-#         return [kd for kd in self.all_kds if kd is not None]
-#
-#     @property
-#     def compressed_95_percent_ci(self):
-#         return [err for err in self.all_kd_errors if err is not None]
-#
-#     @property
-#     def exon_kds(self):
-#         """
-#         KDs at each exonic position in the gene. Positions without data will be set to None.
-#
-#         """
-#         if self._exon_kds is None:
-#             self._calculate_exon_data()
-#         return self._exon_kds
-#
-#     @property
-#     def exon_counts(self):
-#         if self._exon_counts is None:
-#             self._calculate_exon_data()
-#         return self._exon_counts
-#
-#     @property
-#     def exon_kd_errors(self):
-#         if self._exon_kd_errors is None:
-#             self._calculate_exon_data()
-#         return self._exon_kd_errors
-#
-#     def _calculate_exon_data(self):
-#         exonic_positions = set()
-#         for start, stop in self._cds_parts:
-#             for position in range(start, stop):
-#                 exonic_positions.add(position)
-#         self._exon_kds = []
-#         self._exon_kd_errors = []
-#         self._exon_counts = []
-#         for kd, error, position, count in zip(self.all_kds, self.all_kd_errors, self.all_positions, self.counts):
-#             if position in exonic_positions:
-#                 self._exon_kds.append(kd)
-#                 self._exon_kd_errors.append(error)
-#                 self._exon_counts.append(count)
-#
-#     @property
-#     def highest_affinity(self):
-#         return np.min([k for k in self._kds if k is not None])
 
 
 def get_qualifier_force_single(feature, qual_name, allow_zero=False):
@@ -260,7 +122,7 @@ class GenBankCDS(object):
             self.protein_id = get_qualifier_force_single(cds_feature, 'protein_id')
             self.translation = get_qualifier_force_single(cds_feature, 'translation')
         except KeyError:
-            assert 'exception' in cds_feature.qualifiers, cds
+            assert 'exception' in cds_feature.qualifiers, cds_feature
             self.protein_id = None
             self.translation = None
 
