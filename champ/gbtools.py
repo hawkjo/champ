@@ -1,20 +1,19 @@
 import sys
 import os
-from glob import glob
 import itertools
 from collections import defaultdict, Counter
 from Bio import SeqIO
-import pysam
 from uncertainties import ufloat
 from pysam import Samfile
 import numpy as np
-import time
-import pickle
 import h5py
-import lomp
+from scipy import stats
+
+MINIMUM_CLUSTER_COUNT = 6
 
 
 class GeneAffinity(object):
+    # TODO TOMORROW: This no longer makes sense - we don't need to parse things
     def __init__(self, name, affinity_data, gene_start, gene_end, cds_parts):
         self._name = name
         self._kds = []
@@ -367,7 +366,6 @@ def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None):
     if gbff_filename is None:
         gbff_filename = os.path.join(os.path.expanduser("~"), '.local', 'champ', 'human-genome.gbff')
 
-
     string_dt = h5py.special_dtype(vlen=str)
     bounds_dt = np.dtype([('gene_id', np.uint32),
                           ('name', string_dt),
@@ -391,17 +389,6 @@ def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None):
 
         cds_parts_dataset = h5.create_dataset('/cds-parts', (len(all_cds_parts),), dtype=cds_parts_dt)
         cds_parts_dataset[...] = all_cds_parts
-
-
-def load_gene_positions(hdf5_filename=None):
-    if hdf5_filename is None:
-        hdf5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
-    with h5py.File(hdf5_filename, 'r') as h5:
-        cds_parts = defaultdict(list)
-        for gene_id, cds_start, cds_stop in h5['cds-parts'][:]:
-            cds_parts[gene_id].append((cds_start, cds_stop))
-        for gene_id, name, contig, gene_start, gene_stop in h5['bounds'][:]:
-            yield gene_id, name, contig, gene_start, gene_stop, cds_parts[gene_id]
 
 
 def parse_gene_affinities(contig, gene_start, gene_stop, position_kds):
@@ -434,26 +421,68 @@ def parse_gene_affinities(contig, gene_start, gene_stop, position_kds):
     return kds, kd_high_errors, kd_low_errors, counts, breaks
 
 
+def main_gaff(bamfile, read_name_kd_filename):
+    """ We assume that convert_gbff_to_hdf5() has already been run using the default file paths. """
+    read_name_kds = load_kds(read_name_kd_filename)
+    position_kds = calculate_genomic_kds(bamfile, read_name_kds)
+    genes = load_gene_positions()
+    gene_affinities = build_gene_affinities(genes, position_kds)
+    save_gene_affinities(gene_affinities)
+
+
+def load_kds(filename):
+    read_name_kds = {}
+    with open(filename) as f:
+        for line in f:
+            read_name, kdstr, kderrstr = line.strip().split("\t")
+            kd, kderr = float(kdstr), float(kderrstr)
+            read_name_kds[read_name] = ufloat(kd, kderr)
+    return read_name_kds
+
+
+def calculate_genomic_kds(bamfile, read_name_kds):
+    position_kds = {}
+    try:
+        with Samfile(bamfile) as samfile:
+            for contig in samfile.references:
+                contig_position_kds = find_kds_at_all_positions(samfile.pileup(contig), read_name_kds)
+                sys.stdout.write('*')
+                sys.stdout.flush()
+                position_kds[contig] = contig_position_kds
+        return position_kds
+    except IOError:
+        raise ValueError("Could not open %s. Does it exist and is it valid?" % bamfile)
+
+
+def load_gene_positions(hdf5_filename=None):
+    if hdf5_filename is None:
+        hdf5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
+    with h5py.File(hdf5_filename, 'r') as h5:
+        cds_parts = defaultdict(list)
+        for gene_id, cds_start, cds_stop in h5['cds-parts'][:]:
+            cds_parts[gene_id].append((cds_start, cds_stop))
+        for gene_id, name, contig, gene_start, gene_stop in h5['bounds'][:]:
+            yield gene_id, name, contig, gene_start, gene_stop, cds_parts[gene_id]
+
 
 def build_gene_affinities(genes, position_kds):
     for gene_id, name, contig, gene_start, gene_stop, cds_parts in genes:
-        print(gene_id)
         kds, kd_high_errors, kd_low_errors, counts, breaks = parse_gene_affinities(contig,
                                                                                    gene_start,
                                                                                    gene_stop,
                                                                                    position_kds)
         yield (gene_id,
-                  np.array(kds, dtype=np.float),
-                   np.array(kd_high_errors, dtype=np.float),
-                   np.array(kd_low_errors, dtype=np.float),
-                   np.array(counts, dtype=np.int32),
-                   np.array(breaks, dtype=np.int32))
-
+               np.array(kds, dtype=np.float),
+               np.array(kd_high_errors, dtype=np.float),
+               np.array(kd_low_errors, dtype=np.float),
+               np.array(counts, dtype=np.int32),
+               np.array(breaks, dtype=np.int32))
 
 
 def save_gene_affinities(gene_affinities, hdf5_filename=None):
     hdf5_filename = hdf5_filename if hdf5_filename is not None else os.path.join('results', 'gene-affinities.h5')
     with h5py.File(hdf5_filename, 'w') as h5:
+        # But do that later
         kd_group = h5.create_group('kds')
         kd_high_errors_group = h5.create_group('kd_high_errors')
         kd_low_errors_group = h5.create_group('kd_low_errors')
@@ -468,44 +497,27 @@ def save_gene_affinities(gene_affinities, hdf5_filename=None):
             counts_group.create_dataset(gene_id_str, data=counts)
             breaks_group.create_dataset(gene_id_str, data=breaks)
 
-# def load_gene_affinities(gene_affinities_hdf5_path, gene_boundaries_hdf5_filename=None):
-#     if gene_boundaries_hdf5_filename is None:
-#         gene_boundaries_hdf5_filename = os.path.join(os.path.expanduser('~'),
-#                                                      '.local',
-#                                                      'champ',
-#                                                      'gene-boundaries.h5')
-#     with h5py.File(gene_affinities_hdf5_path, 'r') as gaffh5, h5py.File(gene_boundaries_hdf5_filename, 'r') as boundh5:
+
+def find_kds_at_all_positions(pileup_columns, read_name_kds):
+    """
+    We want to know the KD at each base pair of the genomic DNA.
+
+    """
+    position_kds = {}
+    for pileup_column in pileup_columns:
+        position = pileup_column.reference_pos
+        p_kds = []
+        for pileup_read in pileup_column.pileups:
+            kd = read_name_kds.get(pileup_read.alignment.qname)
+            if kd is not None:
+                p_kds.append(kd.n)
+        if len(p_kds) >= MINIMUM_CLUSTER_COUNT:
+            median = np.median(p_kds)
+            confidence95minus, confidence95plus = stats.mstats.median_cihs(p_kds)
+            position_kds[position] = median, median - confidence95minus, confidence95plus - median, len(p_kds)
+    return position_kds
 
 
 
 
-def load_contig_names(h5):
-    contig_names = {}
-    data = h5['contigs'][:]
-    for contig_id, name in data:
-        contig_names[contig_id] = name
-    return contig_names
 
-
-def load_position_kds(h5, contig_names):
-    kds = defaultdict(dict)
-    data = h5['genome-kds'][:]
-    for contig_id, position, kd, minus_err, plus_err, count in data:
-        contig_name = contig_names[contig_id]
-        kds[contig_name][position] = kd, minus_err, plus_err, count
-    return kds
-
-
-def main_gaff(genome_kds_hdf5_path):
-    """ We assume that convert_gbff_to_hdf5() has already been run using the default file paths. """
-    print("\n\nLOADING GENE POSITIONS")
-    genes = load_gene_positions()
-    print("\n\nLOADING CONTIGS AND KDS")
-    with h5py.File(genome_kds_hdf5_path, 'r') as h5:
-        # TODO: The code that writes these is in genome-kd-march20. That needs to be moved here.
-        contig_names = load_contig_names(h5)
-        position_kds = load_position_kds(h5, contig_names)
-    print("\n\nBUILDING GENE AFFINITIES")
-    gene_affinities = build_gene_affinities(genes, position_kds)
-    print("\n\nSAVING GENE AFFINITIES")
-    save_gene_affinities(gene_affinities)
