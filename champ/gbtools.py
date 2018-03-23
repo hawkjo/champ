@@ -449,7 +449,7 @@ def calculate_genomic_kds(bamfile, read_name_kds):
     position_kds = {}
     try:
         with Samfile(bamfile) as samfile:
-            for contig in samfile.references:
+            for contig in reversed(sorted(samfile.references)):
                 contig_position_kds = find_kds_at_all_positions(samfile.pileup(contig), read_name_kds)
                 sys.stdout.write('*')
                 sys.stdout.flush()
