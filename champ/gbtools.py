@@ -54,7 +54,7 @@ class GeneAffinity(object):
 
     def set_boundaries(self, gene_start, gene_stop, cds_parts):
         gene_start = min(gene_start, gene_stop)
-        self._exonic = np.zeros(self._counts.shape, dtype=np.bool)
+        self._exonic = np.zeros(abs(gene_stop - gene_start), dtype=np.bool)
         for cds_start, cds_stop in cds_parts:
             start, stop = cds_start - gene_start, cds_stop - gene_start
             self._exonic[start:stop] = True
