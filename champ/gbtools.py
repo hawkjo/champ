@@ -466,11 +466,16 @@ def save_gene_affinities(gene_affinities, hdf5_filename=None):
         group = h5.create_group('gene-affinities')
         for gene_id, (kds, kd_high_errors, kd_low_errors, counts, breaks) in gene_affinities:
             dataset = group.create_dataset(str(gene_id), (), dtype=gene_affinity_dt)
-            dataset['kds'] = kds
-            dataset['kd_high_errors'] = kd_high_errors
-            dataset['kd_low_errors'] = kd_low_errors
-            dataset['counts'] = counts
-            dataset['breaks'] = breaks
+            dataset[...] = {"kds": kds,
+                            "kd_high_errors": kd_high_errors,
+                            "kd_low_errors": kd_low_errors,
+                            "counts": counts,
+                            "breaks": breaks}
+            # dataset['kds'] = kds
+            # dataset['kd_high_errors'] = kd_high_errors
+            # dataset['kd_low_errors'] = kd_low_errors
+            # dataset['counts'] = counts
+            # dataset['breaks'] = breaks
 
 
 # def load_gene_affinities(gene_affinities_hdf5_path, gene_boundaries_hdf5_filename=None):
