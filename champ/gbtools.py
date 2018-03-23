@@ -485,8 +485,3 @@ def find_kds_at_all_positions(pileup_columns, read_name_kds):
             confidence95minus, confidence95plus = stats.mstats.median_cihs(p_kds)
             position_kds[position] = median, median - confidence95minus, confidence95plus - median, len(p_kds)
     return position_kds
-
-
-
-
-
