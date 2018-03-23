@@ -3,7 +3,6 @@ import os
 import itertools
 from collections import defaultdict, Counter
 from Bio import SeqIO
-from uncertainties import ufloat
 from pysam import Samfile
 import numpy as np
 import h5py
@@ -424,10 +423,16 @@ def parse_gene_affinities(contig, gene_start, gene_stop, position_kds):
 def main_gaff(bamfile, read_name_kd_filename):
     """ We assume that convert_gbff_to_hdf5() has already been run using the default file paths. """
     read_name_kds = load_kds(read_name_kd_filename)
+    print("Loaded read name KDs")
     position_kds = calculate_genomic_kds(bamfile, read_name_kds)
+    print("Calculated genomic KDs")
     genes = load_gene_positions()
+    print("Loaded gene positions")
     gene_affinities = build_gene_affinities(genes, position_kds)
+    print("Built gene affinities")
     save_gene_affinities(gene_affinities)
+    print("Saved gene affinities")
+    print("Done!")
 
 
 def load_kds(filename):
@@ -436,7 +441,7 @@ def load_kds(filename):
         for line in f:
             read_name, kdstr, kderrstr = line.strip().split("\t")
             kd, kderr = float(kdstr), float(kderrstr)
-            read_name_kds[read_name] = ufloat(kd, kderr)
+            read_name_kds[read_name] = kd
     return read_name_kds
 
 
