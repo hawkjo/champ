@@ -44,6 +44,7 @@ class GeneAffinity(object):
         self._kd_errors_high = None
         self._counts = None
         self._exonic = None
+        self._exon_boundaries = None
 
     def set_measurements(self, kds, kd_errors_low, kd_errors_high, counts):
         self._kds = kds
@@ -55,10 +56,18 @@ class GeneAffinity(object):
     def set_boundaries(self, gene_start, gene_stop, cds_parts):
         gene_start, gene_stop = min(gene_start, gene_stop), max(gene_start, gene_stop)
         self._exonic = np.zeros(abs(gene_stop - gene_start), dtype=np.bool)
+        self._exon_boundaries = []
         for cds_start, cds_stop in cds_parts:
+            cds_start, cds_stop = min(cds_start, cds_stop), max(cds_start, cds_stop)
             start, stop = cds_start - gene_start, cds_stop - gene_start
             self._exonic[start:stop] = True
+            self._exon_boundaries.append((start, stop))
         return self
+
+    @property
+    def exon_boundaries(self):
+        for start, stop in self._exon_boundaries:
+            yield start, stop
 
     def set_exons(self, exons):
         self._exonic = exons
