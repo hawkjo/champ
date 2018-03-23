@@ -14,15 +14,6 @@ import h5py
 import lomp
 
 
-float_vector_dt = h5py.special_dtype(vlen=np.float)
-int_vector_dt = h5py.special_dtype(vlen=np.int32)
-gene_affinity_dt = np.dtype([('kds', float_vector_dt),
-                             ('kd_high_errors', float_vector_dt),
-                             ('kd_low_errors', float_vector_dt),
-                             ('counts', int_vector_dt),
-                             ('breaks', int_vector_dt)])
-
-
 class GeneAffinity(object):
     def __init__(self, name, affinity_data, gene_start, gene_end, cds_parts):
         self._name = name
@@ -452,31 +443,30 @@ def build_gene_affinities(genes, position_kds):
                                                                                    gene_stop,
                                                                                    position_kds)
         yield (gene_id,
-               (kds, kd_high_errors, kd_low_errors, counts, breaks))
-                  # (np.array(tuple(kds), dtype=float_vector_dt),
-                  #  np.array(tuple(kd_high_errors), dtype=float_vector_dt),
-                  #  np.array(tuple(kd_low_errors), dtype=float_vector_dt),
-                  #  np.array(tuple(counts), dtype=int_vector_dt),
-                  #  np.array(tuple(breaks), dtype=int_vector_dt))
+                  np.array(kds, dtype=np.float),
+                   np.array(kd_high_errors, dtype=np.float),
+                   np.array(kd_low_errors, dtype=np.float),
+                   np.array(counts, dtype=np.int32),
+                   np.array(breaks, dtype=np.int32))
+
 
 
 def save_gene_affinities(gene_affinities, hdf5_filename=None):
     hdf5_filename = hdf5_filename if hdf5_filename is not None else os.path.join('results', 'gene-affinities.h5')
     with h5py.File(hdf5_filename, 'w') as h5:
-        group = h5.create_group('gene-affinities')
-        for gene_id, (kds, kd_high_errors, kd_low_errors, counts, breaks) in gene_affinities:
-            dataset = group.create_dataset(str(gene_id), (), dtype=gene_affinity_dt)
-            dataset[...] = {"kds": kds,
-                            "kd_high_errors": kd_high_errors,
-                            "kd_low_errors": kd_low_errors,
-                            "counts": counts,
-                            "breaks": breaks}
-            # dataset['kds'] = kds
-            # dataset['kd_high_errors'] = kd_high_errors
-            # dataset['kd_low_errors'] = kd_low_errors
-            # dataset['counts'] = counts
-            # dataset['breaks'] = breaks
+        kd_group = h5.create_group('kds')
+        kd_high_errors_group = h5.create_group('kd_high_errors')
+        kd_low_errors_group = h5.create_group('kd_low_errors')
+        counts_group = h5.create_group('counts')
+        breaks_group = h5.create_group('breaks')
 
+        for gene_id, (kds, kd_high_errors, kd_low_errors, counts, breaks) in gene_affinities:
+            gene_id_str = str(gene_id)
+            kd_group.create_dataset(gene_id_str, data=kds)
+            kd_high_errors_group.create_dataset(gene_id_str, data=kd_high_errors)
+            kd_low_errors_group.create_dataset(gene_id_str, data=kd_low_errors)
+            counts_group.create_dataset(gene_id_str, data=counts)
+            breaks_group.create_dataset(gene_id_str, data=breaks)
 
 # def load_gene_affinities(gene_affinities_hdf5_path, gene_boundaries_hdf5_filename=None):
 #     if gene_boundaries_hdf5_filename is None:
