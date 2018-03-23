@@ -11,6 +11,14 @@ from scipy import stats
 MINIMUM_CLUSTER_COUNT = 6
 
 
+def load_gene_affinities(gene_boundaries_h5_filename=None):
+    if gene_boundaries_h5_filename is None:
+        gene_boundaries_h5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
+    for gene_id, name, contig, gene_start, gene_stop, cds_parts in load_gene_positions(gene_boundaries_h5_filename):
+        gaff = GeneAffinity(gene_id, name, contig)
+        yield gaff.set_boundaries(gene_start, gene_stop, cds_parts)
+
+
 class GeneAffinity(object):
     def __init__(self, gene_id, name, contig):
         """
@@ -34,10 +42,10 @@ class GeneAffinity(object):
         self._counts = counts
         return self
 
-    def set_boundaries(self, gene_start, gene_stop, cds_boundaries):
+    def set_boundaries(self, gene_start, gene_stop, cds_parts):
         gene_start = min(gene_start, gene_stop)
         self._exonic = np.zeros(self._counts.shape, dtype=np.bool)
-        for cds_start, cds_stop in cds_boundaries:
+        for cds_start, cds_stop in cds_parts:
             start, stop = cds_start - gene_start, cds_stop - gene_start
             self._exonic[start:stop] = True
         return self
