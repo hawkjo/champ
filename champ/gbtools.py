@@ -515,7 +515,7 @@ def find_kds_at_all_positions(pileup_columns, read_name_kds):
         for pileup_read in pileup_column.pileups:
             kd = read_name_kds.get(pileup_read.alignment.qname)
             if kd is not None:
-                p_kds.append(kd.n)
+                p_kds.append(kd)
         if len(p_kds) >= MINIMUM_CLUSTER_COUNT:
             median = np.median(p_kds)
             confidence95minus, confidence95plus = stats.mstats.median_cihs(p_kds)
