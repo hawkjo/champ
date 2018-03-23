@@ -7,6 +7,8 @@ from pysam import Samfile
 import numpy as np
 import h5py
 from scipy import stats
+import progressbar
+
 
 MINIMUM_CLUSTER_COUNT = 6
 
@@ -413,11 +415,12 @@ def calculate_genomic_kds(bamfile, read_name_kds):
     position_kds = {}
     try:
         with Samfile(bamfile) as samfile:
-            for contig in reversed(sorted(samfile.references)):
-                contig_position_kds = find_kds_at_all_positions(samfile.pileup(contig), read_name_kds)
-                sys.stdout.write('*')
-                sys.stdout.flush()
-                position_kds[contig] = contig_position_kds
+            contigs = list(reversed(sorted(samfile.references)))
+            with progressbar.ProgressBar(max_value=len(contigs)) as bar:
+                for n, contig in enumerate(contigs):
+                    contig_position_kds = find_kds_at_all_positions(samfile.pileup(contig), read_name_kds)
+                    position_kds[contig] = contig_position_kds
+                    bar.update(n)
         return position_kds
     except IOError:
         raise ValueError("Could not open %s. Does it exist and is it valid?" % bamfile)
