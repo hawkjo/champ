@@ -540,14 +540,10 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         # This is a good quality read and we can make valid claims about the affinity between start and end
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
-    # print("POSITION 67129093, missing. KD66658.257827, start 67128988, end 67129216")
-    # for pos in range(67128988, 67129216):
-    #     for kd, start, end in position_kds[pos]:
-    #         print("%d\t%f %d %d" % (pos, kd, start, end))
-    #     print("---")
     final_results = {}
     print("Done scanning alignments. Calculating KDs.")
-    for position, kd_data in position_kds.items():
+    pbar = progressbar.ProgressBar(max_value=len(position_kds))
+    for position, kd_data in pbar(position_kds.items()):
         median, confidence95minus, confidence95plus, count = find_best_offset_kd(kd_data, position)
         final_results[position] = median, confidence95minus, confidence95plus, count
     return final_results
@@ -568,23 +564,15 @@ def find_best_offset_kd(kd_data, position):
         for offset in range(0, 100, 5):
             # TODO: This can probably be more efficient if we precalculate the valid range
             # TODO: But that's probably not a big deal, this shouldn't take long
-            if position == 67129093:
-                print("START: %d, POS+OFF: %d, %s" % (start, position - offset, start >= (position - offset)))
             if start >= (position - offset):
                 left_offset_kds[offset].append(kd)
-            if position == 67129093:
-                print("END: %d, POS+OFF: %d, %s" % (end, position + offset, end <= (position + offset)))
             if end <= (position + offset):
                 right_offset_kds[offset].append(kd)
     if not left_offset_kds and not right_offset_kds:
-        if position == 67129093:
-            print("IMPOSSIBLY MISSING DATA!")
-            print("POSITION: %d" % position)
-            print(left_offset_kds)
-            print(right_offset_kds)
-            for kd, start, end in kd_data:
-                print(kd, start, end)
-            print("---")
+        # TODO: Potential issue: If we just have really long reads around this position, and no ends are close
+        # then we won't be able to get any data about it, even though we have a measurement that includes this
+        # position. This is reasonable, since our resolution is very poor in such cases, but we are throwing
+        # away data.
         return None, None, None, 0
     # We look at all the windows of reads and find the highest KD. This gives us the tightest affinity that
     # can be plausibly linked to this particular position while excluding nearby high affinity sites
