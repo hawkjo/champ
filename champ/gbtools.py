@@ -569,11 +569,11 @@ def find_best_offset_kd(kd_data, position):
             # TODO: This can probably be more efficient if we precalculate the valid range
             # TODO: But that's probably not a big deal, this shouldn't take long
             if position == 67129093:
-                print(start, position - offset)
+                print("START: %d, POS+OFF: %d, %s" % (start, position - offset, start >= (position - offset)))
             if start >= (position - offset):
                 left_offset_kds[offset].append(kd)
             if position == 67129093:
-                print(end, position + offset)
+                print("END: %d, POS+OFF: %d, %s" % (end, position + offset, end <= (position + offset)))
             if end <= (position + offset):
                 right_offset_kds[offset].append(kd)
     if not left_offset_kds and not right_offset_kds:
