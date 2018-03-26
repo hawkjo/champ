@@ -13,7 +13,7 @@ import itertools
 
 MINIMUM_CLUSTER_COUNT = 6
 QUALITY_THRESHOLD = 20
-MAXIMUM_REALISTIC_DNA_LENGTH = 200
+MAXIMUM_REALISTIC_DNA_LENGTH = 500
 
 
 def load_genes_with_affinities(gene_boundaries_h5_filename=None, gene_affinities_filename=None):
