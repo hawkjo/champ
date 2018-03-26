@@ -540,7 +540,8 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         # This is a good quality read and we can make valid claims about the affinity between start and end
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
-
+    print("POSITION 67129093, missing. KD66658.257827, start 67128988, end 67129216")
+    print(position_kds[67129093])
     final_results = {}
     print("Done scanning alignments. Calculating KDs.")
     for position, kd_data in position_kds.items():
@@ -565,12 +566,14 @@ def find_best_offset_kd(kd_data, position):
             # TODO: This can probably be more efficient if we precalculate the valid range
             # TODO: But that's probably not a big deal, this shouldn't take long
             if start >= (position - offset):
-                left_offset_kds[-offset].append(kd)
+                left_offset_kds[offset].append(kd)
             if end <= (position + offset):
                 right_offset_kds[offset].append(kd)
     if not left_offset_kds and not right_offset_kds:
         print("IMPOSSIBLY MISSING DATA!")
         print("POSITION: %d" % position)
+        print(left_offset_kds)
+        print(right_offset_kds)
         for kd, start, end in kd_data:
             print(kd, start, end)
         print("---")
