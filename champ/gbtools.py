@@ -523,7 +523,7 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     pbar = progressbar.ProgressBar(max_value=len(position_kds))
     for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
                                                                              _thread_find_best_offset_kd,
-                                                                             process_count=16)):
+                                                                             process_count=8)):
         final_results[position] = median, ci_minus, ci_plus, count
     return final_results
 
