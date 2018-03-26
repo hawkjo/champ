@@ -534,14 +534,16 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         else:
             # The read is unpaired and the alignment was sketchy, so we can't trust this read
             continue
-        if abs(end-start) > 500:
+        if abs(end-start) > 1000:
             print("SUPER LONG: %d" % abs(end-start))
             continue
         # This is a good quality read and we can make valid claims about the affinity between start and end
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
     print("POSITION 67129093, missing. KD66658.257827, start 67128988, end 67129216")
-    print(position_kds[67129093])
+    for pos in range(67128988, 67129216):
+        kd, start, end = position_kds[pos]
+        print("%d\t%f %d %d" % (pos, kd, start, end))
     final_results = {}
     print("Done scanning alignments. Calculating KDs.")
     for position, kd_data in position_kds.items():
