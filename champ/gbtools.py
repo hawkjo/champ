@@ -560,6 +560,8 @@ def find_best_offset_kd(kd_data, position):
     # ones that start after it (or end before it), and thus don't physically contain it. This gives us higher
     # resolution
     for kd, start, end in kd_data:
+        if end < start:
+            print("BACKWARDS")
         for offset in range(0, 100, 5):
             # TODO: This can probably be more efficient if we precalculate the valid range
             # TODO: But that's probably not a big deal, this shouldn't take long
@@ -567,6 +569,12 @@ def find_best_offset_kd(kd_data, position):
                 left_offset_kds[-offset].append(kd)
             if end <= (position + offset):
                 right_offset_kds[offset].append(kd)
+    if not left_offset_kds and not right_offset_kds:
+        print("IMPOSSIBLY MISSING DATA!")
+        for kd, start, end in kd_data:
+            print(kd, start, end)
+        print("---")
+        return None, None, None, 0
     # We look at all the windows of reads and find the highest KD. This gives us the tightest affinity that
     # can be plausibly linked to this particular position while excluding nearby high affinity sites
     max_kd = 0.0
@@ -576,9 +584,6 @@ def find_best_offset_kd(kd_data, position):
         if median > max_kd:
             max_kd = median
             best_kds = kds, median  # cache the median so we don't have to recalculate it
-    if best_kds is None:
-        print("No KDs for position %d. This should be impossible." % position)
-        return None, None, None, 0
     kds, median = best_kds
     if len(kds) < 6:
         return None, None, None, len(kds)
