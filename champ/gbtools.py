@@ -13,6 +13,7 @@ import itertools
 
 MINIMUM_CLUSTER_COUNT = 6
 QUALITY_THRESHOLD = 20
+MAXIMUM_REALISTIC_DNA_LENGTH = 1000
 
 
 def load_genes_with_affinities(gene_boundaries_h5_filename=None, gene_affinities_filename=None):
@@ -534,17 +535,16 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         else:
             # The read is unpaired and the alignment was sketchy, so we can't trust this read
             continue
-        if abs(end-start) > 1000:
-            print("SUPER LONG: %d" % abs(end-start))
+        if abs(end-start) > MAXIMUM_REALISTIC_DNA_LENGTH:
             continue
         # This is a good quality read and we can make valid claims about the affinity between start and end
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
-    print("POSITION 67129093, missing. KD66658.257827, start 67128988, end 67129216")
-    for pos in range(67128988, 67129216):
-        for kd, start, end in position_kds[pos]:
-            print("%d\t%f %d %d" % (pos, kd, start, end))
-        print("---")
+    # print("POSITION 67129093, missing. KD66658.257827, start 67128988, end 67129216")
+    # for pos in range(67128988, 67129216):
+    #     for kd, start, end in position_kds[pos]:
+    #         print("%d\t%f %d %d" % (pos, kd, start, end))
+    #     print("---")
     final_results = {}
     print("Done scanning alignments. Calculating KDs.")
     for position, kd_data in position_kds.items():
@@ -568,18 +568,23 @@ def find_best_offset_kd(kd_data, position):
         for offset in range(0, 100, 5):
             # TODO: This can probably be more efficient if we precalculate the valid range
             # TODO: But that's probably not a big deal, this shouldn't take long
+            if position == 67129093:
+                print(start, position - offset)
             if start >= (position - offset):
                 left_offset_kds[offset].append(kd)
+            if position == 67129093:
+                print(end, position + offset)
             if end <= (position + offset):
                 right_offset_kds[offset].append(kd)
     if not left_offset_kds and not right_offset_kds:
-        print("IMPOSSIBLY MISSING DATA!")
-        print("POSITION: %d" % position)
-        print(left_offset_kds)
-        print(right_offset_kds)
-        for kd, start, end in kd_data:
-            print(kd, start, end)
-        print("---")
+        if position == 67129093:
+            print("IMPOSSIBLY MISSING DATA!")
+            print("POSITION: %d" % position)
+            print(left_offset_kds)
+            print(right_offset_kds)
+            for kd, start, end in kd_data:
+                print(kd, start, end)
+            print("---")
         return None, None, None, 0
     # We look at all the windows of reads and find the highest KD. This gives us the tightest affinity that
     # can be plausibly linked to this particular position while excluding nearby high affinity sites
