@@ -542,8 +542,9 @@ def find_kds_at_all_positions(alignments, read_name_kds):
             position_kds[position].append((kd, start, end))
     print("POSITION 67129093, missing. KD66658.257827, start 67128988, end 67129216")
     for pos in range(67128988, 67129216):
-        kd, start, end = position_kds[pos]
-        print("%d\t%f %d %d" % (pos, kd, start, end))
+        for kd, start, end in position_kds[pos]:
+            print("%d\t%f %d %d" % (pos, kd, start, end))
+        print("---")
     final_results = {}
     print("Done scanning alignments. Calculating KDs.")
     for position, kd_data in position_kds.items():
