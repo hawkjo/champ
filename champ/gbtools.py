@@ -497,32 +497,40 @@ def find_kds_at_all_positions(alignments, read_name_kds):
 
     """
     position_kds = defaultdict(list)
+    sketchy = 0
+    normal = 0
+    short = 1
     for alignment in alignments:
-        if alignment.is_reverse or alignment.is_qcfail or alignment.mapq < QUALITY_THRESHOLD:
+        if alignment.is_reverse or alignment.is_qcfail:
             continue
         kd = read_name_kds.get(alignment.query_name)
         if kd is None:
             continue
         if alignment.is_paired and alignment.template_length > len(alignment.query_sequence):
+            normal +=
             start = alignment.reference_start
             end = start + alignment.template_length
         elif alignment.reference_length == len(alignment.query_sequence):
+            short += 1
             start = alignment.reference_start
             end = start + alignment.reference_length
         else:
             # The read is unpaired and the alignment was sketchy, so we can't trust this read
+            sketchy += 1
             continue
         if abs(end-start) > MAXIMUM_REALISTIC_DNA_LENGTH:
             continue
         # This is a good quality read and we can make valid claims about the affinity between start and end
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
+    print("sketchy %d, short %d, normal %d" % (sketchy, short, normal))
     final_results = {}
     pbar = progressbar.ProgressBar(max_value=len(position_kds))
     for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
                                                                              _thread_find_best_offset_kd,
                                                                              process_count=12)):
         final_results[position] = median, ci_minus, ci_plus, count
+    print("final results found: %d" % len(final_results))
     return final_results
 
 
