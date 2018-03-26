@@ -534,10 +534,9 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         else:
             # The read is unpaired and the alignment was sketchy, so we can't trust this read
             continue
-        if end < start:
-            print("END<START")
-        if abs(end-start) > 300:
+        if abs(end-start) > 500:
             print("SUPER LONG: %d" % abs(end-start))
+            continue
         # This is a good quality read and we can make valid claims about the affinity between start and end
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
@@ -571,6 +570,7 @@ def find_best_offset_kd(kd_data, position):
                 right_offset_kds[offset].append(kd)
     if not left_offset_kds and not right_offset_kds:
         print("IMPOSSIBLY MISSING DATA!")
+        print("POSITION: %d" % position)
         for kd, start, end in kd_data:
             print(kd, start, end)
         print("---")
