@@ -8,12 +8,26 @@ import numpy as np
 import h5py
 from scipy import stats
 import progressbar
+import itertools
 
 
 MINIMUM_CLUSTER_COUNT = 6
+QUALITY_THRESHOLD = 20
+
+
+def load_genes_with_affinities(gene_boundaries_h5_filename=None, gene_affinities_filename=None):
+    """ This is usually what you want to use when loading data. It will give you every gene with its
+    KD data already loaded. """
+    for gene in load_genes(gene_boundaries_h5_filename):
+        kd, kd_low_errors, kd_high_errors, counts = load_gene_kd(gene.id, gene_affinities_filename)
+        gene.set_measurements(kd, kd_low_errors, kd_high_errors, counts)
+        yield gene
 
 
 def load_genes(gene_boundaries_h5_filename=None):
+    """ Normally you won't want to use this. It just loads genes and their positions (with exon data).
+    This is something you'd only want to use if you wanted to examine the parsed Refseq data to see what's in
+    that particular version. """
     if gene_boundaries_h5_filename is None:
         gene_boundaries_h5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
     for gene_id, name, contig, gene_start, gene_stop, cds_parts in load_gene_positions(gene_boundaries_h5_filename):
@@ -22,6 +36,7 @@ def load_genes(gene_boundaries_h5_filename=None):
 
 
 def load_gene_kd(gene_id, hdf5_filename=None):
+    """ Get the affinity data for a particular gene. """
     hdf5_filename = hdf5_filename if hdf5_filename is not None else os.path.join('results', 'gene-affinities.h5')
     with h5py.File(hdf5_filename, 'r') as h5:
         kd = h5['kds/{gene_id}'.format(gene_id=gene_id)].value
@@ -411,14 +426,33 @@ def load_kds(filename):
     return read_name_kds
 
 
+# def calculate_genomic_kds(bamfile, read_name_kds):
+#     position_kds = {}
+#     try:
+#         with Samfile(bamfile) as samfile:
+#             contigs = list(reversed(sorted(samfile.references)))
+#             with progressbar.ProgressBar(max_value=len(contigs)) as bar:
+#                 for n, contig in enumerate(contigs):
+#                     contig_position_kds = find_kds_at_all_positions(samfile.pileup(contig), read_name_kds)
+#                     position_kds[contig] = contig_position_kds
+#                     bar.update(n)
+#         return position_kds
+#     except IOError:
+#         raise ValueError("Could not open %s. Does it exist and is it valid?" % bamfile)
+
+
 def calculate_genomic_kds(bamfile, read_name_kds):
+    """
+
+    """
     position_kds = {}
     try:
         with Samfile(bamfile) as samfile:
-            contigs = list(reversed(sorted(samfile.references)))
+            # contigs = list(reversed(sorted(samfile.references)))
+            contigs = ["NC_000011.10"]
             with progressbar.ProgressBar(max_value=len(contigs)) as bar:
                 for n, contig in enumerate(contigs):
-                    contig_position_kds = find_kds_at_all_positions(samfile.pileup(contig), read_name_kds)
+                    contig_position_kds = find_kds_at_all_positions(samfile.fetch(contig), read_name_kds)
                     position_kds[contig] = contig_position_kds
                     bar.update(n)
         return position_kds
@@ -470,21 +504,83 @@ def save_gene_affinities(gene_affinities, hdf5_filename=None):
             breaks_group.create_dataset(gene_id_str, data=breaks)
 
 
-def find_kds_at_all_positions(pileup_columns, read_name_kds):
+def find_kds_at_all_positions(alignments, read_name_kds):
     """
     We want to know the KD at each base pair of the genomic DNA.
 
+    So add the reference_start and reference_start+template_length along with the KD as a tuple to the list
+        Then after building this default dict, you iterate over each position, and find the MAXIMUM KD from any given offset
+        Make sure to record the coverage for the winner
+        you can do this with a single pass by keeping a separate sublist for each range
+      DO THIS WITH JUST CHROMOSOME 11 AT FIRST TO SPEED UP DEVELOPMENT
+      Don't prematurely filter reads with fewer than 6 clusters, if possible
+      Hey, maybe write a unit test?
+      Save the single-threaded version of a single chromosome in a separate file, then do whole genome with lomp
+
     """
-    position_kds = {}
-    for pileup_column in pileup_columns:
-        position = pileup_column.reference_pos
-        p_kds = []
-        for pileup_read in pileup_column.pileups:
-            kd = read_name_kds.get(pileup_read.alignment.qname)
-            if kd is not None:
-                p_kds.append(kd)
-        if len(p_kds) >= MINIMUM_CLUSTER_COUNT:
-            median = np.median(p_kds)
-            confidence95minus, confidence95plus = stats.mstats.median_cihs(p_kds)
-            position_kds[position] = median, median - confidence95minus, confidence95plus - median, len(p_kds)
-    return position_kds
+    position_kds = defaultdict(list)
+    for alignment in alignments:
+        if alignment.is_reverse or alignment.is_qcfail or alignment.mapq < QUALITY_THRESHOLD:
+            continue
+        kd = read_name_kds.get(alignment.query_name)
+        if kd is None:
+            continue
+        if alignment.is_paired and alignment.template_length > len(alignment.query_sequence):
+            start = alignment.reference_start
+            end = start + alignment.template_length
+        elif alignment.reference_length == len(alignment.query_sequence):
+            start = alignment.reference_start
+            end = start + alignment.reference_length
+        else:
+            # The read is unpaired and the alignment was sketchy, so we can't trust this read
+            continue
+        if end < start:
+            print("END<START")
+        if abs(end-start) > 300:
+            print("SUPER LONG: %d" % abs(end-start))
+        # This is a good quality read and we can make valid claims about the affinity between start and end
+        for position in range(start, end):
+            position_kds[position].append((kd, start, end))
+
+    final_results = {}
+    print("Done scanning alignments. Calculating KDs.")
+    for position, kd_data in position_kds.items():
+        median, confidence95minus, confidence95plus, count = find_best_offset_kd(kd_data, position)
+        final_results[position] = median, confidence95minus, confidence95plus, count
+    return final_results
+
+
+def find_best_offset_kd(kd_data, position):
+    left_offset_kds = defaultdict(list)
+    right_offset_kds = defaultdict(list)
+    # We consider all reads that contain this particular base
+    # However, we also try looking at different windows of reads by varying how far to the left and right
+    # we allow the reads to start or end, respectively. This way, if our position is very close to a very
+    # high affinity site, we'll be able to throw out the reads that contain that other site and only consider
+    # ones that start after it (or end before it), and thus don't physically contain it. This gives us higher
+    # resolution
+    for kd, start, end in kd_data:
+        for offset in range(0, 100, 5):
+            # TODO: This can probably be more efficient if we precalculate the valid range
+            # TODO: But that's probably not a big deal, this shouldn't take long
+            if start >= (position - offset):
+                left_offset_kds[-offset].append(kd)
+            if end <= (position + offset):
+                right_offset_kds[offset].append(kd)
+    # We look at all the windows of reads and find the highest KD. This gives us the tightest affinity that
+    # can be plausibly linked to this particular position while excluding nearby high affinity sites
+    max_kd = 0.0
+    best_kds = None
+    for offset, kds in itertools.chain(left_offset_kds.items(), right_offset_kds.items()):
+        median = np.median(kds)
+        if median > max_kd:
+            max_kd = median
+            best_kds = kds, median  # cache the median so we don't have to recalculate it
+    if best_kds is None:
+        print("No KDs for position %d. This should be impossible." % position)
+        return None, None, None, 0
+    kds, median = best_kds
+    if len(kds) < 6:
+        return None, None, None, len(kds)
+    confidence95minus, confidence95plus = stats.mstats.median_cihs(kds)
+    return median, confidence95minus, confidence95plus, len(kds)
