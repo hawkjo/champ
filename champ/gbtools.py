@@ -58,7 +58,6 @@ class GeneAffinity(object):
     def set_boundaries(self, gene_start, gene_stop, cds_parts):
         gene_start, gene_stop = min(gene_start, gene_stop), max(gene_start, gene_stop)
         self._exonic = np.zeros(abs(gene_stop - gene_start), dtype=np.bool)
-        print("self._exonic.shape", self._exonic.shape)
         self._exon_boundaries = []
         for cds_start, cds_stop in cds_parts:
             cds_start, cds_stop = min(cds_start, cds_stop), max(cds_start, cds_stop)
@@ -96,8 +95,6 @@ class GeneAffinity(object):
     def exons(self):
         """ Collects data from exonic positions only, and repackages them into a Gene object. """
         positions = self._exonic
-        print("positions.shape", positions.shape)
-        print("self._kds.shape", self._kds.shape)
         kds = self._kds[positions]
         kd_errors_low = self._kd_errors_low[positions]
         kd_errors_high = self._kd_errors_high[positions]
