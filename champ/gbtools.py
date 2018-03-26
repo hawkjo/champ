@@ -523,19 +523,18 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         # This is a good quality read and we can make valid claims about the affinity between start and end
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
-    print("sketchy %d, short %d, normal %d" % (sketchy, short, normal))
-    print("len(position_kds)", len(position_kds))
-    kd_counts = []
-    for position, kd_data in position_kds.items():
-        kd_counts.append(len(kd_data))
-    print("median count at each position", np.median(kd_counts))
-    print("mean count at each position", np.mean(kd_counts))
-    return {}
+    # print("sketchy %d, short %d, normal %d" % (sketchy, short, normal))
+    # print("len(position_kds)", len(position_kds))
+    # kd_counts = []
+    # for position, kd_data in position_kds.items():
+    #     kd_counts.append(len(kd_data))
+    # print("median count at each position", np.median(kd_counts))
+    # print("mean count at each position", np.mean(kd_counts))
     final_results = {}
     pbar = progressbar.ProgressBar(max_value=len(position_kds))
     for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
                                                                              _thread_find_best_offset_kd,
-                                                                             process_count=12)):
+                                                                             process_count=4)):
         final_results[position] = median, ci_minus, ci_plus, count
     print("final results found: %d" % len(final_results))
     return final_results
