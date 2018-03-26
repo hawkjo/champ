@@ -565,6 +565,8 @@ def find_best_offset_kd(position, kd_data):
         if median > max_kd:
             max_kd = median
             best_kds = kds, median  # cache the median so we don't have to recalculate it
+    if best_kds is None:
+        return position, None, None, None, 0
     kds, median = best_kds
     if len(kds) < 6:
         return position, None, None, None, len(kds)
