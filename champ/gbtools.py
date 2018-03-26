@@ -436,11 +436,10 @@ def calculate_genomic_kds(bamfile, read_name_kds):
         with Samfile(bamfile) as samfile:
             # contigs = list(reversed(sorted(samfile.references)))
             contigs = ["NC_000019.10"]
-            with progressbar.ProgressBar(max_value=len(contigs)) as bar:
-                for n, contig in enumerate(contigs):
-                    contig_position_kds = find_kds_at_all_positions(samfile.fetch(contig), read_name_kds)
-                    position_kds[contig] = contig_position_kds
-                    bar.update(n)
+            for n, contig in enumerate(contigs):
+                contig_position_kds = find_kds_at_all_positions(samfile.fetch(contig), read_name_kds)
+                position_kds[contig] = contig_position_kds
+                print("%d/%d contigs complete." % (n, len(contigs)))
         return position_kds
     except IOError:
         raise ValueError("Could not open %s. Does it exist and is it valid?" % bamfile)
@@ -519,11 +518,10 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
     final_results = {}
-    print("Done scanning alignments. Calculating KDs.")
     pbar = progressbar.ProgressBar(max_value=len(position_kds))
     for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
                                                                              _thread_find_best_offset_kd,
-                                                                             process_count=8)):
+                                                                             process_count=12)):
         final_results[position] = median, ci_minus, ci_plus, count
     return final_results
 
@@ -534,41 +532,50 @@ def _thread_find_best_offset_kd(position_kd_data):
 
 
 def find_best_offset_kd(position, kd_data):
-    left_offset_kds = defaultdict(list)
-    right_offset_kds = defaultdict(list)
-    # We consider all reads that contain this particular base
-    # However, we also try looking at different windows of reads by varying how far to the left and right
-    # we allow the reads to start or end, respectively. This way, if our position is very close to a very
-    # high affinity site, we'll be able to throw out the reads that contain that other site and only consider
-    # ones that start after it (or end before it), and thus don't physically contain it. This gives us higher
-    # resolution
-    for kd, start, end in kd_data:
-        for offset in range(0, 100, 5):
-            # TODO: This can probably be more efficient if we precalculate the valid range
-            # TODO: But that's probably not a big deal, this shouldn't take long
-            if start >= (position - offset):
-                left_offset_kds[offset].append(kd)
-            if end <= (position + offset):
-                right_offset_kds[offset].append(kd)
-    if not left_offset_kds and not right_offset_kds:
-        # TODO: Potential issue: If we just have really long reads around this position, and no ends are close
-        # then we won't be able to get any data about it, even though we have a measurement that includes this
-        # position. This is reasonable, since our resolution is very poor in such cases, but we are throwing
-        # away data.
-        return position, None, None, None, 0
-    # We look at all the windows of reads and find the highest KD. This gives us the tightest affinity that
-    # can be plausibly linked to this particular position while excluding nearby high affinity sites
-    max_kd = 0.0
-    best_kds = None
-    for offset, kds in itertools.chain(left_offset_kds.items(), right_offset_kds.items()):
-        median = np.median(kds)
-        if median > max_kd:
-            max_kd = median
-            best_kds = kds, median  # cache the median so we don't have to recalculate it
-    if best_kds is None:
-        return position, None, None, None, 0
-    kds, median = best_kds
+    # Don't worry about offsets since count is so low
+    kds = [kd for kd, _, _ in kd_data]
     if len(kds) < 6:
         return position, None, None, None, len(kds)
     confidence95minus, confidence95plus = stats.mstats.median_cihs(kds)
-    return position, median, confidence95minus, confidence95plus, len(kds)
+    return position, np.median(kds), confidence95minus, confidence95plus, len(kds)
+
+#
+# def find_best_offset_kd(position, kd_data):
+#     left_offset_kds = defaultdict(list)
+#     right_offset_kds = defaultdict(list)
+#     # We consider all reads that contain this particular base
+#     # However, we also try looking at different windows of reads by varying how far to the left and right
+#     # we allow the reads to start or end, respectively. This way, if our position is very close to a very
+#     # high affinity site, we'll be able to throw out the reads that contain that other site and only consider
+#     # ones that start after it (or end before it), and thus don't physically contain it. This gives us higher
+#     # resolution
+#     for kd, start, end in kd_data:
+#         for offset in range(0, 100, 5):
+#             # TODO: This can probably be more efficient if we precalculate the valid range
+#             # TODO: But that's probably not a big deal, this shouldn't take long
+#             if start >= (position - offset):
+#                 left_offset_kds[offset].append(kd)
+#             if end <= (position + offset):
+#                 right_offset_kds[offset].append(kd)
+#     if not left_offset_kds and not right_offset_kds:
+#         # TODO: Potential issue: If we just have really long reads around this position, and no ends are close
+#         # then we won't be able to get any data about it, even though we have a measurement that includes this
+#         # position. This is reasonable, since our resolution is very poor in such cases, but we are throwing
+#         # away data.
+#         return position, None, None, None, 0
+#     # We look at all the windows of reads and find the highest KD. This gives us the tightest affinity that
+#     # can be plausibly linked to this particular position while excluding nearby high affinity sites
+#     max_kd = 0.0
+#     best_kds = None
+#     for offset, kds in itertools.chain(left_offset_kds.items(), right_offset_kds.items()):
+#         median = np.median(kds)
+#         if median > max_kd:
+#             max_kd = median
+#             best_kds = kds, median  # cache the median so we don't have to recalculate it
+#     if best_kds is None:
+#         return position, None, None, None, 0
+#     kds, median = best_kds
+#     if len(kds) < 6:
+#         return position, None, None, None, len(kds)
+#     confidence95minus, confidence95plus = stats.mstats.median_cihs(kds)
+#     return position, median, confidence95minus, confidence95plus, len(kds)
