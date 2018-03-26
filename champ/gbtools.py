@@ -1,6 +1,6 @@
 import sys
 import os
-import itertools
+import lomp
 from collections import defaultdict, Counter
 from Bio import SeqIO
 from pysam import Samfile
@@ -427,21 +427,6 @@ def load_kds(filename):
     return read_name_kds
 
 
-# def calculate_genomic_kds(bamfile, read_name_kds):
-#     position_kds = {}
-#     try:
-#         with Samfile(bamfile) as samfile:
-#             contigs = list(reversed(sorted(samfile.references)))
-#             with progressbar.ProgressBar(max_value=len(contigs)) as bar:
-#                 for n, contig in enumerate(contigs):
-#                     contig_position_kds = find_kds_at_all_positions(samfile.pileup(contig), read_name_kds)
-#                     position_kds[contig] = contig_position_kds
-#                     bar.update(n)
-#         return position_kds
-#     except IOError:
-#         raise ValueError("Could not open %s. Does it exist and is it valid?" % bamfile)
-
-
 def calculate_genomic_kds(bamfile, read_name_kds):
     """
 
@@ -511,15 +496,6 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     """
     We want to know the KD at each base pair of the genomic DNA.
 
-    So add the reference_start and reference_start+template_length along with the KD as a tuple to the list
-        Then after building this default dict, you iterate over each position, and find the MAXIMUM KD from any given offset
-        Make sure to record the coverage for the winner
-        you can do this with a single pass by keeping a separate sublist for each range
-      DO THIS WITH JUST CHROMOSOME 11 AT FIRST TO SPEED UP DEVELOPMENT
-      Don't prematurely filter reads with fewer than 6 clusters, if possible
-      Hey, maybe write a unit test?
-      Save the single-threaded version of a single chromosome in a separate file, then do whole genome with lomp
-
     """
     position_kds = defaultdict(list)
     for alignment in alignments:
@@ -545,13 +521,19 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     final_results = {}
     print("Done scanning alignments. Calculating KDs.")
     pbar = progressbar.ProgressBar(max_value=len(position_kds))
-    for position, kd_data in pbar(position_kds.items()):
-        median, confidence95minus, confidence95plus, count = find_best_offset_kd(kd_data, position)
-        final_results[position] = median, confidence95minus, confidence95plus, count
+    for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
+                                                                             _thread_find_best_offset_kd,
+                                                                             process_count=16)):
+        final_results[position] = median, ci_minus, ci_plus, count
     return final_results
 
 
-def find_best_offset_kd(kd_data, position):
+def _thread_find_best_offset_kd(position_kd_data):
+    position, kd_data = position_kd_data
+    return find_best_offset_kd(position, kd_data)
+
+
+def find_best_offset_kd(position, kd_data):
     left_offset_kds = defaultdict(list)
     right_offset_kds = defaultdict(list)
     # We consider all reads that contain this particular base
@@ -573,7 +555,7 @@ def find_best_offset_kd(kd_data, position):
         # then we won't be able to get any data about it, even though we have a measurement that includes this
         # position. This is reasonable, since our resolution is very poor in such cases, but we are throwing
         # away data.
-        return None, None, None, 0
+        return position, None, None, None, 0
     # We look at all the windows of reads and find the highest KD. This gives us the tightest affinity that
     # can be plausibly linked to this particular position while excluding nearby high affinity sites
     max_kd = 0.0
@@ -585,6 +567,6 @@ def find_best_offset_kd(kd_data, position):
             best_kds = kds, median  # cache the median so we don't have to recalculate it
     kds, median = best_kds
     if len(kds) < 6:
-        return None, None, None, len(kds)
+        return position, None, None, None, len(kds)
     confidence95minus, confidence95plus = stats.mstats.median_cihs(kds)
-    return median, confidence95minus, confidence95plus, len(kds)
+    return position, median, confidence95minus, confidence95plus, len(kds)
