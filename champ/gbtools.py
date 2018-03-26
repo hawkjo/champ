@@ -13,7 +13,7 @@ import itertools
 
 MINIMUM_CLUSTER_COUNT = 6
 QUALITY_THRESHOLD = 20
-MAXIMUM_REALISTIC_DNA_LENGTH = 1000
+MAXIMUM_REALISTIC_DNA_LENGTH = 200
 
 
 def load_genes_with_affinities(gene_boundaries_h5_filename=None, gene_affinities_filename=None):
@@ -450,7 +450,7 @@ def calculate_genomic_kds(bamfile, read_name_kds):
     try:
         with Samfile(bamfile) as samfile:
             # contigs = list(reversed(sorted(samfile.references)))
-            contigs = ["NC_000011.10"]
+            contigs = ["NC_000019.10"]
             with progressbar.ProgressBar(max_value=len(contigs)) as bar:
                 for n, contig in enumerate(contigs):
                     contig_position_kds = find_kds_at_all_positions(samfile.fetch(contig), read_name_kds)
@@ -474,6 +474,8 @@ def load_gene_positions(hdf5_filename=None):
 
 def build_gene_affinities(genes, position_kds):
     for gene_id, name, contig, gene_start, gene_stop, cds_parts in genes:
+        if contig not in position_kds:
+            continue
         kds, kd_high_errors, kd_low_errors, counts, breaks = parse_gene_affinities(contig,
                                                                                    gene_start,
                                                                                    gene_stop,
@@ -559,8 +561,6 @@ def find_best_offset_kd(kd_data, position):
     # ones that start after it (or end before it), and thus don't physically contain it. This gives us higher
     # resolution
     for kd, start, end in kd_data:
-        if end < start:
-            print("BACKWARDS")
         for offset in range(0, 100, 5):
             # TODO: This can probably be more efficient if we precalculate the valid range
             # TODO: But that's probably not a big deal, this shouldn't take long
