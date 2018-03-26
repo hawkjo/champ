@@ -507,7 +507,7 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         if kd is None:
             continue
         if alignment.is_paired and alignment.template_length > len(alignment.query_sequence):
-            normal +=
+            normal += 1
             start = alignment.reference_start
             end = start + alignment.template_length
         elif alignment.reference_length == len(alignment.query_sequence):
