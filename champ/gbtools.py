@@ -501,7 +501,7 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     normal = 0
     short = 1
     for alignment in alignments:
-        if alignment.is_reverse or alignment.is_qcfail:
+        if alignment.is_qcfail:
             continue
         kd = read_name_kds.get(alignment.query_name)
         if kd is None:
@@ -530,6 +530,7 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         kd_counts.append(len(kd_data))
     print("median count at each position", np.median(kd_counts))
     print("mean count at each position", np.mean(kd_counts))
+    return {}
     final_results = {}
     pbar = progressbar.ProgressBar(max_value=len(position_kds))
     for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
