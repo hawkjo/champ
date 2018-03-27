@@ -511,14 +511,11 @@ def find_kds_at_all_positions(alignments, read_name_kds):
             if alignment.is_paired and alignment.is_reverse:
                 # to avoid double counting, we only take single-ended reads
                 # or the forward read of paired references
-                print("double counting avoided")
                 continue
-            # we need to not double count the overlapped bases
             start = alignment.reference_start
             end = start + alignment.template_length
             if not alignment.is_paired and alignment.reference_length != alignment.template_length:
-                print("the impossible has occurred")
-                # This should never happen
+                # If there's an indel the lengths won't match and we can't trust it
                 continue
         else:
             # The read is unpaired and the alignment was sketchy, so we can't trust this read
@@ -529,20 +526,12 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         seen_alignments.add(alignment.query_name)
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
-    # print("sketchy %d, short %d, normal %d" % (sketchy, short, normal))
-    # print("len(position_kds)", len(position_kds))
-    # kd_counts = []
-    # for position, kd_data in position_kds.items():
-    #     kd_counts.append(len(kd_data))
-    # print("median count at each position", np.median(kd_counts))
-    # print("mean count at each position", np.mean(kd_counts))
     final_results = {}
     pbar = progressbar.ProgressBar(max_value=len(position_kds))
     for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
                                                                              _thread_find_best_offset_kd,
                                                                              process_count=16)):
         final_results[position] = median, ci_minus, ci_plus, count
-    print("final results found: %d" % len(final_results))
     return final_results
 
 
