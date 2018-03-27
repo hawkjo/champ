@@ -505,7 +505,7 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     for alignment in alignments:
         if alignment.is_qcfail or alignment.mapq < 20:
             continue
-        if alignment.query_name in seen_alignments:
+        if alignment.query_name in seen_alignments and alignment.is_paired:
             double += 1
             continue
         kd = read_name_kds.get(alignment.query_name)
