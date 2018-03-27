@@ -7,6 +7,7 @@ Usage:
   champ h5 IMAGE_DIRECTORY [--min-column=MINCOL] [--max-column=MAXCOL] [-v | -vv | -vvv]
   champ align IMAGE_DIRECTORY [--rotation-adjustment=ROTATION_ADJUSTMENT] [--min-hits=MIN_HITS] [--snr=SNR] [--process-limit=PROCESS_LIMIT] [--make-pdfs] [--fiducial-only] [-v | -vv | -vvv]
   champ info IMAGE_DIRECTORY
+  champ genome FASTQ_DIRECTORY
   champ notebooks
 
 Options:
@@ -19,6 +20,7 @@ Commands:
   h5            Looks into all directories in IMAGE_DIRECTORY and converts any valid TIFFs it finds into HDF5 files
   align         Determines the sequence of fluorescent points in the microscope data. Preprocesses images if not already done
   info          View the metadata associated with an experiment
+  genome        Aligns FASTQ files to a reference genome
   notebooks     Creates copies of the standard Jupyter analysis notebooks in the current directory
 
 """
