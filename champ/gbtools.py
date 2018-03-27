@@ -499,9 +499,14 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     position_kds = defaultdict(list)
     sketchy = 0
     normal = 0
-    short = 1
+    short = 0
+    double = 0
+    seen_alignments = set()
     for alignment in alignments:
         if alignment.is_qcfail or alignment.mapq < 20:
+            continue
+        if alignment.query_name in seen_alignments:
+            double += 1
             continue
         kd = read_name_kds.get(alignment.query_name)
         if kd is None:
@@ -522,6 +527,7 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         if abs(end-start) > MAXIMUM_REALISTIC_DNA_LENGTH:
             continue
         # This is a good quality read and we can make valid claims about the affinity between start and end
+        seen_alignments.add(alignment.query_name)
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
     # print("sketchy %d, short %d, normal %d" % (sketchy, short, normal))
@@ -531,6 +537,7 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     #     kd_counts.append(len(kd_data))
     # print("median count at each position", np.median(kd_counts))
     # print("mean count at each position", np.mean(kd_counts))
+    print("DOUBLE: %d" % double)
     final_results = {}
     pbar = progressbar.ProgressBar(max_value=len(position_kds))
     for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
