@@ -497,10 +497,6 @@ def find_kds_at_all_positions(alignments, read_name_kds):
 
     """
     position_kds = defaultdict(list)
-    sketchy = 0
-    normal = 0
-    short = 0
-    double = 0
     seen_alignments = set()
     for alignment in alignments:
         if alignment.is_qcfail or alignment.mapq < 20:
@@ -509,20 +505,23 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         if kd is None:
             continue
         if alignment.is_paired and not alignment.is_reverse and alignment.template_length > len(alignment.query_sequence):
-            if alignment.query_name in seen_alignments:
-                double += 1
-                continue
-            # don't accept reverse reads to avoid double-counting
-            normal += 1
             start = alignment.reference_start
             end = start + alignment.template_length
         elif alignment.reference_length == len(alignment.query_sequence):
-            short += 1
+            if alignment.is_paired and alignment.is_reverse:
+                # to avoid double counting, we only take single-ended reads
+                # or the forward read of paired references
+                print("double counting avoided")
+                continue
+            # we need to not double count the overlapped bases
             start = alignment.reference_start
-            end = start + alignment.reference_length
+            end = start + alignment.template_length
+            if not alignment.is_paired and alignment.reference_length != alignment.template_length:
+                print("the impossible has occurred")
+                # This should never happen
+                continue
         else:
             # The read is unpaired and the alignment was sketchy, so we can't trust this read
-            sketchy += 1
             continue
         if abs(end-start) > MAXIMUM_REALISTIC_DNA_LENGTH:
             continue
@@ -537,7 +536,6 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     #     kd_counts.append(len(kd_data))
     # print("median count at each position", np.median(kd_counts))
     # print("mean count at each position", np.mean(kd_counts))
-    print("DOUBLE: %d" % double)
     final_results = {}
     pbar = progressbar.ProgressBar(max_value=len(position_kds))
     for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
