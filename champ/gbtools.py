@@ -9,6 +9,7 @@ import h5py
 from scipy import stats
 import progressbar
 import itertools
+import time
 
 
 MINIMUM_CLUSTER_COUNT = 6
@@ -188,6 +189,7 @@ class GenBankCDS(object):
 class GenBankGene(object):
     def __init__(self, rec, sequence, gene_feature):
         self.gene_id = get_qualifier_force_single(gene_feature, 'gene')
+        print("     %s" % self.gene_id)
         syn_str = get_qualifier_force_single(gene_feature, 'gene_synonym', allow_zero=True)
         syn_str.replace(' ', '')
         self.gene_synonyms = set(syn_str.split(';'))
@@ -268,9 +270,9 @@ def parse_gbff(fpath):
     genes_given_id = defaultdict(list)
     readthrough_genes = set()
     for rec in SeqIO.parse(open(fpath), 'gb'):
-        if rec.id != "NC_000019.10":
-            continue
         sequence = str(rec.seq)
+        print(rec.id, len(sequence))
+        time.sleep(3)
         if ('FIX_PATCH' in rec.annotations['keywords']
                 or 'NOVEL_PATCH' in rec.annotations['keywords']
                 or 'ALTERNATE_LOCUS' in rec.annotations['keywords']):
