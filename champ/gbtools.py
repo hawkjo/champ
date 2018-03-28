@@ -190,12 +190,11 @@ class GenBankGene(object):
         self.gene_synonyms = set(syn_str.split(';'))
         note = get_qualifier_force_single(gene_feature, 'note', allow_zero=True)
         self.is_readthrough = bool('readthrough' in note.lower())
-
         self.chrm = rec.id
         self.gene_start = gene_feature.location.nofuzzy_start
         self.gene_end = gene_feature.location.nofuzzy_end
         start, end = min(self.gene_start, self.gene_end), max(self.gene_start, self.gene_end)
-        self.sequence = rec.seq[start, end]
+        self.sequence = str(rec.seq)[start:end]
         self.cdss = []
         self.cds_parts = set()
         self.cds_boundaries = set()
