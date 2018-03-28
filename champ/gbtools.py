@@ -189,7 +189,6 @@ class GenBankCDS(object):
 class GenBankGene(object):
     def __init__(self, rec, sequence, gene_feature):
         self.gene_id = get_qualifier_force_single(gene_feature, 'gene')
-        print("     %s" % self.gene_id)
         syn_str = get_qualifier_force_single(gene_feature, 'gene_synonym', allow_zero=True)
         syn_str.replace(' ', '')
         self.gene_synonyms = set(syn_str.split(';'))
@@ -200,10 +199,8 @@ class GenBankGene(object):
         self.gene_end = gene_feature.location.nofuzzy_end
         start, end = min(self.gene_start, self.gene_end), max(self.gene_start, self.gene_end)
         self.sequence = sequence[start:end]
-        if self.gene_id == 'DNMT1':
-            print(self.sequence)
-            print("DNMT1 details", start, end, self.chrm, self.gene_start, self.gene_end, len(self.sequence))
-            exit()
+        gc_content = float(self.sequence.count('C') + self.sequence.count('G')) / len(self.sequence)
+        print("%.1f    %s" % (gc_content, self.gene_id))
         self.cdss = []
         self.cds_parts = set()
         self.cds_boundaries = set()
@@ -271,8 +268,6 @@ def parse_gbff(fpath):
     readthrough_genes = set()
     for rec in SeqIO.parse(open(fpath), 'gb'):
         sequence = str(rec.seq)
-        print(rec.id, len(sequence))
-        time.sleep(3)
         if ('FIX_PATCH' in rec.annotations['keywords']
                 or 'NOVEL_PATCH' in rec.annotations['keywords']
                 or 'ALTERNATE_LOCUS' in rec.annotations['keywords']):
