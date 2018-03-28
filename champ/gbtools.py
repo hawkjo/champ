@@ -9,7 +9,6 @@ import h5py
 from scipy import stats
 import progressbar
 import itertools
-import time
 
 
 MINIMUM_CLUSTER_COUNT = 6
@@ -59,6 +58,7 @@ class GeneAffinity(object):
         self.name = name
         self.contig = contig
         self.sequence = sequence
+        self._sequence = None
         self._kds = None
         self._kd_errors_low = None
         self._kd_errors_high = None
@@ -117,8 +117,8 @@ class GeneAffinity(object):
         kd_errors_low = self._kd_errors_low[positions]
         kd_errors_high = self._kd_errors_high[positions]
         counts = self._counts[positions]
-        sequence = [self.sequence[i] for i in positions]
         exonic = np.ones(kds.shape, dtype=np.bool)
+        sequence = None if self._sequence is None else [self._sequence[i] for i in positions]
         gene = GeneAffinity(self.id, "%s Exons" % self.name, self.contig, sequence)
         gene = gene.set_measurements(kds, kd_errors_low, kd_errors_high, counts)
         gene = gene.set_exons(exonic)
@@ -134,7 +134,7 @@ class GeneAffinity(object):
         kd_errors_high = self._kd_errors_high[positions]
         counts = self._counts[positions]
         exonic = self._exonic[positions]
-        sequence = [self.sequence[i] for i in positions]
+        sequence = None if self._sequence is None else [self._sequence[i] for i in positions]
         gene = GeneAffinity(self.id, "%s Compressed" % self.name, self.contig, sequence)
         gene = gene.set_measurements(kds, kd_errors_low, kd_errors_high, counts)
         gene = gene.set_exons(exonic)
@@ -187,7 +187,7 @@ class GenBankCDS(object):
 
 
 class GenBankGene(object):
-    def __init__(self, rec, sequence, gene_feature):
+    def __init__(self, rec, gene_feature):
         self.gene_id = get_qualifier_force_single(gene_feature, 'gene')
         syn_str = get_qualifier_force_single(gene_feature, 'gene_synonym', allow_zero=True)
         syn_str.replace(' ', '')
@@ -197,9 +197,6 @@ class GenBankGene(object):
         self.chrm = rec.id
         self.gene_start = gene_feature.location.nofuzzy_start
         self.gene_end = gene_feature.location.nofuzzy_end
-        start, end = min(self.gene_start, self.gene_end), max(self.gene_start, self.gene_end)
-        self.sequence = sequence[start:end]
-        print(self.sequence.count('N'), len(self.sequence))
         self.cdss = []
         self.cds_parts = set()
         self.cds_boundaries = set()
@@ -266,14 +263,13 @@ def parse_gbff(fpath):
     genes_given_id = defaultdict(list)
     readthrough_genes = set()
     for rec in SeqIO.parse(open(fpath), 'gb'):
-        sequence = str(rec.seq)
         if ('FIX_PATCH' in rec.annotations['keywords']
                 or 'NOVEL_PATCH' in rec.annotations['keywords']
                 or 'ALTERNATE_LOCUS' in rec.annotations['keywords']):
             continue
         for feature in rec.features:
             if feature.type == 'gene':
-                gene = GenBankGene(rec, sequence, feature)
+                gene = GenBankGene(rec, feature)
                 if gene.is_readthrough:
                     # We reject any readthrough genes.
                     readthrough_genes.add(gene.gene_id)
@@ -346,10 +342,10 @@ def parse_gbff(fpath):
         if not gene:
             continue
         gene = gene[0]
-        yield name, gene.sequence, gene.chrm, gene.gene_start, gene.gene_end, gene.cds_parts
+        yield name, gene.chrm, gene.gene_start, gene.gene_end, gene.cds_parts
 
 
-def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None):
+def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None, fastq_filename=None):
     """ This finds the positions of all coding sequences for all genes in a Refseq-formatted GBFF file and saves the
     results to HDF5. It should be run once per flow cell. """
 
@@ -358,6 +354,14 @@ def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None):
         hdf5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
     if gbff_filename is None:
         gbff_filename = os.path.join(os.path.expanduser("~"), '.local', 'champ', 'human-genome.gbff')
+    if fastq_filename is None:
+        fastq_filename = os.path.join(os.path.expanduser("~"), '.local', 'champ', 'human-genome.fna')
+
+    print("Loading FASTQ sequences.")
+    contig_sequences = {}
+    for record in SeqIO.parse(fastq_filename, "fasta"):
+        contig_sequences[record.id] = str(record.seq)
+    print("FASTQ sequences loaded.")
 
     string_dt = h5py.special_dtype(vlen=str)
     bounds_dt = np.dtype([('gene_id', np.uint32),
@@ -373,14 +377,15 @@ def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None):
     bounds = []
     all_cds_parts = []
     with h5py.File(hdf5_filename, 'w') as h5:
-        for n, (name, sequence, contig, gene_start, gene_end, cds_parts) in enumerate(parse_gbff(gbff_filename)):
+        for n, (name, contig, gene_start, gene_end, cds_parts) in enumerate(parse_gbff(gbff_filename)):
+            start, stop = min(gene_start, gene_end), max(gene_start, gene_end)
+            sequence = contig_sequences[contig][start:stop].upper()
             bounds.append((n, name, sequence, contig, gene_start, gene_end))
             for start, stop, _ in cds_parts:
                 all_cds_parts.append((n, start, stop))
 
         bounds_dataset = h5.create_dataset('/bounds', (len(bounds),), dtype=bounds_dt)
         bounds_dataset[...] = bounds
-
         cds_parts_dataset = h5.create_dataset('/cds-parts', (len(all_cds_parts),), dtype=cds_parts_dt)
         cds_parts_dataset[...] = all_cds_parts
 
