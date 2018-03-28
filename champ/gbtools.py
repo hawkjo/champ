@@ -198,6 +198,9 @@ class GenBankGene(object):
         self.gene_end = gene_feature.location.nofuzzy_end
         start, end = min(self.gene_start, self.gene_end), max(self.gene_start, self.gene_end)
         self.sequence = sequence[start:end]
+        if self.gene_id == 'DNMT1':
+            print(self.sequence)
+            print("DNMT1 details", start, end, self.chrm, self.gene_start, self.gene_end, len(self.sequence))
         self.cdss = []
         self.cds_parts = set()
         self.cds_boundaries = set()
@@ -264,6 +267,8 @@ def parse_gbff(fpath):
     genes_given_id = defaultdict(list)
     readthrough_genes = set()
     for rec in SeqIO.parse(open(fpath), 'gb'):
+        if rec.id != "NC_000019.10":
+            continue
         sequence = str(rec.seq)
         if ('FIX_PATCH' in rec.annotations['keywords']
                 or 'NOVEL_PATCH' in rec.annotations['keywords']
