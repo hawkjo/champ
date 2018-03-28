@@ -1,11 +1,11 @@
 from champ.readmap import FastqFiles
-import os
-import subprocess
 from champ.error import fail
 import itertools
+import os
+import subprocess
 
 
-def build_genomic_bamfile(fastq_directory):
+def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/champ/human-genome'):
     """ Aligns all gzipped FASTQ files in a given directory to a reference genome,
     creating a Bamfile that can be read by pysam, among other tools. This must be performed before
     other CHAMP genomic analyses can be run. """
@@ -51,7 +51,7 @@ def build_genomic_bamfile(fastq_directory):
     # with CHAMP or done in Python, or something.
     home = os.path.expanduser("~")
     result = subprocess.check_call(['/usr/bin/bowtie2', '-p', '16',
-                                    '--no-unal', '-x', os.path.join(home, '.local/champ/human-genome'),
+                                    '--no-unal', '-x', os.path.join(home, bowtie_directory_and_prefix),
                                     '-1', forward_paired_filenames,
                                     '-2', reverse_paired_filenames,
                                     '-U', unpaired_filenames,
