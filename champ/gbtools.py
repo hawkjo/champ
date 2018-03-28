@@ -194,7 +194,8 @@ class GenBankGene(object):
         self.chrm = rec.id
         self.gene_start = gene_feature.location.nofuzzy_start
         self.gene_end = gene_feature.location.nofuzzy_end
-
+        start, end = min(self.gene_start, self.gene_end), max(self.gene_start, self.gene_end)
+        self.sequence = rec.seq[start, end]
         self.cdss = []
         self.cds_parts = set()
         self.cds_boundaries = set()
@@ -340,7 +341,7 @@ def parse_gbff(fpath):
         if not gene:
             continue
         gene = gene[0]
-        yield name, gene.chrm, gene.gene_start, gene.gene_end, gene.cds_parts
+        yield name, gene.sequence, gene.chrm, gene.gene_start, gene.gene_end, gene.cds_parts
 
 
 def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None):
@@ -356,6 +357,7 @@ def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None):
     string_dt = h5py.special_dtype(vlen=str)
     bounds_dt = np.dtype([('gene_id', np.uint32),
                           ('name', string_dt),
+                          ('sequence', string_dt),
                           ('contig', string_dt),
                           ('gene_start', np.uint64),
                           ('gene_end', np.uint64)])
@@ -366,8 +368,8 @@ def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None):
     bounds = []
     all_cds_parts = []
     with h5py.File(hdf5_filename, 'w') as h5:
-        for n, (name, contig, gene_start, gene_end, cds_parts) in enumerate(parse_gbff(gbff_filename)):
-            bounds.append((n, name, contig, gene_start, gene_end))
+        for n, (name, sequence, contig, gene_start, gene_end, cds_parts) in enumerate(parse_gbff(gbff_filename)):
+            bounds.append((n, name, sequence, contig, gene_start, gene_end))
             for start, stop, _ in cds_parts:
                 all_cds_parts.append((n, start, stop))
 
