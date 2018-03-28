@@ -31,8 +31,8 @@ def load_genes(gene_boundaries_h5_filename=None):
     that particular version. """
     if gene_boundaries_h5_filename is None:
         gene_boundaries_h5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
-    for gene_id, name, contig, gene_start, gene_stop, cds_parts in load_gene_positions(gene_boundaries_h5_filename):
-        gaff = GeneAffinity(gene_id, name, contig)
+    for gene_id, name, sequence, contig, gene_start, gene_stop, cds_parts in load_gene_positions(gene_boundaries_h5_filename):
+        gaff = GeneAffinity(gene_id, name, contig, sequence)
         yield gaff.set_boundaries(gene_start, gene_stop, cds_parts)
 
 
@@ -48,7 +48,7 @@ def load_gene_kd(gene_id, hdf5_filename=None):
 
 
 class GeneAffinity(object):
-    def __init__(self, gene_id, name, contig):
+    def __init__(self, gene_id, name, contig, sequence):
         """
         Represents our KD measurements across a gene. We might not have data at each location, especially if using
         an exome library.
@@ -57,6 +57,7 @@ class GeneAffinity(object):
         self.id = gene_id
         self.name = name
         self.contig = contig
+        self.sequence = sequence
         self._kds = None
         self._kd_errors_low = None
         self._kd_errors_high = None
@@ -115,8 +116,9 @@ class GeneAffinity(object):
         kd_errors_low = self._kd_errors_low[positions]
         kd_errors_high = self._kd_errors_high[positions]
         counts = self._counts[positions]
+        sequence = [self.sequence[i] for i in positions]
         exonic = np.ones(kds.shape, dtype=np.bool)
-        gene = GeneAffinity(self.id, "%s Exons" % self.name, self.contig)
+        gene = GeneAffinity(self.id, "%s Exons" % self.name, self.contig, sequence)
         gene = gene.set_measurements(kds, kd_errors_low, kd_errors_high, counts)
         gene = gene.set_exons(exonic)
         return gene
@@ -131,7 +133,8 @@ class GeneAffinity(object):
         kd_errors_high = self._kd_errors_high[positions]
         counts = self._counts[positions]
         exonic = self._exonic[positions]
-        gene = GeneAffinity(self.id, "%s Compressed" % self.name, self.contig)
+        sequence = [self.sequence[i] for i in positions]
+        gene = GeneAffinity(self.id, "%s Compressed" % self.name, self.contig, sequence)
         gene = gene.set_measurements(kds, kd_errors_low, kd_errors_high, counts)
         gene = gene.set_exons(exonic)
         return gene
@@ -452,8 +455,8 @@ def load_gene_positions(hdf5_filename=None):
         cds_parts = defaultdict(list)
         for gene_id, cds_start, cds_stop in h5['cds-parts'][:]:
             cds_parts[gene_id].append((cds_start, cds_stop))
-        for gene_id, name, contig, gene_start, gene_stop in h5['bounds'][:]:
-            yield gene_id, name, contig, gene_start, gene_stop, cds_parts[gene_id]
+        for gene_id, name, sequence, contig, gene_start, gene_stop in h5['bounds'][:]:
+            yield gene_id, name, sequence, contig, gene_start, gene_stop, cds_parts[gene_id]
 
 
 def build_gene_affinities(genes, position_kds):
