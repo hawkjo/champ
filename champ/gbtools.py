@@ -201,6 +201,7 @@ class GenBankGene(object):
         if self.gene_id == 'DNMT1':
             print(self.sequence)
             print("DNMT1 details", start, end, self.chrm, self.gene_start, self.gene_end, len(self.sequence))
+            exit()
         self.cdss = []
         self.cds_parts = set()
         self.cds_boundaries = set()
