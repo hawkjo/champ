@@ -117,7 +117,7 @@ class GeneAffinity(object):
         kd_errors_high = self._kd_errors_high[positions]
         counts = self._counts[positions]
         exonic = np.ones(kds.shape, dtype=np.bool)
-        sequence = None if self.sequence is None else [self.sequence[i] for i in positions]
+        sequence = None if self.sequence is None else ''.join([self.sequence[i] for i in positions])
         gene = GeneAffinity(self.id, "%s Exons" % self.name, self.contig, sequence)
         gene = gene.set_measurements(kds, kd_errors_low, kd_errors_high, counts)
         gene = gene.set_exons(exonic)
@@ -133,7 +133,7 @@ class GeneAffinity(object):
         kd_errors_high = self._kd_errors_high[positions]
         counts = self._counts[positions]
         exonic = self._exonic[positions]
-        sequence = None if self.sequence is None else [self.sequence[i] for i in positions]
+        sequence = None if self.sequence is None else ''.join([self.sequence[i] for i in positions])
         gene = GeneAffinity(self.id, "%s Compressed" % self.name, self.contig, sequence)
         gene = gene.set_measurements(kds, kd_errors_low, kd_errors_high, counts)
         gene = gene.set_exons(exonic)
