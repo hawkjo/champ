@@ -199,8 +199,7 @@ class GenBankGene(object):
         self.gene_end = gene_feature.location.nofuzzy_end
         start, end = min(self.gene_start, self.gene_end), max(self.gene_start, self.gene_end)
         self.sequence = sequence[start:end]
-        gc_content = float(self.sequence.count('C') + self.sequence.count('G')) / len(self.sequence)
-        print("%.1f    %s" % (gc_content, self.gene_id))
+        print(self.sequence.count('N'), len(self.sequence))
         self.cdss = []
         self.cds_parts = set()
         self.cds_boundaries = set()
