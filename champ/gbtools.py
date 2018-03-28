@@ -186,7 +186,7 @@ class GenBankCDS(object):
 
 
 class GenBankGene(object):
-    def __init__(self, rec, gene_feature):
+    def __init__(self, rec, sequence, gene_feature):
         self.gene_id = get_qualifier_force_single(gene_feature, 'gene')
         syn_str = get_qualifier_force_single(gene_feature, 'gene_synonym', allow_zero=True)
         syn_str.replace(' ', '')
@@ -197,7 +197,7 @@ class GenBankGene(object):
         self.gene_start = gene_feature.location.nofuzzy_start
         self.gene_end = gene_feature.location.nofuzzy_end
         start, end = min(self.gene_start, self.gene_end), max(self.gene_start, self.gene_end)
-        self.sequence = str(rec.seq)[start:end]
+        self.sequence = sequence[start:end]
         self.cdss = []
         self.cds_parts = set()
         self.cds_boundaries = set()
@@ -264,13 +264,14 @@ def parse_gbff(fpath):
     genes_given_id = defaultdict(list)
     readthrough_genes = set()
     for rec in SeqIO.parse(open(fpath), 'gb'):
+        sequence = str(rec.seq)
         if ('FIX_PATCH' in rec.annotations['keywords']
                 or 'NOVEL_PATCH' in rec.annotations['keywords']
                 or 'ALTERNATE_LOCUS' in rec.annotations['keywords']):
             continue
         for feature in rec.features:
             if feature.type == 'gene':
-                gene = GenBankGene(rec, feature)
+                gene = GenBankGene(rec, sequence, feature)
                 if gene.is_readthrough:
                     # We reject any readthrough genes.
                     readthrough_genes.add(gene.gene_id)
