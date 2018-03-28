@@ -1,14 +1,27 @@
 from champ.readmap import FastqFiles
 from champ.error import fail
+import distutils
 import itertools
 import os
 import subprocess
+
+SUCCESS = 0
 
 
 def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/champ/human-genome'):
     """ Aligns all gzipped FASTQ files in a given directory to a reference genome,
     creating a Bamfile that can be read by pysam, among other tools. This must be performed before
     other CHAMP genomic analyses can be run. """
+    samtools = distutils.spawn.find_executable("samtools")
+    if samtools is None:
+        fail("samtools is not installed.")
+    trimmomatic = distutils.spawn.find_executable("TrimmomaticPE")
+    if trimmomatic is None:
+        fail("trimmomatic is not installed.")
+    bowtie2 = distutils.spawn.find_executable("bowtie2")
+    if bowtie2 is None:
+        fail("bowtie2 is not installed.")
+
     fastq_filenames = [os.path.join(fastq_directory, directory) for directory in os.listdir(fastq_directory)]
     fastq_files = FastqFiles(fastq_filenames)
     forward_paired = []
@@ -29,7 +42,7 @@ def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/c
 
         # Currently we hardcode the Trimmomatic binary and the adapters file.
         # These will either be bundled with subsequent versions, found dynamically, or given by the user
-        result = subprocess.check_call(['/usr/bin/TrimmomaticPE', '-threads', '20', '-phred64',
+        result = subprocess.check_call([trimmomatic, '-threads', '20', '-phred64',
                                         forward_fastq, reverse_fastq,
                                         forward_paired_file,
                                         forward_unpaired_file,
@@ -39,7 +52,7 @@ def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/c
                                         'LEADING:3',
                                         'TRAILING:3',
                                         'MINLEN:25'])
-        if result != 0:
+        if result != SUCCESS:
             fail("Could not trim adapters from FASTQ files")
 
     forward_paired_filenames = ','.join(forward_paired)
@@ -50,26 +63,30 @@ def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/c
     # Bowtie files. These are installed with the prepare-genomic-files.sh script, which needs to be bundled
     # with CHAMP or done in Python, or something.
     home = os.path.expanduser("~")
-    result = subprocess.check_call(['/usr/bin/bowtie2', '-p', '16',
+    result = subprocess.check_call([bowtie2, '-p', '16',
                                     '--no-unal', '-x', os.path.join(home, bowtie_directory_and_prefix),
                                     '-1', forward_paired_filenames,
                                     '-2', reverse_paired_filenames,
                                     '-U', unpaired_filenames,
                                     '-S', 'genomic.sam'])
 
-    if result != 0:
+    if result != SUCCESS:
         fail("Could not build samfile.")
 
     # Convert the Samfile to a Bamfile
     try:
-        samtools_sort = subprocess.Popen(['/usr/bin/samtools', 'sort',
-                                          '-', os.path.join(fastq_directory, 'final')],
+        samtools_sort = subprocess.Popen([samtools, 'sort',
+                                          '-', os.path.join(fastq_directory, 'genomic')],
                                          stdin=subprocess.PIPE)
-        samtools_view = subprocess.Popen(['/usr/bin/samtools', 'view',
+        samtools_view = subprocess.Popen([samtools, 'view',
                                           '-bS', 'genomic.sam'],
                                          stdout=samtools_sort.stdin)
         samtools_sort.communicate()
         samtools_view.wait()
+
+        result = subprocess.check_call([samtools, 'index', 'genomic.bam'])
+        if result != SUCCESS:
+            fail("Could not index bamfile.")
     except:
         fail("Problem with samtools.")
 
