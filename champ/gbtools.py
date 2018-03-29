@@ -31,6 +31,7 @@ def load_genes(gene_boundaries_h5_filename=None):
     that particular version. """
     if gene_boundaries_h5_filename is None:
         gene_boundaries_h5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
+    # TODO: This needs to be parallelized
     for gene_id, name, sequence, contig, gene_start, gene_stop, cds_parts in load_gene_positions(gene_boundaries_h5_filename):
         gaff = GeneAffinity(gene_id, name, contig, sequence)
         yield gaff.set_boundaries(gene_start, gene_stop, cds_parts)
@@ -142,6 +143,10 @@ class GeneAffinity(object):
     @property
     def highest_affinity(self):
         return np.nanmin(self._kds)
+
+    @property
+    def highest_affinity_location(self):
+        return np.nanargmin(self._kds)
 
     @property
     def coverage_count(self):
