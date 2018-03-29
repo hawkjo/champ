@@ -143,6 +143,15 @@ class GeneAffinity(object):
     def highest_affinity(self):
         return np.nanmin(self._kds)
 
+    @property
+    def coverage_count(self):
+        """ Number of valid measurements """
+        return self._kds[~np.isnan(self._kds)].shape[0]
+
+    @property
+    def coverage_ratio(self):
+        return float(self.coverage_count) / self._kds.shape[0]
+
 
 def get_qualifier_force_single(feature, qual_name, allow_zero=False):
     try:
