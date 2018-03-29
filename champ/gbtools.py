@@ -180,6 +180,7 @@ class GenBankCDS(object):
         assert self.strand in [-1, 1]
         self.get_parts_and_boundaries(cds_feature)
         self.length = sum(abs(part[0] - part[1]) + 1 for part in self.parts)
+        print(cds_feature.qualifiers.keys())
         self.codon_start = get_qualifier_force_single(cds_feature, 'exon_start')
         # try:
         #     self.protein_id = get_qualifier_force_single(cds_feature, 'protein_id')
