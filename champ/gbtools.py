@@ -180,16 +180,7 @@ class GenBankCDS(object):
         assert self.strand in [-1, 1]
         self.get_parts_and_boundaries(cds_feature)
         self.length = sum(abs(part[0] - part[1]) + 1 for part in self.parts)
-        from pprint import pprint
-        pprint(cds_feature.qualifiers.items())
-        self.codon_start = get_qualifier_force_single(cds_feature, 'exon_start')
-        # try:
-        #     self.protein_id = get_qualifier_force_single(cds_feature, 'protein_id')
-        #     # self.translation = get_qualifier_force_single(cds_feature, 'translation')
-        # except KeyError:
-        #     assert 'exception' in cds_feature.qualifiers, cds_feature
-        #     self.protein_id = None
-        #     # self.translation = None
+        self.codon_start = get_qualifier_force_single(cds_feature, 'CDS')
 
     def get_parts_and_boundaries(self, cds_feature):
         self.parts = []
@@ -273,28 +264,6 @@ def parse_gbff(fpath):
     """
     This method reads through refseq *_genomic.gbff files and extracts CDS isoform information.
 
-    Should we use exon instead of CDS?
-    {'CDS',
-     'C_region',
-     'D-loop',
-     'D_segment',
-     'J_segment',
-     'LTR',
-     'V_segment',
-     'assembly_gap',
-     'centromere',
-     'exon',
-     'gene',
-     'mRNA',
-     'misc_RNA',
-     'misc_feature',
-     'ncRNA',
-     'precursor_RNA',
-     'rRNA',
-     'regulatory',
-     'source',
-     'tRNA'}
-
     """
     assert fpath.endswith('.gbff'), 'Incorrect file type.'
     # Read in all the genes
@@ -314,8 +283,9 @@ def parse_gbff(fpath):
                     readthrough_genes.add(gene.gene_id)
                 else:
                     genes_given_id[gene.gene_id].append(gene)
-            elif feature.type == 'exon':
+            elif feature.type == 'CDS':
                 cds = GenBankCDS(rec, feature)
+                # The following lines are commented out because I suspect they might be 5' or 3'UTRs. Not sure.
                 # if cds.protein_id is None:
                 #     # Some CDSs have exceptions indicating no protein is directly coded. Skip those
                 #     continue
