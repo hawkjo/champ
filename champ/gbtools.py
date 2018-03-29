@@ -531,7 +531,6 @@ def find_kds_at_all_positions(alignments, read_name_kds):
 
     """
     position_kds = defaultdict(list)
-    seen_alignments = set()
 
     for alignment in alignments:
         if alignment.is_qcfail or alignment.mapq < 20:
@@ -563,14 +562,13 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         if abs(end-start) > MAXIMUM_REALISTIC_DNA_LENGTH:
             continue
         # This is a good quality read and we can make valid claims about the affinity between start and end
-        seen_alignments.add(alignment.query_name)
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
     final_results = {}
     pbar = progressbar.ProgressBar(max_value=len(position_kds))
     for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
                                                                              _thread_find_best_offset_kd,
-                                                                             process_count=4)):
+                                                                             process_count=16)):
         final_results[position] = median, ci_minus, ci_plus, count
     return final_results
 
