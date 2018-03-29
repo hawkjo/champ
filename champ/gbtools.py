@@ -19,10 +19,14 @@ MAXIMUM_REALISTIC_DNA_LENGTH = 1000
 def load_genes_with_affinities(gene_boundaries_h5_filename=None, gene_affinities_filename=None):
     """ This is usually what you want to use when loading data. It will give you every gene with its
     KD data already loaded. """
-    for gene in load_genes(gene_boundaries_h5_filename):
-        kd, kd_low_errors, kd_high_errors, counts = load_gene_kd(gene.id, gene_affinities_filename)
-        gene.set_measurements(kd, kd_low_errors, kd_high_errors, counts)
-        yield gene
+    gene_affinities_filename = gene_affinities_filename if gene_affinities_filename is not None else os.path.join('results', 'gene-affinities.h5')
+    with h5py.File(gene_affinities_filename, 'r') as h5:
+        for gene in load_genes(gene_boundaries_h5_filename):
+            kd, kd_low_errors, kd_high_errors, counts = load_gene_kd(h5, gene.id)
+            if len(kd) == 0:
+                continue
+            gene.set_measurements(kd, kd_low_errors, kd_high_errors, counts)
+            yield gene
 
 
 def load_genes(gene_boundaries_h5_filename=None):
@@ -31,21 +35,18 @@ def load_genes(gene_boundaries_h5_filename=None):
     that particular version. """
     if gene_boundaries_h5_filename is None:
         gene_boundaries_h5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
-    # TODO: This needs to be parallelized
     for gene_id, name, sequence, contig, gene_start, gene_stop, cds_parts in load_gene_positions(gene_boundaries_h5_filename):
         gaff = GeneAffinity(gene_id, name, contig, sequence)
         yield gaff.set_boundaries(gene_start, gene_stop, cds_parts)
 
 
-def load_gene_kd(gene_id, hdf5_filename=None):
+def load_gene_kd(h5, gene_id):
     """ Get the affinity data for a particular gene. """
-    hdf5_filename = hdf5_filename if hdf5_filename is not None else os.path.join('results', 'gene-affinities.h5')
-    with h5py.File(hdf5_filename, 'r') as h5:
-        kd = h5['kds/{gene_id}'.format(gene_id=gene_id)].value
-        kd_high_errors = h5['kd_high_errors/{gene_id}'.format(gene_id=gene_id)].value
-        kd_low_errors = h5['kd_low_errors/{gene_id}'.format(gene_id=gene_id)].value
-        counts = h5['counts/{gene_id}'.format(gene_id=gene_id)].value
-        return kd, kd_low_errors, kd_high_errors, counts
+    kd = h5['kds'][gene_id].value
+    kd_high_errors = h5['kd_high_errors'][gene_id].value
+    kd_low_errors = h5['kd_low_errors'][gene_id].value
+    counts = h5['counts'][gene_id].value
+    return kd, kd_low_errors, kd_high_errors, counts
 
 
 class GeneAffinity(object):
@@ -497,20 +498,26 @@ def build_gene_affinities(genes, position_kds):
 def save_gene_affinities(gene_affinities, hdf5_filename=None):
     hdf5_filename = hdf5_filename if hdf5_filename is not None else os.path.join('results', 'gene-affinities.h5')
     with h5py.File(hdf5_filename, 'w') as h5:
-        # But do that later
-        kd_group = h5.create_group('kds')
-        kd_high_errors_group = h5.create_group('kd_high_errors')
-        kd_low_errors_group = h5.create_group('kd_low_errors')
-        counts_group = h5.create_group('counts')
-        breaks_group = h5.create_group('breaks')
+        gene_affinities = list(sorted(gene_affinities))
+        top_id = gene_affinities[-1][0]
+
+        kd_dataset = h5.create_dataset('kds', (top_id,),
+                                       dtype=h5py.special_dtype(vlen=np.dtype('float32')))
+        kd_high_errors_dataset = h5.create_dataset('kd_high_errors', (top_id,),
+                                                   dtype=h5py.special_dtype(vlen=np.dtype('float32')))
+        kd_low_errors_dataset = h5.create_dataset('kd_low_errors', (top_id,),
+                                                  dtype=h5py.special_dtype(vlen=np.dtype('float32')))
+        counts_dataset = h5.create_dataset('counts', (top_id,),
+                                           dtype=h5py.special_dtype(vlen=np.dtype('int32')))
+        breaks_dataset = h5.create_dataset('breaks', (top_id,),
+                                           dtype=h5py.special_dtype(vlen=np.dtype('int32')))
 
         for gene_id, kds, kd_high_errors, kd_low_errors, counts, breaks in gene_affinities:
-            gene_id_str = str(gene_id)
-            kd_group.create_dataset(gene_id_str, data=kds)
-            kd_high_errors_group.create_dataset(gene_id_str, data=kd_high_errors)
-            kd_low_errors_group.create_dataset(gene_id_str, data=kd_low_errors)
-            counts_group.create_dataset(gene_id_str, data=counts)
-            breaks_group.create_dataset(gene_id_str, data=breaks)
+            kd_dataset[gene_id] = kds
+            kd_high_errors_dataset[gene_id] = kd_high_errors
+            kd_low_errors_dataset[gene_id] = kd_low_errors
+            counts_dataset[gene_id] = counts
+            breaks_dataset[gene_id] = breaks
 
 
 def find_kds_at_all_positions(alignments, read_name_kds):
