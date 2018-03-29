@@ -180,14 +180,14 @@ class GenBankCDS(object):
         assert self.strand in [-1, 1]
         self.get_parts_and_boundaries(cds_feature)
         self.length = sum(abs(part[0] - part[1]) + 1 for part in self.parts)
-        self.codon_start = get_qualifier_force_single(cds_feature, 'codon_start')
-        try:
-            self.protein_id = get_qualifier_force_single(cds_feature, 'protein_id')
-            self.translation = get_qualifier_force_single(cds_feature, 'translation')
-        except KeyError:
-            assert 'exception' in cds_feature.qualifiers, cds_feature
-            self.protein_id = None
-            self.translation = None
+        self.codon_start = get_qualifier_force_single(cds_feature, 'exon_start')
+        # try:
+        #     self.protein_id = get_qualifier_force_single(cds_feature, 'protein_id')
+        #     # self.translation = get_qualifier_force_single(cds_feature, 'translation')
+        # except KeyError:
+        #     assert 'exception' in cds_feature.qualifiers, cds_feature
+        #     self.protein_id = None
+        #     # self.translation = None
 
     def get_parts_and_boundaries(self, cds_feature):
         self.parts = []
@@ -314,9 +314,9 @@ def parse_gbff(fpath):
                     genes_given_id[gene.gene_id].append(gene)
             elif feature.type == 'exon':
                 cds = GenBankCDS(rec, feature)
-                if cds.protein_id is None:
-                    # Some CDSs have exceptions indicating no protein is directly coded. Skip those
-                    continue
+                # if cds.protein_id is None:
+                #     # Some CDSs have exceptions indicating no protein is directly coded. Skip those
+                #     continue
                 for gene in genes_given_id[cds.gene_id]:
                     if gene.contains_cds(cds):
                         gene.add_cds(cds)
