@@ -438,7 +438,8 @@ def main_gaff(bamfile, read_name_kd_filename):
     position_kds = calculate_genomic_kds(bamfile, read_name_kds)
     genes = load_gene_positions()
     gene_affinities = build_gene_affinities(genes, position_kds)
-    save_gene_affinities(gene_affinities)
+    gene_count = load_gene_count()
+    save_gene_affinities(gene_affinities, gene_count)
 
 
 def load_kds(filename):
@@ -468,6 +469,13 @@ def calculate_genomic_kds(bamfile, read_name_kds):
         raise ValueError("Could not open %s. Does it exist and is it valid?" % bamfile)
 
 
+def load_gene_count(hdf5_filename=None):
+    if hdf5_filename is None:
+        hdf5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
+    with h5py.File(hdf5_filename, 'r') as h5:
+        return len(h5['bounds'])
+
+
 def load_gene_positions(hdf5_filename=None):
     if hdf5_filename is None:
         hdf5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
@@ -495,21 +503,18 @@ def build_gene_affinities(genes, position_kds):
                np.array(breaks, dtype=np.int32))
 
 
-def save_gene_affinities(gene_affinities, hdf5_filename=None):
+def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
     hdf5_filename = hdf5_filename if hdf5_filename is not None else os.path.join('results', 'gene-affinities.h5')
     with h5py.File(hdf5_filename, 'w') as h5:
-        gene_affinities = list(sorted(gene_affinities))
-        top_id = gene_affinities[-1][0]
-
-        kd_dataset = h5.create_dataset('kds', (top_id,),
+        kd_dataset = h5.create_dataset('kds', (gene_count,),
                                        dtype=h5py.special_dtype(vlen=np.dtype('float32')))
-        kd_high_errors_dataset = h5.create_dataset('kd_high_errors', (top_id,),
+        kd_high_errors_dataset = h5.create_dataset('kd_high_errors', (gene_count,),
                                                    dtype=h5py.special_dtype(vlen=np.dtype('float32')))
-        kd_low_errors_dataset = h5.create_dataset('kd_low_errors', (top_id,),
+        kd_low_errors_dataset = h5.create_dataset('kd_low_errors', (gene_count,),
                                                   dtype=h5py.special_dtype(vlen=np.dtype('float32')))
-        counts_dataset = h5.create_dataset('counts', (top_id,),
+        counts_dataset = h5.create_dataset('counts', (gene_count,),
                                            dtype=h5py.special_dtype(vlen=np.dtype('int32')))
-        breaks_dataset = h5.create_dataset('breaks', (top_id,),
+        breaks_dataset = h5.create_dataset('breaks', (gene_count,),
                                            dtype=h5py.special_dtype(vlen=np.dtype('int32')))
 
         for gene_id, kds, kd_high_errors, kd_low_errors, counts, breaks in gene_affinities:
