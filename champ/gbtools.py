@@ -270,6 +270,29 @@ class GenBankGene(object):
 def parse_gbff(fpath):
     """
     This method reads through refseq *_genomic.gbff files and extracts CDS isoform information.
+
+    Should we use exon instead of CDS?
+    {'CDS',
+     'C_region',
+     'D-loop',
+     'D_segment',
+     'J_segment',
+     'LTR',
+     'V_segment',
+     'assembly_gap',
+     'centromere',
+     'exon',
+     'gene',
+     'mRNA',
+     'misc_RNA',
+     'misc_feature',
+     'ncRNA',
+     'precursor_RNA',
+     'rRNA',
+     'regulatory',
+     'source',
+     'tRNA'}
+
     """
     assert fpath.endswith('.gbff'), 'Incorrect file type.'
     # Read in all the genes
@@ -289,7 +312,7 @@ def parse_gbff(fpath):
                     readthrough_genes.add(gene.gene_id)
                 else:
                     genes_given_id[gene.gene_id].append(gene)
-            elif feature.type == 'CDS':
+            elif feature.type == 'exon':
                 cds = GenBankCDS(rec, feature)
                 if cds.protein_id is None:
                     # Some CDSs have exceptions indicating no protein is directly coded. Skip those
