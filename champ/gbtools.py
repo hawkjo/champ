@@ -542,7 +542,7 @@ def find_kds_at_all_positions(alignments, read_name_kds):
                 # or the forward read of paired references
                 continue
             start = alignment.reference_start
-            end = start + alignment.template_length
+            end = start + alignment.reference_length
             if not alignment.is_paired and alignment.reference_length != alignment.template_length:
                 # If there's an indel the lengths won't match and we can't trust it
                 continue
