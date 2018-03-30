@@ -556,10 +556,15 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     normal_paired = 0
     normal_unpaired = 0
     unpaired_sketchy = 0
-    bad_quality = 0
+    mapqfails = 0
+    qcfails = 0
     for alignment in alignments:
+        if alignment.is_qcfail:
+            qcfails += 1
+        if alignment.mapq < 20:
+            mapqfails += 1
+
         if alignment.is_qcfail or alignment.mapq < 20:
-            bad_quality += 1
             continue
         kd = read_name_kds.get(alignment.query_name)
         if kd is None:
@@ -603,7 +608,8 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     print("normal_paired",normal_paired)
     print("normal_unpaired",normal_unpaired)
     print("unpaired_sketchy",unpaired_sketchy)
-    print("bad_quality",bad_quality)
+    print("mapqfails", mapqfails)
+    print("qcfails", qcfails)
 
     final_results = {}
     pbar = progressbar.ProgressBar(max_value=len(position_kds))
