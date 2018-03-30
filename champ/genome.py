@@ -84,14 +84,14 @@ def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/c
         samtools_sort.communicate()
         samtools_view.wait()
 
-        result = subprocess.check_call([samtools, 'index', 'genomic.bam'])
+        result = subprocess.check_call([samtools, 'index', os.path.join(fastq_directory, 'genomic.bam')])
         if result != SUCCESS:
             fail("Could not index bamfile.")
     except:
         fail("Problem with samtools.")
 
     # Delete the temporary files we created
-    for filename in itertools.chain(forward_paired, reverse_paired, unpaired, ('genomic.sam',)):
+    for filename in itertools.chain(forward_paired, reverse_paired, unpaired, (os.path.join(fastq_directory, 'genomic.sam'),)):
         try:
             os.unlink(filename)
         except:
