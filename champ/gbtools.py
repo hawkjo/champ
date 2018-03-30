@@ -560,6 +560,9 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     qcfails = 0
     nokd = 0
     alignment_count = 0
+    bad_read_names = set()
+    good_read_names = set()
+
     mapqs = defaultdict(int)
     for alignment in alignments:
         alignment_count += 1
@@ -567,10 +570,10 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         if alignment.is_qcfail:
             qcfails += 1
         if alignment.mapq < 20:
-
             mapqfails += 1
 
         if alignment.is_qcfail or alignment.mapq < 20:
+            bad_read_names.add(alignment.query_name)
             continue
         kd = read_name_kds.get(alignment.query_name)
         if kd is None:
@@ -586,6 +589,7 @@ def find_kds_at_all_positions(alignments, read_name_kds):
             if alignment.template_length <= alignment.reference_length or alignment.reference_length == 0:
                 # the combined length of the first and second read is no greater than just one read - either the reads
                 # perfectly overlapped or something weird is happening. We discard this read to be safe.
+                bad_read_names.add(alignment.query_name)
                 weird_pair += 1
                 continue
             start = alignment.reference_start
@@ -601,12 +605,15 @@ def find_kds_at_all_positions(alignments, read_name_kds):
             normal_unpaired += 1
             assert start < end
         else:
+            bad_read_names.add(alignment.query_name)
             unpaired_sketchy += 1
             # The read is unpaired and the alignment was sketchy, so we can't trust this read
             continue
         if abs(end-start) > MAXIMUM_REALISTIC_DNA_LENGTH:
+            bad_read_names.add(alignment.query_name)
             continue
         # This is a good quality read and we can make valid claims about the affinity between start and end
+        good_read_names.add(alignment.query_name)
         assert end-start > 0, "ZERO-LENGTH READ: %s %s %s %s" % (alignment.query_name, alignment.reference_start, alignment.reference_end, alignment.template_length)
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
@@ -619,6 +626,10 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     print("qcfails", qcfails)
     print("nokd", nokd)
     print("alignment_count", alignment_count)
+    mixed_count = len(good_read_names & bad_read_names)
+    print("mixed_count", mixed_count)
+    print("good_read_names", len(good_read_names))
+    print("bad_read_names", len(bad_read_names))
     for score, counts in mapqs.items():
         print("%s\t%d" % (score, counts))
 
