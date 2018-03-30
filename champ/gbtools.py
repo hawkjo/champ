@@ -318,7 +318,7 @@ def parse_gbff(path):
                         gene_start = feature.location.nofuzzy_start
                         gene_end = feature.location.nofuzzy_end
                         strand = feature.location.strand
-                        exon_info = ExonInfo(name, gene_start, gene_end, strand)
+                        exon_info = ExonInfo(name, record.id, gene_start, gene_end, strand)
                         good_exons[name] = exon_info
                 elif feature.type == 'exon':
                     # exon_info is guaranteed to be assigned since the 'gene' feature always
@@ -457,7 +457,7 @@ def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None, fastq_filename=
             start, stop = min(gene_start, gene_end), max(gene_start, gene_end)
             sequence = contig_sequences[contig][start:stop].upper()
             bounds.append((n, name, sequence, contig, gene_start, gene_end))
-            for start, stop, _ in cds_parts:
+            for start, stop in cds_parts:
                 all_cds_parts.append((n, start, stop))
 
         bounds_dataset = h5.create_dataset('/bounds', (len(bounds),), dtype=bounds_dt)
