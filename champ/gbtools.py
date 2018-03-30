@@ -570,6 +570,7 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         if abs(end-start) > MAXIMUM_REALISTIC_DNA_LENGTH:
             continue
         # This is a good quality read and we can make valid claims about the affinity between start and end
+        assert end-start > 0, "ZERO-LENGTH READ: %s %s %s %s" % (alignment.query_name, alignment.reference_start, alignment.reference_end, alignment.template_length)
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
     final_results = {}
