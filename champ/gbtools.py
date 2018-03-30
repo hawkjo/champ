@@ -35,9 +35,9 @@ def load_genes(gene_boundaries_h5_filename=None):
     that particular version. """
     if gene_boundaries_h5_filename is None:
         gene_boundaries_h5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
-    for gene_id, name, sequence, contig, gene_start, gene_stop, cds_parts in load_gene_positions(gene_boundaries_h5_filename):
+    for gene_id, name, sequence, contig, strand, gene_start, gene_stop, cds_parts in load_gene_positions(gene_boundaries_h5_filename):
         gaff = GeneAffinity(gene_id, name, contig, sequence)
-        yield gaff.set_boundaries(gene_start, gene_stop, cds_parts)
+        yield gaff.set_boundaries(strand, gene_start, gene_stop, cds_parts)
 
 
 def load_gene_kd(h5, gene_id):
@@ -74,21 +74,26 @@ class GeneAffinity(object):
         self._counts = counts
         return self
 
-    def set_boundaries(self, gene_start, gene_stop, cds_parts):
+    def set_boundaries(self, strand, gene_start, gene_stop, cds_parts):
         gene_start, gene_stop = min(gene_start, gene_stop), max(gene_start, gene_stop)
         self._exonic = np.zeros(abs(gene_stop - gene_start), dtype=np.bool)
         self._exon_boundaries = []
-        min_start = None
+        min_start, max_stop = None, None
         for cds_start, cds_stop in cds_parts:
             cds_start, cds_stop = min(cds_start, cds_stop), max(cds_start, cds_stop)
             start, stop = cds_start - gene_start, cds_stop - gene_start
             self._exonic[start:stop] = True
             self._exon_boundaries.append((start, stop))
             min_start = min(start, min_start) if min_start is not None else start
+            max_stop = max(stop, max_stop) if max_stop is not None else stop
         # We make the 5'UTR part of the exon. We should probably validate that this is correct
         # using the mRNA refseq data
-        self._exonic[0:min_start] = True
-        self._exon_boundaries.append((0, min_start))
+        if strand == 1:
+            self._exonic[0:min_start] = True
+            self._exon_boundaries.append((0, min_start))
+        else:
+            self._exonic[max_stop:] = True
+            self._exon_boundaries.append((max_stop, gene_stop))
         return self
 
     @property
@@ -490,8 +495,8 @@ def load_gene_positions(hdf5_filename=None):
         cds_parts = defaultdict(list)
         for gene_id, cds_start, cds_stop in h5['cds-parts'][:]:
             cds_parts[gene_id].append((cds_start, cds_stop))
-        for gene_id, name, sequence, contig, gene_start, gene_stop in h5['bounds'][:]:
-            yield gene_id, name, sequence, contig, gene_start, gene_stop, cds_parts[gene_id]
+        for gene_id, name, sequence, contig, strand, gene_start, gene_stop in h5['bounds'][:]:
+            yield gene_id, name, sequence, contig, strand, gene_start, gene_stop, cds_parts[gene_id]
 
 
 def build_gene_affinities(genes, position_kds):
