@@ -78,14 +78,13 @@ class GeneAffinity(object):
         gene_start, gene_stop = min(gene_start, gene_stop), max(gene_start, gene_stop)
         self._exonic = np.zeros(abs(gene_stop - gene_start), dtype=np.bool)
         self._exon_boundaries = []
-        min_start, max_stop = None, None
+        min_start = None
         for cds_start, cds_stop in cds_parts:
             cds_start, cds_stop = min(cds_start, cds_stop), max(cds_start, cds_stop)
             start, stop = cds_start - gene_start, cds_stop - gene_start
             self._exonic[start:stop] = True
             self._exon_boundaries.append((start, stop))
             min_start = min(start, min_start) if min_start is not None else start
-            max_stop = max(stop, max_stop) if max_stop is not None else stop
         # We make the 5'UTR part of the exon. We should probably validate that this is correct
         # using the mRNA refseq data
         self._exonic[0:min_start] = True
@@ -218,6 +217,7 @@ class GenBankGene(object):
         self.chrm = rec.id
         self.gene_start = gene_feature.location.nofuzzy_start
         self.gene_end = gene_feature.location.nofuzzy_end
+        self.strand = gene_feature.location.strand
         self.cdss = []
         self.cds_parts = set()
         self.cds_boundaries = set()
@@ -363,7 +363,7 @@ def parse_gbff(fpath):
         if not gene:
             continue
         gene = gene[0]
-        yield name, gene.chrm, gene.gene_start, gene.gene_end, gene.cds_parts
+        yield name, gene.chrm, gene.strand, gene.gene_start, gene.gene_end, gene.cds_parts
 
 
 def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None, fastq_filename=None):
@@ -387,6 +387,7 @@ def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None, fastq_filename=
                           ('name', string_dt),
                           ('sequence', string_dt),
                           ('contig', string_dt),
+                          ('strand', np.uint8),
                           ('gene_start', np.uint64),
                           ('gene_end', np.uint64)])
     cds_parts_dt = np.dtype([('gene_id', np.uint32),
@@ -396,10 +397,10 @@ def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None, fastq_filename=
     bounds = []
     all_cds_parts = []
     with h5py.File(hdf5_filename, 'w') as h5:
-        for n, (name, contig, gene_start, gene_end, cds_parts) in enumerate(parse_gbff(gbff_filename)):
+        for n, (name, contig, strand, gene_start, gene_end, cds_parts) in enumerate(parse_gbff(gbff_filename)):
             start, stop = min(gene_start, gene_end), max(gene_start, gene_end)
             sequence = contig_sequences[contig][start:stop].upper()
-            bounds.append((n, name, sequence, contig, gene_start, gene_end))
+            bounds.append((n, name, sequence, contig, strand, gene_start, gene_end))
             for start, stop, _ in cds_parts:
                 all_cds_parts.append((n, start, stop))
 
