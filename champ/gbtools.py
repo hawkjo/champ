@@ -558,8 +558,11 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     unpaired_sketchy = 0
     mapqfails = 0
     qcfails = 0
+    nokd = 0
+    alignment_count = 0
     mapqs = defaultdict(int)
     for alignment in alignments:
+        alignment_count += 1
         mapqs[alignment.mapq] += 1
         if alignment.is_qcfail:
             qcfails += 1
@@ -571,6 +574,7 @@ def find_kds_at_all_positions(alignments, read_name_kds):
             continue
         kd = read_name_kds.get(alignment.query_name)
         if kd is None:
+            nokd += 1
             continue
         if alignment.is_proper_pair:
             # This read name appears twice in our data - once in the forward and once in the reverse direction
@@ -613,6 +617,8 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     print("unpaired_sketchy",unpaired_sketchy)
     print("mapqfails", mapqfails)
     print("qcfails", qcfails)
+    print("nokd", nokd)
+    print("alignment_count", alignment_count)
     for score, counts in mapqs.items():
         print("%s\t%d" % (score, counts))
 
