@@ -260,98 +260,160 @@ class GenBankGene(object):
                   all_prot_ids)
 
 
-def parse_gbff(fpath):
-    """
-    This method reads through refseq *_genomic.gbff files and extracts CDS isoform information.
+class ExonInfo(object):
+    def __init__(self, name, gene_start, gene_end, strand):
+        if gene_start > gene_end:
+            raise ValueError("gene is backwards")
+        self._name = name
+        self._gene_start = gene_start
+        self._gene_end = gene_end
+        self._strand = strand
+        self._exons = set()
 
-    """
-    assert fpath.endswith('.gbff'), 'Incorrect file type.'
-    # Read in all the genes
-    print('Reading genes from genomic file')
-    genes_given_id = defaultdict(list)
-    readthrough_genes = set()
-    for rec in SeqIO.parse(open(fpath), 'gb'):
-        if ('FIX_PATCH' in rec.annotations['keywords']
-                or 'NOVEL_PATCH' in rec.annotations['keywords']
-                or 'ALTERNATE_LOCUS' in rec.annotations['keywords']):
-            continue
-        for feature in rec.features:
-            if feature.type == 'gene':
-                gene = GenBankGene(rec, feature)
-                if gene.is_readthrough:
-                    # We reject any readthrough genes.
-                    readthrough_genes.add(gene.gene_id)
-                else:
-                    genes_given_id[gene.gene_id].append(gene)
-            elif feature.type == 'CDS':
-                cds = GenBankCDS(rec, feature)
-                # The following lines are commented out because I suspect they might be 5' or 3'UTRs. Not sure.
-                # if cds.protein_id is None:
-                #     # Some CDSs have exceptions indicating no protein is directly coded. Skip those
-                #     continue
-                for gene in genes_given_id[cds.gene_id]:
-                    if gene.contains_cds(cds):
-                        gene.add_cds(cds)
-                        break
-                else:
-                    if cds.gene_id not in readthrough_genes:
-                        sys.exit('Error: Did not find gene for cds:\n\t%s' % cds)
+    def add_exon(self, start, end):
+        self._exons.add((start, end))
 
-    # In my observations, all large gene groups which use the same exons should be called isoforms
-    # of the same gene.  They appear to simply be the invention of over-ambitious scientists,
-    # potentially for more genes by their name or something like that.
-    # Find groups which share cds 'exons'
-    genes_given_part = defaultdict(list)
-    for gene in itertools.chain(*genes_given_id.values()):
-        for part in gene.cds_parts:
-            genes_given_part[part].append(gene)
-    overlapping_proteins = set()
-    for genes in genes_given_part.values():
-        if len(genes) > 1:
-            overlapping_proteins.add(', '.join(sorted([gene.gene_id for gene in genes])))
-    # Keep only the longest member of the family.
-    for family_str in overlapping_proteins:
-        family = family_str.split(', ')
-        if len(family) <= 2:
-            continue
-        family_gene_iter = itertools.chain(*[genes_given_id[gene_id] for gene_id in family])
-        max_len_gene = max(family_gene_iter, key=lambda gene: gene.longest_cds_length)
-        for gene_id in family:
-            if gene_id != max_len_gene.gene_id:
-                del genes_given_id[gene_id]
+    @property
+    def name(self):
+        return self._name
 
-    # Remove genes with no CDSs
-    gene_ids_to_delete = set()
-    for gene_id in genes_given_id.keys():
-        genes = genes_given_id[gene_id]
-        genes_to_keep = []
-        for i in range(len(genes)):
-            if genes[i].longest_cds is not None:
-                genes_to_keep.append(i)
-        if not genes_to_keep:
-            gene_ids_to_delete.add(gene_id)
-        else:
-            genes_given_id[gene_id] = [genes[i] for i in genes_to_keep]
-    for gene_id in gene_ids_to_delete:
-        del genes_given_id[gene_id]
+    @property
+    def exons(self):
+        return self._exons
 
-    # Search for duplicates
-    dist_num_genes_for_gene_id = Counter()
-    genes_with_dups = set()
-    for gene_id, genes in genes_given_id.items():
-        dist_num_genes_for_gene_id[len(genes)] += 1
-        if len(genes) > 1:
-            genes_with_dups.add(gene_id)
-    print('Distribution of number of genes per gene_id:')
-    for k, v in dist_num_genes_for_gene_id.items():
-        print('\t%s: %s' % (k, v))
-    print('Genes with duplicates:', ', '.join(sorted(genes_with_dups)))
+    @property
+    def gene_bounds(self):
+        return self._gene_start, self._gene_end
 
-    for n, (name, gene) in enumerate(genes_given_id.items()):
-        if not gene:
-            continue
-        gene = gene[0]
-        yield name, gene.chrm, gene.gene_start, gene.gene_end, gene.cds_parts
+    @property
+    def valid(self):
+        return self._name is not None and self._gene_start is not None and self._gene_end is not None and self._exons and self._strand
+
+
+def parse_gbff(path):
+    good_exons = {}
+    with open(path) as f:
+        for record in SeqIO.parse(f, 'gb'):
+            if 'PREDICTED' in record.description:
+                # Not sure if this is justified. Our exon capture library may have had primers for this and it might
+                # turn out to be correct.
+                continue
+            if ('FIX_PATCH' in record.annotations['keywords']
+                    or 'NOVEL_PATCH' in record.annotations['keywords']
+                    or 'ALTERNATE_LOCUS' in record.annotations['keywords']):
+                continue
+
+            for feature in record.features:
+                if feature.type == 'gene':
+                    name = feature.qualifiers['gene'][0]
+                    # Multiple transcript variants exist, so we should look for an existing record, and create it if it
+                    # doesn't exist yet
+                    exon_info = good_exons.get(name)
+                    if exon_info is None:
+                        gene_start = feature.location.nofuzzy_start
+                        gene_end = feature.location.nofuzzy_end
+                        strand = feature.location.strand
+                        exon_info = ExonInfo(name, gene_start, gene_end, strand)
+                        good_exons[name] = exon_info
+                elif feature.type == 'exon':
+                    # exon_info is guaranteed to be assigned since the 'gene' feature always
+                    # comes before exons
+                    exon_info.add_exon(feature.location.nofuzzy_start, feature.location.nofuzzy_end)
+    return good_exons
+
+
+# def parse_gbff(fpath):
+#     """
+#     This method reads through refseq *_genomic.gbff files and extracts CDS isoform information.
+#
+#     """
+#     assert fpath.endswith('.gbff'), 'Incorrect file type.'
+#     # Read in all the genes
+#     print('Reading genes from genomic file')
+#     genes_given_id = defaultdict(list)
+#     readthrough_genes = set()
+#     for rec in SeqIO.parse(open(fpath), 'gb'):
+#         if ('FIX_PATCH' in rec.annotations['keywords']
+#                 or 'NOVEL_PATCH' in rec.annotations['keywords']
+#                 or 'ALTERNATE_LOCUS' in rec.annotations['keywords']):
+#             continue
+#         for feature in rec.features:
+#             if feature.type == 'gene':
+#                 gene = GenBankGene(rec, feature)
+#                 if gene.is_readthrough:
+#                     # We reject any readthrough genes.
+#                     readthrough_genes.add(gene.gene_id)
+#                 else:
+#                     genes_given_id[gene.gene_id].append(gene)
+#             elif feature.type == 'CDS':
+#                 cds = GenBankCDS(rec, feature)
+#                 # The following lines are commented out because I suspect they might be 5' or 3'UTRs. Not sure.
+#                 # if cds.protein_id is None:
+#                 #     # Some CDSs have exceptions indicating no protein is directly coded. Skip those
+#                 #     continue
+#                 for gene in genes_given_id[cds.gene_id]:
+#                     if gene.contains_cds(cds):
+#                         gene.add_cds(cds)
+#                         break
+#                 else:
+#                     if cds.gene_id not in readthrough_genes:
+#                         sys.exit('Error: Did not find gene for cds:\n\t%s' % cds)
+#
+#     # In my observations, all large gene groups which use the same exons should be called isoforms
+#     # of the same gene.  They appear to simply be the invention of over-ambitious scientists,
+#     # potentially for more genes by their name or something like that.
+#     # Find groups which share cds 'exons'
+#     genes_given_part = defaultdict(list)
+#     for gene in itertools.chain(*genes_given_id.values()):
+#         for part in gene.cds_parts:
+#             genes_given_part[part].append(gene)
+#     overlapping_proteins = set()
+#     for genes in genes_given_part.values():
+#         if len(genes) > 1:
+#             overlapping_proteins.add(', '.join(sorted([gene.gene_id for gene in genes])))
+#     # Keep only the longest member of the family.
+#     for family_str in overlapping_proteins:
+#         family = family_str.split(', ')
+#         if len(family) <= 2:
+#             continue
+#         family_gene_iter = itertools.chain(*[genes_given_id[gene_id] for gene_id in family])
+#         max_len_gene = max(family_gene_iter, key=lambda gene: gene.longest_cds_length)
+#         for gene_id in family:
+#             if gene_id != max_len_gene.gene_id:
+#                 del genes_given_id[gene_id]
+#
+#     # Remove genes with no CDSs
+#     gene_ids_to_delete = set()
+#     for gene_id in genes_given_id.keys():
+#         genes = genes_given_id[gene_id]
+#         genes_to_keep = []
+#         for i in range(len(genes)):
+#             if genes[i].longest_cds is not None:
+#                 genes_to_keep.append(i)
+#         if not genes_to_keep:
+#             gene_ids_to_delete.add(gene_id)
+#         else:
+#             genes_given_id[gene_id] = [genes[i] for i in genes_to_keep]
+#     for gene_id in gene_ids_to_delete:
+#         del genes_given_id[gene_id]
+#
+#     # Search for duplicates
+#     dist_num_genes_for_gene_id = Counter()
+#     genes_with_dups = set()
+#     for gene_id, genes in genes_given_id.items():
+#         dist_num_genes_for_gene_id[len(genes)] += 1
+#         if len(genes) > 1:
+#             genes_with_dups.add(gene_id)
+#     print('Distribution of number of genes per gene_id:')
+#     for k, v in dist_num_genes_for_gene_id.items():
+#         print('\t%s: %s' % (k, v))
+#     print('Genes with duplicates:', ', '.join(sorted(genes_with_dups)))
+#
+#     for n, (name, gene) in enumerate(genes_given_id.items()):
+#         if not gene:
+#             continue
+#         gene = gene[0]
+#         yield name, gene.chrm, gene.gene_start, gene.gene_end, gene.cds_parts
 
 
 def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None, fastq_filename=None):
