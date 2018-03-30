@@ -496,7 +496,7 @@ def load_gene_positions(hdf5_filename=None):
 
 
 def build_gene_affinities(genes, position_kds):
-    for gene_id, name, contig, gene_start, gene_stop, cds_parts in genes:
+    for gene_id, name, sequence, contig, gene_start, gene_stop, cds_parts in genes:
         if contig not in position_kds:
             continue
         kds, kd_high_errors, kd_low_errors, counts, breaks = parse_gene_affinities(contig,
@@ -525,9 +525,7 @@ def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
         breaks_dataset = h5.create_dataset('breaks', (gene_count,),
                                            dtype=h5py.special_dtype(vlen=np.dtype('int32')))
 
-        for g in gene_affinities:
-            print(g)
-            gene_id, kds, kd_high_errors, kd_low_errors, counts, breaks = g
+        for gene_id, kds, kd_high_errors, kd_low_errors, counts, breaks in gene_affinities:
             kd_dataset[gene_id] = kds
             kd_high_errors_dataset[gene_id] = kd_high_errors
             kd_low_errors_dataset[gene_id] = kd_low_errors
