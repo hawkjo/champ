@@ -523,10 +523,11 @@ def calculate_genomic_kds(bamfile, read_name_kds):
     try:
         with Samfile(bamfile) as samfile:
             contigs = list(reversed(sorted(samfile.references)))
-            for n, contig in enumerate(contigs):
-                contig_position_kds = find_kds_at_all_positions(samfile.fetch(contig), read_name_kds)
-                position_kds[contig] = contig_position_kds
-                print("%d/%d contigs complete." % (n+1, len(contigs)))
+            with progressbar.ProgressBar(max_value=len(contigs)) as pbar:
+                for n, contig in pbar(enumerate(contigs)):
+                    contig_position_kds = find_kds_at_all_positions(samfile.fetch(contig), read_name_kds)
+                    position_kds[contig] = contig_position_kds
+                    print("%d/%d contigs complete." % (n+1, len(contigs)))
         return position_kds
     except IOError:
         raise ValueError("Could not open %s. Does it exist and is it valid?" % bamfile)
@@ -628,26 +629,27 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
     final_results = {}
-    pbar = progressbar.ProgressBar(max_value=len(position_kds))
-    for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
-                                                                             _thread_find_best_offset_kd,
-                                                                             process_count=16)):
-        final_results[position] = median, ci_minus, ci_plus, count
+    # for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
+    #                                                                          _thread_find_best_offset_kd,
+    #                                                                          process_count=16)):
+    for position, kd_data in position_kds.items():
+        final_results[position] = find_best_offset_kd(kd_data)
+        # median, ci_minus, ci_plus, count = find_best_offset_kd(kd_data)
+        # final_results[position] = median, ci_minus, ci_plus, count
     return final_results
 
+# def _thread_find_best_offset_kd(position_kd_data):
+#     position, kd_data = position_kd_data
+#     return find_best_offset_kd(position, kd_data)
 
-def _thread_find_best_offset_kd(position_kd_data):
-    position, kd_data = position_kd_data
-    return find_best_offset_kd(position, kd_data)
 
-
-def find_best_offset_kd(position, kd_data):
+def find_best_offset_kd(kd_data):
     # Don't worry about offsets since count is so low
     kds = [kd for kd, _, _ in kd_data]
     if len(kds) < 6:
-        return position, None, None, None, len(kds)
+        return None, None, None, len(kds)
     confidence95minus, confidence95plus = stats.mstats.median_cihs(kds)
-    return position, np.median(kds), confidence95minus, confidence95plus, len(kds)
+    return np.median(kds), confidence95minus, confidence95plus, len(kds)
 
 #
 # def find_best_offset_kd(position, kd_data):
