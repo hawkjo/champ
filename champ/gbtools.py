@@ -78,11 +78,20 @@ class GeneAffinity(object):
         gene_start, gene_stop = min(gene_start, gene_stop), max(gene_start, gene_stop)
         self._exonic = np.zeros(abs(gene_stop - gene_start), dtype=np.bool)
         self._exon_boundaries = []
+        min_start, max_stop = None, None
         for cds_start, cds_stop in cds_parts:
             cds_start, cds_stop = min(cds_start, cds_stop), max(cds_start, cds_stop)
             start, stop = cds_start - gene_start, cds_stop - gene_start
             self._exonic[start:stop] = True
             self._exon_boundaries.append((start, stop))
+            min_start = min(start, min_start) if min_start is not None else start
+            max_stop = max(stop, max_stop) if max_stop is not None else stop
+        # We make the 5'UTR and 3'UTR part of the exon. We should probably validate that this is correct
+        # using the mRNA refseq data
+        self._exonic[0:min_start] = True
+        self._exonic[max_stop:] = True
+        self._exon_boundaries.append((0, min_start))
+        self._exon_boundaries.append((max_stop, gene_stop - gene_start))
         return self
 
     @property
