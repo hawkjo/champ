@@ -84,7 +84,7 @@ def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/c
         samtools_sort.communicate()
         samtools_view.wait()
 
-        result = subprocess.check_call([samtools, 'index', 'genomic.bam'])
+        result = subprocess.check_call([samtools, 'index', os.path.join(fastq_directory, 'genomic.bam')])
         if result != SUCCESS:
             fail("Could not index bamfile.")
     except:
