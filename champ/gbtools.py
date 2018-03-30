@@ -396,7 +396,7 @@ def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None, fastq_filename=
                           ('name', string_dt),
                           ('sequence', string_dt),
                           ('contig', string_dt),
-                          ('strand', np.uint8),
+                          ('strand', np.int8),
                           ('gene_start', np.uint64),
                           ('gene_end', np.uint64)])
     cds_parts_dt = np.dtype([('gene_id', np.uint32),
