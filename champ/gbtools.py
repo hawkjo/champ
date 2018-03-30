@@ -468,7 +468,7 @@ def calculate_genomic_kds(bamfile, read_name_kds):
     position_kds = {}
     try:
         with Samfile(bamfile) as samfile:
-            contigs = list(reversed(sorted(samfile.references)))
+            contigs = list(reversed(sorted(samfile.references)))[-5]
             for n, contig in enumerate(contigs):
                 contig_position_kds = find_kds_at_all_positions(samfile.fetch(contig), read_name_kds)
                 position_kds[contig] = contig_position_kds
@@ -525,7 +525,9 @@ def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
         breaks_dataset = h5.create_dataset('breaks', (gene_count,),
                                            dtype=h5py.special_dtype(vlen=np.dtype('int32')))
 
-        for gene_id, kds, kd_high_errors, kd_low_errors, counts, breaks in gene_affinities:
+        for g in gene_affinities:
+            print(g)
+            gene_id, kds, kd_high_errors, kd_low_errors, counts, breaks = g
             kd_dataset[gene_id] = kds
             kd_high_errors_dataset[gene_id] = kd_high_errors
             kd_low_errors_dataset[gene_id] = kd_low_errors
