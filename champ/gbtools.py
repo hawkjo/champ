@@ -596,7 +596,8 @@ def find_kds_at_all_positions(alignments, read_name_kds):
             end = start + alignment.template_length
             normal_paired += 1
             assert start < end
-        elif alignment.reference_length == alignment.query_length and alignment.reference_length > 0:
+        # elif alignment.reference_length == alignment.query_length and alignment.reference_length > 0:
+        elif alignment.reference_length > 0:
             # This is an unpaired read - which is surprisingly common even in paired-end runs. We require that the
             # read align perfectly to the reference sequence, so we aren't dealing with indels. This might be a bit
             # conservative - we'll come back to this decision if the read counts are terrible
