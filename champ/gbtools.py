@@ -261,10 +261,11 @@ class GenBankGene(object):
 
 
 class ExonInfo(object):
-    def __init__(self, name, gene_start, gene_end, strand):
+    def __init__(self, name, contig, gene_start, gene_end, strand):
         if gene_start > gene_end:
             raise ValueError("gene is backwards")
         self._name = name
+        self._contig = contig
         self._gene_start = gene_start
         self._gene_end = gene_end
         self._strand = strand
@@ -276,6 +277,10 @@ class ExonInfo(object):
     @property
     def name(self):
         return self._name
+
+    @property
+    def contig(self):
+        return self._contig
 
     @property
     def exons(self):
@@ -319,7 +324,9 @@ def parse_gbff(path):
                     # exon_info is guaranteed to be assigned since the 'gene' feature always
                     # comes before exons
                     exon_info.add_exon(feature.location.nofuzzy_start, feature.location.nofuzzy_end)
-    return good_exons
+    for ei in good_exons.values():
+        # name, gene.chrm, gene.gene_start, gene.gene_end, gene.cds_parts
+        yield ei.name, ei.contig, ei.gene_bounds[0], ei.gene_bounds[1], ei.exons
 
 
 # def parse_gbff(fpath):
