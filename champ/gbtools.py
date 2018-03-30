@@ -558,10 +558,12 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     unpaired_sketchy = 0
     mapqfails = 0
     qcfails = 0
+    mapqs = defaultdict(int)
     for alignment in alignments:
         if alignment.is_qcfail:
             qcfails += 1
         if alignment.mapq < 20:
+            mapqs[alignment.mapq] += 1
             mapqfails += 1
 
         if alignment.is_qcfail or alignment.mapq < 20:
@@ -610,7 +612,8 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     print("unpaired_sketchy",unpaired_sketchy)
     print("mapqfails", mapqfails)
     print("qcfails", qcfails)
-
+    from pprint import pprint
+    pprint(mapqs)
     final_results = {}
     pbar = progressbar.ProgressBar(max_value=len(position_kds))
     for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
