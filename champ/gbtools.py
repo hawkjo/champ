@@ -42,10 +42,10 @@ def load_genes(gene_boundaries_h5_filename=None):
 
 def load_gene_kd(h5, gene_id):
     """ Get the affinity data for a particular gene. """
-    kd = h5['kds'][gene_id].value
-    kd_high_errors = h5['kd_high_errors'][gene_id].value
-    kd_low_errors = h5['kd_low_errors'][gene_id].value
-    counts = h5['counts'][gene_id].value
+    kd = h5['kds'][gene_id]
+    kd_high_errors = h5['kd_high_errors'][gene_id]
+    kd_low_errors = h5['kd_low_errors'][gene_id]
+    counts = h5['counts'][gene_id]
     return kd, kd_low_errors, kd_high_errors, counts
 
 
