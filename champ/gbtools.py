@@ -325,7 +325,6 @@ def parse_gbff(path):
                     # comes before exons
                     exon_info.add_exon(feature.location.nofuzzy_start, feature.location.nofuzzy_end)
     for ei in good_exons.values():
-        # name, gene.chrm, gene.gene_start, gene.gene_end, gene.cds_parts
         yield ei.name, ei.contig, ei.gene_bounds[0], ei.gene_bounds[1], ei.exons
 
 
