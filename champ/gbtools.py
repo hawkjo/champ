@@ -560,6 +560,8 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     qcfails = 0
     nokd = 0
     alignment_count = 0
+    zero_reflength = 0
+    negative_reflength = 0
     bad_read_names = set()
     good_read_names = set()
 
@@ -605,6 +607,10 @@ def find_kds_at_all_positions(alignments, read_name_kds):
             end = start + alignment.reference_length
             normal_unpaired += 1
             assert start < end
+        elif alignment.reference_length == 0:
+            zero_reflength += 1
+        elif alignment.reference_length < 0:
+            negative_reflength += 1
         else:
             bad_read_names.add(alignment.query_name)
             unpaired_sketchy += 1
@@ -631,6 +637,8 @@ def find_kds_at_all_positions(alignments, read_name_kds):
     print("mixed_count", mixed_count)
     print("good_read_names", len(good_read_names))
     print("bad_read_names", len(bad_read_names))
+    print("zero_reflength", zero_reflength)
+    print("negative_reflength", negative_reflength)
     for score, counts in mapqs.items():
         print("%s\t%d" % (score, counts))
 
