@@ -524,9 +524,6 @@ def calculate_genomic_kds(bamfile, read_name_kds):
                 for n, contig in pbar(enumerate(contigs)):
                     contig_position_kds = find_kds_at_all_positions(samfile.fetch(contig), read_name_kds)
                     position_kds[contig] = contig_position_kds
-                    if n > 2000:
-                        # TODO: delete this block
-                        break
         return position_kds
     except IOError:
         raise ValueError("Could not open %s. Does it exist and is it valid?" % bamfile)
