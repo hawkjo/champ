@@ -76,6 +76,7 @@ class GeneAffinity(object):
         return self
 
     def set_boundaries(self, strand, gene_start, gene_stop, cds_parts):
+        assert gene_start < gene_stop
         gene_start, gene_stop = min(gene_start, gene_stop), max(gene_start, gene_stop)
         self._strand = strand
         self._exonic = np.zeros(abs(gene_stop - gene_start), dtype=np.bool)
@@ -83,6 +84,7 @@ class GeneAffinity(object):
         min_start, max_stop = None, None
         for cds_start, cds_stop in cds_parts:
             cds_start, cds_stop = min(cds_start, cds_stop), max(cds_start, cds_stop)
+            assert cds_start < cds_stop
             start, stop = cds_start - gene_start, cds_stop - gene_start
             self._exonic[start:stop] = True
             self._exon_boundaries.append((start, stop))
@@ -95,9 +97,10 @@ class GeneAffinity(object):
                 self._exonic[0:min_start] = True
                 self._exon_boundaries.append((0, min_start))
         else:
-            if max_stop < gene_stop:
-                self._exonic[max_stop:] = True
-                self._exon_boundaries.append((max_stop, gene_stop))
+            right_gene_bound = gene_stop - gene_start
+            if max_stop < right_gene_bound:
+                self._exonic[max_stop:right_gene_bound] = True
+                self._exon_boundaries.append((max_stop, right_gene_bound))
         return self
 
     @property
