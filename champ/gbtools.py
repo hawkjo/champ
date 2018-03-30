@@ -1,14 +1,11 @@
-import sys
 import os
-import lomp
-from collections import defaultdict, Counter
+from collections import defaultdict
 from Bio import SeqIO
 from pysam import Samfile
 import numpy as np
 import h5py
 from scipy import stats
 import progressbar
-import itertools
 
 
 MINIMUM_CLUSTER_COUNT = 6
@@ -527,7 +524,9 @@ def calculate_genomic_kds(bamfile, read_name_kds):
                 for n, contig in pbar(enumerate(contigs)):
                     contig_position_kds = find_kds_at_all_positions(samfile.fetch(contig), read_name_kds)
                     position_kds[contig] = contig_position_kds
-                    # print("%d/%d contigs complete." % (n+1, len(contigs)))
+                    if n > 2000:
+                        # TODO: delete this block
+                        break
         return position_kds
     except IOError:
         raise ValueError("Could not open %s. Does it exist and is it valid?" % bamfile)
@@ -552,7 +551,7 @@ def load_gene_positions(hdf5_filename=None):
 
 
 def build_gene_affinities(genes, position_kds):
-    for gene_id, name, contig, gene_start, gene_stop, cds_parts in genes:
+    for gene_id, name, sequence, contig, gene_start, gene_stop, cds_parts in genes:
         if contig not in position_kds:
             continue
         kds, kd_high_errors, kd_low_errors, counts, breaks = parse_gene_affinities(contig,
@@ -629,6 +628,7 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
     final_results = {}
+
     # for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
     #                                                                          _thread_find_best_offset_kd,
     #                                                                          process_count=16)):
