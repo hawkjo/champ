@@ -66,6 +66,7 @@ class GeneAffinity(object):
         self._counts = None
         self._exonic = None
         self._exon_boundaries = None
+        self._strand = None
 
     def set_measurements(self, kds, kd_errors_low, kd_errors_high, counts):
         self._kds = kds
@@ -76,6 +77,7 @@ class GeneAffinity(object):
 
     def set_boundaries(self, strand, gene_start, gene_stop, cds_parts):
         gene_start, gene_stop = min(gene_start, gene_stop), max(gene_start, gene_stop)
+        self._strand = strand
         self._exonic = np.zeros(abs(gene_stop - gene_start), dtype=np.bool)
         self._exon_boundaries = []
         min_start, max_stop = None, None
@@ -89,11 +91,13 @@ class GeneAffinity(object):
         # We make the 5'UTR part of the exon. We should probably validate that this is correct
         # using the mRNA refseq data
         if strand == 1:
-            self._exonic[0:min_start] = True
-            self._exon_boundaries.append((0, min_start))
+            if min_start > 0:
+                self._exonic[0:min_start] = True
+                self._exon_boundaries.append((0, min_start))
         else:
-            self._exonic[max_stop:] = True
-            self._exon_boundaries.append((max_stop, gene_stop))
+            if max_stop < gene_stop:
+                self._exonic[max_stop:] = True
+                self._exon_boundaries.append((max_stop, gene_stop))
         return self
 
     @property
@@ -500,7 +504,7 @@ def load_gene_positions(hdf5_filename=None):
 
 
 def build_gene_affinities(genes, position_kds):
-    for gene_id, name, sequence, contig, gene_start, gene_stop, cds_parts in genes:
+    for gene_id, name, sequence, contig, strand, gene_start, gene_stop, cds_parts in genes:
         if contig not in position_kds:
             continue
         kds, kd_high_errors, kd_low_errors, counts, breaks = parse_gene_affinities(contig,
