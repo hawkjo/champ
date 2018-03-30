@@ -48,7 +48,7 @@ def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/c
                                         forward_unpaired_file,
                                         reverse_paired_file,
                                         reverse_unpaired_file,
-                                        'ILLUMINACLIP:/shared/trim/TruSeq-All.fa:2:30:10',
+                                        'ILLUMINACLIP:/shared/trim/TruSeq3-PE.fa:2:30:10',
                                         'LEADING:3',
                                         'TRAILING:3',
                                         'MINLEN:25'])
