@@ -77,15 +77,16 @@ class GeneAffinity(object):
 
     def set_boundaries(self, strand, gene_start, gene_stop, cds_parts):
         assert gene_start < gene_stop
-        gene_start, gene_stop = min(gene_start, gene_stop), max(gene_start, gene_stop)
+        # gene_start, gene_stop = min(gene_start, gene_stop), max(gene_start, gene_stop)
         self._strand = strand
-        self._exonic = np.zeros(abs(gene_stop - gene_start), dtype=np.bool)
+        self._exonic = np.zeros(gene_stop - gene_start, dtype=np.bool)
         self._exon_boundaries = []
         min_start, max_stop = None, None
         for cds_start, cds_stop in cds_parts:
             cds_start, cds_stop = min(cds_start, cds_stop), max(cds_start, cds_stop)
             assert cds_start < cds_stop
             start, stop = cds_start - gene_start, cds_stop - gene_start
+            assert start < stop
             self._exonic[start:stop] = True
             self._exon_boundaries.append((start, stop))
             min_start = min(start, min_start) if min_start is not None else start
@@ -96,7 +97,7 @@ class GeneAffinity(object):
             if min_start > 0:
                 self._exonic[0:min_start] = True
                 self._exon_boundaries.append((0, min_start))
-        else:
+        elif strand == -1:
             right_gene_bound = gene_stop - gene_start
             if max_stop < right_gene_bound:
                 self._exonic[max_stop:right_gene_bound] = True
@@ -479,7 +480,7 @@ def calculate_genomic_kds(bamfile, read_name_kds):
     position_kds = {}
     try:
         with Samfile(bamfile) as samfile:
-            contigs = reversed(sorted(samfile.references))
+            contigs = [list(reversed(sorted(samfile.references)))[-5]]
             for n, contig in enumerate(contigs):
                 contig_position_kds = find_kds_at_all_positions(samfile.fetch(contig), read_name_kds)
                 position_kds[contig] = contig_position_kds
@@ -550,9 +551,15 @@ def find_kds_at_all_positions(alignments, read_name_kds):
 
     """
     position_kds = defaultdict(list)
-
+    reverse_pair = 0
+    weird_pair = 0
+    normal_paired = 0
+    normal_unpaired = 0
+    unpaired_sketchy = 0
+    bad_quality = 0
     for alignment in alignments:
         if alignment.is_qcfail or alignment.mapq < 20:
+            bad_quality += 1
             continue
         kd = read_name_kds.get(alignment.query_name)
         if kd is None:
@@ -562,20 +569,27 @@ def find_kds_at_all_positions(alignments, read_name_kds):
             if alignment.is_reverse:
                 # For paired end reads, the forward and reverse reads are symmetric, so to avoid double counting the
                 # bases between the two reads, we only count the bases once (with the forward read)
+                reverse_pair += 1
                 continue
             if alignment.template_length <= alignment.reference_length or alignment.reference_length == 0:
                 # the combined length of the first and second read is no greater than just one read - either the reads
                 # perfectly overlapped or something weird is happening. We discard this read to be safe.
+                weird_pair += 1
                 continue
             start = alignment.reference_start
             end = start + alignment.template_length
+            normal_paired += 1
+            assert start < end
         elif alignment.reference_length == alignment.query_length and alignment.reference_length > 0:
             # This is an unpaired read - which is surprisingly common even in paired-end runs. We require that the
             # read align perfectly to the reference sequence, so we aren't dealing with indels. This might be a bit
             # conservative - we'll come back to this decision if the read counts are terrible
             start = alignment.reference_start
             end = start + alignment.reference_length
+            normal_unpaired += 1
+            assert start < end
         else:
+            unpaired_sketchy += 1
             # The read is unpaired and the alignment was sketchy, so we can't trust this read
             continue
         if abs(end-start) > MAXIMUM_REALISTIC_DNA_LENGTH:
@@ -584,6 +598,13 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         assert end-start > 0, "ZERO-LENGTH READ: %s %s %s %s" % (alignment.query_name, alignment.reference_start, alignment.reference_end, alignment.template_length)
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
+    print("reverse_pair", reverse_pair)
+    print("weird_pair",weird_pair)
+    print("normal_paired",normal_paired)
+    print("normal_unpaired",normal_unpaired)
+    print("unpaired_sketchy",unpaired_sketchy)
+    print("bad_quality",bad_quality)
+
     final_results = {}
     pbar = progressbar.ProgressBar(max_value=len(position_kds))
     for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
