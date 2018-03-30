@@ -456,6 +456,7 @@ def parse_gene_affinities(contig, gene_start, gene_stop, position_kds):
 def main_gaff(bamfile, read_name_kd_filename):
     """ We assume that convert_gbff_to_hdf5() has already been run using the default file paths. """
     read_name_kds = load_kds(read_name_kd_filename)
+    print("kd count", len(read_name_kds))
     position_kds = calculate_genomic_kds(bamfile, read_name_kds)
     genes = load_gene_positions()
     gene_affinities = build_gene_affinities(genes, position_kds)
@@ -624,23 +625,23 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         assert end-start > 0, "ZERO-LENGTH READ: %s %s %s %s" % (alignment.query_name, alignment.reference_start, alignment.reference_end, alignment.template_length)
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
-    print("reverse_pair", reverse_pair)
-    print("weird_pair",weird_pair)
-    print("normal_paired",normal_paired)
-    print("normal_unpaired",normal_unpaired)
-    print("unpaired_sketchy",unpaired_sketchy)
-    print("mapqfails", mapqfails)
-    print("qcfails", qcfails)
-    print("nokd", nokd)
-    print("alignment_count", alignment_count)
-    mixed_count = len(good_read_names & bad_read_names)
-    print("mixed_count", mixed_count)
-    print("good_read_names", len(good_read_names))
-    print("bad_read_names", len(bad_read_names))
-    print("zero_reflength", zero_reflength)
-    print("negative_reflength", negative_reflength)
-    for score, counts in mapqs.items():
-        print("%s\t%d" % (score, counts))
+    # print("reverse_pair", reverse_pair)
+    # print("weird_pair",weird_pair)
+    # print("normal_paired",normal_paired)
+    # print("normal_unpaired",normal_unpaired)
+    # print("unpaired_sketchy",unpaired_sketchy)
+    # print("mapqfails", mapqfails)
+    # print("qcfails", qcfails)
+    # print("nokd", nokd)
+    # print("alignment_count", alignment_count)
+    # mixed_count = len(good_read_names & bad_read_names)
+    # print("mixed_count", mixed_count)
+    # print("good_read_names", len(good_read_names))
+    # print("bad_read_names", len(bad_read_names))
+    # print("zero_reflength", zero_reflength)
+    # print("negative_reflength", negative_reflength)
+    # for score, counts in mapqs.items():
+    #     print("%s\t%d" % (score, counts))
 
     final_results = {}
     pbar = progressbar.ProgressBar(max_value=len(position_kds))
