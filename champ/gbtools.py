@@ -392,9 +392,10 @@ def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None, fastq_filename=
         fastq_filename = os.path.join(os.path.expanduser("~"), '.local', 'champ', 'human-genome.fna')
 
     contig_sequences = {}
+    print("Loading contig sequences.")
     for record in SeqIO.parse(fastq_filename, "fasta"):
         contig_sequences[record.id] = str(record.seq)
-
+    print("Contig sequences loaded.")
     string_dt = h5py.special_dtype(vlen=str)
     bounds_dt = np.dtype([('gene_id', np.uint32),
                           ('name', string_dt),
