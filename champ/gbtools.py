@@ -3,6 +3,7 @@ import os
 import lomp
 from collections import defaultdict, Counter
 from Bio import SeqIO
+from Bio.Seq import Seq
 from pysam import Samfile
 import numpy as np
 import h5py
@@ -475,6 +476,50 @@ def load_kds(filename):
     return read_name_kds
 
 
+def determine_kds_of_sequence_list(bamfile, fasta_file, read_name_kds, sequences_of_interest):
+    """
+    You may have several sequences of interest (e.g., a bunch of off-target predictions) that you'd like to benchmark
+    with genomic KDs obtained through CHAMP. This function will go through every read, and check whether it contains
+    any of the sequences of interest (forward sequence and reverse complement). The KD of that read will be added to
+    a list associated with the respective matching sequence(s) of interest.
+
+    Finally, this will return the median KD (+/- 95% CI) for each sequence of interest, and the number of reads that
+    contributed to those values.
+
+    :param bamfile:
+    :param read_name_kds:
+    :param sequences_of_interest:
+    :return:
+
+    """
+    sequence_kds = defaultdict(list)
+    reverse_complements = {sequence: reverse_complement(sequence) for sequence in sequences_of_interest}
+    with open(fasta_file) as fasta, Samfile(bamfile) as samfile:
+        for record in SeqIO.parse(fasta, 'fasta'):
+            if record.id not in samfile.references:
+                continue
+            for alignment in samfile.fetch(record.id):
+                kd = read_name_kds.get(alignment.query_name)
+                if kd is None:
+                    continue
+                start_end = get_quality_alignment_start_and_end(alignment)
+                if start_end is None:
+                    continue
+                start, end = start_end
+                read_sequence = record.seq[start:end]
+                for sequence in sequences_of_interest:
+                    if sequence in read_sequence or reverse_complements[sequence] in read_sequence:
+                        sequence_kds[sequence].append(kd)
+                        sys.stdout.write('.')
+                        sys.stdout.flush()
+            print(record.id)
+    return sequence_kds
+
+
+def reverse_complement(string):
+    return str(Seq(string).reverse_complement())
+
+
 def calculate_genomic_kds(bamfile, read_name_kds):
     """
 
@@ -547,85 +592,90 @@ def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
             breaks_dataset[gene_id] = breaks
 
 
+def get_quality_alignment_start_and_end(alignment):
+    if alignment.is_qcfail or alignment.mapq < 20:
+        return None
+    if alignment.is_proper_pair:
+        # This read name appears twice in our data - once in the forward and once in the reverse direction
+        if alignment.is_reverse:
+            # For paired end reads, the forward and reverse reads are symmetric, so to avoid double counting the
+            # bases between the two reads, we only count the bases once (with the forward read)
+            return None
+        if alignment.template_length <= alignment.reference_length or alignment.reference_length == 0:
+            # the combined length of the first and second read is no greater than just one read - either the reads
+            # perfectly overlapped or something weird is happening. We discard this read to be safe.
+            return None
+        start = alignment.reference_start
+        end = start + alignment.template_length
+    # elif alignment.reference_length == alignment.query_length and alignment.reference_length > 0:
+    elif alignment.reference_length > 0:
+        # This is an unpaired read, which is rare but not unheard of. We require that the read align perfectly to the
+        # reference sequence, so we aren't dealing with indels. This might be a bit conservative - we'll come back to
+        # this decision if the read counts are terrible
+        start = alignment.reference_start
+        end = start + alignment.reference_length
+        assert start < end
+    elif alignment.reference_length == 0:
+        return None
+    elif alignment.reference_length < 0:
+        return None
+    else:
+        # The read is unpaired and the alignment was sketchy, so we can't trust this read
+        return None
+    if abs(end - start) > MAXIMUM_REALISTIC_DNA_LENGTH:
+        return None
+    return start, end
+
+
 def find_kds_at_all_positions(alignments, read_name_kds):
     """
     We want to know the KD at each base pair of the genomic DNA.
 
     """
     position_kds = defaultdict(list)
-    reverse_pair = 0
-    weird_pair = 0
-    normal_paired = 0
-    normal_unpaired = 0
-    unpaired_sketchy = 0
-    mapqfails = 0
-    qcfails = 0
-    nokd = 0
-    alignment_count = 0
-    zero_reflength = 0
-    negative_reflength = 0
-    bad_read_names = set()
-    good_read_names = set()
-
-    mapqs = defaultdict(int)
     for alignment in alignments:
-        alignment_count += 1
-        mapqs[alignment.mapq] += 1
-        if alignment.is_qcfail:
-            qcfails += 1
-        if alignment.mapq < 20:
-            mapqfails += 1
-
-        if alignment.is_qcfail or alignment.mapq < 20:
-            bad_read_names.add(alignment.query_name)
-            continue
         kd = read_name_kds.get(alignment.query_name)
         if kd is None:
-            nokd += 1
             continue
-        if alignment.is_proper_pair:
-            # This read name appears twice in our data - once in the forward and once in the reverse direction
-            if alignment.is_reverse:
-                # For paired end reads, the forward and reverse reads are symmetric, so to avoid double counting the
-                # bases between the two reads, we only count the bases once (with the forward read)
-                reverse_pair += 1
-                continue
-            if alignment.template_length <= alignment.reference_length or alignment.reference_length == 0:
-                # the combined length of the first and second read is no greater than just one read - either the reads
-                # perfectly overlapped or something weird is happening. We discard this read to be safe.
-                bad_read_names.add(alignment.query_name)
-                weird_pair += 1
-                continue
-            start = alignment.reference_start
-            end = start + alignment.template_length
-            normal_paired += 1
-            assert start < end
-        # elif alignment.reference_length == alignment.query_length and alignment.reference_length > 0:
-        elif alignment.reference_length > 0:
-            # This is an unpaired read - which is surprisingly common even in paired-end runs. We require that the
-            # read align perfectly to the reference sequence, so we aren't dealing with indels. This might be a bit
-            # conservative - we'll come back to this decision if the read counts are terrible
-            start = alignment.reference_start
-            end = start + alignment.reference_length
-            normal_unpaired += 1
-            assert start < end
-        elif alignment.reference_length == 0:
-            zero_reflength += 1
+        start_end = get_quality_alignment_start_and_end(alignment)
+        if start_end is None:
             continue
-        elif alignment.reference_length < 0:
-            negative_reflength += 1
-            continue
-        else:
-            bad_read_names.add(alignment.query_name)
-            unpaired_sketchy += 1
-            # The read is unpaired and the alignment was sketchy, so we can't trust this read
-            continue
-        if abs(end-start) > MAXIMUM_REALISTIC_DNA_LENGTH:
-            bad_read_names.add(alignment.query_name)
-            continue
+        start, end = start_end
+        # if alignment.is_qcfail or alignment.mapq < 20:
+        #     continue
+        # kd = read_name_kds.get(alignment.query_name)
+        # if kd is None:
+        #     continue
+        # if alignment.is_proper_pair:
+        #     # This read name appears twice in our data - once in the forward and once in the reverse direction
+        #     if alignment.is_reverse:
+        #         # For paired end reads, the forward and reverse reads are symmetric, so to avoid double counting the
+        #         # bases between the two reads, we only count the bases once (with the forward read)
+        #         continue
+        #     if alignment.template_length <= alignment.reference_length or alignment.reference_length == 0:
+        #         # the combined length of the first and second read is no greater than just one read - either the reads
+        #         # perfectly overlapped or something weird is happening. We discard this read to be safe.
+        #         continue
+        #     start = alignment.reference_start
+        #     end = start + alignment.template_length
+        # # elif alignment.reference_length == alignment.query_length and alignment.reference_length > 0:
+        # elif alignment.reference_length > 0:
+        #     # This is an unpaired read - which is surprisingly common even in paired-end runs. We require that the
+        #     # read align perfectly to the reference sequence, so we aren't dealing with indels. This might be a bit
+        #     # conservative - we'll come back to this decision if the read counts are terrible
+        #     start = alignment.reference_start
+        #     end = start + alignment.reference_length
+        #     assert start < end
+        # elif alignment.reference_length == 0:
+        #     continue
+        # elif alignment.reference_length < 0:
+        #     continue
+        # else:
+        #     # The read is unpaired and the alignment was sketchy, so we can't trust this read
+        #     continue
+        # if abs(end-start) > MAXIMUM_REALISTIC_DNA_LENGTH:
+        #     continue
         # This is a good quality read and we can make valid claims about the affinity between start and end
-        good_read_names.add(alignment.query_name)
-        assert end-start > 0, "ZERO-LENGTH READ: %s %s %s %s" % (alignment.query_name, alignment.reference_start, alignment.reference_end, alignment.template_length)
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
 
