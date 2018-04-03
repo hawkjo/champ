@@ -611,8 +611,10 @@ def find_kds_at_all_positions(alignments, read_name_kds):
             assert start < end
         elif alignment.reference_length == 0:
             zero_reflength += 1
+            continue
         elif alignment.reference_length < 0:
             negative_reflength += 1
+            continue
         else:
             bad_read_names.add(alignment.query_name)
             unpaired_sketchy += 1
@@ -626,29 +628,12 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         assert end-start > 0, "ZERO-LENGTH READ: %s %s %s %s" % (alignment.query_name, alignment.reference_start, alignment.reference_end, alignment.template_length)
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
-    # print("reverse_pair", reverse_pair)
-    # print("weird_pair",weird_pair)
-    # print("normal_paired",normal_paired)
-    # print("normal_unpaired",normal_unpaired)
-    # print("unpaired_sketchy",unpaired_sketchy)
-    # print("mapqfails", mapqfails)
-    # print("qcfails", qcfails)
-    # print("nokd", nokd)
-    # print("alignment_count", alignment_count)
-    # mixed_count = len(good_read_names & bad_read_names)
-    # print("mixed_count", mixed_count)
-    # print("good_read_names", len(good_read_names))
-    # print("bad_read_names", len(bad_read_names))
-    # print("zero_reflength", zero_reflength)
-    # print("negative_reflength", negative_reflength)
-    # for score, counts in mapqs.items():
-    #     print("%s\t%d" % (score, counts))
 
     final_results = {}
     pbar = progressbar.ProgressBar(max_value=len(position_kds))
     for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
                                                                              _thread_find_best_offset_kd,
-                                                                             process_count=4)):
+                                                                             process_count=8)):
         final_results[position] = median, ci_minus, ci_plus, count
     return final_results
 
