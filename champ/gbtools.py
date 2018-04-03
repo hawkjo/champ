@@ -454,15 +454,15 @@ def parse_gene_affinities(contig, gene_start, gene_stop, position_kds):
     return kds, kd_high_errors, kd_low_errors, counts, breaks
 
 
-def main_gaff(bamfile, read_name_kd_filename):
+def main_gaff(bamfile, read_name_kd_filename, gene_boundaries_h5_path=None, gene_affinities_path=None):
     """ We assume that convert_gbff_to_hdf5() has already been run using the default file paths. """
     read_name_kds = load_kds(read_name_kd_filename)
     print("kd count", len(read_name_kds))
     position_kds = calculate_genomic_kds(bamfile, read_name_kds)
-    genes = load_gene_positions()
+    genes = load_gene_positions(hdf5_filename=gene_boundaries_h5_path)
     gene_affinities = build_gene_affinities(genes, position_kds)
-    gene_count = load_gene_count()
-    save_gene_affinities(gene_affinities, gene_count)
+    gene_count = load_gene_count(hdf5_filename=gene_boundaries_h5_path)
+    save_gene_affinities(gene_affinities, gene_count, hdf5_filename=gene_affinities_path)
 
 
 def load_kds(filename):
