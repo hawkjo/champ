@@ -94,15 +94,15 @@ class GeneAffinity(object):
             max_stop = max(stop, max_stop) if max_stop is not None else stop
         # We make the 5'UTR part of the exon. We should probably validate that this is correct
         # using the mRNA refseq data
-        if strand == 1:
-            if min_start > 0:
-                self._exonic[0:min_start] = True
-                self._exon_boundaries.append((0, min_start))
-        elif strand == -1:
-            right_gene_bound = gene_stop - gene_start
-            if max_stop < right_gene_bound:
-                self._exonic[max_stop:right_gene_bound] = True
-                self._exon_boundaries.append((max_stop, right_gene_bound))
+        # if strand == 1:
+        #     if min_start > 0:
+        #         self._exonic[0:min_start] = True
+        #         self._exon_boundaries.append((0, min_start))
+        # elif strand == -1:
+        #     right_gene_bound = gene_stop - gene_start
+        #     if max_stop < right_gene_bound:
+        #         self._exonic[max_stop:right_gene_bound] = True
+        #         self._exon_boundaries.append((max_stop, right_gene_bound))
         return self
 
     @property
