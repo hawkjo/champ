@@ -92,17 +92,6 @@ class GeneAffinity(object):
             self._exon_boundaries.append((start, stop))
             min_start = min(start, min_start) if min_start is not None else start
             max_stop = max(stop, max_stop) if max_stop is not None else stop
-        # We make the 5'UTR part of the exon. We should probably validate that this is correct
-        # using the mRNA refseq data
-        # if strand == 1:
-        #     if min_start > 0:
-        #         self._exonic[0:min_start] = True
-        #         self._exon_boundaries.append((0, min_start))
-        # elif strand == -1:
-        #     right_gene_bound = gene_stop - gene_start
-        #     if max_stop < right_gene_bound:
-        #         self._exonic[max_stop:right_gene_bound] = True
-        #         self._exon_boundaries.append((max_stop, right_gene_bound))
         return self
 
     @property
@@ -458,7 +447,6 @@ def parse_gene_affinities(contig, gene_start, gene_stop, position_kds):
 def main_gaff(bamfile, read_name_kd_filename, gene_boundaries_h5_path=None, gene_affinities_path=None):
     """ We assume that convert_gbff_to_hdf5() has already been run using the default file paths. """
     read_name_kds = load_kds(read_name_kd_filename)
-    print("kd count", len(read_name_kds))
     position_kds = calculate_genomic_kds(bamfile, read_name_kds)
     genes = load_gene_positions(hdf5_filename=gene_boundaries_h5_path)
     gene_affinities = build_gene_affinities(genes, position_kds)
@@ -641,40 +629,6 @@ def find_kds_at_all_positions(alignments, read_name_kds):
         if start_end is None:
             continue
         start, end = start_end
-        # if alignment.is_qcfail or alignment.mapq < 20:
-        #     continue
-        # kd = read_name_kds.get(alignment.query_name)
-        # if kd is None:
-        #     continue
-        # if alignment.is_proper_pair:
-        #     # This read name appears twice in our data - once in the forward and once in the reverse direction
-        #     if alignment.is_reverse:
-        #         # For paired end reads, the forward and reverse reads are symmetric, so to avoid double counting the
-        #         # bases between the two reads, we only count the bases once (with the forward read)
-        #         continue
-        #     if alignment.template_length <= alignment.reference_length or alignment.reference_length == 0:
-        #         # the combined length of the first and second read is no greater than just one read - either the reads
-        #         # perfectly overlapped or something weird is happening. We discard this read to be safe.
-        #         continue
-        #     start = alignment.reference_start
-        #     end = start + alignment.template_length
-        # # elif alignment.reference_length == alignment.query_length and alignment.reference_length > 0:
-        # elif alignment.reference_length > 0:
-        #     # This is an unpaired read - which is surprisingly common even in paired-end runs. We require that the
-        #     # read align perfectly to the reference sequence, so we aren't dealing with indels. This might be a bit
-        #     # conservative - we'll come back to this decision if the read counts are terrible
-        #     start = alignment.reference_start
-        #     end = start + alignment.reference_length
-        #     assert start < end
-        # elif alignment.reference_length == 0:
-        #     continue
-        # elif alignment.reference_length < 0:
-        #     continue
-        # else:
-        #     # The read is unpaired and the alignment was sketchy, so we can't trust this read
-        #     continue
-        # if abs(end-start) > MAXIMUM_REALISTIC_DNA_LENGTH:
-        #     continue
         # This is a good quality read and we can make valid claims about the affinity between start and end
         for position in range(start, end):
             position_kds[position].append((kd, start, end))
@@ -700,44 +654,3 @@ def find_best_offset_kd(position, kd_data):
         return position, None, None, None, len(kds)
     confidence95minus, confidence95plus = stats.mstats.median_cihs(kds)
     return position, np.median(kds), confidence95minus, confidence95plus, len(kds)
-
-#
-# def find_best_offset_kd(position, kd_data):
-#     left_offset_kds = defaultdict(list)
-#     right_offset_kds = defaultdict(list)
-#     # We consider all reads that contain this particular base
-#     # However, we also try looking at different windows of reads by varying how far to the left and right
-#     # we allow the reads to start or end, respectively. This way, if our position is very close to a very
-#     # high affinity site, we'll be able to throw out the reads that contain that other site and only consider
-#     # ones that start after it (or end before it), and thus don't physically contain it. This gives us higher
-#     # resolution
-#     for kd, start, end in kd_data:
-#         for offset in range(0, 100, 5):
-#             # TODO: This can probably be more efficient if we precalculate the valid range
-#             # TODO: But that's probably not a big deal, this shouldn't take long
-#             if start >= (position - offset):
-#                 left_offset_kds[offset].append(kd)
-#             if end <= (position + offset):
-#                 right_offset_kds[offset].append(kd)
-#     if not left_offset_kds and not right_offset_kds:
-#         # TODO: Potential issue: If we just have really long reads around this position, and no ends are close
-#         # then we won't be able to get any data about it, even though we have a measurement that includes this
-#         # position. This is reasonable, since our resolution is very poor in such cases, but we are throwing
-#         # away data.
-#         return position, None, None, None, 0
-#     # We look at all the windows of reads and find the highest KD. This gives us the tightest affinity that
-#     # can be plausibly linked to this particular position while excluding nearby high affinity sites
-#     max_kd = 0.0
-#     best_kds = None
-#     for offset, kds in itertools.chain(left_offset_kds.items(), right_offset_kds.items()):
-#         median = np.median(kds)
-#         if median > max_kd:
-#             max_kd = median
-#             best_kds = kds, median  # cache the median so we don't have to recalculate it
-#     if best_kds is None:
-#         return position, None, None, None, 0
-#     kds, median = best_kds
-#     if len(kds) < 6:
-#         return position, None, None, None, len(kds)
-#     confidence95minus, confidence95plus = stats.mstats.median_cihs(kds)
-#     return position, median, confidence95minus, confidence95plus, len(kds)

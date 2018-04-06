@@ -1,17 +1,26 @@
 from champ.readmap import FastqFiles
 from champ.error import fail
+from champ import gbtools
 import distutils
-import itertools
-import os
 import subprocess
+import os
+from Bio import SeqIO
+from pysam import Samfile
+import progressbar
+import itertools
+import numpy as np
+import h5py
 
 SUCCESS = 0
 
 
-def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/champ/human-genome'):
+def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/champ/human-genome', fastq_filename=None):
     """ Aligns all gzipped FASTQ files in a given directory to a reference genome,
     creating a Bamfile that can be read by pysam, among other tools. This must be performed before
     other CHAMP genomic analyses can be run. """
+    if fastq_filename is None:
+        fastq_filename = os.path.join(os.path.expanduser("~"), '.local', 'champ', 'human-genome.fna')
+
     samtools = distutils.spawn.find_executable("samtools")
     if samtools is None:
         fail("samtools is not installed.")
@@ -22,7 +31,7 @@ def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/c
     if bowtie2 is None:
         fail("bowtie2 is not installed.")
 
-    fastq_filenames = [os.path.join(fastq_directory, directory) for directory in os.listdir(fastq_directory)]
+    fastq_filenames = [os.path.join(fastq_directory, filename) for filename in os.listdir(fastq_directory)]
     fastq_files = FastqFiles(fastq_filenames)
     forward_paired = []
     reverse_paired = []
@@ -68,7 +77,7 @@ def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/c
                                     '-1', forward_paired_filenames,
                                     '-2', reverse_paired_filenames,
                                     '-U', unpaired_filenames,
-                                    '-S', 'genomic.sam'])
+                                    '-S', os.path.join(fastq_directory, 'genomic.sam')])
 
     if result != SUCCESS:
         fail("Could not build samfile.")
@@ -79,22 +88,70 @@ def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/c
                                           '-', os.path.join(fastq_directory, 'genomic')],
                                          stdin=subprocess.PIPE)
         samtools_view = subprocess.Popen([samtools, 'view',
-                                          '-bS', 'genomic.sam'],
+                                          '-bS', os.path.join(fastq_directory, 'genomic.sam')],
                                          stdout=samtools_sort.stdin)
         samtools_sort.communicate()
         samtools_view.wait()
-
-        result = subprocess.check_call([samtools, 'index', os.path.join(fastq_directory, 'genomic.bam')])
+        bamfile_path = os.path.join(fastq_directory, 'genomic.bam')
+        result = subprocess.check_call([samtools, 'index', bamfile_path])
         if result != SUCCESS:
             fail("Could not index bamfile.")
+        else:
+            print("Building quality read name sequences.")
+            read_name_sequences = get_quality_paired_end_read_sequences(bamfile_path, fastq_filename)
+            save_quality_read_name_sequences(read_name_sequences, os.path.join(fastq_directory, 'quality-read-name-sequences.h5'))
+            print("Created quality read name sequences.")
     except:
         fail("Problem with samtools.")
 
     # Delete the temporary files we created
-    for filename in itertools.chain(forward_paired, reverse_paired, unpaired, ('genomic.sam',)):
+    for filename in itertools.chain(forward_paired, reverse_paired, unpaired, (os.path.join(fastq_directory, 'genomic.sam'),)):
         try:
             os.unlink(filename)
         except:
             continue
 
     print("Done aligning FASTQ reads to reference genome!")
+
+
+def get_quality_paired_end_read_sequences(bamfile, fastq_filename=None):
+    """
+    Associate genomic sequences with read names when those reads are paired and they pass all quality checks.
+    We do this separately from the process where gene sequences are stored so that we can look at effects that might
+    arise on physical clusters of DNA.
+
+    """
+    if fastq_filename is None:
+        fastq_filename = os.path.join(os.path.expanduser("~"), '.local', 'champ', 'human-genome.fna')
+
+    read_name_positions = {}
+    try:
+        with Samfile(bamfile) as samfile:
+            contigs = list(reversed(sorted(samfile.references)))[15]
+            with progressbar.ProgressBar(max_value=len(contigs)) as pbar:
+                for contig in pbar(contigs):
+                    read_name_positions[contig] = {}
+                    for alignment in samfile.fetch(contig):
+                        start_end = gbtools.get_quality_alignment_start_and_end(alignment)
+                        if start_end is None:
+                            continue
+                        start, end = start_end
+                        read_name_positions[contig][alignment.query_name] = (start, end)
+        read_name_sequences = []
+        with open(fastq_filename) as f:
+            for record in SeqIO.parse(f, 'fasta'):
+                contig = record.id
+                for read_name, (start, end) in read_name_positions[contig].items():
+                    read_name_sequences.append((read_name, record.seq[start:end]))
+        return read_name_sequences
+    except IOError:
+        raise ValueError("Could not open either %s or %s. Does it exist and is it valid?" % (bamfile, fastq_filename))
+
+
+def save_quality_read_name_sequences(read_name_sequences, hdf5_filename):
+    string_dt = h5py.special_dtype(vlen=str)
+    read_name_sequences_dt = np.dtype([('name', string_dt),
+                                       ('sequence', string_dt)])
+    with h5py.File(hdf5_filename, 'w') as h5:
+        dataset = h5.create_dataset('/bounds', (len(read_name_sequences),), dtype=read_name_sequences_dt)
+        dataset[...] = read_name_sequences
