@@ -14,12 +14,12 @@ import h5py
 SUCCESS = 0
 
 
-def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/champ/human-genome', fastq_filename=None):
+def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/champ/human-genome', reference_genome_fastq_filename=None):
     """ Aligns all gzipped FASTQ files in a given directory to a reference genome,
     creating a Bamfile that can be read by pysam, among other tools. This must be performed before
     other CHAMP genomic analyses can be run. """
-    if fastq_filename is None:
-        fastq_filename = os.path.join(os.path.expanduser("~"), '.local', 'champ', 'human-genome.fna')
+    if reference_genome_fastq_filename is None:
+        reference_genome_fastq_filename = os.path.join(os.path.expanduser("~"), '.local', 'champ', 'human-genome.fna')
 
     samtools = distutils.spawn.find_executable("samtools")
     if samtools is None:
@@ -98,7 +98,7 @@ def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/c
             fail("Could not index bamfile.")
         else:
             print("Building quality read name sequences.")
-            read_name_sequences = get_quality_paired_end_read_sequences(bamfile_path, fastq_filename)
+            read_name_sequences = get_quality_paired_end_read_sequences(bamfile_path, reference_genome_fastq_filename)
             save_quality_read_name_sequences(read_name_sequences, os.path.join(fastq_directory, 'quality-read-name-sequences.h5'))
             print("Created quality read name sequences.")
     except:
