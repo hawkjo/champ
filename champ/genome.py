@@ -127,7 +127,7 @@ def get_quality_paired_end_read_sequences(bamfile, fastq_filename=None):
     read_name_positions = {}
     try:
         with Samfile(bamfile) as samfile:
-            contigs = list(reversed(sorted(samfile.references)))[15]
+            contigs = list(reversed(sorted(samfile.references)))
             with progressbar.ProgressBar(max_value=len(contigs)) as pbar:
                 for contig in pbar(contigs):
                     read_name_positions[contig] = {}
