@@ -153,5 +153,5 @@ def save_quality_read_name_sequences(read_name_sequences, hdf5_filename):
     read_name_sequences_dt = np.dtype([('name', string_dt),
                                        ('sequence', string_dt)])
     with h5py.File(hdf5_filename, 'w') as h5:
-        dataset = h5.create_dataset('/bounds', (len(read_name_sequences),), dtype=read_name_sequences_dt)
+        dataset = h5.create_dataset('/sequences', (len(read_name_sequences),), dtype=read_name_sequences_dt)
         dataset[...] = read_name_sequences

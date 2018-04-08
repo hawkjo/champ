@@ -1,6 +1,7 @@
 from collections import defaultdict
 import numpy as np
 from Bio.Seq import Seq
+import yaml
 
 
 class TargetSequence(object):
@@ -102,20 +103,6 @@ class TargetSequence(object):
             for i, nt in enumerate(self._sequence):
                 sequence = self._sequence[:i] + insertion_base + self._sequence[i:]
                 yield i, j, insertion_base, sequence
-
-    # @property
-    # def double_insertions(self):
-    #     bases = 'ACGT'
-    #     for i in range(len(self._sequence)):
-    #         for j in range(i):
-    #             for insertion_base_1 in bases:
-    #                 for insertion_base_2 in bases:
-    #                     yield i, j, insertion_base_1, insertion_base_2, self._sequence[:j] + insertion_base_1 + self._sequence[j:i] + insertion_base_2 + self._sequence[i:]
-    #
-    #     # single insertions for the diagonal
-    #     for i in range(len(self._sequence)):
-    #         for insertion_base in bases:
-    #             yield i, i, insertion_base, insertion_base, self._sequence[:i] + insertion_base + self._sequence[i:]
 
     @property
     def double_insertions(self):
@@ -449,3 +436,18 @@ class Comparator(object):
         if type1 == 'insertions':
             return InsertionMatrix
         raise ValueError("Could not determine matrix type!")
+
+
+def load_config_value(item_name, override_value):
+    # let the user override this method with a manually-specified value
+    if override_value:
+        return override_value
+    try:
+        with open("champ.yml") as f:
+            config = yaml.load(f)
+            return config[item_name]
+    except Exception as e:
+        print(e)
+        raise ValueError("We could not determine the {item_name} from champ.yml. Make sure you have a configuration file and that the value is set.".format(item_name=item_name))
+
+
