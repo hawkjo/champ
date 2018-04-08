@@ -114,15 +114,15 @@ def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/c
     print("Done aligning FASTQ reads to reference genome!")
 
 
-def get_quality_paired_end_read_sequences(bamfile, fastq_filename=None):
+def get_quality_paired_end_read_sequences(bamfile, fasta_filename=None):
     """
     Associate genomic sequences with read names when those reads are paired and they pass all quality checks.
     We do this separately from the process where gene sequences are stored so that we can look at effects that might
     arise on physical clusters of DNA.
 
     """
-    if fastq_filename is None:
-        fastq_filename = os.path.join(os.path.expanduser("~"), '.local', 'champ', 'human-genome.fna')
+    if fasta_filename is None:
+        fasta_filename = os.path.join(os.path.expanduser("~"), '.local', 'champ', 'human-genome.fna')
 
     read_name_positions = {}
     try:
@@ -138,14 +138,14 @@ def get_quality_paired_end_read_sequences(bamfile, fastq_filename=None):
                         start, end = start_end
                         read_name_positions[contig][alignment.query_name] = (start, end)
         read_name_sequences = []
-        with open(fastq_filename) as f:
+        with open(fasta_filename) as f:
             for record in SeqIO.parse(f, 'fasta'):
                 contig = record.id
                 for read_name, (start, end) in read_name_positions[contig].items():
                     read_name_sequences.append((read_name, record.seq[start:end]))
         return read_name_sequences
     except IOError:
-        raise ValueError("Could not open either %s or %s. Does it exist and is it valid?" % (bamfile, fastq_filename))
+        raise ValueError("Could not open either %s or %s. Does it exist and is it valid?" % (bamfile, fasta_filename))
 
 
 def save_quality_read_name_sequences(read_name_sequences, hdf5_filename):
