@@ -634,8 +634,8 @@ def find_kds_at_all_positions(alignments, read_name_kds):
             position_kds[position].append((kd, start, end))
 
     final_results = {}
-    if len(position_kds) > 1000000:
-        # only show a progress bar for contigs the size of chromosomes
+    if len(position_kds) > 500000:
+        # only show a progress bar for large contigs
         pbar = progressbar.ProgressBar(max_value=len(position_kds))
     else:
         pbar = lambda x: x
