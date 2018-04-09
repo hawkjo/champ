@@ -448,6 +448,5 @@ def load_config_value(item_name, override_value):
             return config[item_name]
     except Exception as e:
         print(e)
-        raise ValueError("We could not determine the {item_name} from champ.yml. Make sure you have a configuration file and that the value is set.".format(item_name=item_name))
-
-
+        raise ValueError("We could not determine the {item_name} from champ.yml. "
+                         "Make sure you have a config file and that the value is set.".format(item_name=item_name))

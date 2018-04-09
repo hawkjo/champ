@@ -54,15 +54,16 @@ def stoftoi(s):
 
 
 def parse_concentration(filename):
+    # Looks for something that looks like a concentration in a filename and returns the value in nanomolarity
     pattern = '[-_]([0-9_.]+)([pn][mM])'
     m = re.search(pattern, filename)
     if m is None:
         raise ValueError("The concentration cannot be parsed from the filename: %s" % filename)
     conc = float(m.group(1).replace('_', '.'))
     if m.group(2).lower() == 'pm':
-        return conc
+        return conc / 1000.0
     elif m.group(2).lower() == 'nm':
-        return conc * 1000
+        return conc
     else:
         raise ValueError('Can only handle pM and nM at the moment.')
 
