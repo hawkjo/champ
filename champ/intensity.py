@@ -333,6 +333,7 @@ def determine_cluster_intensities(lda_weights_fpath, h5_fpaths, results_dirs, pi
     lda_weights = np.loadtxt(lda_weights_fpath)
     image_parsing_regex = re.compile(r'^(?P<channel>.+)_(?P<minor>\d+)_(?P<major>\d+)_')
     for h5_fpath, results_dir in zip(h5_fpaths, results_dirs):
+        print(h5_fpath)
         work_items = []
         results_fpaths = glob.glob(os.path.join(results_dir, '*_all_read_rcs.txt'))
         for i, rfpath in enumerate(results_fpaths):
