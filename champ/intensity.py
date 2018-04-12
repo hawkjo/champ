@@ -355,6 +355,6 @@ def determine_cluster_intensities(lda_weights_fpath, h5_fpaths, results_dirs, pi
             for channel, major, minor, read_name, score in pbar(lomp.parallel_iterator(work_items,
                                                                                        _thread_calculate_raw_cluster_intensities,
                                                                                        args=(pixel_radius, lda_weights),
-                                                                                       process_count=8)):
+                                                                                       process_count=32)):
                 scores[h5_fpath][channel][(major, minor)][read_name] = score
     return scores
