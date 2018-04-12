@@ -295,8 +295,8 @@ class Comparator(object):
         ABA_errors2 = self._experiments[experiment2]['ABA_errors']
 
         if normalize:
-            normalize_by1 = ABAs1[self._experiments[experiment1]['ts'].sequence]
-            normalize_by2 = ABAs2[self._experiments[experiment2]['ts'].sequence]
+            normalize_by1 = ABAs1.get(self._experiments[experiment1]['ts'].sequence) or max(ABAs1.values())
+            normalize_by2 = ABAs2.get(self._experiments[experiment2]['ts'].sequence) or max(ABAs2.values())
         else:
             normalize_by1 = None
             normalize_by2 = None

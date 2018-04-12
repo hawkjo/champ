@@ -6,6 +6,11 @@ import matplotlib.pyplot as plt
 import misc
 import itertools
 from champ import seqtools
+from biofits import fit_hyperbola
+
+
+BOOTSTRAP_ROUNDS = 20
+MAX_BOOTSTRAP_SAMPLE_SIZE = 2000
 
 
 class KdFitIA(object):
@@ -526,3 +531,44 @@ class IAKdData(object):
         if Kd is None:
             return None
         return self.log_neg_control_Kd - np.log(Kd)
+
+
+def fit_kd(intensity_concentrations):
+    """
+
+    :param intensity_concentrations: a list of 2-tuples, with each tuple containing a list of intensities and a list
+    of concentrations. There are no None values in either list (i.e., if an intensity couldn't be acquired for a
+    particular concentration, there is no record in either list)
+
+    """
+    all_intensities, all_concentrations = concatenate_intensity_concentrations(intensity_concentrations)
+    try:
+        _, _, _, _, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
+        uncertainty = bootstrap_kd_uncertainty(intensity_concentrations)
+    except (FloatingPointError, RuntimeError, Exception):
+        return None, None
+    else:
+        return kd, uncertainty
+
+
+def bootstrap_kd_uncertainty(intensity_concentrations):
+    kds = []
+    all_indexes = np.arange(len(intensity_concentrations))
+    for i in range(BOOTSTRAP_ROUNDS):
+        indexes = np.random.choice(all_indexes, min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(all_indexes)), replace=True)
+        all_intensities, all_concentrations = concatenate_intensity_concentrations([intensity_concentrations[index] for index in indexes])
+        _, _, _, _, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
+        kds.append(kd)
+    return np.std(kds)
+
+
+def concatenate_intensity_concentrations(intensity_concentrations):
+    # To perform the fitting efficiently, we concatenate all intensities and concentrations into a single list.
+    # Thus if there are two concentration lists with values [1, 2, 4, 8] and [1, 2, 4, 16], all_concentrations should
+    # end up as [1, 2, 4, 8, 1, 2, 4, 16]. The non-linear curve fitting function handles this just fine.
+    all_intensities = []
+    all_concentrations = []
+    for intensities, concentrations in intensity_concentrations:
+        all_intensities.extend(intensities)
+        all_concentrations.extend(concentrations)
+    return all_intensities, all_concentrations

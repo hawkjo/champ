@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
 import logging
+import lomp
+import progressbar
+
 
 log = logging.getLogger(__name__)
 
@@ -302,3 +305,55 @@ class IntensityScores(object):
                                         else '-'
                                         for read_name in read_names)
                               + '\n')
+
+
+# ---- init
+# ---- get_LDA_scores
+# normalize_scores
+# build_good_read_names
+# build_score_given_read_name_given_channel
+
+
+def _thread_calculate_raw_cluster_intensities(work_item, pixel_radius, lda_weights):
+    channel, major, minor, read_name_lines, image = work_item
+    for read_name, r, c in read_name_lines:
+        r, c = map(misc.stoftoi, (r, c))
+        if (pixel_radius <= r < image.shape[0] - pixel_radius - 1
+                and pixel_radius <= c < image.shape[0] - pixel_radius - 1):
+            x = image[r - pixel_radius:r + pixel_radius + 1,
+                      c - pixel_radius:c + pixel_radius + 1].astype(np.float)
+            yield channel, major, minor, read_name, float(np.multiply(lda_weights, x).sum())
+
+
+def determine_cluster_intensities(lda_weights_fpath, h5_fpaths, results_dirs, pixel_radius=3):
+    raw_scores = {h5_fpath: {channel: {} for channel in hdf5tools.load_channel_names(h5_fpath)}
+                  for h5_fpath in h5_fpaths}
+    scores = raw_scores
+
+    lda_weights = np.loadtxt(lda_weights_fpath)
+    image_parsing_regex = re.compile(r'^(?P<channel>.+)_(?P<minor>\d+)_(?P<major>\d+)_')
+    for h5_fpath, results_dir in zip(h5_fpaths, results_dirs):
+        work_items = []
+        results_fpaths = glob.glob(os.path.join(results_dir, '*_all_read_rcs.txt'))
+        for i, rfpath in enumerate(results_fpaths):
+            rfname = os.path.basename(rfpath)
+            m = image_parsing_regex.match(rfname)
+            channel = m.group('channel')
+            minor, major = int(m.group('minor')), int(m.group('major'))
+            pos_key = hdf5tools.get_image_key(major, minor)
+            scores[h5_fpath][channel][(major, minor)] = {}
+
+            with h5py.File(h5_fpath) as f:
+                im = np.array(f[channel][pos_key])
+
+            read_name_lines = []
+            for line in open(rfpath):
+                read_name, r, c = line.strip().split()
+                read_name_lines.append((read_name, r, c))
+            work_items.append((channel, major, minor, read_name_lines, im))
+        with progressbar.ProgressBar() as pbar:
+            for channel, major, minor, read_name, score in pbar(lomp.parallel_iterator(work_items,
+                                                                                       _thread_calculate_raw_cluster_intensities,
+                                                                                       args=(pixel_radius, lda_weights))):
+                scores[h5_fpath][channel][(major, minor)][read_name] = score
+    return scores
