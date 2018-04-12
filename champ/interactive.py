@@ -2,6 +2,8 @@ from collections import defaultdict
 import numpy as np
 from Bio.Seq import Seq
 import yaml
+import re
+import glob
 
 
 class TargetSequence(object):
@@ -450,3 +452,37 @@ def load_config_value(item_name, override_value):
         print(e)
         raise ValueError("We could not determine the {item_name} from champ.yml. "
                          "Make sure you have a config file and that the value is set.".format(item_name=item_name))
+
+
+def determine_flow_cell_id(override_value):
+    # let the user override this method with a manually-specified value
+    if override_value:
+        return override_value
+
+    flow_cell_regex = re.compile(r'.*?(SA\d{5}).*?')
+    filenames = glob.glob('*')
+    candidates = set()
+    # look through all the filenames in this directory and look for anything that looks like a sequencing run ID,
+    # which we use as flow cell IDs
+    for filename in filenames:
+        match = flow_cell_regex.search(filename)
+        if match:
+            candidates.add(match.group(1))
+    # there should be a unique value unless someone had an unfortunate choice of filenames
+    if len(candidates) == 1:
+        return list(candidates)[0]
+    raise ValueError(
+        "We're unable to automatically determine the flow cell ID based on filenames, you'll need to set it manually.")
+
+
+def determine_data_channel(all_channels, alignment_channel):
+    alignment_channel = set([alignment_channel])
+    all_channels = set(map(str, all_channels))
+    data_channel = all_channels - alignment_channel
+    if len(data_channel) == 1:
+        # There are two channels, so we return the one that isn't the alignment channel
+        return list(data_channel)[0]
+    if not data_channel:
+        # There is only one channel, so alignment markers and data are in the same channel
+        return list(alignment_channel)[0]
+    raise ValueError("Could not determine data channel. You'll need to set this manually.")

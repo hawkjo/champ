@@ -533,32 +533,31 @@ class IAKdData(object):
         return self.log_neg_control_Kd - np.log(Kd)
 
 
-def fit_kd(intensity_concentrations):
-    """
-
-    :param intensity_concentrations: a list of 2-tuples, with each tuple containing a list of intensities and a list
-    of concentrations. There are no None values in either list (i.e., if an intensity couldn't be acquired for a
-    particular concentration, there is no record in either list)
-
-    """
-    all_intensities, all_concentrations = concatenate_intensity_concentrations(intensity_concentrations)
+def fit_kd(all_concentrations, all_intensities):
     try:
         _, _, _, _, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
-        uncertainty = bootstrap_kd_uncertainty(intensity_concentrations)
+        uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities)
     except (FloatingPointError, RuntimeError, Exception):
         return None, None
     else:
         return kd, uncertainty
 
 
-def bootstrap_kd_uncertainty(intensity_concentrations):
+def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
     kds = []
-    all_indexes = np.arange(len(intensity_concentrations))
+    all_indexes = np.arange(len(all_intensities))
     for i in range(BOOTSTRAP_ROUNDS):
         indexes = np.random.choice(all_indexes, min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(all_indexes)), replace=True)
-        all_intensities, all_concentrations = concatenate_intensity_concentrations([intensity_concentrations[index] for index in indexes])
-        _, _, _, _, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
-        kds.append(kd)
+        sample_of_concentrations = [all_concentrations[index] for index in indexes]
+        sample_of_intensities = [all_intensities[index] for index in indexes]
+        try:
+            _, _, _, _, kd, _ = fit_hyperbola(sample_of_concentrations, sample_of_intensities)
+        except (FloatingPointError, RuntimeError, Exception):
+            continue
+        else:
+            kds.append(kd)
+    if not kds:
+        return None
     return np.std(kds)
 
 
@@ -569,6 +568,21 @@ def concatenate_intensity_concentrations(intensity_concentrations):
     all_intensities = []
     all_concentrations = []
     for intensities, concentrations in intensity_concentrations:
+        if len(intensities) != len(concentrations):
+            raise ValueError('The number of intensity values does not match the number of concentrations!')
         all_intensities.extend(intensities)
         all_concentrations.extend(concentrations)
     return all_intensities, all_concentrations
+
+
+def build_intensity_concentration_array(sequence_intensities):
+    all_concentrations = []
+    all_intensities = []
+    for h5_filename, intensities in sequence_intensities.items():
+        # This will be out of order, but it doesn't matter, since the
+        # non-linear curve fitting doesn't take it into account
+        concentration = misc.parse_concentration(h5_filename)
+        for intensity in intensities:
+            all_concentrations.append(concentration)
+            all_intensities.append(intensity)
+    return all_concentrations, all_intensities
