@@ -533,7 +533,7 @@ class IAKdData(object):
         return self.log_neg_control_Kd - np.log(Kd)
 
 
-def fit_kd(all_concentrations, all_intensities):
+def fit_kd(all_intensities, all_concentrations):
     try:
         yint, yint_stddev, delta_y, delta_y_stddev, kd, kd_stddev = fit_hyperbola(all_concentrations, all_intensities)
         # uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities, sigmas)
