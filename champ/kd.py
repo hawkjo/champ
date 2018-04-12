@@ -537,7 +537,8 @@ def fit_kd(all_concentrations, all_intensities):
     try:
         yint, yint_stddev, delta_y, delta_y_stddev, kd, kd_stddev = fit_hyperbola(all_concentrations, all_intensities)
         # uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities, sigmas)
-    except (FloatingPointError, RuntimeError, Exception):
+    except (FloatingPointError, RuntimeError, Exception) as e:
+        print(e)
         return None, None, None, None
     else:
         return kd, kd_stddev, yint, delta_y
@@ -582,5 +583,6 @@ def build_intensity_concentration_array(sequence_intensities):
                                            key=lambda hi: misc.parse_concentration(hi[0])):
         concentration = misc.parse_concentration(h5_filename)
         all_concentrations.append(concentration)
+        print("len(intensities)", len(intensities))
         all_intensities.append(intensities)
     return all_intensities, all_concentrations
