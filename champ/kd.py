@@ -578,9 +578,8 @@ def concatenate_intensity_concentrations(intensity_concentrations):
 def build_intensity_concentration_array(sequence_intensities):
     all_concentrations = []
     all_intensities = []
-    for h5_filename, intensities in sequence_intensities.items():
-        # This will be out of order, but it doesn't matter, since the
-        # non-linear curve fitting doesn't take it into account
+    for h5_filename, intensities in sorted(sequence_intensities.items(),
+                                           key=lambda hi: misc.parse_concentration(hi[0])):
         concentration = misc.parse_concentration(h5_filename)
         for intensity in intensities:
             all_concentrations.append(concentration)
