@@ -535,12 +535,12 @@ class IAKdData(object):
 
 def fit_kd(all_concentrations, all_intensities):
     try:
-        _, _, _, _, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
+        yint, yint_stddev, delta_y, delta_y_stddev, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
         uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities)
     except (FloatingPointError, RuntimeError, Exception):
         return None, None
     else:
-        return kd, uncertainty
+        return kd, uncertainty, yint, delta_y
 
 
 def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
