@@ -315,14 +315,14 @@ class IntensityScores(object):
 
 
 def _thread_calculate_raw_cluster_intensities(work_item, pixel_radius, lda_weights):
-    channel, major, minor, read_name_lines, image = work_item
+    h5_fpath, channel, major, minor, read_name_lines, image = work_item
     for read_name, r, c in read_name_lines:
         r, c = map(misc.stoftoi, (r, c))
         if (pixel_radius <= r < image.shape[0] - pixel_radius - 1
                 and pixel_radius <= c < image.shape[0] - pixel_radius - 1):
             x = image[r - pixel_radius:r + pixel_radius + 1,
                       c - pixel_radius:c + pixel_radius + 1].astype(np.float)
-            yield channel, major, minor, read_name, float(np.multiply(lda_weights, x).sum())
+            yield h5_fpath, channel, major, minor, read_name, float(np.multiply(lda_weights, x).sum())
 
 
 def determine_cluster_intensities(lda_weights_fpath, h5_fpaths, results_dirs, pixel_radius=3):
@@ -332,9 +332,9 @@ def determine_cluster_intensities(lda_weights_fpath, h5_fpaths, results_dirs, pi
 
     lda_weights = np.loadtxt(lda_weights_fpath)
     image_parsing_regex = re.compile(r'^(?P<channel>.+)_(?P<minor>\d+)_(?P<major>\d+)_')
+    work_items = []
     for h5_fpath, results_dir in zip(h5_fpaths, results_dirs):
         print(h5_fpath)
-        work_items = []
         results_fpaths = glob.glob(os.path.join(results_dir, '*_all_read_rcs.txt'))
         for i, rfpath in enumerate(results_fpaths):
             rfname = os.path.basename(rfpath)
@@ -351,11 +351,11 @@ def determine_cluster_intensities(lda_weights_fpath, h5_fpaths, results_dirs, pi
             for line in open(rfpath):
                 read_name, r, c = line.strip().split()
                 read_name_lines.append((read_name, r, c))
-            work_items.append((channel, major, minor, read_name_lines, im))
-        with progressbar.ProgressBar() as pbar:
-            for channel, major, minor, read_name, score in pbar(lomp.parallel_iterator(work_items,
-                                                                                       _thread_calculate_raw_cluster_intensities,
-                                                                                       args=(pixel_radius, lda_weights),
-                                                                                       process_count=32)):
-                scores[h5_fpath][channel][(major, minor)][read_name] = score
+            work_items.append((h5_fpath, channel, major, minor, read_name_lines, im))
+    with progressbar.ProgressBar() as pbar:
+        for h5_fpath, channel, major, minor, read_name, score in pbar(lomp.parallel_iterator(work_items,
+                                                                                   _thread_calculate_raw_cluster_intensities,
+                                                                                   args=(pixel_radius, lda_weights),
+                                                                                   process_count=16)):
+            scores[h5_fpath][channel][(major, minor)][read_name] = score
     return scores
