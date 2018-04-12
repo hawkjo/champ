@@ -535,30 +535,30 @@ class IAKdData(object):
 
 def fit_kd(all_concentrations, all_intensities):
     try:
-        yint, yint_stddev, delta_y, delta_y_stddev, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
-        uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities)
+        yint, yint_stddev, delta_y, delta_y_stddev, kd, kd_stddev = fit_hyperbola(all_concentrations, all_intensities)
+        # uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities, sigmas)
     except (FloatingPointError, RuntimeError, Exception):
         return None, None
     else:
-        return kd, uncertainty, yint, delta_y
+        return kd, kd_stddev, yint, delta_y
 
 
-def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
-    kds = []
-    all_indexes = np.arange(len(all_intensities))
-    for i in range(BOOTSTRAP_ROUNDS):
-        indexes = np.random.choice(all_indexes, min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(all_indexes)), replace=True)
-        sample_of_concentrations = [all_concentrations[index] for index in indexes]
-        sample_of_intensities = [all_intensities[index] for index in indexes]
-        try:
-            _, _, _, _, kd, _ = fit_hyperbola(sample_of_concentrations, sample_of_intensities)
-        except (FloatingPointError, RuntimeError, Exception):
-            continue
-        else:
-            kds.append(kd)
-    if not kds:
-        return None
-    return np.std(kds)
+# def bootstrap_kd_uncertainty(all_concentrations, all_intensities, sigmas):
+#     kds = []
+#     all_indexes = np.arange(len(all_intensities))
+#     for i in range(BOOTSTRAP_ROUNDS):
+#         indexes = np.random.choice(all_indexes, min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(all_indexes)), replace=True)
+#         sample_of_concentrations = [all_concentrations[index] for index in indexes]
+#         sample_of_intensities = [all_intensities[index] for index in indexes]
+#         try:
+#             _, _, _, _, kd, _ = fit_hyperbola(sample_of_concentrations, sample_of_intensities)
+#         except (FloatingPointError, RuntimeError, Exception):
+#             continue
+#         else:
+#             kds.append(kd)
+#     if not kds:
+#         return None
+#     return np.std(kds)
 
 
 def concatenate_intensity_concentrations(intensity_concentrations):
@@ -581,7 +581,6 @@ def build_intensity_concentration_array(sequence_intensities):
     for h5_filename, intensities in sorted(sequence_intensities.items(),
                                            key=lambda hi: misc.parse_concentration(hi[0])):
         concentration = misc.parse_concentration(h5_filename)
-        for intensity in intensities:
-            all_concentrations.append(concentration)
-            all_intensities.append(intensity)
-    return all_concentrations, all_intensities
+        all_concentrations.append(concentration)
+        all_intensities.append(intensities)
+    return all_intensities, all_concentrations
