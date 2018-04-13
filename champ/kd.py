@@ -640,6 +640,23 @@ def filter_reads_with_unusual_intensities(intensities):
     return [ints for n, ints in enumerate(intensities) if n not in bad_indexes]
 
 
+def assemble_read_intensities_for_fitting(read_names, read_name_intensities):
+    """ Takes a list of read names that are known to be of high quality and assembles their intensities for each
+    concentration into variable-sized lists. Some of these values may be np.nan and we need to exclude those (this is
+    also why not all lists will be the same size). The goal here is to give something to a non-linear curve fitting
+    function that doesn't need to be processed any further. """
+    assembled_intensities = []
+    intensities = [read_name_intensities[read_name] for read_name in read_names]
+    for index in range(len(intensities[0])):
+        concentration_intensities = []
+        for intensity_gradient in intensities:
+            intensity = intensity_gradient[index]
+            if intensity is not np.nan:
+                concentration_intensities.append(intensity)
+        assembled_intensities.append(concentration_intensities)
+    return assembled_intensities
+
+
 # skipped = 0
 # sequence_kds = []
 # with progressbar.ProgressBar(max_value=len(interesting_read_names)) as pbar:
