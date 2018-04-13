@@ -549,6 +549,8 @@ def fit_hyperbola(concentrations, signals):
         kd_stddev: the standard deviation of the error of kd
 
     """
+    print("SIGNALS")
+    print(signals)
     signals = [np.mean(s) for s in signals]
     sigmas = [np.std(s) for s in signals]
     if 0 in sigmas:
@@ -570,7 +572,6 @@ def fit_hyperbola(concentrations, signals):
 def fit_kd(all_intensities, all_concentrations):
     try:
         yint, _, delta_y, _, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
-        print("main fit: %s\n%s" % (all_concentrations, all_intensities))
         uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities)
     except (FloatingPointError, RuntimeError, Exception) as e:
         print("exception main fit", e)
@@ -588,7 +589,7 @@ def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
         for n, _ in all_concentrations:
             sample_of_intensities[n] = [all_intensities[n][index] for index in indexes]
         try:
-            print("bootstrap fit: %s\n%s" % (all_concentrations, sample_of_intensities))
+            # print("bootstrap fit: %s\n%s" % (all_concentrations, sample_of_intensities))
             _, _, _, _, kd, _ = fit_hyperbola(all_concentrations, sample_of_intensities)
         except (FloatingPointError, RuntimeError, Exception) as e:
             print("exception bootstrap fit", e)
