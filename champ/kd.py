@@ -567,10 +567,12 @@ def fit_hyperbola(concentrations, signals):
     return yint, yint_stddev, delta_y, delta_y_stddev, kd, kd_stddev
 
 
-def fit_kd(all_concentrations, all_intensities):
+def fit_kd(all_concentrations, all_intensities, all_read_names):
+    """ all_intensities is a list of dicts, with read_name: intensity"""
     try:
-        yint, _, delta_y, _, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
-        uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities)
+        intensity_array = [i.values() for i in all_intensities]
+        yint, _, delta_y, _, kd, _ = fit_hyperbola(all_concentrations, intensity_array)
+        uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities, all_read_names)
     except (FloatingPointError, RuntimeError, Exception) as e:
         print("main fitting error", e)
         return None, None, None, None
@@ -578,19 +580,20 @@ def fit_kd(all_concentrations, all_intensities):
         return kd, uncertainty, yint, delta_y
 
 
-def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
+def bootstrap_kd_uncertainty(all_concentrations, all_intensities, all_read_names):
     kds = []
-    all_indexes = np.arange(max([len(i) for i in all_intensities]))
     for i in range(BOOTSTRAP_ROUNDS):
-        indexes = np.random.choice(all_indexes, min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(all_indexes)), replace=True)
+        sample_of_read_names = np.random.choice(all_read_names,
+                                                min(MAX_BOOTSTRAP_SAMPLE_SIZE,
+                                                    len(all_read_names)), replace=True)
         sample_of_intensities = []
         concentrations = []
         for n, concentration in enumerate(all_concentrations):
             concentration_subsample = []
-            for index in indexes:
-                value = all_intensities[n].get(index)
-                if value is not None:
-                    concentration_subsample.append(value)
+            for read_name in sample_of_read_names:
+                intensity = all_intensities[n].get(read_name)
+                if intensity is not None:
+                    concentration_subsample.append(intensity)
             if concentration_subsample:
                 sample_of_intensities.append(concentration_subsample)
                 concentrations.append(concentration)
