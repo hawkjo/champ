@@ -574,7 +574,6 @@ def fit_kd(all_concentrations, all_intensities, all_read_names):
         yint, _, delta_y, _, kd, _ = fit_hyperbola(all_concentrations, intensity_array)
         uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities, all_read_names)
     except (FloatingPointError, RuntimeError, Exception) as e:
-        print("main fitting error", e)
         return None, None, None, None
     else:
         return kd, uncertainty, yint, delta_y
