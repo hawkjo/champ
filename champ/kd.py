@@ -549,8 +549,6 @@ def fit_hyperbola(concentrations, signals):
         kd_stddev: the standard deviation of the error of kd
 
     """
-    print("SIGNALS")
-    print(signals)
     signals = [np.mean(s) for s in signals]
     sigmas = [np.std(s) for s in signals]
     if 0 in sigmas:
@@ -569,11 +567,10 @@ def fit_hyperbola(concentrations, signals):
     return yint, yint_stddev, delta_y, delta_y_stddev, kd, kd_stddev
 
 
-def fit_kd(all_intensities, all_concentrations):
+def fit_kd(all_concentrations, all_intensities):
     try:
         yint, _, delta_y, _, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
         uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities)
-        print("fit bootstrap OK")
     except (FloatingPointError, RuntimeError, Exception) as e:
         return None, None, None, None
     else:
@@ -583,19 +580,14 @@ def fit_kd(all_intensities, all_concentrations):
 def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
     kds = []
     all_indexes = np.arange(len(all_intensities[0]))
-    print("all indexes", all_indexes)
-    sample_of_intensities = []
     for i in range(BOOTSTRAP_ROUNDS):
         indexes = np.random.choice(all_indexes, min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(all_indexes)), replace=True)
-        print("sample indexes", indexes)
-        for n, _ in all_concentrations:
+        sample_of_intensities = []
+        for n, _ in enumerate(all_concentrations):
             sample_of_intensities.append([all_intensities[n][index] for index in indexes])
         try:
-            print("sample of intensities")
-            print(sample_of_intensities)
             _, _, _, _, kd, _ = fit_hyperbola(all_concentrations, sample_of_intensities)
         except (FloatingPointError, RuntimeError, Exception) as e:
-            print("exception bootstrap fit", e)
             continue
         else:
             kds.append(kd)
@@ -615,7 +607,7 @@ def concatenate_intensity_concentrations(intensity_concentrations):
             raise ValueError('The number of intensity values does not match the number of concentrations!')
         all_intensities.extend(intensities)
         all_concentrations.extend(concentrations)
-    return all_intensities, all_concentrations
+    return all_concentrations, all_intensities
 
 
 def build_intensity_concentration_array(sequence_intensities):
@@ -626,4 +618,12 @@ def build_intensity_concentration_array(sequence_intensities):
         concentration = misc.parse_concentration(h5_filename)
         all_concentrations.append(concentration)
         all_intensities.append(intensities)
-    return all_intensities, all_concentrations
+    return all_concentrations, all_intensities
+
+
+print(fit_kd([1, 2, 4, 8, 16, 32], [np.array([1.0, 1.1, 0.9, 1.3, 2.0, 1.1, 2.0, 1.5, 1.4, 1.4, 1.3]),
+                                                np.array([1.0, 1.1, 0.9, 1.3, 2.0, 1.1, 2.0, 1.5, 1.4, 1.4, 1.3])*2,
+                                                np.array([1.0, 1.1, 0.9, 1.3, 2.0, 1.1, 2.0, 1.5, 1.4, 1.4, 1.3])*4,
+                                                np.array([1.0, 1.1, 0.9, 1.3, 2.0, 1.1, 2.0, 1.5, 1.4, 1.4, 1.3])*8,
+                                                np.array([1.0, 1.1, 0.9, 1.3, 2.0, 1.1, 2.0, 1.5, 1.4, 1.4, 1.3])*16,
+                                                np.array([1.0, 1.1, 0.9, 1.3, 2.0, 1.1, 2.0, 1.5, 1.4, 1.4, 1.3])*32]))
