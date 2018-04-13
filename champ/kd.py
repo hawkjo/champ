@@ -580,14 +580,23 @@ def fit_kd(all_concentrations, all_intensities):
 
 def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
     kds = []
-    all_indexes = np.arange(len(all_intensities[0]))
+    all_indexes = np.arange(max([len(i) for i in all_intensities]))
     for i in range(BOOTSTRAP_ROUNDS):
         indexes = np.random.choice(all_indexes, min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(all_indexes)), replace=True)
         sample_of_intensities = []
-        for n, _ in enumerate(all_concentrations):
-            sample_of_intensities.append([all_intensities[n][index] for index in indexes])
+        concentrations = []
+        for n, concentration in enumerate(all_concentrations):
+            concentration_subsample = []
+            for index in indexes:
+                value = all_intensities[n].get(index)
+                if value is not None:
+                    concentration_subsample.append(value)
+            if concentration_subsample:
+                sample_of_intensities.append(concentration_subsample)
+                concentrations.append(concentration)
         try:
-            _, _, _, _, kd, _ = fit_hyperbola(all_concentrations, sample_of_intensities)
+            print(concentrations, sample_of_intensities)
+            _, _, _, _, kd, _ = fit_hyperbola(concentrations, sample_of_intensities)
         except (FloatingPointError, RuntimeError, Exception) as e:
             continue
         else:
@@ -620,11 +629,3 @@ def build_intensity_concentration_array(sequence_intensities):
         all_concentrations.append(concentration)
         all_intensities.append(intensities)
     return all_concentrations, all_intensities
-
-
-print(fit_kd([1, 2, 4, 8, 16, 32], [np.array([1.0, 1.1, 0.9, 1.3, 2.0, 1.1, 2.0, 1.5, 1.4, 1.4, 1.3]),
-                                                np.array([1.0, 1.1, 0.9, 1.3, 2.0, 1.1, 2.0, 1.5, 1.4, 1.4, 1.3])*2,
-                                                np.array([1.0, 1.1, 0.9, 1.3, 2.0, 1.1, 2.0, 1.5, 1.4, 1.4, 1.3])*4,
-                                                np.array([1.0, 1.1, 0.9, 1.3, 2.0, 1.1, 2.0, 1.5, 1.4, 1.4, 1.3])*8,
-                                                np.array([1.0, 1.1, 0.9, 1.3, 2.0, 1.1, 2.0, 1.5, 1.4, 1.4, 1.3])*16,
-                                                np.array([1.0, 1.1, 0.9, 1.3, 2.0, 1.1, 2.0, 1.5, 1.4, 1.4, 1.3])*32]))
