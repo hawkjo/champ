@@ -598,7 +598,6 @@ def bootstrap_kd_uncertainty(all_concentrations, all_intensities, all_read_names
                 sample_of_intensities.append(concentration_subsample)
                 concentrations.append(concentration)
         try:
-            print(concentrations, sample_of_intensities)
             _, _, _, _, kd, _ = fit_hyperbola(concentrations, sample_of_intensities)
         except (FloatingPointError, RuntimeError, Exception) as e:
             continue
