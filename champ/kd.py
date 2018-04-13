@@ -571,16 +571,10 @@ def fit_hyperbola(concentrations, signals):
 
 def fit_kd(all_intensities, all_concentrations):
     try:
-        print("ALL INTS:")
-        for i in all_intensities:
-            print(len(i), i)
-        print("\n\n")
         yint, _, delta_y, _, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
-        print("fit regular OK")
         uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities)
         print("fit bootstrap OK")
     except (FloatingPointError, RuntimeError, Exception) as e:
-        print("exception main fit", e)
         return None, None, None, None
     else:
         return kd, uncertainty, yint, delta_y
@@ -589,13 +583,16 @@ def fit_kd(all_intensities, all_concentrations):
 def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
     kds = []
     all_indexes = np.arange(len(all_intensities[0]))
-    sample_of_intensities = [[] for _ in all_concentrations]
+    print("all indexes", all_indexes)
+    sample_of_intensities = []
     for i in range(BOOTSTRAP_ROUNDS):
         indexes = np.random.choice(all_indexes, min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(all_indexes)), replace=True)
+        print("sample indexes", indexes)
         for n, _ in all_concentrations:
-            sample_of_intensities[n] = [all_intensities[n][index] for index in indexes]
+            sample_of_intensities.append([all_intensities[n][index] for index in indexes])
         try:
-            # print("bootstrap fit: %s\n%s" % (all_concentrations, sample_of_intensities))
+            print("sample of intensities")
+            print(sample_of_intensities)
             _, _, _, _, kd, _ = fit_hyperbola(all_concentrations, sample_of_intensities)
         except (FloatingPointError, RuntimeError, Exception) as e:
             print("exception bootstrap fit", e)
@@ -628,6 +625,5 @@ def build_intensity_concentration_array(sequence_intensities):
                                            key=lambda hi: misc.parse_concentration(hi[0])):
         concentration = misc.parse_concentration(h5_filename)
         all_concentrations.append(concentration)
-        print("len(intensities)", len(intensities))
         all_intensities.append(intensities)
     return all_intensities, all_concentrations
