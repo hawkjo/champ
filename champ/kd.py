@@ -657,6 +657,19 @@ def assemble_read_intensities_for_fitting(read_names, read_name_intensities):
     return assembled_intensities
 
 
+def assemble_fitting_inputs(assembled_intensities, all_concentrations):
+    """ We have to handle the case where at one concentration, no reads have any values. This will break our fitting
+    code so we need to make sure we have a list of concentrations that only matches points with data. Typically the
+    reason this happens is that higher concentration images just don't align at all. """
+    intensities = []
+    concentrations = []
+    for cluster_intensities, concentration in zip(assembled_intensities, all_concentrations):
+        if cluster_intensities:
+            intensities.append(cluster_intensities)
+            concentrations.append(concentration)
+    return intensities, concentrations
+
+
 # skipped = 0
 # sequence_kds = []
 # with progressbar.ProgressBar(max_value=len(interesting_read_names)) as pbar:

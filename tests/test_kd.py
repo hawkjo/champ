@@ -1,4 +1,4 @@
-from champ.kd import filter_reads_with_unusual_intensities, assemble_read_intensities_for_fitting
+from champ.kd import filter_reads_with_unusual_intensities, assemble_read_intensities_for_fitting, assemble_fitting_inputs
 import numpy as np
 
 
@@ -25,3 +25,11 @@ def test_assemble_read_intensities_for_fitting():
                              'e': [1, 2, 3, 4, 6]}
     intensities = assemble_read_intensities_for_fitting(['a', 'b', 'c'], read_name_intensities)
     assert intensities == [[1, 2], [2], [3, 3, 34], [4, 4, 35], [5, 77, 36]]
+
+
+def test_assemble_fitting_inputs():
+    all_concentrations = [1, 2, 4, 8, 16]
+    assembled_intensities = [[3, 4, 3, 2], [], [9, 5, 6, 7], [21, 22, 21, 20, 19], []]
+    intensities, concentrations = assemble_fitting_inputs(assembled_intensities, all_concentrations)
+    assert concentrations == [1, 4, 8]
+    assert intensities == [[3, 4, 3, 2], [9, 5, 6, 7], [21, 22, 21, 20, 19]]
