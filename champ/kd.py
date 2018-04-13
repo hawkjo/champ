@@ -569,31 +569,31 @@ def fit_hyperbola(concentrations, signals):
 
 def fit_kd(all_intensities, all_concentrations):
     try:
-        yint, yint_stddev, delta_y, delta_y_stddev, kd, kd_stddev = fit_hyperbola(all_concentrations, all_intensities)
-        # uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities, sigmas)
-    except (FloatingPointError, RuntimeError, Exception) as e:
-        print(e)
+        yint, _, delta_y, _, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
+        uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities)
+    except (FloatingPointError, RuntimeError, Exception):
         return None, None, None, None
     else:
-        return kd, kd_stddev, yint, delta_y
+        return kd, uncertainty, yint, delta_y
 
 
-# def bootstrap_kd_uncertainty(all_concentrations, all_intensities, sigmas):
-#     kds = []
-#     all_indexes = np.arange(len(all_intensities))
-#     for i in range(BOOTSTRAP_ROUNDS):
-#         indexes = np.random.choice(all_indexes, min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(all_indexes)), replace=True)
-#         sample_of_concentrations = [all_concentrations[index] for index in indexes]
-#         sample_of_intensities = [all_intensities[index] for index in indexes]
-#         try:
-#             _, _, _, _, kd, _ = fit_hyperbola(sample_of_concentrations, sample_of_intensities)
-#         except (FloatingPointError, RuntimeError, Exception):
-#             continue
-#         else:
-#             kds.append(kd)
-#     if not kds:
-#         return None
-#     return np.std(kds)
+def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
+    kds = []
+    all_indexes = np.arange(len(all_intensities[0]))
+    sample_of_intensities = [[] for _ in all_concentrations]
+    for i in range(BOOTSTRAP_ROUNDS):
+        indexes = np.random.choice(all_indexes, min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(all_indexes)), replace=True)
+        for n, _ in all_concentrations:
+            sample_of_intensities[n] = [all_intensities[n][index] for index in indexes]
+        try:
+            _, _, _, _, kd, _ = fit_hyperbola(all_concentrations, sample_of_intensities)
+        except (FloatingPointError, RuntimeError, Exception):
+            continue
+        else:
+            kds.append(kd)
+    if not kds:
+        return None
+    return np.std(kds)
 
 
 def concatenate_intensity_concentrations(intensity_concentrations):
