@@ -537,7 +537,8 @@ class IAKdData(object):
 def fit_hyperbola(concentrations, signals):
     """
     :param concentrations: X-axis values representing concentrations in arbitrary units
-    :param signals: Y-axis values representing some kind of signal. Don't normalize this.
+    :param signals: Y-axis values representing some kind of signal. Don't normalize this. These are batched by
+    concentration, and each batch can have variable numbers of observations
 
     :return:
         yint: the Y-intercept of the fit, often the background signal
@@ -565,32 +566,33 @@ def fit_hyperbola(concentrations, signals):
     return yint, yint_stddev, delta_y, delta_y_stddev, kd, kd_stddev
 
 
-def fit_kd(all_concentrations, all_intensities, all_read_names):
+def fit_kd(all_concentrations, all_intensities):
     """ all_intensities is a list of dicts, with read_name: intensity"""
     try:
         intensity_array = [i.values() for i in all_intensities]
         yint, _, delta_y, _, kd, _ = fit_hyperbola(all_concentrations, intensity_array)
-        uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities, all_read_names)
+        uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities)
     except (FloatingPointError, RuntimeError, Exception) as e:
         return None, None, None, None
     else:
         return kd, uncertainty, yint, delta_y
 
 
-def bootstrap_kd_uncertainty(all_concentrations, all_intensities, all_read_names):
+def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
     kds = []
+    indexes = list(range(max([len(i) for i in all_intensities])))
     for i in range(BOOTSTRAP_ROUNDS):
-        sample_of_read_names = np.random.choice(all_read_names,
-                                                min(MAX_BOOTSTRAP_SAMPLE_SIZE,
-                                                    len(all_read_names)), replace=True)
+        sample_of_indexes = np.random.choice(indexes, min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(indexes)), replace=True)
         sample_of_intensities = []
         concentrations = []
         for n, concentration in enumerate(all_concentrations):
             concentration_subsample = []
-            for read_name in sample_of_read_names:
-                intensity = all_intensities[n].get(read_name)
-                if intensity is not None:
-                    concentration_subsample.append(intensity)
+            for index in sample_of_indexes:
+                try:
+                    intensity = all_intensities[n][index]
+                except KeyError:
+                    continue
+                concentration_subsample.append(intensity)
             if concentration_subsample:
                 sample_of_intensities.append(concentration_subsample)
                 concentrations.append(concentration)
@@ -625,8 +627,9 @@ def filter_reads_with_unusual_intensities(intensities):
 
     """
     bad_indexes = set()
+    assert len(set([len(intensity) for intensity in intensities])) == 1, "All reads should have the same number of observations. Missing observations should be represented by np.nan"
     for index in range(len(intensities[0])):
-        index_intensities = [intensity for intensity in intensities if intensity is not np.nan]
+        index_intensities = [intensity_gradient[index] for intensity_gradient in intensities if intensity_gradient[index] is not np.nan]
         if len(index_intensities) < MINIMUM_READ_COUNT:
             continue
         q1 = np.percentile(index_intensities, 25)
@@ -639,13 +642,12 @@ def filter_reads_with_unusual_intensities(intensities):
     return [ints for n, ints in enumerate(intensities) if n not in bad_indexes]
 
 
-def assemble_read_intensities_for_fitting(read_names, read_name_intensities):
+def assemble_read_intensities_for_fitting(intensities):
     """ Takes a list of read names that are known to be of high quality and assembles their intensities for each
     concentration into variable-sized lists. Some of these values may be np.nan and we need to exclude those (this is
     also why not all lists will be the same size). The goal here is to give something to a non-linear curve fitting
     function that doesn't need to be processed any further. """
     assembled_intensities = []
-    intensities = [read_name_intensities[read_name] for read_name in read_names]
     for index in range(len(intensities[0])):
         concentration_intensities = []
         for intensity_gradient in intensities:
@@ -666,62 +668,26 @@ def assemble_fitting_inputs(assembled_intensities, all_concentrations):
         if cluster_intensities:
             intensities.append(cluster_intensities)
             concentrations.append(concentration)
-    return intensities, concentrations
+    return concentrations, intensities
 
 
-# skipped = 0
-# sequence_kds = []
-# with progressbar.ProgressBar(max_value=len(interesting_read_names)) as pbar:
-#     for n, (sequence, read_names) in pbar(enumerate(interesting_read_names.items())):
-#         if len(read_names) < MINIMUM_READ_COUNT:
-#             skipped += 1
-#             continue
-#         sequence_intensities = {}
-#         read_intensities = {read_name: [] for read_name in read_names}
-#         valid_read_names = set(read_names)
-#         for h5_fpath in h5_fpaths:
-#             if data_channel not in int_scores.score_given_read_name_in_channel[h5_fpath]:
-#                 continue
-#             score_given_read_name = int_scores.score_given_read_name_in_channel[h5_fpath][data_channel]
-#             intensities = [
-#                 score_given_read_name[read_name]
-#                 for read_name in read_names
-#                 if read_name in score_given_read_name
-#             ]
-#             if len(intensities) < MINIMUM_READ_COUNT:
-#                 continue
-#             q1 = np.percentile(intensities, 25)
-#             q3 = np.percentile(intensities, 75)
-#             iqr = q3 - q1
-#             min_range, max_range = (q1 - TUKEY_CONSTANT * iqr, q3 + TUKEY_CONSTANT * iqr)
-#             for read_name in read_names:
-#                 if read_name not in score_given_read_name:
-#                     continue
-#                 intensity = score_given_read_name[read_name]
-#                 if intensity < min_range or intensity > max_range:
-#                     valid_read_names -= set([read_name])
-#         if len(valid_read_names) < MINIMUM_READ_COUNT:
-#             continue
-#         all_concentrations = []
-#         all_intensities = []
-#         all_read_names = set()
-#         for h5_fpath in h5_fpaths:
-#             score_given_read_name = int_scores.score_given_read_name_in_channel[h5_fpath][data_channel]
-#             concentration = misc.parse_concentration(h5_fpath)
-#             # temporary hack to solve issue where we labeled background images as 1pM to avoid zero-division error that no longer exists
-#             concentration = 0.0 if concentration == 0.001 else concentration
-#             intensities = {}
-#             for read_name in valid_read_names:
-#                 intensity = score_given_read_name.get(read_name)
-#                 if intensity is None:
-#                     continue
-#                 intensities[read_name] = intensity
-#                 all_read_names.add(read_name)
-#             if not intensities:
-#                 continue
-#             all_concentrations.append(concentration)
-#             all_intensities.append(intensities)
-#         kd, uncertainty, yint, delta_y = fit_kd(np.array(all_concentrations), all_intensities, list(all_read_names))
-#         if kd is not None and uncertainty is not None:
-#             count = len(all_read_names)
-#             sequence_kds.append((sequence, kd, uncertainty, count))
+def main(interesting_read_names, h5_fpaths, int_scores, data_channel):
+    skipped = 0
+    sequence_kds = []
+    for n, (sequence, read_names) in enumerate(interesting_read_names.items()):
+            if len(read_names) < MINIMUM_READ_COUNT:
+                skipped += 1
+                continue
+            scores = int_scores.score_given_read_name_in_channel
+            sequence_intensities = [[scores[h5_fpath][data_channel].get(read_name, np.nan)
+                                     for h5_fpath in h5_fpaths] for read_name in read_names]
+            filtered_intensities = filter_reads_with_unusual_intensities(sequence_intensities)
+            assembled_intensities = assemble_read_intensities_for_fitting(filtered_intensities)
+
+            concentrations = [misc.parse_concentration(h5_fpath) for h5_fpath in h5_fpaths]
+            all_concentrations, all_intensities = assemble_fitting_inputs(assembled_intensities, concentrations)
+
+            kd, uncertainty, yint, delta_y = fit_kd(all_concentrations, all_intensities)
+            if kd is not None and uncertainty is not None:
+                count = len(all_intensities)
+                sequence_kds.append((sequence, kd, uncertainty, count))
