@@ -548,18 +548,17 @@ def fit_hyperbola(concentrations, signals):
         kd_stddev: the standard deviation of the error of kd
 
     """
-    signals = [np.mean(s) for s in signals]
-    sigmas = [np.std(s) for s in signals]
-    if 0 in sigmas:
-        # if we have scalar values, the standard deviation will be zero everywhere and this will cause a division by
-        # zero to occur. In this case, we just weight all points equally
-        sigmas = np.ones((len(signals),))
+    all_intensities = []
+    all_concentrations = []
+    for signals_at_concentration, concentration in zip(signals, concentrations):
+        for signal in signals_at_concentration:
+            all_intensities.append(signal)
+            all_concentrations.append(concentration)
     (yint, delta_y, kd), covariance = curve_fit(hyperbola,
-                                                concentrations,
-                                                signals,
+                                                all_concentrations,
+                                                all_intensities,
                                                 bounds=((-np.inf, 0.0, 10**-100),
-                                                        (np.inf, np.inf, np.inf)),
-                                                sigma=sigmas)
+                                                        (np.inf, np.inf, np.inf)))
     yint_stddev = covariance[0, 0] ** 0.5
     delta_y_stddev = covariance[1, 1] ** 0.5
     kd_stddev = covariance[2, 2] ** 0.5
