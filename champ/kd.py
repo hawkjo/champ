@@ -570,9 +570,13 @@ def fit_kd(all_concentrations, all_intensities):
     """ all_intensities is a list of dicts, with read_name: intensity"""
     try:
         intensity_array = [i.values() for i in all_intensities]
+        print("main fit")
+        print("concentrations", all_concentrations)
+        print("intensity array", intensity_array)
         yint, _, delta_y, _, kd, _ = fit_hyperbola(all_concentrations, intensity_array)
         uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities)
     except (FloatingPointError, RuntimeError, Exception) as e:
+        print(e)
         return None, None, None, None
     else:
         return kd, uncertainty, yint, delta_y
@@ -666,9 +670,8 @@ def assemble_fitting_inputs(assembled_intensities, all_concentrations):
     concentrations = []
     for cluster_intensities, concentration in zip(assembled_intensities, all_concentrations):
         if cluster_intensities:
-            for intensity in cluster_intensities:
-                intensities.append(intensity)
-                concentrations.append(concentration)
+            intensities.append(cluster_intensities)
+            concentrations.append(concentration)
     return concentrations, intensities
 
 
