@@ -570,10 +570,14 @@ def fit_kd(all_concentrations, all_intensities):
     """ all_intensities is a list of dicts, with read_name: intensity"""
     try:
         intensity_array = [i for gradient in all_intensities for i in gradient]
+        main_concentrations = []
+        for concentration, gradient in zip(all_concentrations, all_intensities):
+            for _ in gradient:
+                main_concentrations.append(concentration)
         print("main fit")
-        print("concentrations", all_concentrations)
+        print("concentrations", main_concentrations)
         print("intensity array", intensity_array)
-        yint, _, delta_y, _, kd, _ = fit_hyperbola(all_concentrations, intensity_array)
+        yint, _, delta_y, _, kd, _ = fit_hyperbola(main_concentrations, intensity_array)
         uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities)
     except (FloatingPointError, RuntimeError, Exception) as e:
         print(e)
