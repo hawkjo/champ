@@ -666,8 +666,9 @@ def assemble_fitting_inputs(assembled_intensities, all_concentrations):
     concentrations = []
     for cluster_intensities, concentration in zip(assembled_intensities, all_concentrations):
         if cluster_intensities:
-            intensities.append(cluster_intensities)
-            concentrations.append(concentration)
+            for intensity in cluster_intensities:
+                intensities.append(intensity)
+                concentrations.append(concentration)
     return concentrations, intensities
 
 
