@@ -7,6 +7,7 @@ import misc
 import itertools
 from champ import seqtools
 from biofits import hyperbola
+import lomp
 
 BOOTSTRAP_ROUNDS = 20
 MAX_BOOTSTRAP_SAMPLE_SIZE = 2000
@@ -560,11 +561,39 @@ def fit_hyperbola(concentrations, signals):
     return yint, yint_stddev, delta_y, delta_y_stddev, kd, kd_stddev
 
 
+def fit_all_kds(read_name_intensities, h5_fpaths, process_count=36):
+    all_concentrations = [misc.parse_concentration(fpath) for fpath in h5_fpaths]
+    minimum_required_observations = max(len(all_concentrations) - 3, 5)
+    for result in lomp.parallel_map(read_name_intensities.items(),
+                                    _thread_fit_kd,
+                                    args=(all_concentrations, minimum_required_observations),
+                                    process_count=process_count):
+        if result is not None:
+            yield result
+
+
+def _thread_fit_kd(read_name_intensities, all_concentrations, minimum_required_observations):
+    read_name, intensities = read_name_intensities
+    fitting_concentrations = []
+    fitting_intensities = []
+    for intensity, concentration in zip(intensities, all_concentrations):
+        if intensity is np.nan:
+            continue
+        fitting_intensities.append(intensity)
+        fitting_concentrations.append(concentration)
+    if len(fitting_intensities) < minimum_required_observations:
+        return None
+    kd, yint, delta_y = fit_kd(fitting_concentrations, fitting_intensities)
+    if kd is None:
+        return None
+    return read_name, kd, yint, delta_y
+
+
 def fit_kd(all_concentrations, all_intensities):
     """ all_intensities is a list of dicts, with read_name: intensity"""
     try:
         yint, _, delta_y, _, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
-    except (FloatingPointError, RuntimeError, Exception) as e:
+    except (FloatingPointError, RuntimeError, Exception):
         return None, None, None
     else:
         return kd, yint, delta_y
