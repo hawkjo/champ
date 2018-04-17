@@ -552,7 +552,7 @@ def fit_hyperbola(concentrations, signals):
     (yint, delta_y, kd), covariance = curve_fit(hyperbola,
                                                 concentrations,
                                                 signals,
-                                                bounds=((-np.inf, -np.inf, 10**-100),
+                                                bounds=((-np.inf, 0.0, 10**-100),
                                                         (np.inf, np.inf, np.inf)))
     yint_stddev = covariance[0, 0] ** 0.5
     delta_y_stddev = covariance[1, 1] ** 0.5
@@ -565,7 +565,6 @@ def fit_kd(all_concentrations, all_intensities):
     try:
         yint, _, delta_y, _, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
     except (FloatingPointError, RuntimeError, Exception) as e:
-        print(e)
         return None, None, None
     else:
         return kd, yint, delta_y
