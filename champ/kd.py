@@ -574,16 +574,12 @@ def fit_kd(all_concentrations, all_intensities):
         for concentration, gradient in zip(all_concentrations, all_intensities):
             for _ in gradient:
                 main_concentrations.append(concentration)
-        print("main fit")
-        print("concentrations", main_concentrations)
-        print("intensity array", intensity_array)
         yint, _, delta_y, _, kd, _ = fit_hyperbola(main_concentrations, intensity_array)
-        uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities)
     except (FloatingPointError, RuntimeError, Exception) as e:
         print(e)
         return None, None, None, None
     else:
-        return kd, uncertainty, yint, delta_y
+        return kd, yint, delta_y
 
 
 def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
@@ -672,11 +668,14 @@ def assemble_fitting_inputs(assembled_intensities, all_concentrations):
     reason this happens is that higher concentration images just don't align at all. """
     intensities = []
     concentrations = []
+    concentrations_per_observation = []
     for cluster_intensities, concentration in zip(assembled_intensities, all_concentrations):
         if cluster_intensities:
             intensities.append(cluster_intensities)
             concentrations.append(concentration)
-    return concentrations, intensities
+            for _ in intensities:
+                concentrations_per_observation.append(concentration)
+    return concentrations, concentrations_per_observation, intensities
 
 
 def main(interesting_read_names, h5_fpaths, int_scores, data_channel):
@@ -693,9 +692,10 @@ def main(interesting_read_names, h5_fpaths, int_scores, data_channel):
             assembled_intensities = assemble_read_intensities_for_fitting(filtered_intensities)
 
             concentrations = [misc.parse_concentration(h5_fpath) for h5_fpath in h5_fpaths]
-            all_concentrations, all_intensities = assemble_fitting_inputs(assembled_intensities, concentrations)
+            concentrations, concentrations_per_observation, intensities = assemble_fitting_inputs(assembled_intensities, concentrations)
 
-            kd, uncertainty, yint, delta_y = fit_kd(all_concentrations, all_intensities)
+            kd, uncertainty, yint, delta_y = fit_kd(concentrations, intensities)
+            uncertainty = bootstrap_kd_uncertainty(concentrations_per_observation, intensities)
             if kd is not None and uncertainty is not None:
-                count = len(all_intensities)
+                count = len(intensities)
                 sequence_kds.append((sequence, kd, uncertainty, count))
