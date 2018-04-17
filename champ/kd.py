@@ -569,15 +569,10 @@ def fit_hyperbola(concentrations, signals):
 def fit_kd(all_concentrations, all_intensities):
     """ all_intensities is a list of dicts, with read_name: intensity"""
     try:
-        intensity_array = [i for gradient in all_intensities for i in gradient]
-        main_concentrations = []
-        for concentration, gradient in zip(all_concentrations, all_intensities):
-            for _ in gradient:
-                main_concentrations.append(concentration)
-        yint, _, delta_y, _, kd, _ = fit_hyperbola(main_concentrations, intensity_array)
+        yint, _, delta_y, _, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
     except (FloatingPointError, RuntimeError, Exception) as e:
         print(e)
-        return None, None, None, None
+        return None, None, None
     else:
         return kd, yint, delta_y
 
