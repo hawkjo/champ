@@ -1,14 +1,11 @@
 from setuptools import setup
 from champ.constants import VERSION
-from distutils.extension import Extension
-import numpy as np
 
 
 if __name__ == '__main__':
     setup(
         name='champ',
         packages=['champ', 'champ.controller'],
-        ext_modules=[Extension("champ.adapters_cython", ["champ/adapters_cython.c"], include_dirs=[np.get_include()])],
         version=VERSION,
         entry_points={
           'console_scripts': [
