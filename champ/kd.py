@@ -589,7 +589,7 @@ def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
             for index in sample_of_indexes:
                 try:
                     intensity = all_intensities[n][index]
-                except KeyError:
+                except IndexError:
                     continue
                 concentration_subsample.append(intensity)
             if concentration_subsample:
