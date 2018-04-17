@@ -549,16 +549,10 @@ def fit_hyperbola(concentrations, signals):
         kd_stddev: the standard deviation of the error of kd
 
     """
-    all_intensities = []
-    all_concentrations = []
-    for signals_at_concentration, concentration in zip(signals, concentrations):
-        for signal in signals_at_concentration:
-            all_intensities.append(signal)
-            all_concentrations.append(concentration)
     (yint, delta_y, kd), covariance = curve_fit(hyperbola,
-                                                all_concentrations,
-                                                all_intensities,
-                                                bounds=((-np.inf, 0.0, 10**-100),
+                                                concentrations,
+                                                signals,
+                                                bounds=((-np.inf, -np.inf, 10**-100),
                                                         (np.inf, np.inf, np.inf)))
     yint_stddev = covariance[0, 0] ** 0.5
     delta_y_stddev = covariance[1, 1] ** 0.5
