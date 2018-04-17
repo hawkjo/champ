@@ -569,7 +569,7 @@ def fit_hyperbola(concentrations, signals):
 def fit_kd(all_concentrations, all_intensities):
     """ all_intensities is a list of dicts, with read_name: intensity"""
     try:
-        intensity_array = [i.values() for i in all_intensities]
+        intensity_array = [i for gradient in all_intensities for i in gradient]
         print("main fit")
         print("concentrations", all_concentrations)
         print("intensity array", intensity_array)
