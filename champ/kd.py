@@ -535,7 +535,19 @@ class IAKdData(object):
         return self.log_neg_control_Kd - np.log(Kd)
 
 
-def fit_hyperbola(concentrations, signals):
+def fixed_delta_y_hyperbola(delta_y):
+    """
+    :param concentrations: array of titrant concentrations
+    :param yint: Y-intercept
+    :param delta_y: Total change in signal
+    :param kd: Dissociation constant
+    :return: array of Y values
+
+    """
+    return lambda (concentrations, yint, kd): yint + ((delta_y * concentrations) / (concentrations + kd))
+
+
+def fit_hyperbola(concentrations, signals, delta_y=None):
     """
     :param concentrations: X-axis values representing concentrations in arbitrary units
     :param signals: Y-axis values representing some kind of signal. Don't normalize this. These are batched by
@@ -550,15 +562,18 @@ def fit_hyperbola(concentrations, signals):
         kd_stddev: the standard deviation of the error of kd
 
     """
-    (yint, delta_y, kd), covariance = curve_fit(hyperbola,
-                                                concentrations,
-                                                signals,
-                                                bounds=((-np.inf, 0.0, 10**-100),
-                                                        (np.inf, np.inf, np.inf)))
-    yint_stddev = covariance[0, 0] ** 0.5
-    delta_y_stddev = covariance[1, 1] ** 0.5
-    kd_stddev = covariance[2, 2] ** 0.5
-    return yint, yint_stddev, delta_y, delta_y_stddev, kd, kd_stddev
+    if delta_y is None:
+        (yint, delta_y, kd), covariance = curve_fit(hyperbola,
+                                                    concentrations,
+                                                    signals,
+                                                    bounds=((-np.inf, 0.0, 10**-100),
+                                                            (np.inf, np.inf, np.inf)))
+    else:
+        (yint, kd), covariance = curve_fit(fixed_delta_y_hyperbola(delta_y),
+                                           concentrations,
+                                           signals,
+                                           bounds=((-np.inf, 10 ** -100), (np.inf, np.inf)))
+    return yint, delta_y, kd
 
 
 def fit_all_kds(read_name_intensities, h5_fpaths, process_count=36):
@@ -592,7 +607,7 @@ def _thread_fit_kd(read_name_intensities, all_concentrations, minimum_required_o
 def fit_kd(all_concentrations, all_intensities):
     """ all_intensities is a list of dicts, with read_name: intensity"""
     try:
-        yint, _, delta_y, _, kd, _ = fit_hyperbola(all_concentrations, all_intensities)
+        yint, delta_y, kd = fit_hyperbola(all_concentrations, all_intensities)
     except (FloatingPointError, RuntimeError, Exception):
         return None, None, None
     else:
@@ -618,7 +633,7 @@ def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
                 sample_of_intensities.append(concentration_subsample)
                 concentrations.append(concentration)
         try:
-            _, _, _, _, kd, _ = fit_hyperbola(concentrations, sample_of_intensities)
+            _, _, kd = fit_hyperbola(concentrations, sample_of_intensities)
         except (FloatingPointError, RuntimeError, Exception) as e:
             continue
         else:
@@ -628,15 +643,15 @@ def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
     return np.std(kds)
 
 
-def build_intensity_concentration_array(sequence_intensities):
-    all_concentrations = []
-    all_intensities = []
-    for h5_filename, intensities in sorted(sequence_intensities.items(),
-                                           key=lambda hi: misc.parse_concentration(hi[0])):
-        concentration = misc.parse_concentration(h5_filename)
-        all_concentrations.append(concentration)
-        all_intensities.append(intensities)
-    return all_concentrations, all_intensities
+# def build_intensity_concentration_array(sequence_intensities):
+#     all_concentrations = []
+#     all_intensities = []
+#     for h5_filename, intensities in sorted(sequence_intensities.items(),
+#                                            key=lambda hi: misc.parse_concentration(hi[0])):
+#         concentration = misc.parse_concentration(h5_filename)
+#         all_concentrations.append(concentration)
+#         all_intensities.append(intensities)
+#     return all_concentrations, all_intensities
 
 
 def filter_reads_with_unusual_intensities(intensities):
