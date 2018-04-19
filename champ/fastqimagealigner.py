@@ -115,7 +115,7 @@ class FastqImageAligner(object):
         impossible_tiles.sort(key=lambda tile: -len(tile.read_names))
         control_tiles = impossible_tiles[:2]
         self.image_data.set_fft(self.fq_im_scaled_dims)
-        self.control_corr = 0
+        self.control_corr = 0.0000001  # slightly above zero to guarantee no zero-division errors
 
         for control_tile in control_tiles:
             corr, _ = control_tile.fft_align_with_im(self.image_data)
@@ -125,10 +125,12 @@ class FastqImageAligner(object):
         self.hitting_tiles = []
         for tile in possible_tiles:
             max_corr, align_tr = tile.fft_align_with_im(self.image_data)
+            log.debug("SNR for %s = %f" % (self.image_data.fname, (max_corr / self.control_corr)))
             if max_corr > snr_thresh * self.control_corr:
                 tile.set_aligned_rcs(align_tr)
                 tile.snr = max_corr / self.control_corr
                 self.hitting_tiles.append(tile)
+
 
     def find_points_in_frame(self, consider_tiles='all'):
         self.rcs_in_frame = []
