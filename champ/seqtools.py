@@ -2,7 +2,7 @@ import sys
 import itertools
 import numpy as np
 from collections import defaultdict
-from champ.adapters_cython import simple_hamming_distance
+from jellyfish import hamming_distance
 import scipy.misc
 import matplotlib as mpl
 import matplotlib.colors as mcolors
@@ -190,8 +190,8 @@ def build_read_names_given_seq(target,
             if last_start < 0:
                 continue
             min_ham_idx = min(range(0, last_start + 1),
-                              key=lambda i: simple_hamming_distance(target, seq[i:i + len(target)]))
-            min_ham = simple_hamming_distance(target, seq[min_ham_idx:min_ham_idx + len(target)])
+                              key=lambda i: hamming_distance(unicode(target), unicode(seq[i:i + len(target)])))
+            min_ham = hamming_distance(unicode(target), unicode(seq[min_ham_idx:min_ham_idx + len(target)]))
             if min_ham <= max_ham:
                 min_ham_seq = seq[min_ham_idx:min_ham_idx + len(target)]
                 interesting_reads[min_ham_seq].update(read_names)
@@ -224,7 +224,7 @@ def plot_library_comp_by_hamming_distance(ax,
     for seq in interesting_seqs:
         if len(seq) != len(target):
             continue
-        ham_dist = simple_hamming_distance(target, seq)
+        ham_dist = hamming_distance(unicode(target), unicode(seq))
         if ham_dist > max_ham:
             continue
         nreads = len(interesting_reads[seq])

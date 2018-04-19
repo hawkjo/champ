@@ -1,5 +1,5 @@
 from Bio import SeqIO
-from champ.adapters_cython import simple_hamming_distance
+from jellyfish import hamming_distance
 from collections import defaultdict
 import editdistance
 import gzip
@@ -228,7 +228,7 @@ def get_max_ham_dists(min_len, max_len):
         ref_seq = rand_seq(max_len)
         new_seq = rand_seq(max_len)
         for i in range(min_len, max_len+1):
-            dists[i].append(simple_hamming_distance(ref_seq[:i], new_seq[:i]))
+            dists[i].append(hamming_distance(unicode(ref_seq[:i]), unicode(new_seq[:i])))
     max_ham_dists = [min(np.percentile(dists[i], 0.1), int(i/4)) for i in range(min_len, max_len+1)]
     return max_ham_dists
 
@@ -279,7 +279,7 @@ def classify_seq(rec1, rec2, min_len, max_len, max_ham_dists, log_p_struct):
 
     # Find aligning sequence, indels are not allowed, starts of reads included
     sig_lens = [i for i, max_ham in zip(range(min_len, loc_max_len + 1), max_ham_dists)
-                if simple_hamming_distance(seq1[:i], seq2_rc[-i:]) < max_ham]
+                if hamming_distance(unicode(seq1[:i]), unicode(seq2_rc[-i:])) < max_ham]
     if len(sig_lens) != 1:
         return None
 
