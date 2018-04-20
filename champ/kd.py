@@ -576,18 +576,19 @@ def fit_hyperbola(concentrations, signals, delta_y=None):
     return yint, delta_y, kd
 
 
-def fit_all_kds(read_name_intensities, h5_fpaths, process_count=36):
+def fit_all_kds(read_name_intensities, h5_fpaths, process_count=36, delta_y=None):
     all_concentrations = [misc.parse_concentration(fpath) for fpath in h5_fpaths]
     minimum_required_observations = max(len(all_concentrations) - 3, 5)
+
     for result in lomp.parallel_map(read_name_intensities.items(),
                                     _thread_fit_kd,
-                                    args=(all_concentrations, minimum_required_observations),
+                                    args=(all_concentrations, minimum_required_observations, delta_y),
                                     process_count=process_count):
         if result is not None:
             yield result
 
 
-def _thread_fit_kd(read_name_intensities, all_concentrations, minimum_required_observations):
+def _thread_fit_kd(read_name_intensities, all_concentrations, minimum_required_observations, delta_y):
     read_name, intensities = read_name_intensities
     fitting_concentrations = []
     fitting_intensities = []
@@ -598,17 +599,18 @@ def _thread_fit_kd(read_name_intensities, all_concentrations, minimum_required_o
         fitting_concentrations.append(concentration)
     if len(fitting_intensities) < minimum_required_observations:
         return None
-    kd, yint, delta_y = fit_kd(fitting_concentrations, fitting_intensities)
+    kd, yint, delta_y = fit_kd(fitting_concentrations, fitting_intensities, delta_y=delta_y)
     if kd is None:
         return None
     return read_name, kd, yint, delta_y
 
 
-def fit_kd(all_concentrations, all_intensities):
+def fit_kd(all_concentrations, all_intensities, delta_y=None):
     """ all_intensities is a list of dicts, with read_name: intensity"""
     try:
-        yint, delta_y, kd = fit_hyperbola(all_concentrations, all_intensities)
+        yint, delta_y, kd = fit_hyperbola(all_concentrations, all_intensities, delta_y=delta_y)
     except (FloatingPointError, RuntimeError, Exception):
+
         return None, None, None
     else:
         return kd, yint, delta_y
@@ -641,17 +643,6 @@ def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
     if not kds:
         return None
     return np.std(kds)
-
-
-# def build_intensity_concentration_array(sequence_intensities):
-#     all_concentrations = []
-#     all_intensities = []
-#     for h5_filename, intensities in sorted(sequence_intensities.items(),
-#                                            key=lambda hi: misc.parse_concentration(hi[0])):
-#         concentration = misc.parse_concentration(h5_filename)
-#         all_concentrations.append(concentration)
-#         all_intensities.append(intensities)
-#     return all_concentrations, all_intensities
 
 
 def filter_reads_with_unusual_intensities(intensities):
@@ -710,24 +701,24 @@ def assemble_fitting_inputs(assembled_intensities, all_concentrations):
     return concentrations, concentrations_per_observation, intensities
 
 
-def main(interesting_read_names, h5_fpaths, int_scores, data_channel):
-    skipped = 0
-    sequence_kds = []
-    for n, (sequence, read_names) in enumerate(interesting_read_names.items()):
-            if len(read_names) < MINIMUM_READ_COUNT:
-                skipped += 1
-                continue
-            scores = int_scores.score_given_read_name_in_channel
-            sequence_intensities = [[scores[h5_fpath][data_channel].get(read_name, np.nan)
-                                     for h5_fpath in h5_fpaths] for read_name in read_names]
-            filtered_intensities = filter_reads_with_unusual_intensities(sequence_intensities)
-            assembled_intensities = assemble_read_intensities_for_fitting(filtered_intensities)
-
-            concentrations = [misc.parse_concentration(h5_fpath) for h5_fpath in h5_fpaths]
-            concentrations, concentrations_per_observation, intensities = assemble_fitting_inputs(assembled_intensities, concentrations)
-
-            kd, uncertainty, yint, delta_y = fit_kd(concentrations, intensities)
-            uncertainty = bootstrap_kd_uncertainty(concentrations_per_observation, intensities)
-            if kd is not None and uncertainty is not None:
-                count = len(intensities)
-                sequence_kds.append((sequence, kd, uncertainty, count))
+# def main(interesting_read_names, h5_fpaths, int_scores, data_channel):
+#     skipped = 0
+#     sequence_kds = []
+#     for n, (sequence, read_names) in enumerate(interesting_read_names.items()):
+#             if len(read_names) < MINIMUM_READ_COUNT:
+#                 skipped += 1
+#                 continue
+#             scores = int_scores.score_given_read_name_in_channel
+#             sequence_intensities = [[scores[h5_fpath][data_channel].get(read_name, np.nan)
+#                                      for h5_fpath in h5_fpaths] for read_name in read_names]
+#             filtered_intensities = filter_reads_with_unusual_intensities(sequence_intensities)
+#             assembled_intensities = assemble_read_intensities_for_fitting(filtered_intensities)
+#
+#             concentrations = [misc.parse_concentration(h5_fpath) for h5_fpath in h5_fpaths]
+#             concentrations, concentrations_per_observation, intensities = assemble_fitting_inputs(assembled_intensities, concentrations)
+#
+#             kd, uncertainty, yint, delta_y = fit_kd(concentrations, intensities)
+#             uncertainty = bootstrap_kd_uncertainty(concentrations_per_observation, intensities)
+#             if kd is not None and uncertainty is not None:
+#                 count = len(intensities)
+#                 sequence_kds.append((sequence, kd, uncertainty, count))
