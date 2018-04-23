@@ -1,5 +1,20 @@
-from champ.kd import filter_reads_with_unusual_intensities, assemble_read_intensities_for_fitting, assemble_fitting_inputs
+from champ.kd import filter_reads_with_unusual_intensities, assemble_read_intensities_for_fitting, \
+    assemble_fitting_inputs, bootstrap_kd_uncertainty
 import numpy as np
+from biofits import hyperbola
+
+
+def test_bootstrap_kd_uncertainty():
+    # This really just tests that the function runs and returns a float
+    # Since we're randomly sampling, it's possible that we'll get the same list for every sample, and thus have a
+    # standard deviation of 0.0
+    concentrations = np.array([0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512])
+    a = hyperbola(concentrations, 0, 1, 4.0)
+    b = hyperbola(concentrations, 0, 1, 5.0)
+    c = hyperbola(concentrations, 0, 1, 3.0)
+    d = hyperbola(concentrations, 0, 1, 4.5)
+    std = bootstrap_kd_uncertainty(concentrations, [a, b, c, d])
+    assert std >= 0.0
 
 
 def test_filter_reads_with_unusual_intensities():
@@ -43,6 +58,8 @@ def test_assemble_read_intensities_for_fitting():
 def test_assemble_fitting_inputs():
     all_concentrations = [1, 2, 4, 8, 16]
     assembled_intensities = [[3, 4, 3, 2], [], [9, 5, 6, 7], [21, 22, 21, 20, 19], []]
-    concentrations, intensities = assemble_fitting_inputs(assembled_intensities, all_concentrations)
+    concentrations, concentrations_per_observation, intensities = assemble_fitting_inputs(assembled_intensities,
+                                                                                          all_concentrations)
     assert concentrations == [1, 4, 8]
     assert intensities == [[3, 4, 3, 2], [9, 5, 6, 7], [21, 22, 21, 20, 19]]
+    assert concentrations_per_observation == [1, 1, 1, 1, 4, 4, 4, 4, 8, 8, 8, 8, 8]

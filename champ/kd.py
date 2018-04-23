@@ -3,7 +3,7 @@ import os
 from scipy.optimize import minimize, curve_fit
 import numpy as np
 import matplotlib.pyplot as plt
-import misc
+from champ import misc
 import itertools
 from champ import seqtools
 from biofits import hyperbola
@@ -535,23 +535,11 @@ class IAKdData(object):
         return self.log_neg_control_Kd - np.log(Kd)
 
 
-def fixed_delta_y_hyperbola(delta_y):
-    """
-    :param concentrations: array of titrant concentrations
-    :param yint: Y-intercept
-    :param delta_y: Total change in signal
-    :param kd: Dissociation constant
-    :return: array of Y values
-
-    """
-    return lambda (concentrations, yint, kd): yint + ((delta_y * concentrations) / (concentrations + kd))
-
-
 def fit_hyperbola(concentrations, signals, delta_y=None):
     """
     :param concentrations: X-axis values representing concentrations in arbitrary units
-    :param signals: Y-axis values representing some kind of signal. Don't normalize this. These are batched by
-    concentration, and each batch can have variable numbers of observations
+    :param signals: Y-axis values representing some kind of signal. Don't normalize this.
+    Neither of these can be batched - these are flat 1D lists.
 
     :return:
         yint: the Y-intercept of the fit, often the background signal
@@ -569,7 +557,10 @@ def fit_hyperbola(concentrations, signals, delta_y=None):
                                                     bounds=((-np.inf, 0.0, 10**-100),
                                                             (np.inf, np.inf, np.inf)))
     else:
-        (yint, kd), covariance = curve_fit(fixed_delta_y_hyperbola(delta_y),
+        def fixed_delta_y_hyperbola(concentrations, yint, kd):
+            return yint + ((delta_y * concentrations) / (concentrations + kd))
+
+        (yint, kd), covariance = curve_fit(fixed_delta_y_hyperbola,
                                            concentrations,
                                            signals,
                                            bounds=((-np.inf, 10 ** -100), (np.inf, np.inf)))
@@ -599,44 +590,47 @@ def _thread_fit_kd(read_name_intensities, all_concentrations, minimum_required_o
         fitting_concentrations.append(concentration)
     if len(fitting_intensities) < minimum_required_observations:
         return None
-    kd, yint, delta_y = fit_kd(fitting_concentrations, fitting_intensities, delta_y=delta_y)
-    if kd is None:
+    kd, kd_uncertainty, yint, delta_y = fit_kd(fitting_concentrations, fitting_intensities, delta_y=delta_y)
+    if kd is None or kd_uncertainty is None:
         return None
-    return read_name, kd, yint, delta_y
+    return read_name, kd, kd_uncertainty, yint, delta_y
 
 
 def fit_kd(all_concentrations, all_intensities, delta_y=None):
     """ all_intensities is a list of dicts, with read_name: intensity"""
     try:
         yint, delta_y, kd = fit_hyperbola(all_concentrations, all_intensities, delta_y=delta_y)
+        kd_uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities)
     except (FloatingPointError, RuntimeError, Exception):
-
         return None, None, None
     else:
-        return kd, yint, delta_y
+        return kd, kd_uncertainty, yint, delta_y
+
+
+def sample_lists_with_replacement(lists):
+    # there is no random sampling algorithm with replacement in the standard library, and numpy's
+    # random.choice requires 1D arrays
+    indexes = np.random.randint(len(lists), size=min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(lists)))
+    return [lists[index] for index in indexes]
 
 
 def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
     kds = []
-    indexes = list(range(max([len(i) for i in all_intensities])))
     for i in range(BOOTSTRAP_ROUNDS):
-        sample_of_indexes = np.random.choice(indexes, min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(indexes)), replace=True)
-        sample_of_intensities = []
+        sample_of_intensities = sample_lists_with_replacement(all_intensities)
+        intensities = []
         concentrations = []
         for n, concentration in enumerate(all_concentrations):
-            concentration_subsample = []
-            for index in sample_of_indexes:
-                try:
-                    intensity = all_intensities[n][index]
-                except IndexError:
-                    continue
-                concentration_subsample.append(intensity)
-            if concentration_subsample:
-                sample_of_intensities.append(concentration_subsample)
-                concentrations.append(concentration)
+            for intensity_gradient in sample_of_intensities:
+                if n < len(intensity_gradient):
+                    intensity = intensity_gradient[n]
+                    if intensity is np.nan:
+                        continue
+                    intensities.append(intensity)
+                    concentrations.append(concentration)
         try:
-            _, _, kd = fit_hyperbola(concentrations, sample_of_intensities)
-        except (FloatingPointError, RuntimeError, Exception) as e:
+            _, _, kd = fit_hyperbola(concentrations, intensities)
+        except (FloatingPointError, RuntimeError, Exception):
             continue
         else:
             kds.append(kd)
@@ -696,29 +690,6 @@ def assemble_fitting_inputs(assembled_intensities, all_concentrations):
         if cluster_intensities:
             intensities.append(cluster_intensities)
             concentrations.append(concentration)
-            for _ in intensities:
+            for _ in cluster_intensities:
                 concentrations_per_observation.append(concentration)
     return concentrations, concentrations_per_observation, intensities
-
-
-# def main(interesting_read_names, h5_fpaths, int_scores, data_channel):
-#     skipped = 0
-#     sequence_kds = []
-#     for n, (sequence, read_names) in enumerate(interesting_read_names.items()):
-#             if len(read_names) < MINIMUM_READ_COUNT:
-#                 skipped += 1
-#                 continue
-#             scores = int_scores.score_given_read_name_in_channel
-#             sequence_intensities = [[scores[h5_fpath][data_channel].get(read_name, np.nan)
-#                                      for h5_fpath in h5_fpaths] for read_name in read_names]
-#             filtered_intensities = filter_reads_with_unusual_intensities(sequence_intensities)
-#             assembled_intensities = assemble_read_intensities_for_fitting(filtered_intensities)
-#
-#             concentrations = [misc.parse_concentration(h5_fpath) for h5_fpath in h5_fpaths]
-#             concentrations, concentrations_per_observation, intensities = assemble_fitting_inputs(assembled_intensities, concentrations)
-#
-#             kd, uncertainty, yint, delta_y = fit_kd(concentrations, intensities)
-#             uncertainty = bootstrap_kd_uncertainty(concentrations_per_observation, intensities)
-#             if kd is not None and uncertainty is not None:
-#                 count = len(intensities)
-#                 sequence_kds.append((sequence, kd, uncertainty, count))
