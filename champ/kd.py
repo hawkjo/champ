@@ -65,8 +65,6 @@ def fit_all_kds(read_name_intensities, all_concentrations, process_count=8, delt
 def _thread_fit_kd(read_name_intensities, all_concentrations, minimum_required_observations, delta_y):
     read_name, intensities = read_name_intensities
     intensities = filter_reads_with_unusual_intensities(intensities)
-    if len(intensities) < minimum_required_observations:
-        return None
     fitting_concentrations = []
     fitting_intensities = []
     for intensity_gradient in intensities:
@@ -75,6 +73,8 @@ def _thread_fit_kd(read_name_intensities, all_concentrations, minimum_required_o
                 continue
             fitting_intensities.append(intensity)
             fitting_concentrations.append(concentration)
+    if len(set(fitting_concentrations)) < minimum_required_observations:
+        return None
     kd, yint, fit_delta_y = fit_kd(fitting_concentrations, fitting_intensities, delta_y=delta_y)
     kd_uncertainty = bootstrap_kd_uncertainty(all_concentrations, intensities, delta_y=delta_y)
     if kd is None or kd_uncertainty is None:
