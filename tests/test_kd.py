@@ -1,5 +1,4 @@
-from champ.kd import filter_reads_with_unusual_intensities, assemble_read_intensities_for_fitting, \
-    assemble_fitting_inputs, bootstrap_kd_uncertainty, fit_all_kds, hyperbola
+from champ.kd import filter_reads_with_unusual_intensities, bootstrap_kd_uncertainty, fit_all_kds, hyperbola
 import numpy as np
 
 
@@ -7,9 +6,9 @@ def test_thread_fit_kd():
     concentrations = np.array([0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512])
     a = hyperbola(concentrations, 100, 120000, 4.0)
     b = hyperbola(concentrations, 200, 120000, 5.0)
-    c = hyperbola(concentrations, 100, 120000, 3.0)
+    c = hyperbola(concentrations, 100, 120000, 4.2)
     d = hyperbola(concentrations, 200, 120000, 4.5)
-    e = hyperbola(concentrations, 300, 120000, 6.5)
+    e = hyperbola(concentrations, 300, 120000, 5.5)
     f = hyperbola(concentrations, 200, 120000, 4.7)
     g = hyperbola(concentrations, 300, 120000, 5.7)
     h = hyperbola(concentrations, 200, 120000, 5.3)
@@ -65,21 +64,3 @@ def test_filter_reads_with_unusual_intensities_some_nans():
     assert len(good_intensities) == 6
     for i in good_intensities:
         assert i[3] == 8
-
-
-def test_assemble_read_intensities_for_fitting():
-    read_name_intensities = [[1,      2,       3,  4,  5],
-                             [2,      np.nan,  3,  4, 77],
-                             [np.nan, np.nan, 34, 35, 36]]
-    intensities = assemble_read_intensities_for_fitting(read_name_intensities)
-    assert intensities == [[1, 2], [2], [3, 3, 34], [4, 4, 35], [5, 77, 36]]
-
-
-def test_assemble_fitting_inputs():
-    all_concentrations = [1, 2, 4, 8, 16]
-    assembled_intensities = [[3, 4, 3, 2], [], [9, 5, 6, 7], [21, 22, 21, 20, 19], []]
-    concentrations, concentrations_per_observation, intensities = assemble_fitting_inputs(assembled_intensities,
-                                                                                          all_concentrations)
-    assert concentrations == [1, 4, 8]
-    assert intensities == [[3, 4, 3, 2], [9, 5, 6, 7], [21, 22, 21, 20, 19]]
-    assert concentrations_per_observation == [1, 1, 1, 1, 4, 4, 4, 4, 8, 8, 8, 8, 8]
