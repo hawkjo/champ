@@ -564,9 +564,9 @@ def fit_hyperbola(concentrations, signals, delta_y=None):
     """
     if delta_y is None:
         (yint, fit_delta_y, kd), _ = curve_fit(hyperbola,
-                                           concentrations,
-                                           signals,
-                                           bounds=((0, 0.0, 10**-100),
+                                               concentrations,
+                                               signals,
+                                               bounds=((0, 0.0, 10**-100),
                                                    (np.inf, np.inf, np.inf)))
     else:
         func = fixed_delta_y_hyperbola(delta_y)
@@ -578,7 +578,7 @@ def fit_hyperbola(concentrations, signals, delta_y=None):
     return yint, fit_delta_y, kd
 
 
-def fit_all_kds(read_name_intensities, all_concentrations, process_count=16, delta_y=None):
+def fit_all_kds(read_name_intensities, all_concentrations, process_count=8, delta_y=None):
     minimum_required_observations = max(len(all_concentrations) - 3, 5)
     for result in lomp.parallel_map(read_name_intensities.items(),
                                     _thread_fit_kd,
@@ -621,8 +621,7 @@ def sample_lists_with_replacement(lists):
     # there is no random sampling algorithm with replacement in the standard library, and numpy's
     # random.choice requires 1D arrays
     indexes = np.random.randint(len(lists), size=min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(lists)))
-    r = [lists[index] for index in indexes]
-    return r
+    return [lists[index] for index in indexes]
 
 
 def bootstrap_kd_uncertainty(all_concentrations, all_intensities, delta_y=None):

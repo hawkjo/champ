@@ -1,7 +1,6 @@
 from champ.kd import filter_reads_with_unusual_intensities, assemble_read_intensities_for_fitting, \
     assemble_fitting_inputs, bootstrap_kd_uncertainty, fit_all_kds, hyperbola
 import numpy as np
-from biofits import hyperbola as biohyperbola
 
 
 def test_thread_fit_kd():
