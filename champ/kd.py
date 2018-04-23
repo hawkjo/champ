@@ -600,7 +600,7 @@ def fit_kd(all_concentrations, all_intensities, delta_y=None):
     """ all_intensities is a list of dicts, with read_name: intensity"""
     try:
         yint, delta_y, kd = fit_hyperbola(all_concentrations, all_intensities, delta_y=delta_y)
-        kd_uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities)
+        kd_uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities, delta_y=delta_y)
     except (FloatingPointError, RuntimeError, Exception):
         return None, None, None
     else:
@@ -614,7 +614,7 @@ def sample_lists_with_replacement(lists):
     return [lists[index] for index in indexes]
 
 
-def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
+def bootstrap_kd_uncertainty(all_concentrations, all_intensities, delta_y=None):
     kds = []
     for i in range(BOOTSTRAP_ROUNDS):
         sample_of_intensities = sample_lists_with_replacement(all_intensities)
@@ -629,7 +629,7 @@ def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
                     intensities.append(intensity)
                     concentrations.append(concentration)
         try:
-            _, _, kd = fit_hyperbola(concentrations, intensities)
+            _, _, kd = fit_hyperbola(concentrations, intensities, delta_y=delta_y)
         except (FloatingPointError, RuntimeError, Exception):
             continue
         else:
