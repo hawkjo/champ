@@ -1,7 +1,28 @@
 from champ.kd import filter_reads_with_unusual_intensities, assemble_read_intensities_for_fitting, \
-    assemble_fitting_inputs, bootstrap_kd_uncertainty
+    assemble_fitting_inputs, bootstrap_kd_uncertainty, fit_all_kds, hyperbola
 import numpy as np
-from biofits import hyperbola
+from biofits import hyperbola as biohyperbola
+
+
+def test_thread_fit_kd():
+    concentrations = np.array([0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512])
+    a = hyperbola(concentrations, 100, 120000, 4.0)
+    b = hyperbola(concentrations, 200, 120000, 5.0)
+    c = hyperbola(concentrations, 100, 120000, 3.0)
+    d = hyperbola(concentrations, 200, 120000, 4.5)
+    e = hyperbola(concentrations, 300, 120000, 6.5)
+    f = hyperbola(concentrations, 200, 120000, 4.7)
+    g = hyperbola(concentrations, 300, 120000, 5.7)
+    h = hyperbola(concentrations, 200, 120000, 5.3)
+    i = hyperbola(concentrations, 800, 120000, 5.9)
+    j = hyperbola(concentrations, 20, 120000, 4.1)
+    read_name_intensities = {'a': [a, b, c, d, e, f, g, h],
+                             'b': [j, i, h, g, f, e, d, c]}
+    results = list(fit_all_kds(read_name_intensities, concentrations, process_count=1))
+    assert len(results) == 2
+    for read_name, kd, kd_uncertainty, yint, delta_y in results:
+        assert 10.0 > kd > 3.0
+        assert 0.0 < kd_uncertainty < 1.0
 
 
 def test_bootstrap_kd_uncertainty():
@@ -13,7 +34,7 @@ def test_bootstrap_kd_uncertainty():
     b = hyperbola(concentrations, 0, 1, 5.0)
     c = hyperbola(concentrations, 0, 1, 3.0)
     d = hyperbola(concentrations, 0, 1, 4.5)
-    std = bootstrap_kd_uncertainty(concentrations, [a, b, c, d])
+    std = bootstrap_kd_uncertainty(concentrations, map(list, [a, b, c, d]))
     assert std >= 0.0
 
 

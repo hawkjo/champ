@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 from champ import misc
 import itertools
 from champ import seqtools
-from biofits import hyperbola
 import lomp
 
 BOOTSTRAP_ROUNDS = 20
@@ -535,6 +534,19 @@ class IAKdData(object):
         return self.log_neg_control_Kd - np.log(Kd)
 
 
+def hyperbola(concentrations, yint, delta_y, kd):
+    return ((delta_y - yint) / (1.0 + (kd / concentrations))) + yint
+
+
+def fixed_delta_y_hyperbola(delta_y):
+    """ We need to pass a hyperbolic function to scipy.optimize.curve_fit, but the value of delta_y has to be hard
+    coded and not fit by the algorithm. Here, we build a function that has delta_y baked in and then return the
+    function."""
+    def func(concentrations, yint, kd):
+        return ((delta_y - yint) / (1 + (kd / concentrations))) + yint
+    return func
+
+
 def fit_hyperbola(concentrations, signals, delta_y=None):
     """
     :param concentrations: X-axis values representing concentrations in arbitrary units
@@ -551,26 +563,23 @@ def fit_hyperbola(concentrations, signals, delta_y=None):
 
     """
     if delta_y is None:
-        (yint, delta_y, kd), covariance = curve_fit(hyperbola,
-                                                    concentrations,
-                                                    signals,
-                                                    bounds=((-np.inf, 0.0, 10**-100),
-                                                            (np.inf, np.inf, np.inf)))
-    else:
-        def fixed_delta_y_hyperbola(concentrations, yint, kd):
-            return yint + ((delta_y * concentrations) / (concentrations + kd))
-
-        (yint, kd), covariance = curve_fit(fixed_delta_y_hyperbola,
+        (yint, fit_delta_y, kd), _ = curve_fit(hyperbola,
                                            concentrations,
                                            signals,
-                                           bounds=((-np.inf, 10 ** -100), (np.inf, np.inf)))
-    return yint, delta_y, kd
+                                           bounds=((0, 0.0, 10**-100),
+                                                   (np.inf, np.inf, np.inf)))
+    else:
+        func = fixed_delta_y_hyperbola(delta_y)
+        (yint, kd), _ = curve_fit(func,
+                                  concentrations,
+                                  signals,
+                                  bounds=((0, 10 ** -100), (np.inf, np.inf)))
+        fit_delta_y = delta_y
+    return yint, fit_delta_y, kd
 
 
-def fit_all_kds(read_name_intensities, h5_fpaths, process_count=36, delta_y=None):
-    all_concentrations = [misc.parse_concentration(fpath) for fpath in h5_fpaths]
+def fit_all_kds(read_name_intensities, all_concentrations, process_count=16, delta_y=None):
     minimum_required_observations = max(len(all_concentrations) - 3, 5)
-
     for result in lomp.parallel_map(read_name_intensities.items(),
                                     _thread_fit_kd,
                                     args=(all_concentrations, minimum_required_observations, delta_y),
@@ -581,37 +590,39 @@ def fit_all_kds(read_name_intensities, h5_fpaths, process_count=36, delta_y=None
 
 def _thread_fit_kd(read_name_intensities, all_concentrations, minimum_required_observations, delta_y):
     read_name, intensities = read_name_intensities
+    if len(intensities) < minimum_required_observations:
+        return None
     fitting_concentrations = []
     fitting_intensities = []
-    for intensity, concentration in zip(intensities, all_concentrations):
-        if intensity is np.nan:
-            continue
-        fitting_intensities.append(intensity)
-        fitting_concentrations.append(concentration)
-    if len(fitting_intensities) < minimum_required_observations:
-        return None
-    kd, kd_uncertainty, yint, delta_y = fit_kd(fitting_concentrations, fitting_intensities, delta_y=delta_y)
+    for intensity_gradient in intensities:
+        for intensity, concentration in zip(intensity_gradient, all_concentrations):
+            if intensity is np.nan:
+                continue
+            fitting_intensities.append(intensity)
+            fitting_concentrations.append(concentration)
+    kd, yint, fit_delta_y = fit_kd(fitting_concentrations, fitting_intensities, delta_y=delta_y)
+    kd_uncertainty = bootstrap_kd_uncertainty(all_concentrations, intensities, delta_y=delta_y)
     if kd is None or kd_uncertainty is None:
         return None
-    return read_name, kd, kd_uncertainty, yint, delta_y
+    return read_name, kd, kd_uncertainty, yint, fit_delta_y
 
 
 def fit_kd(all_concentrations, all_intensities, delta_y=None):
     """ all_intensities is a list of dicts, with read_name: intensity"""
     try:
-        yint, delta_y, kd = fit_hyperbola(all_concentrations, all_intensities, delta_y=delta_y)
-        kd_uncertainty = bootstrap_kd_uncertainty(all_concentrations, all_intensities, delta_y=delta_y)
-    except (FloatingPointError, RuntimeError, Exception):
+        yint, fit_delta_y, kd = fit_hyperbola(all_concentrations, all_intensities, delta_y=delta_y)
+    except (FloatingPointError, RuntimeError, Exception) as e:
         return None, None, None
     else:
-        return kd, kd_uncertainty, yint, delta_y
+        return kd, yint, fit_delta_y
 
 
 def sample_lists_with_replacement(lists):
     # there is no random sampling algorithm with replacement in the standard library, and numpy's
     # random.choice requires 1D arrays
     indexes = np.random.randint(len(lists), size=min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(lists)))
-    return [lists[index] for index in indexes]
+    r = [lists[index] for index in indexes]
+    return r
 
 
 def bootstrap_kd_uncertainty(all_concentrations, all_intensities, delta_y=None):
@@ -620,7 +631,7 @@ def bootstrap_kd_uncertainty(all_concentrations, all_intensities, delta_y=None):
         sample_of_intensities = sample_lists_with_replacement(all_intensities)
         intensities = []
         concentrations = []
-        for n, concentration in enumerate(all_concentrations):
+        for n, concentration in enumerate(list(all_concentrations)):
             for intensity_gradient in sample_of_intensities:
                 if n < len(intensity_gradient):
                     intensity = intensity_gradient[n]
@@ -630,7 +641,7 @@ def bootstrap_kd_uncertainty(all_concentrations, all_intensities, delta_y=None):
                     concentrations.append(concentration)
         try:
             _, _, kd = fit_hyperbola(concentrations, intensities, delta_y=delta_y)
-        except (FloatingPointError, RuntimeError, Exception):
+        except (FloatingPointError, RuntimeError, Exception) as e:
             continue
         else:
             kds.append(kd)
