@@ -12,10 +12,9 @@ def test_fit_all_kds_with_delta_y():
     f = hyperbola(concentrations, 200, 120000, 4.7)
     g = hyperbola(concentrations, 300, 120000, 5.7)
     h = hyperbola(concentrations, 200, 120000, 5.3)
-    i = hyperbola(concentrations, 800, 120000, 5.9)
-    j = hyperbola(concentrations, 20, 120000, 4.1)
-    read_name_intensities = {'a': [a, b, c, d, e, f, g, h],
-                             'b': [j, i, h, g, f, e, d, c]}
+    sequence_1_read_intensities = [a, b, c, d]
+    sequence_2_read_intensities = [e, f, g, h]
+    read_name_intensities = {'sequence1': sequence_1_read_intensities, 'sequence2': sequence_2_read_intensities}
     results = list(fit_all_kds(read_name_intensities, concentrations, delta_y=180000, process_count=1))
     assert len(results) == 2
     for read_name, kd, kd_uncertainty, yint, delta_y in results:

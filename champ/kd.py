@@ -52,9 +52,12 @@ def fit_hyperbola(concentrations, signals, delta_y=None):
     return yint, fit_delta_y, kd
 
 
-def fit_all_kds(read_name_intensities, all_concentrations, process_count=8, delta_y=None):
+def fit_all_kds(group_intensities, all_concentrations, process_count=8, delta_y=None):
+    # sequence_read_name_intensities should be a list of dictionaries that map read names to intensities
+    # each dictionary should all be related to some group of reads that have the same sequence or overlap the same
+    # region of the genome
     minimum_required_observations = max(len(all_concentrations) - 3, 5)
-    for result in lomp.parallel_map(read_name_intensities.items(),
+    for result in lomp.parallel_map(group_intensities.items(),
                                     _thread_fit_kd,
                                     args=(all_concentrations, minimum_required_observations, delta_y),
                                     process_count=process_count):
@@ -62,9 +65,11 @@ def fit_all_kds(read_name_intensities, all_concentrations, process_count=8, delt
             yield result
 
 
-def _thread_fit_kd(read_name_intensities, all_concentrations, minimum_required_observations, delta_y):
-    read_name, intensities = read_name_intensities
-    #intensities = filter_reads_with_unusual_intensities(intensities)
+def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_observations, delta_y):
+    # group_intensities is a tuple of a unique label (typically a sequence of interest or location in the genome)
+    # and intensities is a list of lists, with each member being the value of an intensity gradient
+    group_unique_label, intensities = group_intensities
+    intensities = filter_reads_with_unusual_intensities(intensities)
     fitting_concentrations = []
     fitting_intensities = []
     for intensity_gradient in intensities:
@@ -79,7 +84,7 @@ def _thread_fit_kd(read_name_intensities, all_concentrations, minimum_required_o
     kd_uncertainty = bootstrap_kd_uncertainty(all_concentrations, intensities, delta_y=delta_y)
     if kd is None or kd_uncertainty is None:
         return None
-    return read_name, kd, kd_uncertainty, yint, fit_delta_y
+    return group_unique_label, kd, kd_uncertainty, yint, fit_delta_y
 
 
 def fit_kd(all_concentrations, all_intensities, delta_y=None):
