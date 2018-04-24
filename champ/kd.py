@@ -86,7 +86,7 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
     kd_uncertainty = bootstrap_kd_uncertainty(all_concentrations, intensities, delta_y=delta_y)
     if kd is None or kd_uncertainty is None:
         return None
-    return group_unique_label, kd, kd_uncertainty, yint, fit_delta_y
+    return group_unique_label, kd, kd_uncertainty, yint, fit_delta_y, len(intensities)
 
 
 def fit_kd(all_concentrations, all_intensities, delta_y=None):

@@ -19,8 +19,9 @@ def test_fit_all_kds_with_delta_y():
     read_name_intensities = {'sequence1': sequence_1_read_intensities, 'sequence2': sequence_2_read_intensities}
     results = list(fit_all_kds(read_name_intensities, concentrations, delta_y=180000, process_count=1))
     assert len(results) == 2
-    for sequence, kd, kd_uncertainty, yint, delta_y in results:
+    for sequence, kd, kd_uncertainty, yint, delta_y, count in results:
         assert kd > 70.0
+        assert 6 > count >= 4
 
 
 def test_fit_all_kds():
@@ -39,7 +40,7 @@ def test_fit_all_kds():
                              'b': [j, i, h, g, f, e, d, c]}
     results = list(fit_all_kds(read_name_intensities, concentrations, process_count=1))
     assert len(results) == 2
-    for read_name, kd, kd_uncertainty, yint, delta_y in results:
+    for read_name, kd, kd_uncertainty, yint, delta_y, count in results:
         assert 10.0 > kd > 3.0
         assert 0.0 < kd_uncertainty < 1.0
 
