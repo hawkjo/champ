@@ -1,11 +1,10 @@
 import logging
 import os
-from champ import align, initialize, error, projectinfo, chip, fastqimagealigner, convert, fits
+from champ import align, initialize, error, projectinfo, chip, fastqimagealigner, fits
 from champ.config import PathInfo
 import gc
 
 log = logging.getLogger(__name__)
-cluster_strategies = ('se',)
 
 
 def preprocess(image_directory, cache):
@@ -58,7 +57,7 @@ def main(clargs):
     log.debug("FastQImageAligner loaded.")
 
     if 'end_tiles' not in cache:
-        end_tiles = align.get_end_tiles(cluster_strategies, clargs.rotation_adjustment, h5_filenames, metadata['alignment_channel'], clargs.snr, metadata, sequencing_chip, fia)
+        end_tiles = align.get_end_tiles(clargs.rotation_adjustment, h5_filenames, metadata['alignment_channel'], clargs.snr, metadata, sequencing_chip, fia)
         cache['end_tiles'] = end_tiles
         initialize.save_cache(clargs.image_directory, cache)
     else:
@@ -67,13 +66,12 @@ def main(clargs):
     gc.collect()
 
     if not cache['phix_aligned']:
-        for cluster_strategy in cluster_strategies:
-            align.run(cluster_strategy, clargs.rotation_adjustment, h5_filenames, path_info, clargs.snr, clargs.min_hits, fia, end_tiles, metadata['alignment_channel'],
-                      all_tile_data, metadata, clargs.make_pdfs, sequencing_chip, clargs.process_limit)
-            cache['phix_aligned'] = True
-            initialize.save_cache(clargs.image_directory, cache)
-        else:
-            log.debug("Phix already aligned.")
+        align.run(clargs.rotation_adjustment, h5_filenames, path_info, clargs.snr, clargs.min_hits, fia, end_tiles, metadata['alignment_channel'],
+                  all_tile_data, metadata, clargs.make_pdfs, sequencing_chip, clargs.process_limit)
+        cache['phix_aligned'] = True
+        initialize.save_cache(clargs.image_directory, cache)
+    else:
+        log.debug("Phix already aligned.")
 
     if clargs.fiducial_only:
         # the user doesn't want us to align the protein channels
@@ -92,21 +90,20 @@ def main(clargs):
         # Attempt to precision align protein channels using the phix channel alignment as a starting point.
         # Not all experiments have "on target" or "perfect target" reads - that only applies to CRISPR systems
         # (at the time of this writing anyway)
-        for cluster_strategy in cluster_strategies:
-            gc.collect()
-            if on_target_tile_data:
-                channel_combo = channel_name + "_on_target"
-                combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, cache, clargs)
-            gc.collect()
-            if perfect_tile_data:
-                channel_combo = channel_name + "_perfect_target"
-                combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, cache, clargs)
-            gc.collect()
+        gc.collect()
+        if on_target_tile_data:
+            channel_combo = channel_name + "_on_target"
+            combo_align(h5_filenames, channel_combo, channel_name, path_info, on_target_tile_data, all_tile_data, metadata, cache, clargs)
+        gc.collect()
+        if perfect_tile_data:
+            channel_combo = channel_name + "_perfect_target"
+            combo_align(h5_filenames, channel_combo, channel_name, path_info, perfect_tile_data, all_tile_data, metadata, cache, clargs)
+        gc.collect()
 
 
-def combo_align(cluster_strategy, h5_filenames, channel_combo, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, cache, clargs):
+def combo_align(h5_filenames, channel_combo, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, cache, clargs):
     log.info("Aligning %s" % channel_combo)
     if channel_combo not in cache['protein_channels_aligned']:
-        align.run_data_channel(cluster_strategy, h5_filenames, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs, clargs.process_limit)
+        align.run_data_channel(h5_filenames, channel_name, path_info, alignment_tile_data, all_tile_data, metadata, clargs, clargs.process_limit)
         cache['protein_channels_aligned'].append(channel_combo)
         initialize.save_cache(clargs.image_directory, cache)
