@@ -64,7 +64,7 @@ def fit_all_kds(read_name_intensities, all_concentrations, process_count=8, delt
 
 def _thread_fit_kd(read_name_intensities, all_concentrations, minimum_required_observations, delta_y):
     read_name, intensities = read_name_intensities
-    intensities = filter_reads_with_unusual_intensities(intensities)
+    #intensities = filter_reads_with_unusual_intensities(intensities)
     fitting_concentrations = []
     fitting_intensities = []
     for intensity_gradient in intensities:
