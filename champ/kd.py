@@ -66,6 +66,18 @@ def fit_all_kds(group_intensities, all_concentrations, process_count=8, delta_y=
             yield result
 
 
+def fit_one_group_kd(intensities, all_concentrations, delta_y=None):
+    minimum_required_observations = max(len(all_concentrations) - 3, 5)
+    result = _thread_fit_kd((None, intensities),
+                            all_concentrations,
+                            minimum_required_observations,
+                            delta_y)
+    if result is None:
+        return None
+    _, kd, kd_uncertainty, yint, fit_delta_y, count = result
+    return kd, kd_uncertainty, yint, fit_delta_y, count
+
+
 def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_observations, delta_y):
     # group_intensities is a tuple of a unique label (typically a sequence of interest or location in the genome)
     # and intensities is a list of lists, with each member being the value of an intensity gradient
