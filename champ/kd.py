@@ -53,6 +53,7 @@ def fit_hyperbola(concentrations, signals, delta_y=None):
 
 
 def fit_all_kds(group_intensities, all_concentrations, process_count=8, delta_y=None):
+    # sequence_read_name_intensities: List[Dict[str, List[List[float]]]
     # sequence_read_name_intensities should be a list of dictionaries that map read names to intensities
     # each dictionary should all be related to some group of reads that have the same sequence or overlap the same
     # region of the genome
@@ -80,6 +81,7 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
             fitting_concentrations.append(concentration)
     if len(set(fitting_concentrations)) < minimum_required_observations:
         return None
+
     kd, yint, fit_delta_y = fit_kd(fitting_concentrations, fitting_intensities, delta_y=delta_y)
     kd_uncertainty = bootstrap_kd_uncertainty(all_concentrations, intensities, delta_y=delta_y)
     if kd is None or kd_uncertainty is None:
@@ -92,6 +94,7 @@ def fit_kd(all_concentrations, all_intensities, delta_y=None):
     try:
         yint, fit_delta_y, kd = fit_hyperbola(all_concentrations, all_intensities, delta_y=delta_y)
     except (FloatingPointError, RuntimeError, Exception) as e:
+        print(e)
         return None, None, None
     else:
         return kd, yint, fit_delta_y
@@ -121,6 +124,7 @@ def bootstrap_kd_uncertainty(all_concentrations, all_intensities, delta_y=None):
         try:
             _, _, kd = fit_hyperbola(concentrations, intensities, delta_y=delta_y)
         except (FloatingPointError, RuntimeError, Exception) as e:
+            print(e)
             continue
         else:
             kds.append(kd)
