@@ -5,6 +5,7 @@ from champ.tiff import TifsPerConcentration, TifsPerFieldOfView, sanitize_name
 from collections import defaultdict
 import h5py
 import logging
+import time
 
 
 log = logging.getLogger(__name__)
@@ -61,8 +62,13 @@ def main(paths, flipud, fliplr, min_column, max_column):
             log.warn("HDF5 file already exists, skipping creation: %s" % hdf5_filename)
             continue
         with h5py.File(hdf5_filename, 'a') as h5:
+            start = time.time()
             tiff_stack = load_tiff_stack(list(tifs), image_adjustments, min_column, max_column)
+            print("load tiff stack time: %s" % (time.time() - start))
+            each = time.time()
             for t in tiff_stack:
+                print("%s for each" % (time.time() - each))
+                each = time.time()
                 for channel, image in t:
                     if channel not in h5:
                         group = h5.create_group(channel)

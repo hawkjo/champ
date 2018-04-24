@@ -8,8 +8,6 @@ import multiprocessing
 from multiprocessing import Pool
 import numpy as np
 import os
-from scipy import ndimage
-from skimage.filters import threshold_otsu
 import subprocess
 import sys
 import time
@@ -46,29 +44,9 @@ def ensure_image_data_directory_exists(h5_filename):
         os.mkdir(new_directory)
 
 
-def otsu_cluster_func(h5_base_name):
-    h5_filename = h5_base_name + ".h5"
-    log.info("Finding clusters for %s" % h5_filename)
-    h5 = h5py.File(h5_filename)
-    for channel in h5.keys():
-        grid = GridImages(h5, channel)
-        for image in grid:
-            out_filepath = os.path.join(h5_base_name, image.index + '.clusters.otsu')
-            threshold = threshold_otsu(image)
-            mask_pixels = (image > threshold)
-            mask = ndimage.binary_closing(ndimage.binary_opening(mask_pixels))
-            label_image, num_labels = ndimage.label(mask)
-            log.debug("Found %d clusters in %s/%s" % (num_labels, h5_base_name, image.index))
-            center_of_masses = ndimage.center_of_mass(image, label_image, range(num_labels + 1))
-            write_cluster_locations(center_of_masses, out_filepath)
-
-
 def write_cluster_locations(locations, out_filepath):
     with open(out_filepath, 'w') as out:
         out.write('\n'.join("%s\t%s" % (r, c) for r, c in locations))
-
-
-# ===================
 
 
 class SEConfig(object):
@@ -151,14 +129,6 @@ def main(image_directory):
     # Assign each HDF5 file to a thread, which converts it to a "fits" file
     worker_pool = Pool(processes=thread_count)
     find_clusters_source_extractor(worker_pool, image_files)
-    find_clusters_otsu(worker_pool, image_files)
-
-
-def find_clusters_otsu(worker_pool, image_files):
-    # Find clusters with Otsu thresholding
-    start = time.time()
-    worker_pool.map_async(otsu_cluster_func, image_files.directories).get(timeout=sys.maxint)
-    log.info("Done with cluster location. Elapsed time: %s seconds" % round(time.time() - start, 0))
 
 
 def find_clusters_source_extractor(worker_pool, image_files):
