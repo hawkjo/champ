@@ -5,6 +5,8 @@ import numpy as np
 def test_fit_all_kds_with_delta_y():
     concentrations = np.array([0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512])
     a = hyperbola(concentrations, 100, 120000, 4.0)
+    nan_haver = np.array([13422.22222222, np.nan, 40066.66666667, 60050., 80033.33333333, 96020., np.nan,
+                          112947.05882353, 116366.66666667, 118155.38461538, 119070.54263566])
     b = hyperbola(concentrations, 200, 120000, 5.0)
     c = hyperbola(concentrations, 100, 120000, 4.2)
     d = hyperbola(concentrations, 200, 120000, 4.5)
@@ -13,13 +15,12 @@ def test_fit_all_kds_with_delta_y():
     g = hyperbola(concentrations, 300, 120000, 5.7)
     h = hyperbola(concentrations, 200, 120000, 5.3)
     sequence_1_read_intensities = [a, b, c, d]
-    sequence_2_read_intensities = [e, f, g, h]
+    sequence_2_read_intensities = [e, nan_haver, f, g, h]
     read_name_intensities = {'sequence1': sequence_1_read_intensities, 'sequence2': sequence_2_read_intensities}
     results = list(fit_all_kds(read_name_intensities, concentrations, delta_y=180000, process_count=1))
     assert len(results) == 2
-    for read_name, kd, kd_uncertainty, yint, delta_y in results:
+    for sequence, kd, kd_uncertainty, yint, delta_y in results:
         assert kd > 70.0
-        assert 0.0 < kd_uncertainty < 1.0
 
 
 def test_fit_all_kds():

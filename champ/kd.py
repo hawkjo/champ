@@ -75,7 +75,7 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
     fitting_intensities = []
     for intensity_gradient in intensities:
         for intensity, concentration in zip(intensity_gradient, all_concentrations):
-            if intensity is np.nan:
+            if np.isnan(intensity):
                 continue
             fitting_intensities.append(intensity)
             fitting_concentrations.append(concentration)
@@ -117,7 +117,7 @@ def bootstrap_kd_uncertainty(all_concentrations, all_intensities, delta_y=None):
             for intensity_gradient in sample_of_intensities:
                 if n < len(intensity_gradient):
                     intensity = intensity_gradient[n]
-                    if intensity is np.nan:
+                    if np.isnan(intensity):
                         continue
                     intensities.append(intensity)
                     concentrations.append(concentration)
