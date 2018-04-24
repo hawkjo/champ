@@ -44,6 +44,11 @@ class FastqTileRCs(object):
         fq_im_fft = np.fft.fft2(padded_fq_im)
         # Align
         im_data_fft = image_data.fft
+        if im_data_fft.shape != fq_im_fft.shape:
+            raise ValueError("Image and tile matrices are not the same shape! Image:(%dx%d) Tile:(%dx%d)" % (im_data_fft.shape[0],
+                                                                                                             im_data_fft.shape[1],
+                                                                                                             fq_im_fft.shape[0],
+                                                                                                             fq_im_fft.shape[1]))
         cross_corr = abs(np.fft.ifft2(np.conj(fq_im_fft) * im_data_fft))
         max_corr = cross_corr.max()
         max_idx = misc.max_2d_idx(cross_corr)

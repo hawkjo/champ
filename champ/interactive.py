@@ -63,12 +63,12 @@ class TargetSequence(object):
 
     @property
     def double_deletions(self):
-        for i in range(len(self._sequence)):
-            for j in range(i):
-                seq = self._sequence[:j] + self._sequence[j + 1:i] + self._sequence[i + 1:]
-                yield i, j, seq
-            seq = self._sequence[:i] + self._sequence[i + 1:]
-            yield i, i, seq
+        for downstream_index in range(len(self._sequence)):
+            for upstream_index in range(downstream_index):
+                seq = self._sequence[:upstream_index] + self._sequence[upstream_index + 1:downstream_index] + self._sequence[downstream_index + 1:]
+                yield upstream_index, downstream_index, seq
+            seq = self._sequence[:downstream_index] + self._sequence[downstream_index + 1:]
+            yield downstream_index, downstream_index, seq
 
     @property
     def single_mismatches(self):
@@ -103,14 +103,28 @@ class TargetSequence(object):
                 sequence = self._sequence[:i] + insertion_base + self._sequence[i:]
                 yield i, j, insertion_base, sequence
 
+    # @property
+    # def double_insertions(self):
+    #     bases = 'ACGT'
+    #     for i in range(len(self._sequence)):
+    #         for j in range(i):
+    #             for insertion_base_1 in bases:
+    #                 for insertion_base_2 in bases:
+    #                     yield i, j, insertion_base_1, insertion_base_2, self._sequence[:j] + insertion_base_1 + self._sequence[j:i] + insertion_base_2 + self._sequence[i:]
+    #
+    #     # single insertions for the diagonal
+    #     for i in range(len(self._sequence)):
+    #         for insertion_base in bases:
+    #             yield i, i, insertion_base, insertion_base, self._sequence[:i] + insertion_base + self._sequence[i:]
+
     @property
     def double_insertions(self):
         bases = 'ACGT'
-        for i in range(len(self._sequence)):
-            for j in range(i):
-                for insertion_base_1 in bases:
-                    for insertion_base_2 in bases:
-                        yield i, j, insertion_base_1, insertion_base_2, self._sequence[:j] + insertion_base_1 + self._sequence[j:i] + insertion_base_2 + self._sequence[i:]
+        for downstream_index in range(len(self._sequence)):
+            for upstream_index in range(downstream_index):
+                for upstream_insertion_base in bases:
+                    for downstream_insertion_base in bases:
+                        yield downstream_index, upstream_index, upstream_insertion_base, downstream_insertion_base, self._sequence[:upstream_index] + upstream_insertion_base + self._sequence[upstream_index:downstream_index] + downstream_insertion_base + self._sequence[downstream_index:]
 
         # single insertions for the diagonal
         for i in range(len(self._sequence)):
@@ -167,10 +181,14 @@ class TwoDMatrix(object):
                     value = values
                 if normalize_by is not None and value is not None:
                     value /= normalize_by
-                if (side == 'lower' and not flip_sequence) or (side == 'upper' and flip_sequence):
-                    data[r, c] = value
-                elif (side == 'upper' and not flip_sequence) or (side == 'lower' and flip_sequence):
-                    data[c, r] = value
+                try:
+                    if (side == 'lower' and not flip_sequence) or (side == 'upper' and flip_sequence):
+                        data[r, c] = value
+                    elif (side == 'upper' and not flip_sequence) or (side == 'lower' and flip_sequence):
+                        data[c, r] = value
+                except IndexError:
+                    # In case the sequences aren't the same length. This is not a good solution
+                    continue
         return data
 
     def _safe_append(self, r, c, value):
@@ -197,7 +215,8 @@ class InsertionMatrix(TwoDMatrix):
         super(InsertionMatrix, self).__init__(sequence, 4, bases)
 
     def set_value(self, position1, position2, base1, base2, value):
-        r, c = position1 * self._slots + self._bases.index(base1), position2 * self._slots + self._bases.index(base2)
+        r = position1 * self._slots + self._bases.index(base1)
+        c = position2 * self._slots + self._bases.index(base2)
         self._values[r][c] = value
 
 

@@ -335,7 +335,13 @@ class KdGenomeData(object):
     @property
     def all_full_ABAs(self):
         for Kd in self.all_full_Kds:
-            yield self.IAKdData.ABA_given_Kd(Kd)
+            try:
+                aba = self.IAKdData.ABA_given_Kd(Kd)
+            except FloatingPointError:
+                # Somehow a Kd of 0 shows up occasionally, but since that's impossible we reject the value
+                continue
+            else:
+                yield aba
 
     def load_Kds(self):
         self.locs = defaultdict(list)

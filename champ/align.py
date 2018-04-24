@@ -32,11 +32,12 @@ def run(cluster_strategy, rotation_adjustment, h5_filenames, path_info, snr, min
     alignment_func = functools.partial(perform_alignment, cluster_strategy, rotation_adjustment, path_info, snr, min_hits, metadata['microns_per_pixel'],
                                        sequencing_chip, all_tile_data, make_pdfs, fia)
 
-    pool = multiprocessing.Pool(num_processes)
-    pool.map_async(alignment_func,
-                   iterate_all_images(h5_filenames, end_tiles, alignment_channel), chunksize=chunksize).get(timeout=sys.maxint)
-    pool.close()
-    pool.join()
+    for h5_filename in h5_filenames:
+        pool = multiprocessing.Pool(num_processes)
+        pool.map_async(alignment_func,
+                       iterate_all_images([h5_filename], end_tiles, alignment_channel, path_info), chunksize=chunksize).get(timeout=sys.maxint)
+        pool.close()
+        pool.join()
 
     log.debug("Done aligning!")
 
@@ -55,16 +56,17 @@ def run_data_channel(cluster_strategy, h5_filenames, channel_name, path_info, al
     second_processor = functools.partial(process_data_image, cluster_strategy, path_info, all_tile_data,
                                          clargs.microns_per_pixel, clargs.make_pdfs,
                                          channel_name, fastq_image_aligner, clargs.min_hits)
-    pool = multiprocessing.Pool(num_processes)
-    log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
-    pool.map_async(second_processor,
-                   load_aligned_stats_files(h5_filenames, metadata['alignment_channel'], path_info),
-                   chunksize=chunksize).get(sys.maxint)
-    pool.close()
-    pool.join()
+    for h5_filename in h5_filenames:
+        pool = multiprocessing.Pool(num_processes)
+        log.debug("Doing second channel alignment of all images with %d cores" % num_processes)
+        pool.map_async(second_processor,
+                       load_aligned_stats_files([h5_filename], metadata['alignment_channel'], path_info),
+                       chunksize=chunksize).get(sys.maxint)
+        pool.close()
+        pool.join()
+        gc.collect()
 
     log.debug("Done aligning!")
-    gc.collect()
 
 
 def alignment_is_complete(stats_file_path):
@@ -78,31 +80,35 @@ def perform_alignment(cluster_strategy, rotation_adjustment, path_info, snr, min
                       make_pdfs, prefia, image_data):
     # Does a rough alignment, and if that works, does a precision alignment and writes the corrected
     # FastQ reads to disk
-    row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
+    try:
+        row, column, channel, h5_filename, possible_tile_keys, base_name = image_data
 
-    image = load_image(h5_filename, channel, row, column)
-    stats_file_path = os.path.join(path_info.results_directory, base_name, '{}_stats.txt'.format(image.index))
-    if alignment_is_complete(stats_file_path):
-        log.debug("Already aligned %s from %s" % (image.index, h5_filename))
-        return
+        image = load_image(h5_filename, channel, row, column)
+        stats_file_path = os.path.join(path_info.results_directory, base_name, '{}_stats.txt'.format(image.index))
+        if alignment_is_complete(stats_file_path):
+            log.debug("Already aligned %s from %s" % (image.index, h5_filename))
+            return
 
-    log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
-    # first get the correlation to random tiles, so we can distinguish signal from noise
-    fia = process_alignment_image(cluster_strategy, rotation_adjustment, snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(prefia))
+        log.debug("Aligning image from %s. Row: %d, Column: %d " % (base_name, image.row, image.column))
+        # first get the correlation to random tiles, so we can distinguish signal from noise
+        fia = process_alignment_image(cluster_strategy, rotation_adjustment, snr, sequencing_chip, base_name, um_per_pixel, image, possible_tile_keys, deepcopy(prefia))
 
-    if fia.hitting_tiles:
-        # The image data aligned with FastQ reads!
-        try:
-            fia.precision_align_only(min_hits=min_hits)
-        except ValueError:
-            log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
-        else:
-            result = write_output(stats_file_path, image.index, base_name, fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
-            print("Write alignment for %s: %s" % (image.index, result))
-    # Force the GC to run, since otherwise memory usage blows up
-    del fia
-    del image
-    gc.collect()
+        if fia.hitting_tiles:
+            # The image data aligned with FastQ reads!
+            try:
+                fia.precision_align_only(min_hits=min_hits)
+            except ValueError:
+                log.debug("Too few hits to perform precision alignment. Image: %s Row: %d Column: %d " % (base_name, image.row, image.column))
+            else:
+                result = write_output(stats_file_path, image.index, base_name, fia, path_info, all_tile_data, make_pdfs, um_per_pixel)
+                print("Write alignment for %s: %s" % (image.index, result))
+        # Force the GC to run, since otherwise memory usage blows up
+        del fia
+        del image
+        gc.collect()
+    except IndexError:
+        # This happens and we don't know why. We'll just throw out the data since it's very rare
+        pass
 
 
 def make_output_directories(h5_filenames, path_info):
@@ -276,7 +282,7 @@ def check_column_for_alignment(cluster_strategy, rotation_adjustment, channel, s
     gc.collect()
 
 
-def iterate_all_images(h5_filenames, end_tiles, channel):
+def iterate_all_images(h5_filenames, end_tiles, channel, path_info):
     # We need an iterator over all images to feed the parallel processes. Since each image is
     # processed independently and in no particular order, we need to return information in addition
     # to the image itself that allow files to be written in the correct place and such
@@ -288,8 +294,17 @@ def iterate_all_images(h5_filenames, end_tiles, channel):
             for column in range(min_column, max_column):
                 for row in range(grid._height):
                     image = grid.get(row, column)
-                    if image is not None:
-                        yield row, column, channel, h5_filename, tile_map[image.column], base_name
+                    if image is None:
+                        continue
+                    stats_path = os.path.join(path_info.results_directory, base_name,
+                                              '{}_stats.txt'.format(image.index))
+                    alignment_path = os.path.join(path_info.results_directory, base_name,
+                                                  '{}_all_read_rcs.txt'.format(image.index))
+                    already_aligned = alignment_is_complete(stats_path) and os.path.exists(alignment_path)
+                    if already_aligned:
+                        log.debug("Image already aligned/checkpointed: {}/{}".format(h5_filename, image.index))
+                        continue
+                    yield row, column, channel, h5_filename, tile_map[image.column], base_name
 
 
 def load_read_names(file_path):
