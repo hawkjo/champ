@@ -24,11 +24,9 @@ def iterate_pileups(bamfile, contig):
         for pileup_column in sf.pileup(contig):
             if pileup_column.n < MINIMUM_REQUIRED_COUNTS:
                 continue
-
-            for pileup in pileup_column.pileups:
-                query_names = [alignment.query_name for alignment in pileup.alignments
-                               if not alignment.is_qcfail and alignment.mapq > 20]
-                yield pileup_column.pos, frozenset(query_names)
+            query_names = [alignment.query_name for alignment in pileup_column.pileups
+                           if not alignment.is_qcfail and alignment.mapq > 20]
+            yield pileup_column.pos, frozenset(query_names)
 
 
 def determine_kds_of_reads(pileup_data, concentrations, delta_y, read_name_intensities):
