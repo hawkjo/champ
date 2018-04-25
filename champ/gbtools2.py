@@ -24,8 +24,8 @@ def iterate_pileups(bamfile, contig):
         for pileup_column in sf.pileup(contig):
             if pileup_column.n < MINIMUM_REQUIRED_COUNTS:
                 continue
-            query_names = [alignment.query_name for alignment in pileup_column.pileups
-                           if not alignment.is_qcfail and alignment.mapq > 20]
+            query_names = [pileup.alignment.query_name for pileup in pileup_column.pileups
+                           if not pileup.alignment.is_qcfail and pileup.alignment.mapq > 20]
             yield pileup_column.pos, frozenset(query_names)
 
 
