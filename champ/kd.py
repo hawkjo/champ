@@ -162,7 +162,7 @@ def filter_reads_with_unusual_intensities(intensities):
     bad_indexes = set()
     assert len(set([len(intensity) for intensity in intensities])) == 1, "All reads should have the same number of observations. Missing observations should be represented by np.nan"
     for index in range(len(intensities[0])):
-        index_intensities = [intensity_gradient[index] for intensity_gradient in intensities if intensity_gradient[index] is not np.nan]
+        index_intensities = [intensity_gradient[index] for intensity_gradient in intensities if np.isnan(intensity_gradient[index])]
         if len(index_intensities) < MINIMUM_READ_COUNT:
             continue
         try:
