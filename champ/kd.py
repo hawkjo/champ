@@ -2,6 +2,7 @@ from scipy.optimize import curve_fit
 import numpy as np
 import lomp
 
+np.seterr(all='raise')
 BOOTSTRAP_ROUNDS = 20
 MAX_BOOTSTRAP_SAMPLE_SIZE = 2000
 MINIMUM_READ_COUNT = 5
