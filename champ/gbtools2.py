@@ -40,10 +40,10 @@ def determine_kds_of_reads(contig_pileup_data, concentrations, delta_y, read_nam
         if result is None:
             intensities = []
             for name in query_names:
-                intensity = read_name_intensities.get(name)
-                if np.isnan(intensity):
+                intensity_gradient = read_name_intensities.get(name)
+                if intensity_gradient is None:
                     continue
-                intensities.append(intensity)
+                intensities.append(intensity_gradient)
             result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y)
             if result is None:
                 continue
