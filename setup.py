@@ -1,12 +1,16 @@
 from setuptools import setup
 from champ.constants import VERSION
+import git
 
+repo = git.Repo(search_parent_directories=True)
+sha = repo.head.object.hexsha
+version = "%s-%s" % (VERSION, sha)
 
 if __name__ == '__main__':
     setup(
         name='champ',
         packages=['champ', 'champ.controller'],
-        version=VERSION,
+        version=version,
         entry_points={
           'console_scripts': [
               'champ = champ.main:main'
@@ -18,7 +22,8 @@ if __name__ == '__main__':
                                    'notebooks/data-analysis.ipynb',
                                    'notebooks/genomic-kd-fitting.ipynb',
                                    'notebooks/lda-intensity-estimation.ipynb',
-                                   'notebooks/thermodynamics.ipynb'])],
+                                   'notebooks/thermodynamics.ipynb']),
+                    ('commit', [])],
         description='Processes CHAMP image data',
         url='http://www.finkelsteinlab.org',
         keywords=['DNA', 'protein', 'illumina', 'bioinformatics', 'crispr'],
