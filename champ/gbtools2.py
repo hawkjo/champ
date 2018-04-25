@@ -6,6 +6,7 @@ import lomp
 import progressbar
 from champ.kd import fit_one_group_kd
 MINIMUM_REQUIRED_COUNTS = 5
+np.seterr(all='raise')
 
 
 def load_read_name_intensities(hdf5_filename):
@@ -60,6 +61,7 @@ def determine_kds_of_reads(contig_pileup_data, concentrations, delta_y, read_nam
 
 
 def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y):
+    np.seterr(all='raise')
     print("loading read name intensities")
     read_name_intensities = load_read_name_intensities(read_name_intensities_hdf5_filename)
     with pysam.Samfile(bamfile) as samfile:
