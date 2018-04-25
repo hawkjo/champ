@@ -67,6 +67,8 @@ def fit_all_kds(group_intensities, all_concentrations, process_count=8, delta_y=
 
 
 def fit_one_group_kd(intensities, all_concentrations, delta_y=None):
+    print("all_concentrations", all_concentrations)
+    print("intensities", intensities)
     minimum_required_observations = max(len(all_concentrations) - 3, 5)
     result = _thread_fit_kd((None, intensities),
                             all_concentrations,

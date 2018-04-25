@@ -44,6 +44,8 @@ def determine_kds_of_reads(contig_pileup_data, concentrations, delta_y, read_nam
                 if intensity_gradient is None:
                     continue
                 intensities.append(intensity_gradient)
+            if len(intensities) < MINIMUM_REQUIRED_COUNTS:
+                continue
             result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y)
             if result is None:
                 continue
