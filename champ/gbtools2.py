@@ -38,6 +38,7 @@ def determine_kds_of_reads(contig_pileup_data, concentrations, delta_y, read_nam
     for position, query_names in pileup_data:
         result = cache.get(query_names)
         if result is None:
+            # this is a new set of reads! we need to calculate the KD for them as a group
             intensities = []
             for name in query_names:
                 intensity_gradient = read_name_intensities.get(name)
@@ -49,7 +50,7 @@ def determine_kds_of_reads(contig_pileup_data, concentrations, delta_y, read_nam
             try:
                 result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y)
             except Exception as e:
-                print(e)
+                print('determine_kds_of_reads', e)
                 continue
             if result is None:
                 continue
