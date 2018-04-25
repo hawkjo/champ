@@ -162,8 +162,13 @@ def filter_reads_with_unusual_intensities(intensities):
         index_intensities = [intensity_gradient[index] for intensity_gradient in intensities if intensity_gradient[index] is not np.nan]
         if len(index_intensities) < MINIMUM_READ_COUNT:
             continue
-        q1 = np.percentile(index_intensities, 25)
-        q3 = np.percentile(index_intensities, 75)
+        try:
+            q1 = np.percentile(index_intensities, 25)
+            q3 = np.percentile(index_intensities, 75)
+        except Exception as e:
+            print("BAD PERCENTILE")
+            print(index_intensities)
+            continue
         iqr = q3 - q1
         min_range, max_range = (q1 - TUKEY_CONSTANT * iqr, q3 + TUKEY_CONSTANT * iqr)
         for n, intensity_gradient in enumerate(intensities):

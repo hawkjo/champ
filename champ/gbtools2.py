@@ -62,7 +62,7 @@ def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentr
     print("loading read name intensities")
     read_name_intensities = load_read_name_intensities(read_name_intensities_hdf5_filename)
     with pysam.Samfile(bamfile) as samfile:
-        contigs = list(reversed(sorted(samfile.references)))[:200]
+        contigs = list(reversed(sorted(samfile.references)))[:100]
 
     pileup_data = {}
     print("loading pileup data")
