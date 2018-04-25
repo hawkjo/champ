@@ -21,6 +21,12 @@ def fixed_delta_y_hyperbola(delta_y):
     return func
 
 
+def saturated_at_concentration(kd):
+    """ Determines what concentration should have saturated clusters given a KD. """
+    saturated_fraction = 0.9
+    return float(kd * saturated_fraction)/(1.0 - saturated_fraction)
+
+
 def fit_hyperbola(concentrations, signals, delta_y=None):
     """
     :param concentrations: X-axis values representing concentrations in arbitrary units
@@ -156,7 +162,9 @@ def filter_reads_with_unusual_intensities(intensities):
 
     """
     bad_indexes = set()
-    assert len(set([len(intensity) for intensity in intensities])) == 1, "All reads should have the same number of observations. Missing observations should be represented by np.nan"
+    assert len(set([len(intensity) for intensity in intensities])) == 1, "All reads should have the same number of " \
+                                                                         "observations. Missing observations should be " \
+                                                                         "represented by np.nan"
     for index in range(len(intensities[0])):
         index_intensities = [intensity_gradient[index] for intensity_gradient in intensities if not np.isnan(intensity_gradient[index])]
         if len(index_intensities) < MINIMUM_READ_COUNT:
