@@ -74,10 +74,8 @@ def fit_one_group_kd(intensities, all_concentrations, delta_y=None):
                                 minimum_required_observations,
                                 delta_y)
     except Exception as e:
-        print("intensities", intensities)
-        print("exception:")
-        print(e)
-        exit(1)
+        print("error in fit_one_group_kd", e)
+        return None
     else:
         if result is None:
             return None
@@ -113,7 +111,6 @@ def fit_kd(all_concentrations, all_intensities, delta_y=None):
     try:
         yint, fit_delta_y, kd = fit_hyperbola(all_concentrations, all_intensities, delta_y=delta_y)
     except (FloatingPointError, RuntimeError, Exception) as e:
-        print(e)
         return None, None, None
     else:
         return kd, yint, fit_delta_y
@@ -143,7 +140,6 @@ def bootstrap_kd_uncertainty(all_concentrations, all_intensities, delta_y=None):
         try:
             _, _, kd = fit_hyperbola(concentrations, intensities, delta_y=delta_y)
         except (FloatingPointError, RuntimeError, Exception) as e:
-            print('bootstrap', e)
             continue
         else:
             kds.append(kd)
