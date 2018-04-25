@@ -67,16 +67,12 @@ def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentr
 
     pileup_data = {}
     print("loading pileup data")
-    with progressbar.ProgressBar(max_value=len(contigs)) as pbar:
-        for contig in pbar(contigs):
-            pileup_data[contig] = list(iterate_pileups(bamfile, contig))
+    for contig in contigs:
+        pileup_data[contig] = list(iterate_pileups(bamfile, contig))
 
     print("calculating genomic kds")
     contig_position_kds = {}
-    with progressbar.ProgressBar(max_value=len(pileup_data)) as pbar:
-        for contig, data in pbar(lomp.parallel_map(pileup_data.items(),
-                                                   determine_kds_of_reads,
-                                                   args=(concentrations, delta_y, read_name_intensities),
-                                                   process_count=4)):
-            contig_position_kds[contig] = data
+    for contig, pileup_data in pileup_data.items():
+        contig, data = determine_kds_of_reads((contig, pileup_data), concentrations, delta_y, read_name_intensities)
+        contig_position_kds[contig] = data
     return contig_position_kds
