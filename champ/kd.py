@@ -354,7 +354,7 @@ class KdFitIA(object):
         ax.set_xscale('log')
 
         ax.set_xlabel('Concentration (nM)', fontsize=18)
-        ax.set_axis_bgcolor('white')
+        ax.set_facecolor('white')
         ax.grid(False)
         ax.set_ylabel('Intensity', fontsize=18)
 
@@ -373,7 +373,7 @@ class KdFitIA(object):
         ax.set_xscale('log')
 
         ax.set_xlabel('Concentration (nM)', fontsize=18)
-        ax.set_axis_bgcolor('white')
+        ax.set_facecolor('white')
         ax.grid(False)
         ax.set_ylabel('Intensity', fontsize=18)
 
@@ -479,7 +479,7 @@ class KdFitIA(object):
             ax.set_ylabel('{} Error ({})'.format(label, units), fontsize=18)
             ax.legend(fontsize=14)
             ax.get_legend().get_frame().set_facecolor('white')
-            ax.set_axis_bgcolor('white')
+            ax.set_facecolor('white')
             ax.grid(False)
 
             for item in ax.get_xticklabels() + ax.get_yticklabels():
