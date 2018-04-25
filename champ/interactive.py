@@ -1,9 +1,10 @@
-from collections import defaultdict
-import numpy as np
-from Bio.Seq import Seq
-import yaml
-import re
 import glob
+import re
+from collections import defaultdict
+
+import numpy as np
+import yaml
+from Bio.Seq import Seq
 
 
 class TargetSequence(object):

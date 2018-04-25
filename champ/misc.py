@@ -5,6 +5,13 @@ import re
 import numpy as np
 from sklearn.neighbors import KernelDensity
 from scipy.optimize import minimize
+import pkg_resources
+
+
+def load_commit():
+    # Finds the exact git commit for the version of CHAMP being used
+    pkg = pkg_resources.get_distribution('champ')
+    return pkg.version.split('-')[1]
 
 
 def next_power_of_2(x):

@@ -22,7 +22,7 @@ def fixed_delta_y_hyperbola(delta_y):
 
 
 def saturated_at_concentration(kd):
-    """ Determines what concentration should have saturated clusters given a KD. """
+    """ Determines what concentration should have (mostly) saturated clusters given a KD. """
     saturated_fraction = 0.9
     return float(kd * saturated_fraction)/(1.0 - saturated_fraction)
 
