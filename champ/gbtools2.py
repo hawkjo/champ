@@ -1,12 +1,10 @@
 import h5py
 import pysam
 import cachetools
-import numpy as np
 import lomp
 import progressbar
 from champ.kd import fit_one_group_kd
 MINIMUM_REQUIRED_COUNTS = 5
-np.seterr(all='raise')
 
 
 def load_read_name_intensities(hdf5_filename):
@@ -39,7 +37,6 @@ def determine_kds_of_reads(contig_pileup_data, concentrations, delta_y, read_nam
     for position, query_names in pileup_data:
         result = cache.get(query_names)
         if result is None:
-            # this is a new set of reads! we need to calculate the KD for them as a group
             intensities = []
             for name in query_names:
                 intensity_gradient = read_name_intensities.get(name)
@@ -51,7 +48,6 @@ def determine_kds_of_reads(contig_pileup_data, concentrations, delta_y, read_nam
             try:
                 result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y)
             except Exception as e:
-                print('determine_kds_of_reads', e)
                 continue
             if result is None:
                 continue
@@ -61,7 +57,6 @@ def determine_kds_of_reads(contig_pileup_data, concentrations, delta_y, read_nam
 
 
 def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y):
-    np.seterr(all='raise')
     print("loading read name intensities")
     read_name_intensities = load_read_name_intensities(read_name_intensities_hdf5_filename)
     with pysam.Samfile(bamfile) as samfile:
@@ -69,12 +64,16 @@ def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentr
 
     pileup_data = {}
     print("loading pileup data")
-    for contig in contigs:
-        pileup_data[contig] = list(iterate_pileups(bamfile, contig))
+    with progressbar.ProgressBar(max_value=len(contigs)) as pbar:
+        for contig in pbar(contigs):
+            pileup_data[contig] = list(iterate_pileups(bamfile, contig))
 
     print("calculating genomic kds")
     contig_position_kds = {}
-    for contig, pileup_data in pileup_data.items():
-        contig, data = determine_kds_of_reads((contig, pileup_data), concentrations, delta_y, read_name_intensities)
-        contig_position_kds[contig] = data
+    with progressbar.ProgressBar(max_value=len(pileup_data)) as pbar:
+        for contig, data in pbar(lomp.parallel_map(pileup_data.items(),
+                                                   determine_kds_of_reads,
+                                                   args=(concentrations, delta_y, read_name_intensities),
+                                                   process_count=4)):
+            contig_position_kds[contig] = data
     return contig_position_kds

@@ -2,7 +2,6 @@ from scipy.optimize import curve_fit
 import numpy as np
 import lomp
 
-np.seterr(all='raise')
 BOOTSTRAP_ROUNDS = 20
 MAX_BOOTSTRAP_SAMPLE_SIZE = 2000
 MINIMUM_READ_COUNT = 5
@@ -75,7 +74,6 @@ def fit_one_group_kd(intensities, all_concentrations, delta_y=None):
                                 minimum_required_observations,
                                 delta_y)
     except Exception as e:
-        print("error in fit_one_group_kd", e)
         return None
     else:
         if result is None:
@@ -112,7 +110,6 @@ def fit_kd(all_concentrations, all_intensities, delta_y=None):
     try:
         yint, fit_delta_y, kd = fit_hyperbola(all_concentrations, all_intensities, delta_y=delta_y)
     except (FloatingPointError, RuntimeError, Exception) as e:
-        print("fit kd", e)
         return None, None, None
     else:
         return kd, yint, fit_delta_y
@@ -142,7 +139,6 @@ def bootstrap_kd_uncertainty(all_concentrations, all_intensities, delta_y=None):
         try:
             _, _, kd = fit_hyperbola(concentrations, intensities, delta_y=delta_y)
         except (FloatingPointError, RuntimeError, Exception) as e:
-            print("bootstrap", e)
             continue
         else:
             kds.append(kd)
@@ -165,13 +161,8 @@ def filter_reads_with_unusual_intensities(intensities):
         index_intensities = [intensity_gradient[index] for intensity_gradient in intensities if np.isnan(intensity_gradient[index])]
         if len(index_intensities) < MINIMUM_READ_COUNT:
             continue
-        try:
-            q1 = np.percentile(index_intensities, 25)
-            q3 = np.percentile(index_intensities, 75)
-        except RuntimeWarning as e:
-            print("BAD PERCENTILE")
-            print(index_intensities)
-            continue
+        q1 = np.percentile(index_intensities, 25)
+        q3 = np.percentile(index_intensities, 75)
         iqr = q3 - q1
         min_range, max_range = (q1 - TUKEY_CONSTANT * iqr, q3 + TUKEY_CONSTANT * iqr)
         for n, intensity_gradient in enumerate(intensities):
