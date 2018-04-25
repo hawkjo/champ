@@ -29,7 +29,8 @@ def iterate_pileups(bamfile, contig):
             yield pileup_column.pos, frozenset(query_names)
 
 
-def determine_kds_of_reads(pileup_data, concentrations, delta_y, read_name_intensities):
+def determine_kds_of_reads(contig_pileup_data, concentrations, delta_y, read_name_intensities):
+    contig, pileup_data = contig_pileup_data
     position_kds = {}
     # since there are often long stretches where we have the reads, we cache the most recently-used ones and
     # try to look up the KD we calculated before.
@@ -48,17 +49,27 @@ def determine_kds_of_reads(pileup_data, concentrations, delta_y, read_name_inten
                 continue
             cache[query_names] = result
         position_kds[position] = result
-    return position_kds
+    return contig, position_kds
 
 
-def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename):
+def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y):
     print("loading read name intensities")
     read_name_intensities = load_read_name_intensities(read_name_intensities_hdf5_filename)
     with pysam.Samfile(bamfile) as samfile:
-        contigs = list(reversed(sorted(samfile.references)))
+        contigs = list(reversed(sorted(samfile.references)))[:200]
 
     pileup_data = {}
     print("loading pileup data")
     with progressbar.ProgressBar(max_value=len(contigs)) as pbar:
         for contig in pbar(contigs):
             pileup_data[contig] = list(iterate_pileups(bamfile, contig))
+
+    print("calculating genomic kds")
+    contig_position_kds = {}
+    with progressbar.ProgressBar(max_value=len(pileup_data)) as pbar:
+        for contig, data in pbar(lomp.parallel_map(pileup_data.items(),
+                                                   determine_kds_of_reads,
+                                                   args=(concentrations, delta_y, read_name_intensities),
+                                                   process_count=4)):
+            contig_position_kds[contig] = data
+    return contig_position_kds
