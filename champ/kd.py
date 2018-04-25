@@ -168,7 +168,7 @@ def filter_reads_with_unusual_intensities(intensities):
         try:
             q1 = np.percentile(index_intensities, 25)
             q3 = np.percentile(index_intensities, 75)
-        except Exception as e:
+        except RuntimeWarning as e:
             print("BAD PERCENTILE")
             print(index_intensities)
             continue
