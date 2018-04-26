@@ -28,7 +28,6 @@ import logging
 import os
 from champ.config import CommandLineArguments
 from champ.constants import VERSION
-from champ.controller import align, initialize, h5, mapreads, info, notebooks
 from docopt import docopt
 
 
@@ -44,14 +43,26 @@ def main(**kwargs):
     log.setLevel(arguments.log_level)
     log.debug(docopt_args)
 
-    commands = {'align': align,
-                'init': initialize,
-                'h5': h5,
-                'map': mapreads,
-                'info': info,
-                'notebooks': notebooks}
-
-    commands[arguments.command].main(arguments)
+    # This is silly and not the right way to do things, but it speeds up things since we don't have to import
+    # the entire codebase. We will switch to click in a future version and not have to work around docopt like this.
+    if arguments.command == 'align':
+        from champ.controller import align
+        align.main(arguments)
+    elif arguments.command == 'init':
+        from champ.controller import initialize
+        initialize.main(arguments)
+    elif arguments.command == 'h5':
+        from champ.controller import h5
+        h5.main(arguments)
+    elif arguments.command == 'map':
+        from champ.controller import mapreads
+        mapreads.main(arguments)
+    elif arguments.command == 'info':
+        from champ.controller import info
+        info.main(arguments)
+    elif arguments.command == 'notebooks':
+        from champ.controller import notebooks
+        notebooks.main(arguments)
 
 
 if __name__ == '__main__':

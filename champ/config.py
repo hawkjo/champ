@@ -1,6 +1,6 @@
 import logging
 import os
-from chip import load
+from champ.chip import load
 
 
 class CommandLineArguments(object):
