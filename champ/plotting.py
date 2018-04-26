@@ -393,8 +393,6 @@ def configure_position_penalty_axes(target, fig, penalty_axes, xticklabels, font
     penalty_axes.set_ylim(ylim)
     penalty_axes.set_xlabel('Target {target_name} Reference Sequence'.format(target_name=target_name), fontsize=fontsize)
     penalty_axes.set_ylabel(yaxis_label, fontsize=fontsize)
-    if legend:
-        penalty_axes.legend(loc='best')
     penalty_axes.xaxis.set_ticks_position('none')
 
     if count_axes is not None:
