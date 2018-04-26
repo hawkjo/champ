@@ -394,6 +394,10 @@ def configure_position_penalty_axes(target, fig, penalty_axes, xticklabels, font
     penalty_axes.set_xlabel('Target {target_name} Reference Sequence'.format(target_name=target_name), fontsize=fontsize)
     penalty_axes.set_ylabel(yaxis_label, fontsize=fontsize)
     penalty_axes.xaxis.set_ticks_position('none')
+    if legend:
+        patches = [mpatches.Patch(color=flabpal.blue, label='A'), mpatches.Patch(color=flabpal.yellow, label='C'),
+                   mpatches.Patch(color=flabpal.green, label='G'), mpatches.Patch(color=flabpal.red, label='T')]
+        penalty_axes.legend(handles=patches)
 
     if count_axes is not None:
         count_axes.set_yscale('log')
