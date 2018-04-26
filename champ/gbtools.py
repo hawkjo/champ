@@ -1,16 +1,16 @@
-import sys
+import itertools
 import os
-import lomp
+import sys
 from collections import defaultdict, Counter
+
+import h5py
+import lomp
+import numpy as np
+import progressbar
 from Bio import SeqIO
 from Bio.Seq import Seq
 from pysam import Samfile
-import numpy as np
-import h5py
 from scipy import stats
-import progressbar
-import itertools
-
 
 MINIMUM_CLUSTER_COUNT = 6
 QUALITY_THRESHOLD = 20
