@@ -397,7 +397,10 @@ def configure_position_penalty_axes(target, fig, penalty_axes, xticklabels, font
     if legend:
         patches = [mpatches.Patch(color=flabpal.blue, label='A'), mpatches.Patch(color=flabpal.yellow, label='C'),
                    mpatches.Patch(color=flabpal.green, label='G'), mpatches.Patch(color=flabpal.red, label='T')]
-        penalty_axes.legend(handles=patches)
+        legend = penalty_axes.legend(handles=patches)
+        for t in legend.get_texts():
+            # align the base letters
+            t.set_ha('center')
 
     if count_axes is not None:
         count_axes.set_yscale('log')
