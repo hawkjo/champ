@@ -96,7 +96,7 @@ def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentr
             for result in iterate_pileups(bamfile, contig):
                 pileup_data.append(result)
 
-    print("calculating genomic kds with joblib")
+    print("calculating genomic kds with lomp")
     contig_position_kds = {contig: {} for contig in contigs}
     # determine_kd_of_genomic_position(read_name_intensities, concentrations, delta_y, contig, position, query_names)
     for contig, position, result in lomp.parallel_map(pileup_data,
