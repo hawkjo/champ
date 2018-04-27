@@ -3,7 +3,7 @@ from collections import defaultdict
 
 import cachetools
 import h5py
-import lomp
+from joblib import Parallel, delayed
 import numpy as np
 import progressbar
 import pysam
@@ -33,7 +33,23 @@ def iterate_pileups(bamfile, contig):
                 continue
             query_names = [pileup.alignment.query_name for pileup in pileup_column.pileups
                            if not pileup.alignment.is_qcfail and pileup.alignment.mapq > 20]
-            yield pileup_column.pos, frozenset(query_names)
+            yield contig, pileup_column.pos, frozenset(query_names)
+
+
+def determine_kd_of_genomic_position(read_name_intensities, concentrations, delta_y, contig, position, query_names):
+    intensities = []
+    for name in query_names:
+        intensity_gradient = read_name_intensities.get(name)
+        if intensity_gradient is None:
+            continue
+        intensities.append(intensity_gradient)
+    if len(intensities) < MINIMUM_REQUIRED_COUNTS:
+        return contig, position, None
+    try:
+        result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y)
+    except Exception:
+        return contig, position, None
+    return contig, position, result
 
 
 def determine_kds_of_reads(contig_pileup_data, concentrations, delta_y, read_name_intensities):
@@ -71,20 +87,25 @@ def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentr
         # contigs = list(reversed(sorted(samfile.references)))
         contigs = ['NC_000019.10']
 
-    pileup_data = {}
+    pileup_data = []
     print("loading pileup data")
     with progressbar.ProgressBar(max_value=len(contigs)) as pbar:
         for contig in pbar(contigs):
-            pileup_data[contig] = list(iterate_pileups(bamfile, contig))
+            for result in iterate_pileups(bamfile, contig):
+                pileup_data.append(result)
 
     print("calculating genomic kds")
-    contig_position_kds = {}
-    with progressbar.ProgressBar(max_value=len(pileup_data)) as pbar:
-        for contig, data in pbar(lomp.parallel_map(pileup_data.items(),
-                                                   determine_kds_of_reads,
-                                                   args=(concentrations, delta_y, read_name_intensities),
-                                                   process_count=4)):
-            contig_position_kds[contig] = data
+    contig_position_kds = {contig: {} for contig in contigs}
+
+    for contig, position, result in Parallel(n_jobs=8)(delayed(determine_kd_of_genomic_position)(read_name_intensities,
+                                                                                                 concentrations,
+                                                                                                 delta_y,
+                                                                                                 contig,
+                                                                                                 position,
+                                                                                                 query_names) for contig, position, query_names in pileup_data):
+        if result is not None:
+            kd, kd_uncertainty, yint, fit_delta_y, count = result
+            contig_position_kds[contig][position] = kd, kd_uncertainty, count
     return contig_position_kds
 
 
@@ -103,14 +124,10 @@ def build_gene_affinities(genes, position_kds):
     for gene_id, name, sequence, contig, strand, gene_start, gene_stop, cds_parts in genes:
         if contig not in position_kds:
             continue
-        kds, kd_high_errors, kd_low_errors, counts, breaks = parse_gene_affinities(contig,
-                                                                                   gene_start,
-                                                                                   gene_stop,
-                                                                                   position_kds)
+        kds, kd_uncertainties, counts, breaks = parse_gene_affinities(contig, gene_start, gene_stop, position_kds)
         yield (gene_id,
                np.array(kds, dtype=np.float),
-               np.array(kd_high_errors, dtype=np.float),
-               np.array(kd_low_errors, dtype=np.float),
+               np.array(kd_uncertainties, dtype=np.float),
                np.array(counts, dtype=np.int32),
                np.array(breaks, dtype=np.int32))
 
@@ -120,29 +137,26 @@ def parse_gene_affinities(contig, gene_start, gene_stop, position_kds):
     coverage_counter = 0
     last_good_position = None
     kds = []
-    kd_high_errors = []
-    kd_low_errors = []
+    kd_uncertainties = []
     counts = []
     breaks = []
     for position in range(gene_start, gene_stop):
         position_data = affinity_data.get(position)
         if position_data is None:
             kds.append(None)
-            kd_high_errors.append(None)
-            kd_low_errors.append(None)
+            kd_uncertainties.append(None)
             counts.append(0)
             if last_good_position is not None and last_good_position == position - 1:
                 # we just transitioned to a gap in coverage from a region with coverage
                 breaks.append(coverage_counter)
         else:
-            kd, minus_err, plus_err, count = position_data
+            kd, kd_uncertainty, count = position_data
             kds.append(kd)
-            kd_high_errors.append(plus_err)
-            kd_low_errors.append(minus_err)
+            kd_uncertainties.append(kd_uncertainty)
             counts.append(count)
             last_good_position = position
             coverage_counter += 1
-    return kds, kd_high_errors, kd_low_errors, counts, breaks
+    return kds, kd_uncertainties, counts, breaks
 
 
 def load_gene_count(hdf5_filename=None):
@@ -157,10 +171,8 @@ def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
     with h5py.File(hdf5_filename, 'w') as h5:
         kd_dataset = h5.create_dataset('kds', (gene_count,),
                                        dtype=h5py.special_dtype(vlen=np.dtype('float32')))
-        kd_high_errors_dataset = h5.create_dataset('kd_high_errors', (gene_count,),
+        kd_uncertainties_dataset = h5.create_dataset('kd_uncertainties', (gene_count,),
                                                    dtype=h5py.special_dtype(vlen=np.dtype('float32')))
-        kd_low_errors_dataset = h5.create_dataset('kd_low_errors', (gene_count,),
-                                                  dtype=h5py.special_dtype(vlen=np.dtype('float32')))
         counts_dataset = h5.create_dataset('counts', (gene_count,),
                                            dtype=h5py.special_dtype(vlen=np.dtype('int32')))
         breaks_dataset = h5.create_dataset('breaks', (gene_count,),
@@ -168,8 +180,7 @@ def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
 
         for gene_id, kds, kd_high_errors, kd_low_errors, counts, breaks in gene_affinities:
             kd_dataset[gene_id] = kds
-            kd_high_errors_dataset[gene_id] = kd_high_errors
-            kd_low_errors_dataset[gene_id] = kd_low_errors
+            kd_uncertainties_dataset[gene_id] = kd_high_errors
             counts_dataset[gene_id] = counts
             breaks_dataset[gene_id] = breaks
 
