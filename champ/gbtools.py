@@ -1,417 +1,118 @@
-import itertools
 import os
-import sys
-from collections import defaultdict, Counter
+from collections import defaultdict
 
+import cachetools
 import h5py
 import lomp
 import numpy as np
 import progressbar
-from Bio import SeqIO
-from Bio.Seq import Seq
-from pysam import Samfile
-from scipy import stats
+import pysam
 
-MINIMUM_CLUSTER_COUNT = 6
+from champ.kd import fit_one_group_kd
+
+MINIMUM_REQUIRED_COUNTS = 5
 QUALITY_THRESHOLD = 20
 MAXIMUM_REALISTIC_DNA_LENGTH = 1000
 
 
-def load_genes_with_affinities(gene_boundaries_h5_filename=None, gene_affinities_filename=None):
-    """ This is usually what you want to use when loading data. It will give you every gene with its
-    KD data already loaded. """
-    gene_affinities_filename = gene_affinities_filename if gene_affinities_filename is not None else os.path.join('results', 'gene-affinities.h5')
-    with h5py.File(gene_affinities_filename, 'r') as h5:
-        for gene in load_genes(gene_boundaries_h5_filename):
-            kd, kd_low_errors, kd_high_errors, counts = load_gene_kd(h5, gene.id)
-            if len(kd) == 0:
+def load_read_name_intensities(hdf5_filename):
+    read_name_intensities = {}
+    with h5py.File(hdf5_filename, 'r') as h5:
+        read_names = h5['read_names'][:]
+        intensity_matrix = h5['intensities'][:]
+        for read_name, intensity_gradient in zip(read_names, intensity_matrix):
+            read_name_intensities[read_name] = intensity_gradient
+    return read_name_intensities
+
+
+def iterate_pileups(bamfile, contig):
+    """ Yields the sequence identifiers and the position they cover in the given contig. """
+    with pysam.Samfile(bamfile) as sf:
+        for pileup_column in sf.pileup(contig):
+            if pileup_column.n < MINIMUM_REQUIRED_COUNTS:
                 continue
-            gene.set_measurements(kd, kd_low_errors, kd_high_errors, counts)
-            yield gene
+            query_names = [pileup.alignment.query_name for pileup in pileup_column.pileups
+                           if not pileup.alignment.is_qcfail and pileup.alignment.mapq > 20]
+            yield pileup_column.pos, frozenset(query_names)
 
 
-def load_genes(gene_boundaries_h5_filename=None):
-    """ Normally you won't want to use this. It just loads genes and their positions (with exon data).
-    This is something you'd only want to use if you wanted to examine the parsed Refseq data to see what's in
-    that particular version. """
-    if gene_boundaries_h5_filename is None:
-        gene_boundaries_h5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
-    for gene_id, name, sequence, contig, strand, gene_start, gene_stop, cds_parts in load_gene_positions(gene_boundaries_h5_filename):
-        gaff = GeneAffinity(gene_id, name, contig, sequence)
-        yield gaff.set_boundaries(strand, gene_start, gene_stop, cds_parts)
-
-
-def load_gene_kd(h5, gene_id):
-    """ Get the affinity data for a particular gene. """
-    kd = h5['kds'][gene_id]
-    kd_high_errors = h5['kd_high_errors'][gene_id]
-    kd_low_errors = h5['kd_low_errors'][gene_id]
-    counts = h5['counts'][gene_id]
-    return kd, kd_low_errors, kd_high_errors, counts
-
-
-class GeneAffinity(object):
-    def __init__(self, gene_id, name, contig, sequence):
-        """
-        Represents our KD measurements across a gene. We might not have data at each location, especially if using
-        an exome library.
-
-        """
-        self.id = gene_id
-        self.name = name
-        self.contig = contig
-        self.sequence = sequence
-        self._kds = None
-        self._kd_errors_low = None
-        self._kd_errors_high = None
-        self._counts = None
-        self._exonic = None
-        self._exon_boundaries = None
-        self._strand = None
-
-    def set_measurements(self, kds, kd_errors_low, kd_errors_high, counts):
-        self._kds = kds
-        self._kd_errors_low = kd_errors_low
-        self._kd_errors_high = kd_errors_high
-        self._counts = counts
-        return self
-
-    def set_boundaries(self, strand, gene_start, gene_stop, cds_parts):
-        assert gene_start < gene_stop
-        # gene_start, gene_stop = min(gene_start, gene_stop), max(gene_start, gene_stop)
-        self._strand = strand
-        self._exonic = np.zeros(gene_stop - gene_start, dtype=np.bool)
-        self._exon_boundaries = []
-        min_start, max_stop = None, None
-        for cds_start, cds_stop in cds_parts:
-            cds_start, cds_stop = min(cds_start, cds_stop), max(cds_start, cds_stop)
-            assert cds_start < cds_stop
-            start, stop = cds_start - gene_start, cds_stop - gene_start
-            assert start < stop
-            self._exonic[start:stop] = True
-            self._exon_boundaries.append((start, stop))
-            min_start = min(start, min_start) if min_start is not None else start
-            max_stop = max(stop, max_stop) if max_stop is not None else stop
-        return self
-
-    @property
-    def exon_boundaries(self):
-        for start, stop in self._exon_boundaries:
-            yield start, stop
-
-    def set_exons(self, exons):
-        self._exonic = exons
-        return self
-
-    @property
-    def kds(self):
-        return self._kds
-
-    @property
-    def kd_errors_low(self):
-        return self._kd_errors_low
-
-    @property
-    def kd_errors_high(self):
-        return self._kd_errors_high
-
-    @property
-    def counts(self):
-        return self._counts
-
-    @property
-    def exons(self):
-        """ Collects data from exonic positions only, and repackages them into a Gene object. """
-        positions = self._exonic
-        kds = self._kds[positions]
-        kd_errors_low = self._kd_errors_low[positions]
-        kd_errors_high = self._kd_errors_high[positions]
-        counts = self._counts[positions]
-        exonic = np.ones(kds.shape, dtype=np.bool)
-        sequence = None if self.sequence is None else ''.join([self.sequence[n] for n, i in enumerate(positions) if i])
-        gene = GeneAffinity(self.id, "%s Exons" % self.name, self.contig, sequence)
-        gene = gene.set_measurements(kds, kd_errors_low, kd_errors_high, counts)
-        gene = gene.set_exons(exonic)
-        return gene
-
-    @property
-    def compressed(self):
-        """ Collects data from positions where we made measurements (regardless of whether the position is exonic)
-        and repackages them into a Gene object. """
-        positions = ~np.isnan(self._kds)
-        kds = self._kds[positions]
-        kd_errors_low = self._kd_errors_low[positions]
-        kd_errors_high = self._kd_errors_high[positions]
-        counts = self._counts[positions]
-        exonic = self._exonic[positions]
-        sequence = None if self.sequence is None else ''.join([self.sequence[n] for n, i in enumerate(positions) if i])
-        gene = GeneAffinity(self.id, "%s Compressed" % self.name, self.contig, sequence)
-        gene = gene.set_measurements(kds, kd_errors_low, kd_errors_high, counts)
-        gene = gene.set_exons(exonic)
-        return gene
-
-    @property
-    def highest_affinity(self):
-        return np.nanmin(self._kds)
-
-    @property
-    def highest_affinity_location(self):
-        return np.nanargmin(self._kds)
-
-    @property
-    def coverage_count(self):
-        """ Number of valid measurements """
-        return self._kds[~np.isnan(self._kds)].shape[0]
-
-    @property
-    def coverage_ratio(self):
-        return float(self.coverage_count) / self._kds.shape[0]
-
-
-def get_qualifier_force_single(feature, qual_name, allow_zero=False):
-    try:
-        qual = feature.qualifiers[qual_name]
-    except KeyError:
-        if allow_zero:
-            return ''
-        else:
-            raise
-    if len(qual) > 1:
-        print("WARNING:", feature, qual_name, qual)
-    return qual[0]
-
-
-class GenBankCDS(object):
-    def __init__(self, rec, cds_feature):
-        self.gene_id = get_qualifier_force_single(cds_feature, 'gene')
-        self.chrm = rec.id
-        self.strand = cds_feature.location.strand
-        assert self.strand in [-1, 1]
-        self.get_parts_and_boundaries(cds_feature)
-        self.length = sum(abs(part[0] - part[1]) + 1 for part in self.parts)
-        self.codon_start = get_qualifier_force_single(cds_feature, 'codon_start')
-        try:
-            self.protein_id = get_qualifier_force_single(cds_feature, 'protein_id')
-            self.translation = get_qualifier_force_single(cds_feature, 'translation')
-        except KeyError:
-            assert 'exception' in cds_feature.qualifiers, cds_feature
-            self.protein_id = None
-            self.translation = None
-
-    def get_parts_and_boundaries(self, cds_feature):
-        self.parts = []
-        self.boundaries = set()
-        for loc in cds_feature.location.parts:
-            self.parts.append((loc.nofuzzy_start, loc.nofuzzy_end, loc.strand))
-            self.boundaries.update((loc.nofuzzy_start, loc.nofuzzy_end))
-
-    def __str__(self):
-        return '%s: length %d, %s' % (self.gene_id, self.length, self.parts)
-
-
-class GenBankGene(object):
-    def __init__(self, rec, gene_feature):
-        self.gene_id = get_qualifier_force_single(gene_feature, 'gene')
-        syn_str = get_qualifier_force_single(gene_feature, 'gene_synonym', allow_zero=True)
-        syn_str.replace(' ', '')
-        self.gene_synonyms = set(syn_str.split(';'))
-        note = get_qualifier_force_single(gene_feature, 'note', allow_zero=True)
-        self.is_readthrough = bool('readthrough' in note.lower())
-        self.chrm = rec.id
-        self.gene_start = gene_feature.location.nofuzzy_start
-        self.gene_end = gene_feature.location.nofuzzy_end
-        self.strand = gene_feature.location.strand
-        self.cdss = []
-        self.cds_parts = set()
-        self.cds_boundaries = set()
-        self.longest_cds = None
-        self.longest_cds_length = None
-
-    def contains_cds(self, cds):
-        for part in cds.parts:
-            if not (self.gene_start <= part[0] <= self.gene_end
-                    and self.gene_start <= part[1] <= self.gene_end):
-                return False
-        return True
-
-    def add_cds(self, cds):
-        # First assert that gene id is the same and all parts are contained in the gene.
-        assert cds.gene_id == self.gene_id or cds.gene_id in self.gene_synonyms, '%s\n%s' % (self, cds)
-        assert self.contains_cds(cds), '%s\n%s' % (self, cds)
-
-        self.cdss.append(cds)
-        self.cds_parts.update(cds.parts)
-        self.cds_boundaries.update(cds.boundaries)
-        if self.longest_cds_length is None or cds.length > self.longest_cds_length:
-            self.longest_cds = cds
-            self.longest_cds_length = cds.length
-
-    def overlaps_region(self, chrm, start, end):
-        if self.chrm == chrm \
-                and (self.gene_start <= start <= self.gene_end
-                     or self.gene_start <= end <= self.gene_end
-                     or start <= self.gene_start <= end
-                     or start <= self.gene_end <= end):
-            return True
-        else:
-            return False
-
-    def overlaps_gene(self, other_gene):
-        return self.overlaps_region(other_gene.chrm, other_gene.gene_start, other_gene.gene_end)
-
-    def __str__(self):
-        if self.longest_cds:
-            longest_prot_id = self.longest_cds.protein_id
-            all_prot_ids = ','.join([cds.protein_id for cds in self.cdss])
-        else:
-            longest_prot_id = None
-            all_prot_ids = None
-        return '%s\t%s:%d-%d\tnum_CDSs=%s\tlongest_CDS_protein=%s\tlongest_CDS_len=%s\tall_CDS_proteins=%s' \
-               % (self.gene_id,
-                  self.chrm,
-                  self.gene_start,
-                  self.gene_end,
-                  len(self.cdss),
-                  longest_prot_id,
-                  self.longest_cds_length,
-                  all_prot_ids)
-
-
-def parse_gbff(fpath):
-    """
-    This method reads through refseq *_genomic.gbff files and extracts CDS isoform information.
-    """
-    assert fpath.endswith('.gbff'), 'Incorrect file type.'
-    # Read in all the genes
-    print('Reading genes from genomic file')
-    genes_given_id = defaultdict(list)
-    readthrough_genes = set()
-    for rec in SeqIO.parse(open(fpath), 'gb'):
-        if ('FIX_PATCH' in rec.annotations['keywords']
-                or 'NOVEL_PATCH' in rec.annotations['keywords']
-                or 'ALTERNATE_LOCUS' in rec.annotations['keywords']):
-            continue
-        for feature in rec.features:
-            if feature.type == 'gene':
-                gene = GenBankGene(rec, feature)
-                if gene.is_readthrough:
-                    # We reject any readthrough genes.
-                    readthrough_genes.add(gene.gene_id)
-                else:
-                    genes_given_id[gene.gene_id].append(gene)
-            elif feature.type == 'CDS':
-                cds = GenBankCDS(rec, feature)
-                if cds.protein_id is None:
-                    # Some CDSs have exceptions indicating no protein is directly coded. Skip those
+def determine_kds_of_reads(contig_pileup_data, concentrations, delta_y, read_name_intensities):
+    contig, pileup_data = contig_pileup_data
+    position_kds = {}
+    # since there are often long stretches where we have the reads, we cache the most recently-used ones and
+    # try to look up the KD we calculated before.
+    cache = cachetools.LRUCache(maxsize=20)
+    for position, query_names in pileup_data:
+        result = cache.get(query_names)
+        if result is None:
+            intensities = []
+            for name in query_names:
+                intensity_gradient = read_name_intensities.get(name)
+                if intensity_gradient is None:
                     continue
-                for gene in genes_given_id[cds.gene_id]:
-                    if gene.contains_cds(cds):
-                        gene.add_cds(cds)
-                        break
-                else:
-                    if cds.gene_id not in readthrough_genes:
-                        sys.exit('Error: Did not find gene for cds:\n\t%s' % cds)
-
-    # In my observations, all large gene groups which use the same exons should be called isoforms
-    # of the same gene.  They appear to simply be the invention of over-ambitious scientists,
-    # potentially for more genes by their name or something like that.
-    # Find groups which share cds 'exons'
-    genes_given_part = defaultdict(list)
-    for gene in itertools.chain(*genes_given_id.values()):
-        for part in gene.cds_parts:
-            genes_given_part[part].append(gene)
-    overlapping_proteins = set()
-    for genes in genes_given_part.values():
-        if len(genes) > 1:
-            overlapping_proteins.add(', '.join(sorted([gene.gene_id for gene in genes])))
-    # Keep only the longest member of the family.
-    for family_str in overlapping_proteins:
-        family = family_str.split(', ')
-        if len(family) <= 2:
-            continue
-        family_gene_iter = itertools.chain(*[genes_given_id[gene_id] for gene_id in family])
-        max_len_gene = max(family_gene_iter, key=lambda gene: gene.longest_cds_length)
-        for gene_id in family:
-            if gene_id != max_len_gene.gene_id:
-                del genes_given_id[gene_id]
-
-    # Remove genes with no CDSs
-    gene_ids_to_delete = set()
-    for gene_id in genes_given_id.keys():
-        genes = genes_given_id[gene_id]
-        genes_to_keep = []
-        for i in range(len(genes)):
-            if genes[i].longest_cds is not None:
-                genes_to_keep.append(i)
-        if not genes_to_keep:
-            gene_ids_to_delete.add(gene_id)
-        else:
-            genes_given_id[gene_id] = [genes[i] for i in genes_to_keep]
-    for gene_id in gene_ids_to_delete:
-        del genes_given_id[gene_id]
-
-    # Search for duplicates
-    dist_num_genes_for_gene_id = Counter()
-    genes_with_dups = set()
-    for gene_id, genes in genes_given_id.items():
-        dist_num_genes_for_gene_id[len(genes)] += 1
-        if len(genes) > 1:
-            genes_with_dups.add(gene_id)
-    print('Distribution of number of genes per gene_id:')
-    for k, v in dist_num_genes_for_gene_id.items():
-        print('\t%s: %s' % (k, v))
-    print('Genes with duplicates:', ', '.join(sorted(genes_with_dups)))
-
-    for n, (name, gene) in enumerate(genes_given_id.items()):
-        if not gene:
-            continue
-        gene = gene[0]
-        yield name, gene.chrm, gene.strand, gene.gene_start, gene.gene_end, gene.cds_parts
+                intensities.append(intensity_gradient)
+            if len(intensities) < MINIMUM_REQUIRED_COUNTS:
+                continue
+            try:
+                result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y)
+            except Exception as e:
+                continue
+            if result is None:
+                continue
+            cache[query_names] = result
+        position_kds[position] = result
+    return contig, position_kds
 
 
-def convert_gbff_to_hdf5(hdf5_filename=None, gbff_filename=None, fastq_filename=None):
-    """ This finds the positions of all coding sequences for all genes in a Refseq-formatted GBFF file and saves the
-    results to HDF5. It should be run once per flow cell. """
+def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y):
+    print("loading read name intensities")
+    read_name_intensities = load_read_name_intensities(read_name_intensities_hdf5_filename)
+    with pysam.Samfile(bamfile) as samfile:
+        # contigs = list(reversed(sorted(samfile.references)))
+        contigs = ['NC_000019.10']
 
-    # Use default paths if none are given
+    pileup_data = {}
+    print("loading pileup data")
+    with progressbar.ProgressBar(max_value=len(contigs)) as pbar:
+        for contig in pbar(contigs):
+            pileup_data[contig] = list(iterate_pileups(bamfile, contig))
+
+    print("calculating genomic kds")
+    contig_position_kds = {}
+    with progressbar.ProgressBar(max_value=len(pileup_data)) as pbar:
+        for contig, data in pbar(lomp.parallel_map(pileup_data.items(),
+                                                   determine_kds_of_reads,
+                                                   args=(concentrations, delta_y, read_name_intensities),
+                                                   process_count=4)):
+            contig_position_kds[contig] = data
+    return contig_position_kds
+
+
+def load_gene_positions(hdf5_filename=None):
     if hdf5_filename is None:
         hdf5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
-    if gbff_filename is None:
-        gbff_filename = os.path.join(os.path.expanduser("~"), '.local', 'champ', 'human-genome.gbff')
-    if fastq_filename is None:
-        fastq_filename = os.path.join(os.path.expanduser("~"), '.local', 'champ', 'human-genome.fna')
+    with h5py.File(hdf5_filename, 'r') as h5:
+        cds_parts = defaultdict(list)
+        for gene_id, cds_start, cds_stop in h5['cds-parts'][:]:
+            cds_parts[gene_id].append((cds_start, cds_stop))
+        for gene_id, name, sequence, contig, strand, gene_start, gene_stop in h5['bounds'][:]:
+            yield gene_id, name, sequence, contig, strand, gene_start, gene_stop, cds_parts[gene_id]
 
-    contig_sequences = {}
-    print("Loading contig sequences.")
-    for record in SeqIO.parse(fastq_filename, "fasta"):
-        contig_sequences[record.id] = str(record.seq)
-    print("Contig sequences loaded.")
-    string_dt = h5py.special_dtype(vlen=str)
-    bounds_dt = np.dtype([('gene_id', np.uint32),
-                          ('name', string_dt),
-                          ('sequence', string_dt),
-                          ('contig', string_dt),
-                          ('strand', np.int8),
-                          ('gene_start', np.uint64),
-                          ('gene_end', np.uint64)])
-    cds_parts_dt = np.dtype([('gene_id', np.uint32),
-                             ('cds_start', np.uint64),
-                             ('cds_stop', np.uint64)])
 
-    bounds = []
-    all_cds_parts = []
-    with h5py.File(hdf5_filename, 'w') as h5:
-        for n, (name, contig, strand, gene_start, gene_end, cds_parts) in enumerate(parse_gbff(gbff_filename)):
-            start, stop = min(gene_start, gene_end), max(gene_start, gene_end)
-            sequence = contig_sequences[contig][start:stop].upper()
-            bounds.append((n, name, sequence, contig, strand, gene_start, gene_end))
-            for start, stop, _ in cds_parts:
-                all_cds_parts.append((n, start, stop))
-
-        bounds_dataset = h5.create_dataset('/bounds', (len(bounds),), dtype=bounds_dt)
-        bounds_dataset[...] = bounds
-        cds_parts_dataset = h5.create_dataset('/cds-parts', (len(all_cds_parts),), dtype=cds_parts_dt)
-        cds_parts_dataset[...] = all_cds_parts
+def build_gene_affinities(genes, position_kds):
+    for gene_id, name, sequence, contig, strand, gene_start, gene_stop, cds_parts in genes:
+        if contig not in position_kds:
+            continue
+        kds, kd_high_errors, kd_low_errors, counts, breaks = parse_gene_affinities(contig,
+                                                                                   gene_start,
+                                                                                   gene_stop,
+                                                                                   position_kds)
+        yield (gene_id,
+               np.array(kds, dtype=np.float),
+               np.array(kd_high_errors, dtype=np.float),
+               np.array(kd_low_errors, dtype=np.float),
+               np.array(counts, dtype=np.int32),
+               np.array(breaks, dtype=np.int32))
 
 
 def parse_gene_affinities(contig, gene_start, gene_stop, position_kds):
@@ -444,118 +145,11 @@ def parse_gene_affinities(contig, gene_start, gene_stop, position_kds):
     return kds, kd_high_errors, kd_low_errors, counts, breaks
 
 
-def main_gaff(bamfile, read_name_kd_filename, gene_boundaries_h5_path=None, gene_affinities_path=None):
-    """ We assume that convert_gbff_to_hdf5() has already been run using the default file paths. """
-    read_name_kds = load_kds(read_name_kd_filename)
-    position_kds = calculate_genomic_kds(bamfile, read_name_kds)
-    genes = load_gene_positions(hdf5_filename=gene_boundaries_h5_path)
-    gene_affinities = build_gene_affinities(genes, position_kds)
-    gene_count = load_gene_count(hdf5_filename=gene_boundaries_h5_path)
-    save_gene_affinities(gene_affinities, gene_count, hdf5_filename=gene_affinities_path)
-
-
-def load_kds(filename):
-    read_name_kds = {}
-    with open(filename) as f:
-        for line in f:
-            read_name, kdstr, kderrstr = line.strip().split("\t")
-            kd, kderr = float(kdstr), float(kderrstr)
-            read_name_kds[read_name] = kd
-    return read_name_kds
-
-
-def determine_kds_of_sequence_list(bamfile, fasta_file, read_name_kds, sequences_of_interest):
-    """
-    You may have several sequences of interest (e.g., a bunch of off-target predictions) that you'd like to benchmark
-    with genomic KDs obtained through CHAMP. This function will go through every read, and check whether it contains
-    any of the sequences of interest (forward sequence and reverse complement). The KD of that read will be added to
-    a list associated with the respective matching sequence(s) of interest.
-
-    Finally, this will return the median KD (+/- 95% CI) for each sequence of interest, and the number of reads that
-    contributed to those values.
-
-    :param bamfile:
-    :param read_name_kds:
-    :param sequences_of_interest:
-    :return:
-
-    """
-    sequence_kds = defaultdict(list)
-    reverse_complements = {sequence: reverse_complement(sequence) for sequence in sequences_of_interest}
-    with open(fasta_file) as fasta, Samfile(bamfile) as samfile:
-        for record in SeqIO.parse(fasta, 'fasta'):
-            if record.id not in samfile.references:
-                continue
-            for alignment in samfile.fetch(record.id):
-                kd = read_name_kds.get(alignment.query_name)
-                if kd is None:
-                    continue
-                start_end = get_quality_alignment_start_and_end(alignment)
-                if start_end is None:
-                    continue
-                start, end = start_end
-                read_sequence = record.seq[start:end]
-                for sequence in sequences_of_interest:
-                    if sequence in read_sequence or reverse_complements[sequence] in read_sequence:
-                        sequence_kds[sequence].append(kd)
-                        sys.stdout.write('.')
-                        sys.stdout.flush()
-            print(record.id)
-    return sequence_kds
-
-
-def reverse_complement(string):
-    return str(Seq(string).reverse_complement())
-
-
-def calculate_genomic_kds(bamfile, read_name_kds):
-    """
-
-    """
-    position_kds = {}
-    try:
-        with Samfile(bamfile) as samfile:
-            contigs = reversed(sorted(samfile.references))
-            for n, contig in enumerate(contigs):
-                contig_position_kds = find_kds_at_all_positions(samfile.fetch(contig), read_name_kds)
-                position_kds[contig] = contig_position_kds
-        return position_kds
-    except IOError:
-        raise ValueError("Could not open %s. Does it exist and is it valid?" % bamfile)
-
-
 def load_gene_count(hdf5_filename=None):
     if hdf5_filename is None:
         hdf5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
     with h5py.File(hdf5_filename, 'r') as h5:
         return len(h5['bounds'])
-
-
-def load_gene_positions(hdf5_filename=None):
-    if hdf5_filename is None:
-        hdf5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
-    with h5py.File(hdf5_filename, 'r') as h5:
-        cds_parts = defaultdict(list)
-        for gene_id, cds_start, cds_stop in h5['cds-parts'][:]:
-            cds_parts[gene_id].append((cds_start, cds_stop))
-        for gene_id, name, sequence, contig, strand, gene_start, gene_stop in h5['bounds'][:]:
-            yield gene_id, name, sequence, contig, strand, gene_start, gene_stop, cds_parts[gene_id]
-
-
-def build_gene_affinities(genes, position_kds):
-    for gene_id, name, sequence, contig, strand, gene_start, gene_stop, cds_parts in genes:
-        if contig not in position_kds:
-            continue
-        kds, kd_high_errors, kd_low_errors, counts, breaks = parse_gene_affinities(contig,
-                                                                                   gene_start,
-                                                                                   gene_stop,
-                                                                                   position_kds)
-        yield (gene_id,
-               np.array(kds, dtype=np.float),
-               np.array(kd_high_errors, dtype=np.float),
-               np.array(kd_low_errors, dtype=np.float),
-               np.array(counts, dtype=np.int32),
-               np.array(breaks, dtype=np.int32))
 
 
 def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
@@ -580,83 +174,11 @@ def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
             breaks_dataset[gene_id] = breaks
 
 
-def get_quality_alignment_start_and_end(alignment):
-    if alignment.is_qcfail or alignment.mapq < 20:
-        return None
-    if alignment.is_proper_pair:
-        # This read name appears twice in our data - once in the forward and once in the reverse direction
-        if alignment.is_reverse:
-            # For paired end reads, the forward and reverse reads are symmetric, so to avoid double counting the
-            # bases between the two reads, we only count the bases once (with the forward read)
-            return None
-        if alignment.template_length <= alignment.reference_length or alignment.reference_length == 0:
-            # the combined length of the first and second read is no greater than just one read - either the reads
-            # perfectly overlapped or something weird is happening. We discard this read to be safe.
-            return None
-        start = alignment.reference_start
-        end = start + alignment.template_length
-    # elif alignment.reference_length == alignment.query_length and alignment.reference_length > 0:
-    elif alignment.reference_length > 0:
-        # This is an unpaired read, which is rare but not unheard of. We require that the read align perfectly to the
-        # reference sequence, so we aren't dealing with indels. This might be a bit conservative - we'll come back to
-        # this decision if the read counts are terrible
-        start = alignment.reference_start
-        end = start + alignment.reference_length
-        assert start < end
-    elif alignment.reference_length == 0:
-        return None
-    elif alignment.reference_length < 0:
-        return None
-    else:
-        # The read is unpaired and the alignment was sketchy, so we can't trust this read
-        return None
-    if abs(end - start) > MAXIMUM_REALISTIC_DNA_LENGTH:
-        return None
-    return start, end
-
-
-def find_kds_at_all_positions(alignments, read_name_kds):
-    """
-    We want to know the KD at each base pair of the genomic DNA.
-
-    """
-    position_kds = defaultdict(list)
-    for alignment in alignments:
-        kd = read_name_kds.get(alignment.query_name)
-        if kd is None:
-            continue
-        start_end = get_quality_alignment_start_and_end(alignment)
-        if start_end is None:
-            continue
-        start, end = start_end
-        # This is a good quality read and we can make valid claims about the affinity between start and end
-        for position in range(start, end):
-            position_kds[position].append((kd, start, end))
-
-    final_results = {}
-    if len(position_kds) > 500000:
-        # only show a progress bar for large contigs
-        pbar = progressbar.ProgressBar(max_value=len(position_kds))
-    else:
-        pbar = lambda x: x
-
-    for position, median, ci_minus, ci_plus, count in pbar(lomp.parallel_map(position_kds.items(),
-                                                                             _thread_find_best_offset_kd,
-                                                                             process_count=8)):
-        final_results[position] = median, ci_minus, ci_plus, count
-
-    return final_results
-
-
-def _thread_find_best_offset_kd(position_kd_data):
-    position, kd_data = position_kd_data
-    return find_best_offset_kd(position, kd_data)
-
-
-def find_best_offset_kd(position, kd_data):
-    # Don't worry about offsets since count is so low
-    kds = [kd for kd, _, _ in kd_data]
-    if len(kds) < 6:
-        return position, None, None, None, len(kds)
-    confidence95minus, confidence95plus = stats.mstats.median_cihs(kds)
-    return position, np.median(kds), confidence95minus, confidence95plus, len(kds)
+def main(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y,
+         gene_boundaries_h5_path=None, gene_affinities_path=None):
+    """ We assume that convert_gbff_to_hdf5() has already been run using the default file paths. """
+    position_kds = calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y)
+    genes = load_gene_positions(hdf5_filename=gene_boundaries_h5_path)
+    gene_affinities = build_gene_affinities(genes, position_kds)
+    gene_count = load_gene_count(hdf5_filename=gene_boundaries_h5_path)
+    save_gene_affinities(gene_affinities, gene_count, hdf5_filename=gene_affinities_path)
