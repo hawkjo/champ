@@ -3,6 +3,7 @@ from collections import defaultdict
 
 import cachetools
 import h5py
+import lomp
 from joblib import Parallel, delayed
 import numpy as np
 import progressbar
@@ -36,7 +37,8 @@ def iterate_pileups(bamfile, contig):
             yield contig, pileup_column.pos, frozenset(query_names)
 
 
-def determine_kd_of_genomic_position(read_name_intensities, concentrations, delta_y, contig, position, query_names):
+def determine_kd_of_genomic_position(item, read_name_intensities, concentrations, delta_y):
+    contig, position, query_names = item
     intensities = []
     for name in query_names:
         intensity_gradient = read_name_intensities.get(name)
@@ -52,32 +54,32 @@ def determine_kd_of_genomic_position(read_name_intensities, concentrations, delt
     return contig, position, result
 
 
-def determine_kds_of_reads(contig_pileup_data, concentrations, delta_y, read_name_intensities):
-    contig, pileup_data = contig_pileup_data
-    position_kds = {}
-    # since there are often long stretches where we have the reads, we cache the most recently-used ones and
-    # try to look up the KD we calculated before.
-    cache = cachetools.LRUCache(maxsize=20)
-    for position, query_names in pileup_data:
-        result = cache.get(query_names)
-        if result is None:
-            intensities = []
-            for name in query_names:
-                intensity_gradient = read_name_intensities.get(name)
-                if intensity_gradient is None:
-                    continue
-                intensities.append(intensity_gradient)
-            if len(intensities) < MINIMUM_REQUIRED_COUNTS:
-                continue
-            try:
-                result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y)
-            except Exception as e:
-                continue
-            if result is None:
-                continue
-            cache[query_names] = result
-        position_kds[position] = result
-    return contig, position_kds
+# def determine_kds_of_reads(contig_pileup_data, concentrations, delta_y, read_name_intensities):
+#     contig, pileup_data = contig_pileup_data
+#     position_kds = {}
+#     # since there are often long stretches where we have the reads, we cache the most recently-used ones and
+#     # try to look up the KD we calculated before.
+#     cache = cachetools.LRUCache(maxsize=20)
+#     for position, query_names in pileup_data:
+#         result = cache.get(query_names)
+#         if result is None:
+#             intensities = []
+#             for name in query_names:
+#                 intensity_gradient = read_name_intensities.get(name)
+#                 if intensity_gradient is None:
+#                     continue
+#                 intensities.append(intensity_gradient)
+#             if len(intensities) < MINIMUM_REQUIRED_COUNTS:
+#                 continue
+#             try:
+#                 result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y)
+#             except Exception as e:
+#                 continue
+#             if result is None:
+#                 continue
+#             cache[query_names] = result
+#         position_kds[position] = result
+#     return contig, position_kds
 
 
 def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y):
@@ -96,12 +98,10 @@ def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentr
 
     print("calculating genomic kds with joblib")
     contig_position_kds = {contig: {} for contig in contigs}
-    for contig, position, result in Parallel(n_jobs=8)(delayed(determine_kd_of_genomic_position)(read_name_intensities,
-                                                                                                 concentrations,
-                                                                                                 delta_y,
-                                                                                                 contig,
-                                                                                                 position,
-                                                                                                 query_names) for contig, position, query_names in pileup_data):
+    # determine_kd_of_genomic_position(read_name_intensities, concentrations, delta_y, contig, position, query_names)
+    for contig, position, result in lomp.parallel_map(pileup_data,
+                                                      determine_kd_of_genomic_position,
+                                                      args=(read_name_intensities, concentrations, delta_y)):
         if result is not None:
             kd, kd_uncertainty, yint, fit_delta_y, count = result
             contig_position_kds[contig][position] = kd, kd_uncertainty, count
