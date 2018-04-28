@@ -179,7 +179,7 @@ def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
         breaks_dataset = h5.create_dataset('breaks', (gene_count,),
                                            dtype=h5py.special_dtype(vlen=np.dtype('int32')))
 
-        for gene_id, kds, kd_high_errors, kd_low_errors, counts, breaks in gene_affinities:
+        for gene_id, kds, counts, breaks in gene_affinities:
             kd_dataset[gene_id] = kds
             # kd_uncertainties_dataset[gene_id] = kd_high_errors
             counts_dataset[gene_id] = counts
