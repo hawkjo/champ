@@ -256,7 +256,6 @@ def build_gene_affinities(genes, position_kds):
         kds, counts, breaks = parse_gene_affinities(contig, gene_start, gene_stop, position_kds)
         yield (gene_id,
                np.array(kds, dtype=np.float),
-               # np.array(kd_uncertainties, dtype=np.float),
                np.array(counts, dtype=np.int32),
                np.array(breaks, dtype=np.int32))
 
@@ -279,13 +278,11 @@ def parse_gene_affinities(contig, gene_start, gene_stop, position_kds):
                 # we just transitioned to a gap in coverage from a region with coverage
                 breaks.append(coverage_counter)
         else:
-            kd, kd_uncertainty, count = position_data
+            kd, count = position_data
             kds.append(kd)
-            # kd_uncertainties.append(kd_uncertainty)
             counts.append(count)
             last_good_position = position
             coverage_counter += 1
-    # return kds, kd_uncertainties, counts, breaks
     return kds, counts, breaks
 
 
@@ -301,8 +298,6 @@ def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
     with h5py.File(hdf5_filename, 'w') as h5:
         kd_dataset = h5.create_dataset('kds', (gene_count,),
                                        dtype=h5py.special_dtype(vlen=np.dtype('float32')))
-        # kd_uncertainties_dataset = h5.create_dataset('kd_uncertainties', (gene_count,),
-        #                                            dtype=h5py.special_dtype(vlen=np.dtype('float32')))
         counts_dataset = h5.create_dataset('counts', (gene_count,),
                                            dtype=h5py.special_dtype(vlen=np.dtype('int32')))
         breaks_dataset = h5.create_dataset('breaks', (gene_count,),
@@ -310,7 +305,6 @@ def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
 
         for gene_id, kds, counts, breaks in gene_affinities:
             kd_dataset[gene_id] = kds
-            # kd_uncertainties_dataset[gene_id] = kd_high_errors
             counts_dataset[gene_id] = counts
             breaks_dataset[gene_id] = breaks
 
