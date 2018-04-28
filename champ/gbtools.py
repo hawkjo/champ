@@ -1,10 +1,8 @@
 import os
 from collections import defaultdict
 
-import cachetools
 import h5py
 import lomp
-from joblib import Parallel, delayed
 import numpy as np
 import progressbar
 import pysam
@@ -14,6 +12,137 @@ from champ.kd import fit_one_group_kd
 MINIMUM_REQUIRED_COUNTS = 5
 QUALITY_THRESHOLD = 20
 MAXIMUM_REALISTIC_DNA_LENGTH = 1000
+
+
+class GeneAffinity(object):
+    def __init__(self, gene_id, name, contig, sequence):
+        """
+        Represents our KD measurements across a gene. We might not have data at each location, especially if using
+        an exome library.
+        """
+        self.id = gene_id
+        self.name = name
+        self.contig = contig
+        self.sequence = sequence
+        self._kds = None
+        self._counts = None
+        self._exonic = None
+        self._exon_boundaries = None
+        self._strand = None
+
+    def set_measurements(self, kds, counts):
+        self._kds = kds
+        self._counts = counts
+        return self
+
+    def set_boundaries(self, strand, gene_start, gene_stop, cds_parts):
+        assert gene_start < gene_stop
+        self._strand = strand
+        self._exonic = np.zeros(gene_stop - gene_start, dtype=np.bool)
+        self._exon_boundaries = []
+        min_start, max_stop = None, None
+        for cds_start, cds_stop in cds_parts:
+            cds_start, cds_stop = min(cds_start, cds_stop), max(cds_start, cds_stop)
+            assert cds_start < cds_stop
+            start, stop = cds_start - gene_start, cds_stop - gene_start
+            assert start < stop
+            self._exonic[start:stop] = True
+            self._exon_boundaries.append((start, stop))
+            min_start = min(start, min_start) if min_start is not None else start
+            max_stop = max(stop, max_stop) if max_stop is not None else stop
+        return self
+
+    @property
+    def exon_boundaries(self):
+        for start, stop in self._exon_boundaries:
+            yield start, stop
+
+    def set_exons(self, exons):
+        self._exonic = exons
+        return self
+
+    @property
+    def kds(self):
+        return self._kds
+
+    @property
+    def counts(self):
+        return self._counts
+
+    @property
+    def exons(self):
+        """ Collects data from exonic positions only, and repackages them into a Gene object. """
+        positions = self._exonic
+        kds = self._kds[positions]
+        counts = self._counts[positions]
+        exonic = np.ones(kds.shape, dtype=np.bool)
+        sequence = None if self.sequence is None else ''.join([self.sequence[n] for n, i in enumerate(positions) if i])
+        gene = GeneAffinity(self.id, "%s Exons" % self.name, self.contig, sequence)
+        gene = gene.set_measurements(kds, counts)
+        gene = gene.set_exons(exonic)
+        return gene
+
+    @property
+    def compressed(self):
+        """ Collects data from positions where we made measurements (regardless of whether the position is exonic)
+        and repackages them into a Gene object. """
+        positions = ~np.isnan(self._kds)
+        kds = self._kds[positions]
+        counts = self._counts[positions]
+        exonic = self._exonic[positions]
+        sequence = None if self.sequence is None else ''.join([self.sequence[n] for n, i in enumerate(positions) if i])
+        gene = GeneAffinity(self.id, "%s Compressed" % self.name, self.contig, sequence)
+        gene = gene.set_measurements(kds, counts)
+        gene = gene.set_exons(exonic)
+        return gene
+
+    @property
+    def highest_affinity(self):
+        return np.nanmin(self._kds)
+
+    @property
+    def highest_affinity_location(self):
+        return np.nanargmin(self._kds)
+
+    @property
+    def coverage_count(self):
+        """ Number of valid measurements """
+        return self._kds[~np.isnan(self._kds)].shape[0]
+
+    @property
+    def coverage_ratio(self):
+        return float(self.coverage_count) / self._kds.shape[0]
+
+
+def load_genes_with_affinities(gene_boundaries_h5_filename=None, gene_affinities_filename=None):
+    """ This is usually what you want to use when loading data. It will give you every gene with its
+    KD data already loaded. """
+    gene_affinities_filename = gene_affinities_filename if gene_affinities_filename is not None else os.path.join('results', 'gene-affinities.h5')
+    with h5py.File(gene_affinities_filename, 'r') as h5:
+        for gene in load_genes(gene_boundaries_h5_filename):
+            kd, counts = load_gene_kd(h5, gene.id)
+            if len(kd) == 0:
+                continue
+            gene.set_measurements(kd, counts)
+            yield gene
+
+
+def load_gene_kd(h5, gene_id):
+    """ Get the affinity data for a particular gene. """
+    kd = h5['kds'][gene_id]
+    counts = h5['counts'][gene_id]
+    return kd, counts
+
+
+def load_genes(gene_boundaries_h5_filename=None):
+    """ Normally you won't want to use this. It just loads genes and their positions (with exon data).
+    This is something you'd only want to use if you wanted to examine the parsed Refseq data to see what's in
+    that particular version. """
+    if gene_boundaries_h5_filename is None:
+        gene_boundaries_h5_filename = os.path.join(os.path.expanduser('~'), '.local', 'champ', 'gene-boundaries.h5')
+    for gene_id, name, sequence, contig, strand, gene_start, gene_stop, cds_parts in load_gene_positions(gene_boundaries_h5_filename):
+        gaff = GeneAffinity(gene_id, name, contig, sequence)
+        yield gaff.set_boundaries(strand, gene_start, gene_stop, cds_parts)
 
 
 def load_read_name_intensities(hdf5_filename):
