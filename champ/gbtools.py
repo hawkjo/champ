@@ -48,7 +48,7 @@ def determine_kd_of_genomic_position(item, read_name_intensities, concentrations
     if len(intensities) < MINIMUM_REQUIRED_COUNTS:
         return contig, position, None
     try:
-        result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y)
+        result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y, bootstrap=False)
     except Exception:
         return contig, position, None
     return contig, position, result
@@ -105,7 +105,7 @@ def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentr
                                                                process_count=process_count)):
             if result is not None:
                 kd, kd_uncertainty, yint, fit_delta_y, count = result
-                contig_position_kds[contig][position] = kd, kd_uncertainty, count
+                contig_position_kds[contig][position] = kd, count
     return contig_position_kds
 
 
@@ -124,10 +124,10 @@ def build_gene_affinities(genes, position_kds):
     for gene_id, name, sequence, contig, strand, gene_start, gene_stop, cds_parts in genes:
         if contig not in position_kds:
             continue
-        kds, kd_uncertainties, counts, breaks = parse_gene_affinities(contig, gene_start, gene_stop, position_kds)
+        kds, counts, breaks = parse_gene_affinities(contig, gene_start, gene_stop, position_kds)
         yield (gene_id,
                np.array(kds, dtype=np.float),
-               np.array(kd_uncertainties, dtype=np.float),
+               # np.array(kd_uncertainties, dtype=np.float),
                np.array(counts, dtype=np.int32),
                np.array(breaks, dtype=np.int32))
 
@@ -137,14 +137,14 @@ def parse_gene_affinities(contig, gene_start, gene_stop, position_kds):
     coverage_counter = 0
     last_good_position = None
     kds = []
-    kd_uncertainties = []
+    # kd_uncertainties = []
     counts = []
     breaks = []
     for position in range(gene_start, gene_stop):
         position_data = affinity_data.get(position)
         if position_data is None:
             kds.append(None)
-            kd_uncertainties.append(None)
+            # kd_uncertainties.append(None)
             counts.append(0)
             if last_good_position is not None and last_good_position == position - 1:
                 # we just transitioned to a gap in coverage from a region with coverage
@@ -152,11 +152,12 @@ def parse_gene_affinities(contig, gene_start, gene_stop, position_kds):
         else:
             kd, kd_uncertainty, count = position_data
             kds.append(kd)
-            kd_uncertainties.append(kd_uncertainty)
+            # kd_uncertainties.append(kd_uncertainty)
             counts.append(count)
             last_good_position = position
             coverage_counter += 1
-    return kds, kd_uncertainties, counts, breaks
+    # return kds, kd_uncertainties, counts, breaks
+    return kds, counts, breaks
 
 
 def load_gene_count(hdf5_filename=None):
@@ -171,8 +172,8 @@ def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
     with h5py.File(hdf5_filename, 'w') as h5:
         kd_dataset = h5.create_dataset('kds', (gene_count,),
                                        dtype=h5py.special_dtype(vlen=np.dtype('float32')))
-        kd_uncertainties_dataset = h5.create_dataset('kd_uncertainties', (gene_count,),
-                                                   dtype=h5py.special_dtype(vlen=np.dtype('float32')))
+        # kd_uncertainties_dataset = h5.create_dataset('kd_uncertainties', (gene_count,),
+        #                                            dtype=h5py.special_dtype(vlen=np.dtype('float32')))
         counts_dataset = h5.create_dataset('counts', (gene_count,),
                                            dtype=h5py.special_dtype(vlen=np.dtype('int32')))
         breaks_dataset = h5.create_dataset('breaks', (gene_count,),
@@ -180,7 +181,7 @@ def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
 
         for gene_id, kds, kd_high_errors, kd_low_errors, counts, breaks in gene_affinities:
             kd_dataset[gene_id] = kds
-            kd_uncertainties_dataset[gene_id] = kd_high_errors
+            # kd_uncertainties_dataset[gene_id] = kd_high_errors
             counts_dataset[gene_id] = counts
             breaks_dataset[gene_id] = breaks
 

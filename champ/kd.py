@@ -72,13 +72,13 @@ def fit_all_kds(group_intensities, all_concentrations, process_count=8, delta_y=
             yield result
 
 
-def fit_one_group_kd(intensities, all_concentrations, delta_y=None):
+def fit_one_group_kd(intensities, all_concentrations, delta_y=None, bootstrap=True):
     minimum_required_observations = max(len(all_concentrations) - 3, 5)
     try:
         result = _thread_fit_kd((None, intensities),
                                 all_concentrations,
                                 minimum_required_observations,
-                                delta_y)
+                                delta_y, bootstrap=bootstrap)
     except Exception as e:
         return None
     else:
@@ -88,7 +88,7 @@ def fit_one_group_kd(intensities, all_concentrations, delta_y=None):
         return kd, kd_uncertainty, yint, fit_delta_y, count
 
 
-def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_observations, delta_y):
+def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_observations, delta_y, bootstrap=True):
     # group_intensities is a tuple of a unique label (typically a sequence of interest or location in the genome)
     # and intensities is a list of lists, with each member being the value of an intensity gradient
     group_unique_label, intensities = group_intensities
@@ -105,7 +105,10 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
         return None
 
     kd, yint, fit_delta_y = fit_kd(fitting_concentrations, fitting_intensities, delta_y=delta_y)
-    kd_uncertainty = bootstrap_kd_uncertainty(all_concentrations, intensities, delta_y=delta_y)
+    if bootstrap:
+        kd_uncertainty = bootstrap_kd_uncertainty(all_concentrations, intensities, delta_y=delta_y)
+    else:
+        kd_uncertainty = 0.0
     if kd is None or kd_uncertainty is None:
         return None
     return group_unique_label, kd, kd_uncertainty, yint, fit_delta_y, len(intensities)
