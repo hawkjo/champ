@@ -129,8 +129,8 @@ def load_genes_with_affinities(gene_boundaries_h5_filename=None, gene_affinities
 
 def load_gene_kd(h5, gene_id):
     """ Get the affinity data for a particular gene. """
-    kd = h5['kds'][gene_id]
-    counts = h5['counts'][gene_id]
+    kd = h5['genome-kds'][gene_id]
+    counts = h5['genome-counts'][gene_id]
     return kd, counts
 
 
@@ -183,49 +183,19 @@ def determine_kd_of_genomic_position(item, read_name_intensities, concentrations
     return contig, position, result
 
 
-# def determine_kds_of_reads(contig_pileup_data, concentrations, delta_y, read_name_intensities):
-#     contig, pileup_data = contig_pileup_data
-#     position_kds = {}
-#     # since there are often long stretches where we have the reads, we cache the most recently-used ones and
-#     # try to look up the KD we calculated before.
-#     cache = cachetools.LRUCache(maxsize=20)
-#     for position, query_names in pileup_data:
-#         result = cache.get(query_names)
-#         if result is None:
-#             intensities = []
-#             for name in query_names:
-#                 intensity_gradient = read_name_intensities.get(name)
-#                 if intensity_gradient is None:
-#                     continue
-#                 intensities.append(intensity_gradient)
-#             if len(intensities) < MINIMUM_REQUIRED_COUNTS:
-#                 continue
-#             try:
-#                 result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y)
-#             except Exception as e:
-#                 continue
-#             if result is None:
-#                 continue
-#             cache[query_names] = result
-#         position_kds[position] = result
-#     return contig, position_kds
-
-
 def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y, process_count=36):
-    print("loading read name intensities")
     read_name_intensities = load_read_name_intensities(read_name_intensities_hdf5_filename)
     with pysam.Samfile(bamfile) as samfile:
-        # contigs = list(reversed(sorted(samfile.references)))
-        contigs = ['NC_000019.10']
+        contigs = list(reversed(sorted(samfile.references)))
 
     pileup_data = []
-    print("loading pileup data")
+    print("Loading pileups.")
     with progressbar.ProgressBar(max_value=len(contigs)) as pbar:
         for contig in pbar(contigs):
             for result in iterate_pileups(bamfile, contig):
                 pileup_data.append(result)
 
-    print("calculating genomic kds with lomp")
+    print("Calculating KDs for all genomic positions.")
     contig_position_kds = {contig: {} for contig in contigs}
     with progressbar.ProgressBar(max_value=len(pileup_data)) as pbar:
         for contig, position, result in pbar(lomp.parallel_map(pileup_data,
@@ -295,12 +265,12 @@ def load_gene_count(hdf5_filename=None):
 
 def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
     hdf5_filename = hdf5_filename if hdf5_filename is not None else os.path.join('results', 'gene-affinities.h5')
-    with h5py.File(hdf5_filename, 'w') as h5:
-        kd_dataset = h5.create_dataset('kds', (gene_count,),
+    with h5py.File(hdf5_filename, 'a') as h5:
+        kd_dataset = h5.create_dataset('genome-kds', (gene_count,),
                                        dtype=h5py.special_dtype(vlen=np.dtype('float32')))
-        counts_dataset = h5.create_dataset('counts', (gene_count,),
+        counts_dataset = h5.create_dataset('genome-counts', (gene_count,),
                                            dtype=h5py.special_dtype(vlen=np.dtype('int32')))
-        breaks_dataset = h5.create_dataset('breaks', (gene_count,),
+        breaks_dataset = h5.create_dataset('genome-breaks', (gene_count,),
                                            dtype=h5py.special_dtype(vlen=np.dtype('int32')))
 
         for gene_id, kds, counts, breaks in gene_affinities:
@@ -309,11 +279,9 @@ def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
             breaks_dataset[gene_id] = breaks
 
 
-def main(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y,
-         gene_boundaries_h5_path=None, gene_affinities_path=None):
-    """ We assume that convert_gbff_to_hdf5() has already been run using the default file paths. """
-    position_kds = calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y)
-    genes = load_gene_positions(hdf5_filename=gene_boundaries_h5_path)
+def genome_main(bamfile, read_name_intensities_hdf5_filename, concentrations, median_saturated_intensity):
+    position_kds = calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, median_saturated_intensity)
+    genes = load_gene_positions()
     gene_affinities = build_gene_affinities(genes, position_kds)
-    gene_count = load_gene_count(hdf5_filename=gene_boundaries_h5_path)
-    save_gene_affinities(gene_affinities, gene_count, hdf5_filename=gene_affinities_path)
+    gene_count = load_gene_count()
+    save_gene_affinities(gene_affinities, gene_count, hdf5_filename=read_name_intensities_hdf5_filename)
