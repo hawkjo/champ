@@ -175,12 +175,12 @@ def determine_kd_of_genomic_position(item, read_name_intensities, concentrations
             continue
         intensities.append(intensity_gradient)
     if len(intensities) < MINIMUM_REQUIRED_COUNTS:
-        return contig, position, None
+        return position, None
     try:
         result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y, bootstrap=False)
     except Exception:
-        return contig, position, None
-    return contig, position, result
+        return position, None
+    return position, result
 
 
 def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y, process_count=8):
@@ -190,18 +190,21 @@ def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentr
 
     print("Loading pileups.")
     contig_position_kds = {contig: {} for contig in contigs}
-    with progressbar.ProgressBar(max_value=len(contigs)) as pbar:
-        for contig in pbar(contigs):
-            pileup_data = []
-            for result in iterate_pileups(bamfile, contig):
-                pileup_data.append(result)
-            for contig, position, result in lomp.parallel_map(pileup_data,
-                                                              determine_kd_of_genomic_position,
-                                                              args=(read_name_intensities, concentrations, delta_y),
-                                                              process_count=process_count):
-                if result is not None:
-                    kd, kd_uncertainty, yint, fit_delta_y, count = result
-                    contig_position_kds[contig][position] = kd, count
+    for contig in contigs:
+        pileup_data = []
+        for result in iterate_pileups(bamfile, contig):
+            pileup_data.append(result)
+        if len(pileup_data) > 1000000:
+            pbar = progressbar.ProgressBar(max_value=len(pileup_data))
+        else:
+            pbar = lambda x: x
+        for position, result in pbar(lomp.parallel_map(pileup_data,
+                                                       determine_kd_of_genomic_position,
+                                                       args=(read_name_intensities, concentrations, delta_y),
+                                                       process_count=process_count)):
+            if result is not None:
+                kd, kd_uncertainty, yint, fit_delta_y, count = result
+                contig_position_kds[contig][position] = kd, count
     return contig_position_kds
 
 
