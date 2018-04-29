@@ -188,23 +188,21 @@ def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentr
     with pysam.Samfile(bamfile) as samfile:
         contigs = list(reversed(sorted(samfile.references)))
 
-    pileup_data = []
     print("Loading pileups.")
+    contig_position_kds = {contig: {} for contig in contigs}
     with progressbar.ProgressBar(max_value=len(contigs)) as pbar:
         for contig in pbar(contigs):
+            pileup_data = []
             for result in iterate_pileups(bamfile, contig):
                 pileup_data.append(result)
-
-    print("Calculating KDs for all genomic positions.")
-    contig_position_kds = {contig: {} for contig in contigs}
-    with progressbar.ProgressBar(max_value=len(pileup_data)) as pbar:
-        for contig, position, result in pbar(lomp.parallel_map(pileup_data,
-                                                               determine_kd_of_genomic_position,
-                                                               args=(read_name_intensities, concentrations, delta_y),
-                                                               process_count=process_count)):
-            if result is not None:
-                kd, kd_uncertainty, yint, fit_delta_y, count = result
-                contig_position_kds[contig][position] = kd, count
+            with progressbar.ProgressBar(max_value=len(pileup_data)) as pbar:
+                for contig, position, result in pbar(lomp.parallel_map(pileup_data,
+                                                                       determine_kd_of_genomic_position,
+                                                                       args=(read_name_intensities, concentrations, delta_y),
+                                                                       process_count=process_count)):
+                    if result is not None:
+                        kd, kd_uncertainty, yint, fit_delta_y, count = result
+                        contig_position_kds[contig][position] = kd, count
     return contig_position_kds
 
 
