@@ -183,12 +183,11 @@ def determine_kd_of_genomic_position(item, read_name_intensities, concentrations
     return position, result
 
 
-def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y, process_count=8):
+def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y, process_count=16):
     read_name_intensities = load_read_name_intensities(read_name_intensities_hdf5_filename)
     with pysam.Samfile(bamfile) as samfile:
         contigs = list(reversed(sorted(samfile.references)))
 
-    print("Loading pileups.")
     contig_position_kds = {contig: {} for contig in contigs}
     for contig in contigs:
         pileup_data = []
