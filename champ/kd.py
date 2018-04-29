@@ -91,7 +91,6 @@ def fit_one_group_kd(intensities, all_concentrations, delta_y=None, bootstrap=Tr
 def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_observations, delta_y, bootstrap=True):
     # group_intensities is a tuple of a unique label (typically a sequence of interest or location in the genome)
     # and intensities is a list of lists, with each member being the value of an intensity gradient
-    print("group_intensities", group_intensities)
     group_unique_label, intensities = group_intensities
     intensities = filter_reads_with_unusual_intensities(intensities)
     fitting_concentrations = []
