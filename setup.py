@@ -4,13 +4,18 @@ import git
 
 repo = git.Repo(search_parent_directories=True)
 sha = repo.head.object.hexsha
-version = "%s-%s" % (VERSION, sha)
+
+# automatically update the variable containing the git commit so we can keep track of which version of the software
+# was used to run analyses
+with open("champ/__init__.py", "w") as f:
+    f.write("git_commit = '%s'" % sha)
+
 
 if __name__ == '__main__':
     setup(
         name='champ',
         packages=['champ', 'champ.controller'],
-        version=version,
+        version=VERSION,
         entry_points={
           'console_scripts': [
               'champ = champ.main:main'
