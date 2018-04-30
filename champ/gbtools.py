@@ -117,7 +117,7 @@ class GeneAffinity(object):
 def load_genes_with_affinities(gene_boundaries_h5_filename=None, gene_affinities_filename=None):
     """ This is usually what you want to use when loading data. It will give you every gene with its
     KD data already loaded. """
-    gene_affinities_filename = gene_affinities_filename if gene_affinities_filename is not None else os.path.join('results', 'gene-affinities.h5')
+    gene_affinities_filename = gene_affinities_filename if gene_affinities_filename is not None else os.path.join('results', 'cluster-data.h5')
     with h5py.File(gene_affinities_filename, 'r') as h5:
         for gene in load_genes(gene_boundaries_h5_filename):
             kd, counts = load_gene_kd(h5, gene.id)
@@ -263,7 +263,7 @@ def load_gene_count(hdf5_filename=None):
 
 
 def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
-    hdf5_filename = hdf5_filename if hdf5_filename is not None else os.path.join('results', 'gene-affinities.h5')
+    hdf5_filename = hdf5_filename if hdf5_filename is not None else os.path.join('results', 'cluster-data.h5')
     with h5py.File(hdf5_filename, 'a') as h5:
         kd_dataset = h5.create_dataset('genome-kds', (gene_count,),
                                        dtype=h5py.special_dtype(vlen=np.dtype('float32')))
