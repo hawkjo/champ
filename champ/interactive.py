@@ -5,6 +5,11 @@ from collections import defaultdict
 import numpy as np
 import yaml
 from Bio.Seq import Seq
+import h5py
+import flabpal
+
+
+base_color = {'A': flabpal.blue, 'C': flabpal.yellow, 'G': flabpal.green, 'T': flabpal.red}
 
 
 class TargetSequence(object):
@@ -486,3 +491,40 @@ def determine_data_channel(all_channels, alignment_channel):
         # There is only one channel, so alignment markers and data are in the same channel
         return list(alignment_channel)[0]
     raise ValueError("Could not determine data channel. You'll need to set this manually.")
+
+
+class SyntheticKDs(object):
+    def __init__(self, target_sequence, experiment_label):
+        self._target_sequence = target_sequence
+        self._label = experiment_label
+        self._kds = {}
+
+    def __len__(self):
+        return len(self._kds)
+
+    def set(self, sequence, kd, uncertainty, count):
+        self._kds[sequence] = kd, uncertainty, count
+
+    def get(self, sequence):
+        return self._kds.get(sequence)
+
+    @property
+    def label(self):
+        return self._label
+
+    @property
+    def target(self):
+        return self._target_sequence
+
+    @property
+    def perfect(self):
+        # The KD of the protein for a DNA sequence that is completely homologous to the guide RNA
+        return self._kds.get(self._target_sequence.sequence)
+
+
+def load_synthetic_kds(filename, target_sequence, experiment_label):
+    with h5py.File(filename, 'r') as h5:
+        synthetic_kds = SyntheticKDs(target_sequence, experiment_label)
+        for sequence, kd, uncertainty, _, _, count in h5['synthetic-kds']:
+            synthetic_kds.set(sequence, kd, uncertainty, count)
+        return synthetic_kds

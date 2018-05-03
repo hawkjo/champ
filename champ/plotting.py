@@ -389,23 +389,16 @@ def configure_position_penalty_axes(target, fig, penalty_axes, xticklabels, font
     penalty_axes.set_xlim((-0.5, len(target)-0.5))
     penalty_axes.set_xticks(range(len(target)))
     penalty_axes.set_xticklabels(xticklabels, fontsize=tick_fontsize)
-    ylim = penalty_axes.get_ylim()
-    penalty_axes.set_ylim(ylim)
-    penalty_axes.set_xlabel('Target {target_name} Reference Sequence'.format(target_name=target_name), fontsize=fontsize)
+    #penalty_axes.set_xlabel('Target {target_name} Reference Sequence'.format(target_name=target_name), fontsize=fontsize)
     penalty_axes.set_ylabel(yaxis_label, fontsize=fontsize)
     penalty_axes.xaxis.set_ticks_position('none')
-    if legend:
-        patches = [mpatches.Patch(color=flabpal.blue, label='A'), mpatches.Patch(color=flabpal.yellow, label='C'),
-                   mpatches.Patch(color=flabpal.green, label='G'), mpatches.Patch(color=flabpal.red, label='T')]
-        penalty_axes.legend(handles=patches)
-
-    if count_axes is not None:
-        count_axes.set_yscale('log')
-        count_axes.set_xlim((-0.5, len(target)-0.5))
-        count_axes.set_xticks(range(len(target)))
-        count_axes.set_xticklabels(xticklabels, fontsize=tick_fontsize)
-        count_axes.set_title("Unique Clusters Per Mismatch Sequence", fontsize=fontsize)
-        count_axes.set_ylabel("Count", fontsize=fontsize)
-        count_axes.xaxis.set_ticks_position('none')
 
     fig.tight_layout()
+
+
+def draw_nucleotide_legend(ax):
+    patches = [mpatches.Patch(color=flabpal.blue, label='A'),
+               mpatches.Patch(color=flabpal.yellow, label='C'),
+               mpatches.Patch(color=flabpal.green, label='G'),
+               mpatches.Patch(color=flabpal.red, label='T')]
+    ax.legend(handles=patches)

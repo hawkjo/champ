@@ -51,7 +51,7 @@ class GeneAffinity(object):
             min_start = min(start, min_start) if min_start is not None else start
             max_stop = max(stop, max_stop) if max_stop is not None else stop
         return self
-
+    
     @property
     def exon_boundaries(self):
         for start, stop in self._exon_boundaries:
