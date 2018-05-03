@@ -7,6 +7,7 @@ import yaml
 from Bio.Seq import Seq
 import h5py
 import flabpal
+from uncertainties import ufloat
 
 
 base_color = {'A': flabpal.blue, 'C': flabpal.yellow, 'G': flabpal.green, 'T': flabpal.red}
@@ -493,11 +494,13 @@ def determine_data_channel(all_channels, alignment_channel):
     raise ValueError("Could not determine data channel. You'll need to set this manually.")
 
 
-class SyntheticKDs(object):
-    def __init__(self, target_sequence, experiment_label):
+class SyntheticAffinities(object):
+    def __init__(self, target_sequence, experiment_label, unit='kd'):
+        assert unit in ('kd', 'delta_aba')
         self._target_sequence = target_sequence
         self._label = experiment_label
         self._kds = {}
+        self._use_kds = (unit == 'kd')
 
     def __len__(self):
         return len(self._kds)
@@ -506,7 +509,20 @@ class SyntheticKDs(object):
         self._kds[sequence] = kd, uncertainty, count
 
     def get(self, sequence):
-        return self._kds.get(sequence)
+        if self._use_kds:
+            return self._kds.get(sequence)
+        return self._get_delta_aba(sequence)
+
+    def _get_delta_aba(self, sequence):
+        result = self._kds.get(sequence)
+        if not result:
+            return None
+        kd, uncertainty, count = result
+        perfect_kd, perfect_uncertainty, _ = self.perfect
+        ratio = ufloat(kd, uncertainty) / ufloat(perfect_kd, perfect_uncertainty)
+        delta_aba = np.log(ratio.n)
+        delta_aba_uncertainty = ratio.s / ratio.n
+        return delta_aba, delta_aba_uncertainty, count
 
     @property
     def label(self):
@@ -524,7 +540,7 @@ class SyntheticKDs(object):
 
 def load_synthetic_kds(filename, target_sequence, experiment_label):
     with h5py.File(filename, 'r') as h5:
-        synthetic_kds = SyntheticKDs(target_sequence, experiment_label)
+        synthetic_kds = SyntheticAffinities(target_sequence, experiment_label)
         for sequence, kd, uncertainty, _, _, count in h5['synthetic-kds']:
             synthetic_kds.set(sequence, kd, uncertainty, count)
         return synthetic_kds
