@@ -101,7 +101,8 @@ def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/c
             read_name_sequences = get_quality_paired_end_read_sequences(bamfile_path, reference_genome_fastq_filename)
             save_quality_read_name_sequences(read_name_sequences, os.path.join(fastq_directory, 'quality-read-name-sequences.h5'))
             print("Created quality read name sequences.")
-    except:
+    except Exception as e:
+        print(e)
         fail("Problem with samtools.")
 
     # Delete the temporary files we created
