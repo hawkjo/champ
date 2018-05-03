@@ -42,7 +42,8 @@ class CommandLineArguments(object):
                                  'h5',
                                  'align',
                                  'info',
-                                 'notebooks'):
+                                 'notebooks',
+                                 'genome'):
             if self._arguments.get(possible_command):
                 return possible_command
 
