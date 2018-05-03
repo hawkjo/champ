@@ -495,15 +495,17 @@ def determine_data_channel(all_channels, alignment_channel):
 
 
 class SyntheticAffinities(object):
-    def __init__(self, target_sequence, experiment_label, unit='kd'):
-        assert unit in ('kd', 'delta_aba')
+    def __init__(self, target_sequence, experiment_label):
         self._target_sequence = target_sequence
         self._label = experiment_label
         self._kds = {}
-        self._use_kds = (unit == 'kd')
+        self._use_kds = True
 
     def __len__(self):
         return len(self._kds)
+
+    def use_delta_abas(self):
+        self._use_kds = False
 
     def set(self, sequence, kd, uncertainty, count):
         self._kds[sequence] = kd, uncertainty, count
