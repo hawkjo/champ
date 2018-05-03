@@ -63,6 +63,9 @@ def main(**kwargs):
     elif arguments.command == 'notebooks':
         from champ.controller import notebooks
         notebooks.main(arguments)
+    elif arguments.command == 'genome':
+        from champ.controller import genome
+        genome.main(arguments)
 
 
 if __name__ == '__main__':
