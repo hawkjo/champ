@@ -8,7 +8,7 @@ import flabpal
 import matplotlib.patches as mpatches
 
 
-def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False):
+def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False, show_base_legend=True):
     dimension = 3
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
     data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index = indexes
@@ -19,10 +19,11 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     mismatch_bases = ''.join(['ACGT'.replace(base, '') for base in sequence])
     add_color_axes(fig, gs[left_color_index], gs[bottom_color_index], mismatch_bases)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, normalize=normalize, cmap=cmap, force_full_bounds=force_full_bounds, show_base_legend=True, grid_line_spacing=dimension)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, normalize=normalize, cmap=cmap, force_full_bounds=force_full_bounds, show_base_legend=show_base_legend, grid_line_spacing=dimension)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
     # color the labels
+    return fig
 
 
 def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, normalize=True, fontsize=18,
@@ -36,6 +37,7 @@ def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, normalize=normalize, cmap=cmap, force_full_bounds=normalize)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize, label=colorbar_label)
+    return fig
 
 
 def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False):
@@ -48,6 +50,7 @@ def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_mat
     ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, grid_line_spacing=1, normalize=normalize, force_full_bounds=force_full_bounds)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
+    return fig
 
 
 def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False):
@@ -62,22 +65,24 @@ def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper
     ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, grid_line_spacing=1, normalize=normalize, force_full_bounds=force_full_bounds)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
+    return fig
 
 
-def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False):
+def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False, show_base_legend=True):
     dimension = 4
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
     data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios) / 3, sum(height_ratios) / 3))
     # Add sequence labels to left and bottom
-    add_sequence_labels(fig, gs[left_seq_index], gs[bottom_seq_index], dimension, sequence_labels)
+    add_sequence_labels(fig, gs[left_seq_index], gs[bottom_seq_index], dimension, sequence_labels, fontsize=42)
     # Add the color bars to the left and bottom of the figure to indicate which base was inserted
     insertion_bases = 'ACGT' * len(sequence)
     add_color_axes(fig, gs[left_color_index], gs[bottom_color_index], insertion_bases)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, show_base_legend=True, grid_line_spacing=dimension, normalize=normalize, force_full_bounds=force_full_bounds)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, show_base_legend=show_base_legend, grid_line_spacing=dimension, normalize=normalize, force_full_bounds=force_full_bounds)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
+    return fig
 
 
 def build_base_colorcode_axis(ax, sequence, vertical=False):
@@ -103,6 +108,15 @@ def build_base_colorcode_axis(ax, sequence, vertical=False):
     ax.spines['left'].set_visible(False)
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    if vertical:
+        print(xmax, xmin)
+        xpos = np.mean((xmin, xmax)) - 0.3
+        space = float(ymax - ymin) / len(sequence)
+        for n, base in enumerate(reversed(sequence)):
+            ypos = ymin + space * n - 0.2
+            ax.text(xpos, ypos, str(base), zorder=99, color='white', fontsize=20)
     return ax
 
 
@@ -158,14 +172,14 @@ def get_gridspec(sequence, dimension):
     return gs, indexes, (width_ratios, height_ratios)
 
 
-def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$K_{D} (nM)$'):
+def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$\Delta ABA (k_B T)$'):
     cbar_ax = fig.add_subplot(colorbar_grid)
     cbar_ax.tick_params(labelsize=30)
     cbar = plt.colorbar(ms, cax=cbar_ax)
     cbar.set_label(label, fontsize=fontsize*2)
 
 
-def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis', show_base_legend=False, grid_line_spacing=None, force_full_bounds=True):
+def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis', show_base_legend=False, grid_line_spacing=None, force_full_bounds=True, ):
     """
 
     vmin and vmax are the extents of the colorbar. We set the lowest and highest values so that the brightest part
@@ -205,12 +219,16 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
         ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap=cmap, vmin=vmin, vmax=vmax)
     data_ax.set_yticks([])
     data_ax.set_xticks([])
-    if grid_line_spacing is not None:
-        xlim = data_ax.get_xlim()
-        ylim = data_ax.get_ylim()
+    xlim = data_ax.get_xlim()
+    ylim = data_ax.get_ylim()
+    if grid_line_spacing is not None and upper_ABA_matrix is None:
         for i in np.arange(-.5, lower_ABA_matrix.shape[0]-grid_line_spacing, grid_line_spacing):
             data_ax.plot((xlim[0], i+grid_line_spacing), [i, i], 'w', alpha=1, linewidth=1)
             data_ax.plot([i+grid_line_spacing, i+grid_line_spacing], (ylim[0], i), 'w', alpha=1, linewidth=1)
+    elif grid_line_spacing is not None:
+        for i in np.arange(-.5, lower_ABA_matrix.shape[0] - grid_line_spacing, grid_line_spacing):
+            data_ax.plot([i, i], [ylim[0], ylim[1]], 'w', alpha=1, linewidth=1)
+            data_ax.plot([xlim[0], xlim[1]], [i, i], 'w', alpha=1, linewidth=1)
     return ms
 
 
@@ -221,11 +239,11 @@ def add_color_axes(fig, left_color_grid, bottom_color_grid, base_sequence):
     build_base_colorcode_axis(bottom_color_codes_ax, base_sequence)
 
 
-def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels, positions_are_merged=False):
+def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels, positions_are_merged=False, fontsize=30):
     # Add the sequence labels to the left of the figure
     left_sequence_ax = fig.add_subplot(left_grid)
     left_sequence_ax.set_yticklabels([])
-    left_sequence_ax.set_yticklabels(sequence_labels[::-1], fontsize=30)
+    left_sequence_ax.set_yticklabels(sequence_labels[::-1], fontsize=fontsize)
     left_sequence_ax.set_yticks([dimension * x + dimension / 2.0 for x in range(len(sequence_labels))])
     left_sequence_ax.set_ylim([0, len(sequence_labels) * dimension])
     left_sequence_ax.patch.set_alpha(0.0)  # make weird white rectangles go away
@@ -244,7 +262,7 @@ def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels,
     # Add the sequence labels to the bottom of the figure
     bottom_sequence_ax = fig.add_subplot(bottom_grid)
     bottom_sequence_ax.set_xticklabels([])
-    bottom_sequence_ax.set_xticklabels(sequence_labels, fontsize=30)
+    bottom_sequence_ax.set_xticklabels(sequence_labels, fontsize=fontsize)
     bottom_sequence_ax.set_xticks([x * dimension + dimension / 2.0 for x in range(len(sequence_labels))])
     bottom_sequence_ax.set_xlim([0, len(sequence_labels) * dimension])
     bottom_sequence_ax.spines['top'].set_visible(False)

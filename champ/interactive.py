@@ -142,7 +142,6 @@ class TwoDMatrix(object):
     This was intended for mismatches and insertions, but now that I look at it, it might also work for deletions
 
     """
-
     def __init__(self, sequence, slots_per_position, bases='ACGT'):
         self._bases = bases
         self._sequence = sequence
@@ -506,6 +505,9 @@ class SyntheticAffinities(object):
 
     def use_delta_abas(self):
         self._use_kds = False
+
+    def use_kds(self):
+        self._use_kds = True
 
     def set(self, sequence, kd, uncertainty, count):
         self._kds[sequence] = kd, uncertainty, count
