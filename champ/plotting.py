@@ -430,3 +430,32 @@ def draw_nucleotide_legend(ax):
                mpatches.Patch(color=flabpal.green, label='G'),
                mpatches.Patch(color=flabpal.red, label='T')]
     ax.legend(handles=patches)
+
+
+def make_example_block(parent_matrix, row, column, left_letters, bottom_letters):
+    dimension = parent_matrix._slots
+    space = {3: .05,
+             4: 0.00}[dimension]
+    gs = gridspec.GridSpec(2, 2, width_ratios=[1, 3], height_ratios=[3, 1], wspace=space, hspace=space / 2,
+                           bottom=0, top=1.0, left=0, right=1.0)
+    fig = plt.figure(figsize=(4, 4))
+
+    data = parent_matrix.to_matrix()
+    block = data[(row * dimension):(row * dimension + dimension), (column * dimension):(column * dimension + dimension)]
+    ax = fig.add_subplot(gs[1])
+    ax.imshow(block, cmap='RdYlBu', vmin=np.nanmin(data), vmax=np.nanmax(data))
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_axis_off()  # remove black border around penalties
+
+    left_color_codes_ax = fig.add_subplot(gs[0])
+    build_base_colorcode_axis(left_color_codes_ax, left_letters, vertical=True)
+    bottom_color_codes_ax = fig.add_subplot(gs[3])
+    build_base_colorcode_axis(bottom_color_codes_ax, bottom_letters)
+    nudge = {3: 0.2,
+             4: 0.3}[dimension]
+
+    for n, base in enumerate(reversed(left_letters)):
+        left_color_codes_ax.text(-nudge, n + nudge, str(base), zorder=99, color='white', fontsize=40, fontweight='bold')
+    for n, base in enumerate(reversed(bottom_letters)):
+        bottom_color_codes_ax.text(n - nudge, nudge, str(base), zorder=99, color='white', fontsize=40, fontweight='bold')
