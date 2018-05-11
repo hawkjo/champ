@@ -1,3 +1,4 @@
+import functools
 import glob
 import re
 from collections import defaultdict
@@ -553,6 +554,28 @@ class SyntheticAffinities(object):
     def perfect(self):
         # The KD of the protein for a DNA sequence that is completely homologous to the guide RNA
         return self._affinities.get(self._target_sequence.sequence)
+
+
+def converter(kd_to_delta_aba_converter, neg_daba_ufloat, kd, uncertainty):
+    daba, daba_uncertainty = kd_to_delta_aba_converter(kd, uncertainty)
+    normalized_daba = ufloat(daba, daba_uncertainty) / neg_daba_ufloat
+    # we define the dABA of the negative control ABA to be the highest possible, so we take min(1.0, daba)
+    return min(1.0, normalized_daba.n), normalized_daba.s
+
+
+def kd_to_delta_aba(perfect_ufloat, kd, uncertainty):
+    ratio = ufloat(kd, uncertainty) / perfect_ufloat
+    delta_aba = np.log(ratio.n)
+    delta_aba_uncertainty = ratio.s / ratio.n
+    return delta_aba, delta_aba_uncertainty
+
+
+def kd_to_normalized_delta_aba_converter(perfect_kd, perfect_uncertainty, neg_kd, neg_uncertainty):
+    perfect_ufloat = ufloat(perfect_kd, perfect_uncertainty)
+    kd_to_delta_aba_converter = functools.partial(kd_to_delta_aba, perfect_ufloat)
+    neg_daba, neg_daba_uncertainty = kd_to_delta_aba_converter(neg_kd, neg_uncertainty)
+    neg_daba_ufloat = ufloat(neg_daba, neg_daba_uncertainty)
+    return functools.partial(converter, kd_to_delta_aba_converter, neg_daba_ufloat)
 
 
 def load_synthetic_kds(filename, target_sequence, experiment_label):

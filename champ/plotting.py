@@ -108,6 +108,10 @@ def build_base_colorcode_axis(ax, sequence, vertical=False):
     ax.spines['left'].set_visible(False)
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
+    return ax
+
+
+def add_letters_to_colorcode_axis(ax, vertical, sequence):
     xmin, xmax = ax.get_xlim()
     ymin, ymax = ax.get_ylim()
     if vertical:
@@ -122,7 +126,6 @@ def build_base_colorcode_axis(ax, sequence, vertical=False):
         for n, base in enumerate(sequence):
             xpos = xmin + space * n + 0.25
             ax.text(xpos, ypos, str(base), zorder=99, color='white', fontsize=20, fontweight='bold')
-    return ax
 
 
 def sum_nan_arrays(a, b):
@@ -240,8 +243,10 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
 def add_color_axes(fig, left_color_grid, bottom_color_grid, base_sequence):
     left_color_codes_ax = fig.add_subplot(left_color_grid)
     build_base_colorcode_axis(left_color_codes_ax, base_sequence, vertical=True)
+    add_letters_to_colorcode_axis(left_color_codes_ax, True, base_sequence)
     bottom_color_codes_ax = fig.add_subplot(bottom_color_grid)
     build_base_colorcode_axis(bottom_color_codes_ax, base_sequence)
+    add_letters_to_colorcode_axis(bottom_color_codes_ax, False, base_sequence)
 
 
 def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels, positions_are_merged=False, fontsize=30):
