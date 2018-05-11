@@ -221,10 +221,10 @@ class SinglePositionMatrix(TwoDMatrix):
         super(SinglePositionMatrix, self).__init__(sequence, 1, 'ACGT')
 
     def set_value(self, position1, position2, value):
-        self._values[position1][position2] = value
+        self._values[position2][position1] = value
 
     def add_value(self, position1, position2, value):
-        self._safe_append(position1, position2, value)
+        self._safe_append(position2, position1, value)
 
 
 def load_ABAs(filename):
@@ -497,28 +497,41 @@ class SyntheticAffinities(object):
     def __init__(self, target_sequence, experiment_label):
         self._target_sequence = target_sequence
         self._label = experiment_label
-        self._kds = {}
-        self._use_kds = True
+        self._affinities = {}
 
     def __len__(self):
-        return len(self._kds)
+        return len(self._affinities)
 
-    def use_delta_abas(self):
-        self._use_kds = False
+    def delta_abas(self):
+        sa = SyntheticAffinities(self._target_sequence, self._label)
+        for sequence in self._affinities.keys():
+            result = self._get_delta_aba(sequence)
+            if result is not None:
+                delta_aba, delta_aba_uncertainty, count = result
+                sa.set(sequence, delta_aba, delta_aba_uncertainty, count)
+        return sa
 
-    def use_kds(self):
-        self._use_kds = True
+    def normalized_delta_abas(self, negative_control_sequence):
+        neg_daba, neg_daba_uncertainty, _ = self._get_delta_aba(negative_control_sequence)
+        neg_ufloat = ufloat(neg_daba, neg_daba_uncertainty)
+        sa = SyntheticAffinities(self._target_sequence, self._label)
+        for sequence in self._affinities.keys():
+            result = self._get_delta_aba(sequence)
+            if result is not None:
+                daba, daba_uncertainty, count = result
+                normalized_daba = ufloat(daba, daba_uncertainty) / neg_ufloat
+                # we define the dABA of the negative control ABA to be the highest possible, so we take min(1.0, daba)
+                sa.set(sequence, min(1.0, normalized_daba.n), normalized_daba.s, count)
+        return sa
 
-    def set(self, sequence, kd, uncertainty, count):
-        self._kds[sequence] = kd, uncertainty, count
+    def set(self, sequence, affinity, uncertainty, count):
+        self._affinities[sequence] = affinity, uncertainty, count
 
     def get(self, sequence):
-        if self._use_kds:
-            return self._kds.get(sequence)
-        return self._get_delta_aba(sequence)
+        return self._affinities.get(sequence)
 
     def _get_delta_aba(self, sequence):
-        result = self._kds.get(sequence)
+        result = self._affinities.get(sequence)
         if not result:
             return None
         kd, uncertainty, count = result
@@ -539,7 +552,7 @@ class SyntheticAffinities(object):
     @property
     def perfect(self):
         # The KD of the protein for a DNA sequence that is completely homologous to the guide RNA
-        return self._kds.get(self._target_sequence.sequence)
+        return self._affinities.get(self._target_sequence.sequence)
 
 
 def load_synthetic_kds(filename, target_sequence, experiment_label):

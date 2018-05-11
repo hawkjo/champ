@@ -111,12 +111,17 @@ def build_base_colorcode_axis(ax, sequence, vertical=False):
     xmin, xmax = ax.get_xlim()
     ymin, ymax = ax.get_ylim()
     if vertical:
-        print(xmax, xmin)
         xpos = np.mean((xmin, xmax)) - 0.3
         space = float(ymax - ymin) / len(sequence)
         for n, base in enumerate(reversed(sequence)):
             ypos = ymin + space * n - 0.2
-            ax.text(xpos, ypos, str(base), zorder=99, color='white', fontsize=20)
+            ax.text(xpos, ypos, str(base), zorder=99, color='white', fontsize=20, fontweight='bold')
+    else:
+        ypos = np.mean((ymin, ymax)) + 0.25
+        space = float(xmax - xmin) / len(sequence)
+        for n, base in enumerate(sequence):
+            xpos = xmin + space * n + 0.25
+            ax.text(xpos, ypos, str(base), zorder=99, color='white', fontsize=20, fontweight='bold')
     return ax
 
 
@@ -172,7 +177,7 @@ def get_gridspec(sequence, dimension):
     return gs, indexes, (width_ratios, height_ratios)
 
 
-def add_colorbar(fig, colorbar_grid, ms, fontsize, label='$\Delta ABA (k_B T)$'):
+def add_colorbar(fig, colorbar_grid, ms, fontsize, label='Normalized $\Delta ABA$'):
     cbar_ax = fig.add_subplot(colorbar_grid)
     cbar_ax.tick_params(labelsize=30)
     cbar = plt.colorbar(ms, cax=cbar_ax)
