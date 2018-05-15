@@ -432,7 +432,7 @@ def draw_nucleotide_legend(ax):
     ax.legend(handles=patches)
 
 
-def make_example_block(parent_matrix, row, column, left_letters, bottom_letters):
+def make_example_block(parent_matrix, row, column, left_letters, bottom_letters, other_matrix=None, rotate=False):
     dimension = parent_matrix._slots
     space = {3: .05,
              4: 0.00}[dimension]
@@ -442,8 +442,16 @@ def make_example_block(parent_matrix, row, column, left_letters, bottom_letters)
 
     data = parent_matrix.to_matrix()
     block = data[(row * dimension):(row * dimension + dimension), (column * dimension):(column * dimension + dimension)]
+    if rotate:
+        block = np.rot90(block, 1)
+        block = np.flipud(block)
     ax = fig.add_subplot(gs[1])
-    ax.imshow(block, cmap='RdYlBu', vmin=np.nanmin(data), vmax=np.nanmax(data))
+    vmin = np.nanmin(data)
+    vmax = np.nanmax(data)
+    if other_matrix:
+        vmin = min(vmin, np.nanmin(other_matrix.to_matrix()))
+        vmax = max(vmax, np.nanmax(other_matrix.to_matrix()))
+    ax.imshow(block, cmap='RdYlBu', vmin=vmin, vmax=vmax)
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_axis_off()  # remove black border around penalties
@@ -455,7 +463,7 @@ def make_example_block(parent_matrix, row, column, left_letters, bottom_letters)
     nudge = {3: 0.2,
              4: 0.3}[dimension]
 
-    for n, base in enumerate(reversed(left_letters)):
+    for n, base in enumerate(left_letters):
         left_color_codes_ax.text(-nudge, n + nudge, str(base), zorder=99, color='white', fontsize=40, fontweight='bold')
-    for n, base in enumerate(reversed(bottom_letters)):
+    for n, base in enumerate(bottom_letters):
         bottom_color_codes_ax.text(n - nudge, nudge, str(base), zorder=99, color='white', fontsize=40, fontweight='bold')
