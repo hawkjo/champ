@@ -129,7 +129,7 @@ class FastqImageAligner(object):
                 self.image_data.fname, (max_corr / self.control_corr), max_corr, self.control_corr)
                       )
             if (max_corr / self.control_corr) > 2.0:
-                log.info("tile: %s\timage: %s" % (tile.key, self.image_data.fname))
+                log.info("tile: %s\timage: %s\t%.2f" % (tile.key, self.image_data.fname, (max_corr / self.control_corr)))
 
             if max_corr > snr_thresh * self.control_corr:
                 tile.set_aligned_rcs(align_tr)
