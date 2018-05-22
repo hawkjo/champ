@@ -80,6 +80,7 @@ def fit_one_group_kd(intensities, all_concentrations, delta_y=None, bootstrap=Tr
                                 minimum_required_observations,
                                 delta_y, bootstrap=bootstrap)
     except Exception as e:
+        print("exception in fit_one_group_kd", e)
         return None
     else:
         if result is None:
@@ -102,6 +103,7 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
             fitting_intensities.append(intensity)
             fitting_concentrations.append(concentration)
     if len(set(fitting_concentrations)) < minimum_required_observations:
+        print("insufficient concentrations")
         return None
 
     kd, yint, fit_delta_y = fit_kd(fitting_concentrations, fitting_intensities, delta_y=delta_y)
@@ -110,6 +112,7 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
     else:
         kd_uncertainty = 0.0
     if kd is None or kd_uncertainty is None:
+        print("couldn't fit. kd, kd_uncertainty:", kd, kd_uncertainty)
         return None
     return group_unique_label, kd, kd_uncertainty, yint, fit_delta_y, len(intensities)
 

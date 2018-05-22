@@ -6,6 +6,7 @@ import lomp
 import numpy as np
 import progressbar
 import pysam
+from more_itertools import windowed
 
 from champ.kd import fit_one_group_kd
 
@@ -28,6 +29,7 @@ class GeneAffinity(object):
         self._counts = None
         self._exonic = None
         self._exon_boundaries = None
+        self._compressed_boundaries = None
         self._strand = None
 
     def set_measurements(self, kds, counts):
@@ -56,6 +58,10 @@ class GeneAffinity(object):
     def exon_boundaries(self):
         for start, stop in self._exon_boundaries:
             yield start, stop
+
+    @property
+    def compressed_boundaries(self):
+        return self._compressed_boundaries
 
     def set_exons(self, exons):
         self._exonic = exons
@@ -90,10 +96,18 @@ class GeneAffinity(object):
         kds = self._kds[positions]
         counts = self._counts[positions]
         exonic = self._exonic[positions]
+        compressed_boundaries = []
+        position = 0
+        for first, second in windowed(self._kds, 2, fillvalue=np.nan):
+            if np.isnan(first) and not np.isnan(second):
+                compressed_boundaries.append(position)
+            if not np.isnan(first):
+                position += 1
         sequence = None if self.sequence is None else ''.join([self.sequence[n] for n, i in enumerate(positions) if i])
-        gene = GeneAffinity(self.id, "%s Compressed" % self.name, self.contig, sequence)
+        gene = GeneAffinity(self.id, "%s" % self.name, self.contig, sequence)
         gene = gene.set_measurements(kds, counts)
         gene = gene.set_exons(exonic)
+        gene._compressed_boundaries = compressed_boundaries
         return gene
 
     @property

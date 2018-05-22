@@ -8,7 +8,7 @@ import flabpal
 import matplotlib.patches as mpatches
 
 
-def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False, show_base_legend=True):
+def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False, show_base_legend=True, cbar_limits=None):
     dimension = 3
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
     data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index = indexes
@@ -19,7 +19,7 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     mismatch_bases = ''.join(['ACGT'.replace(base, '') for base in sequence])
     add_color_axes(fig, gs[left_color_index], gs[bottom_color_index], mismatch_bases)
     # Add data to the main part of the figure
-    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, normalize=normalize, cmap=cmap, force_full_bounds=force_full_bounds, show_base_legend=show_base_legend, grid_line_spacing=dimension)
+    ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, normalize=normalize, cmap=cmap, force_full_bounds=force_full_bounds, show_base_legend=show_base_legend, grid_line_spacing=dimension, cbar_limits=cbar_limits)
     # Add a color bar to the right side to quantify the colors in the main figure
     add_colorbar(fig, gs[cbar_index], ms, fontsize)
     # color the labels
@@ -27,7 +27,7 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
 
 
 def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, normalize=True, fontsize=18,
-                       positions_are_merged=True, colorbar_label='Relative Normalized $K_D$ (nM)', cmap='RdBu'):
+                       positions_are_merged=True, colorbar_label='Relative Normalized $K_D$ (nM)', cmap='RdBu', cbar_limits=None):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
@@ -40,7 +40,7 @@ def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     return fig
 
 
-def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False):
+def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False, cbar_limits=None):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
@@ -53,7 +53,7 @@ def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_mat
     return fig
 
 
-def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False):
+def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False, cbar_limits=None):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
@@ -68,7 +68,7 @@ def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper
     return fig
 
 
-def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False, show_base_legend=True):
+def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False, show_base_legend=True, cbar_limits=None):
     dimension = 4
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
     data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index = indexes
@@ -180,14 +180,16 @@ def get_gridspec(sequence, dimension):
     return gs, indexes, (width_ratios, height_ratios)
 
 
-def add_colorbar(fig, colorbar_grid, ms, fontsize, label='Normalized $\Delta ABA$'):
+def add_colorbar(fig, colorbar_grid, ms, fontsize, label='Normalized $\Delta ABA$', cbar_limits=None):
     cbar_ax = fig.add_subplot(colorbar_grid)
     cbar_ax.tick_params(labelsize=30)
     cbar = plt.colorbar(ms, cax=cbar_ax)
     cbar.set_label(label, fontsize=fontsize*2)
+    if cbar_limits is not None:
+        cbar.set_clim(vmin=cbar_limits[0], vmax=cbar_limits[1])
 
 
-def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis', show_base_legend=False, grid_line_spacing=None, force_full_bounds=True, ):
+def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis', show_base_legend=False, grid_line_spacing=None, force_full_bounds=True, cbar_limits=None):
     """
 
     vmin and vmax are the extents of the colorbar. We set the lowest and highest values so that the brightest part
@@ -211,6 +213,8 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
             vmax = np.nanmax(lower_ABA_matrix)
         else:
             vmin, vmax = -1, 1
+        if cbar_limits is not None:
+            vmin, vmax = cbar_limits
         ms = data_ax.matshow(lower_ABA_matrix, cmap=cmap, vmin=vmin, vmax=vmax)
     else:
         # we "add" the arrays, retaining NaNs, to create a comparison matrix
@@ -224,6 +228,8 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
             else:
                 largest_magnitude = max(np.nanmax(np.abs(upper_ABA_matrix)), np.nanmax(np.abs(lower_ABA_matrix)))
                 vmin, vmax = -largest_magnitude, largest_magnitude
+        if cbar_limits is not None:
+            vmin, vmax = cbar_limits
         ms = data_ax.matshow(sum_nan_arrays(upper_ABA_matrix, lower_ABA_matrix), cmap=cmap, vmin=vmin, vmax=vmax)
     data_ax.set_yticks([])
     data_ax.set_xticks([])
