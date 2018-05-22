@@ -122,6 +122,7 @@ def fit_kd(all_concentrations, all_intensities, delta_y=None):
     try:
         yint, fit_delta_y, kd = fit_hyperbola(all_concentrations, all_intensities, delta_y=delta_y)
     except (FloatingPointError, RuntimeError, Exception) as e:
+        print(e)
         return None, None, None
     else:
         return kd, yint, fit_delta_y
