@@ -46,7 +46,8 @@ def fit_hyperbola(concentrations, signals, delta_y=None):
         (yint, fit_delta_y, kd), _ = curve_fit(hyperbola,
                                                concentrations,
                                                signals,
-                                               )
+                                               bounds=((0.0, 0.0, 10 ** -280),
+                                                   (np.inf, np.inf, np.inf)))
     else:
         func = fixed_delta_y_hyperbola(delta_y)
         (yint, kd), _ = curve_fit(func,
