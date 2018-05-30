@@ -503,6 +503,10 @@ class SyntheticAffinities(object):
     def __len__(self):
         return len(self._affinities)
 
+    def __iter__(self):
+        for seq, data in self._affinities.items():
+            yield seq, data
+
     def delta_abas(self):
         sa = SyntheticAffinities(self._target_sequence, self._label)
         for sequence in self._affinities.keys():
