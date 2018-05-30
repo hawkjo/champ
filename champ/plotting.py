@@ -8,7 +8,7 @@ import flabpal
 import matplotlib.patches as mpatches
 
 
-def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False, show_base_legend=True, cbar_limits=None):
+def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='RdYlBu', normalize=False, force_full_bounds=False, show_base_legend=True, cbar_limits=None):
     dimension = 3
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
     data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index = indexes
@@ -40,7 +40,7 @@ def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     return fig
 
 
-def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False, cbar_limits=None):
+def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='RdYlBu', normalize=False, force_full_bounds=False, cbar_limits=None):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
@@ -53,7 +53,7 @@ def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_mat
     return fig
 
 
-def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False, cbar_limits=None):
+def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='RdYlBu', normalize=False, force_full_bounds=False, cbar_limits=None):
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, 1)
     data_index, left_seq_index, bottom_seq_index, cbar_index = indexes
     fig = plt.figure(figsize=(sum(width_ratios), sum(height_ratios)))
@@ -68,7 +68,7 @@ def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper
     return fig
 
 
-def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='viridis', normalize=False, force_full_bounds=False, show_base_legend=True, cbar_limits=None):
+def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='RdYlBu', normalize=False, force_full_bounds=False, show_base_legend=True, cbar_limits=None):
     dimension = 4
     gs, indexes, (width_ratios, height_ratios) = get_gridspec(sequence, dimension)
     data_index, left_seq_index, bottom_seq_index, left_color_index, bottom_color_index, cbar_index = indexes
