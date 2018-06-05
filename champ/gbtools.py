@@ -8,9 +8,9 @@ import progressbar
 import pysam
 from more_itertools import windowed
 
-from champ.kd import fit_one_group_kd
+from champ.constants import MINIMUM_REQUIRED_COUNTS
+from champ.kd import determine_kd_of_genomic_position
 
-MINIMUM_REQUIRED_COUNTS = 5
 QUALITY_THRESHOLD = 20
 MAXIMUM_REALISTIC_DNA_LENGTH = 1000
 
@@ -178,23 +178,6 @@ def iterate_pileups(bamfile, contig):
             query_names = [pileup.alignment.query_name for pileup in pileup_column.pileups
                            if not pileup.alignment.is_qcfail and pileup.alignment.mapq > 20]
             yield contig, pileup_column.pos, frozenset(query_names)
-
-
-def determine_kd_of_genomic_position(item, read_name_intensities, concentrations, delta_y):
-    contig, position, query_names = item
-    intensities = []
-    for name in query_names:
-        intensity_gradient = read_name_intensities.get(name)
-        if intensity_gradient is None:
-            continue
-        intensities.append(intensity_gradient)
-    if len(intensities) < MINIMUM_REQUIRED_COUNTS:
-        return position, None
-    try:
-        result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y, bootstrap=False)
-    except Exception:
-        return position, None
-    return position, result
 
 
 def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y, process_count=16):
