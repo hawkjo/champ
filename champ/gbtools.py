@@ -92,16 +92,16 @@ class GeneAffinity(object):
     def compressed(self):
         """ Collects data from positions where we made measurements (regardless of whether the position is exonic)
         and repackages them into a Gene object. """
-        positions = ~np.isnan(self._kds)
+        positions = self._counts >= MINIMUM_REQUIRED_COUNTS
         kds = self._kds[positions]
         counts = self._counts[positions]
         exonic = self._exonic[positions]
         compressed_boundaries = []
         position = 0
-        for first, second in windowed(self._kds, 2, fillvalue=np.nan):
-            if np.isnan(first) and not np.isnan(second):
+        for first, second in windowed(self._counts, 2, fillvalue=0):
+            if second >= MINIMUM_REQUIRED_COUNTS > first:
                 compressed_boundaries.append(position)
-            if not np.isnan(first):
+            if first >= MINIMUM_REQUIRED_COUNTS:
                 position += 1
         sequence = None if self.sequence is None else ''.join([self.sequence[n] for n, i in enumerate(positions) if i])
         gene = GeneAffinity(self.id, "%s" % self.name, self.contig, sequence)

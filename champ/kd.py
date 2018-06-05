@@ -94,6 +94,8 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
     # and intensities is a list of lists, with each member being the value of an intensity gradient
     group_unique_label, intensities = group_intensities
     intensities = filter_reads_with_unusual_intensities(intensities)
+    if len(intensities) < MINIMUM_READ_COUNT:
+        return None
     fitting_concentrations = []
     fitting_intensities = []
     for intensity_gradient in intensities:
