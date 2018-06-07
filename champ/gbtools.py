@@ -275,8 +275,8 @@ def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
             breaks_dataset[gene_id] = breaks
 
 
-def genome_main(bamfile, read_name_intensities_hdf5_filename, concentrations, median_saturated_intensity):
-    position_kds = calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, median_saturated_intensity)
+def genome_main(bamfile, read_name_intensities_hdf5_filename, concentrations, median_saturated_intensity, process_count=16):
+    position_kds = calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, median_saturated_intensity, process_count=process_count)
     genes = load_gene_positions()
     gene_affinities = build_gene_affinities(genes, position_kds)
     gene_count = load_gene_count()
