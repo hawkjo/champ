@@ -58,7 +58,7 @@ def fit_hyperbola(concentrations, signals, delta_y=None):
     return yint, fit_delta_y, kd
 
 
-def fit_all_kds(group_intensities, all_concentrations, process_count=8, delta_y=None, subtract_intensities=None):
+def fit_all_kds(group_intensities, all_concentrations, process_count=8, delta_y=None):
     # sequence_read_name_intensities: List[Dict[str, List[List[float]]]
     # sequence_read_name_intensities should be a list of dictionaries that map read names to intensities
     # each dictionary should all be related to some group of reads that have the same sequence or overlap the same
@@ -66,19 +66,19 @@ def fit_all_kds(group_intensities, all_concentrations, process_count=8, delta_y=
     minimum_required_observations = max(len(all_concentrations) - 3, 5)
     for result in lomp.parallel_map(group_intensities.items(),
                                     _thread_fit_kd,
-                                    args=(all_concentrations, minimum_required_observations, delta_y, subtract_intensities),
+                                    args=(all_concentrations, minimum_required_observations, delta_y),
                                     process_count=process_count):
         if result is not None:
             yield result
 
 
-def fit_one_group_kd(intensities, all_concentrations, delta_y=None, bootstrap=True, subtract_intensities=None):
+def fit_one_group_kd(intensities, all_concentrations, delta_y=None, bootstrap=True):
     minimum_required_observations = max(len(all_concentrations) - 3, 5)
     try:
         result = _thread_fit_kd((None, intensities),
                                 all_concentrations,
                                 minimum_required_observations,
-                                delta_y, subtract_intensities, bootstrap=bootstrap)
+                                delta_y, bootstrap=bootstrap)
     except Exception as e:
         print("exception in fit_one_group_kd", e)
         return None
@@ -97,8 +97,6 @@ def determine_kd_of_genomic_position(item, read_name_intensities, concentrations
         if intensity_gradient is None:
             continue
         intensities.append(intensity_gradient)
-    if len(intensities) < MINIMUM_REQUIRED_COUNTS:
-        return position, None
     try:
         result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y, bootstrap=False)
     except Exception:
@@ -106,7 +104,7 @@ def determine_kd_of_genomic_position(item, read_name_intensities, concentrations
     return position, result
 
 
-def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_observations, delta_y, subtract_intensities, bootstrap=True):
+def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_observations, delta_y, bootstrap=True):
     # group_intensities is a tuple of a unique label (typically a sequence of interest or location in the genome)
     # and intensities is a list of lists, with each member being the value of an intensity gradient
     group_unique_label, intensities = group_intensities
@@ -115,7 +113,6 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
         return None
     fitting_concentrations = []
     fitting_intensities = []
-    #zeros = [0.0 if subtract_intensities is None else subtract_intensities[i] for i, _ in enumerate(all_concentrations)]
     for intensity_gradient in intensities:
         for n, (intensity, concentration) in enumerate(zip(intensity_gradient, all_concentrations)):
             if np.isnan(intensity):
@@ -123,7 +120,6 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
             fitting_intensities.append(intensity)
             fitting_concentrations.append(concentration)
     if len(set(fitting_concentrations)) < minimum_required_observations:
-        print("insufficient concentrations")
         return None
 
     kd, yint, fit_delta_y = fit_kd(fitting_concentrations, fitting_intensities, delta_y=delta_y)
@@ -132,7 +128,6 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
     else:
         kd_uncertainty = 0.0
     if kd is None or kd_uncertainty is None:
-        print("couldn't fit. kd, kd_uncertainty:", kd, kd_uncertainty)
         return None
     return group_unique_label, kd, kd_uncertainty, yint, fit_delta_y, len(intensities)
 
@@ -194,8 +189,6 @@ def filter_reads_with_unusual_intensities(intensities):
                                                                          "represented by np.nan"
     for index in range(len(intensities[0])):
         index_intensities = [intensity_gradient[index] for intensity_gradient in intensities if not np.isnan(intensity_gradient[index])]
-        if len(index_intensities) < MINIMUM_REQUIRED_COUNTS:
-            continue
         q1 = np.percentile(index_intensities, 25)
         q3 = np.percentile(index_intensities, 75)
         iqr = q3 - q1
