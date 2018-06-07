@@ -115,12 +115,12 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
         return None
     fitting_concentrations = []
     fitting_intensities = []
-    zeros = [0.0 if subtract_intensities is None else subtract_intensities[i] for i, _ in enumerate(all_concentrations)]
+    #zeros = [0.0 if subtract_intensities is None else subtract_intensities[i] for i, _ in enumerate(all_concentrations)]
     for intensity_gradient in intensities:
         for n, (intensity, concentration) in enumerate(zip(intensity_gradient, all_concentrations)):
             if np.isnan(intensity):
                 continue
-            fitting_intensities.append(intensity-zeros[n])
+            fitting_intensities.append(intensity)
             fitting_concentrations.append(concentration)
     if len(set(fitting_concentrations)) < minimum_required_observations:
         print("insufficient concentrations")
