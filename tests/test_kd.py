@@ -14,14 +14,14 @@ def test_fit_all_kds_with_delta_y():
     f = hyperbola(concentrations, 200, 120000, 4.7)
     g = hyperbola(concentrations, 300, 120000, 5.7)
     h = hyperbola(concentrations, 200, 120000, 5.3)
-    sequence_1_read_intensities = [a, b, c, d]
-    sequence_2_read_intensities = [e, nan_haver, f, g, h]
+    sequence_1_read_intensities = [a, b, c, d, e]
+    sequence_2_read_intensities = [e, nan_haver, f, g, h, a]
     read_name_intensities = {'sequence1': sequence_1_read_intensities, 'sequence2': sequence_2_read_intensities}
     results = list(fit_all_kds(read_name_intensities, concentrations, delta_y=180000, process_count=1))
     assert len(results) == 2
     for sequence, kd, kd_uncertainty, yint, delta_y, count in results:
         assert kd > 70.0
-        assert 6 > count >= 4
+        assert 7 > count >= 5
 
 
 def test_fit_all_kds():
@@ -84,5 +84,20 @@ def test_filter_reads_with_unusual_intensities_some_nans():
     intensities = [a, b, c, d, e, f, g]
     good_intensities = filter_reads_with_unusual_intensities(intensities)
     assert len(good_intensities) == 6
+    for i in good_intensities:
+        assert i[3] == 8
+
+
+def test_filter_reads_with_unusual_intensities_all_nans():
+    a = [np.nan, 2, 4, 8, 16, 32, np.nan]
+    b = [np.nan, 2, 4, 8, 16, 32, 64]
+    c = [np.nan, np.nan, 4, 8, 16, 32, 64]
+    d = [np.nan, 2, 4, 98, 16, 32, 64]
+    e = [np.nan, 2, 4, 8, 16, 32, 64]
+    f = [np.nan, 2, 4, 8, 16, 32, 64]
+    g = [np.nan, 2, 4, 8, 16, 32, 64]
+    intensities = [a, b, c, d, e, f, g]
+    good_intensities = filter_reads_with_unusual_intensities(intensities)
+    assert len(good_intensities) == 5
     for i in good_intensities:
         assert i[3] == 8

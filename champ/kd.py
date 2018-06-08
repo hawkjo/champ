@@ -189,6 +189,10 @@ def filter_reads_with_unusual_intensities(intensities):
                                                                          "represented by np.nan"
     for index in range(len(intensities[0])):
         index_intensities = [intensity_gradient[index] for intensity_gradient in intensities if not np.isnan(intensity_gradient[index])]
+        if not index_intensities:
+            # all values were np.nan, so we can't use this concentration at all
+            bad_indexes.add(index)
+            continue
         q1 = np.percentile(index_intensities, 25)
         q3 = np.percentile(index_intensities, 75)
         iqr = q3 - q1
