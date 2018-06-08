@@ -104,11 +104,20 @@ def determine_kd_of_genomic_position(item, read_name_intensities, concentrations
     return position, result
 
 
+def filter_reads_with_insufficient_observations(intensities, minimum_required_observations):
+    good_intensities = []
+    for gradient in intensities:
+        if np.sum(~np.isnan(gradient)) >= minimum_required_observations:
+            good_intensities.append(gradient)
+    return good_intensities
+
+
 def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_observations, delta_y, bootstrap=True):
     # group_intensities is a tuple of a unique label (typically a sequence of interest or location in the genome)
     # and intensities is a list of lists, with each member being the value of an intensity gradient
     group_unique_label, intensities = group_intensities
     intensities = filter_reads_with_unusual_intensities(intensities)
+    intensities = filter_reads_with_insufficient_observations(intensities, minimum_required_observations)
     if len(intensities) < MINIMUM_REQUIRED_COUNTS:
         return None
     fitting_concentrations = []
@@ -119,8 +128,6 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
                 continue
             fitting_intensities.append(intensity)
             fitting_concentrations.append(concentration)
-    if len(set(fitting_concentrations)) < minimum_required_observations:
-        return None
 
     kd, yint, fit_delta_y = fit_kd(fitting_concentrations, fitting_intensities, delta_y=delta_y)
     if bootstrap:
@@ -183,7 +190,7 @@ def filter_reads_with_unusual_intensities(intensities):
     :param intensities: a list of numpy arrays, potentially with np.nan values
 
     """
-    bad_indexes = set()
+    bad_clusters = set()
     assert len(set([len(intensity) for intensity in intensities])) == 1, "All reads should have the same number of " \
                                                                          "observations. Missing observations should be " \
                                                                          "represented by np.nan"
@@ -191,7 +198,6 @@ def filter_reads_with_unusual_intensities(intensities):
         index_intensities = [intensity_gradient[index] for intensity_gradient in intensities if not np.isnan(intensity_gradient[index])]
         if not index_intensities:
             # all values were np.nan, so we can't use this concentration at all
-            bad_indexes.add(index)
             continue
         q1 = np.percentile(index_intensities, 25)
         q3 = np.percentile(index_intensities, 75)
@@ -199,5 +205,5 @@ def filter_reads_with_unusual_intensities(intensities):
         min_range, max_range = (q1 - TUKEY_CONSTANT * iqr, q3 + TUKEY_CONSTANT * iqr)
         for n, intensity_gradient in enumerate(intensities):
             if intensity_gradient[index] is not np.nan and (intensity_gradient[index] < min_range or intensity_gradient[index] > max_range):
-                bad_indexes.add(n)
-    return [ints for n, ints in enumerate(intensities) if n not in bad_indexes]
+                bad_clusters.add(n)
+    return [ints for n, ints in enumerate(intensities) if n not in bad_clusters]

@@ -1,4 +1,4 @@
-from champ.kd import filter_reads_with_unusual_intensities, bootstrap_kd_uncertainty, fit_all_kds, hyperbola
+from champ.kd import filter_reads_with_unusual_intensities, bootstrap_kd_uncertainty, fit_all_kds, hyperbola, filter_reads_with_insufficient_observations
 import numpy as np
 
 
@@ -98,6 +98,22 @@ def test_filter_reads_with_unusual_intensities_all_nans():
     g = [np.nan, 2, 4, 8, 16, 32, 64]
     intensities = [a, b, c, d, e, f, g]
     good_intensities = filter_reads_with_unusual_intensities(intensities)
-    assert len(good_intensities) == 5
+    assert len(good_intensities) == 6
     for i in good_intensities:
         assert i[3] == 8
+
+
+def test_filter_reads_with_insufficient_observations():
+    a = [np.nan, 2, 4, 8, 16, 32, np.nan]
+    b = [np.nan, 2, 4, 8, 16, 32, 64]
+    c = [np.nan, np.nan, 4, 8, 16, 32, 64]
+    good = filter_reads_with_insufficient_observations([a, b, c], 6)
+    assert len(good) == 1
+
+
+def test_filter_reads_with_insufficient_observations_all_nan():
+    a = [np.nan, 2, 4, 8, 16, 32, np.nan]
+    b = [np.nan, 2, 4, 8, 16, 32, 64]
+    c = [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+    good = filter_reads_with_insufficient_observations([a, b, c], 5)
+    assert len(good) == 2
