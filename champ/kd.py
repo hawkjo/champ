@@ -97,6 +97,8 @@ def determine_kd_of_genomic_position(item, read_name_intensities, concentrations
         if intensity_gradient is None:
             continue
         intensities.append(intensity_gradient)
+    if not intensities:
+        return position, None
     try:
         result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y, bootstrap=False)
     except Exception:
@@ -193,7 +195,7 @@ def filter_reads_with_unusual_intensities(intensities):
     bad_clusters = set()
     assert len(set([len(intensity) for intensity in intensities])) == 1, "All reads should have the same number of " \
                                                                          "observations. Missing observations should be " \
-                                                                         "represented by np.nan"
+                                                                         "represented by np.nan. %s" % intensities
     for index in range(len(intensities[0])):
         index_intensities = [intensity_gradient[index] for intensity_gradient in intensities if not np.isnan(intensity_gradient[index])]
         if not index_intensities:
