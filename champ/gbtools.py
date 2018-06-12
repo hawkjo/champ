@@ -192,8 +192,10 @@ def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentr
         for result in iterate_pileups(bamfile, contig):
             pileup_data.append(result)
         if len(pileup_data) > 500000:
+            print(contig)
             pbar = progressbar.ProgressBar(max_value=len(pileup_data))
         else:
+            print(contig)
             pbar = lambda x: x
         for position, result in pbar(lomp.parallel_map(pileup_data,
                                                        determine_kd_of_genomic_position,
