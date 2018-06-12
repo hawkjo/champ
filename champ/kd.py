@@ -199,7 +199,6 @@ def filter_reads_with_unusual_intensities(intensities):
     for index in range(len(intensities[0])):
         index_intensities = [intensity_gradient[index] for intensity_gradient in intensities if not np.isnan(intensity_gradient[index])]
         if not index_intensities:
-            print("no intensities for concentration %d" % index)
             # all values were np.nan, so we can't use this concentration at all
             continue
         q1 = np.percentile(index_intensities, 25)
@@ -209,5 +208,4 @@ def filter_reads_with_unusual_intensities(intensities):
         for n, intensity_gradient in enumerate(intensities):
             if intensity_gradient[index] is not np.nan and (intensity_gradient[index] < min_range or intensity_gradient[index] > max_range):
                 bad_clusters.add(n)
-    print("%d out of %d clusters are bad" % (len(bad_clusters), len(intensities)))
     return [ints for n, ints in enumerate(intensities) if n not in bad_clusters]
