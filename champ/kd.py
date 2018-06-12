@@ -118,7 +118,7 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
     # group_intensities is a tuple of a unique label (typically a sequence of interest or location in the genome)
     # and intensities is a list of lists, with each member being the value of an intensity gradient
     group_unique_label, intensities = group_intensities
-    intensities = filter_reads_with_unusual_intensities(intensities)
+    #intensities = filter_reads_with_unusual_intensities(intensities)
     intensities = filter_reads_with_insufficient_observations(intensities, minimum_required_observations)
     if len(intensities) < MINIMUM_REQUIRED_COUNTS:
         return None
