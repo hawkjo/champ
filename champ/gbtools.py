@@ -189,6 +189,9 @@ def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentr
 
     contig_position_kds = {contig: {} for contig in contigs}
     for contig in contigs:
+        if not contig.startswith('NC'):
+            # only examine DNA aligned to full chromosomes
+            continue
         pileup_data = []
         for result in iterate_pileups(bamfile, contig):
             pileup_data.append(result)
