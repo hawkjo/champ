@@ -181,7 +181,6 @@ def iterate_pileups(bamfile, contig):
 
 
 def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y, process_count=16):
-    print("calculate_genomic_kds")
     read_name_intensities = load_read_name_intensities(read_name_intensities_hdf5_filename)
     with pysam.Samfile(bamfile) as samfile:
         contigs = list(reversed(sorted(samfile.references)))
@@ -195,12 +194,7 @@ def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentr
         pileup_data = []
         for result in iterate_pileups(bamfile, contig):
             pileup_data.append(result)
-        if len(pileup_data) > 500000:
-            print(contig)
-            pbar = progressbar.ProgressBar(max_value=len(pileup_data))
-        else:
-            print("small contig: %s" % contig)
-            pbar = lambda x: x
+        pbar = progressbar.ProgressBar(max_value=len(pileup_data))
         for position, result in pbar(lomp.parallel_map(pileup_data,
                                                        determine_kd_of_genomic_position,
                                                        args=(read_name_intensities, concentrations, delta_y),
