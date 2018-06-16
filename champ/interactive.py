@@ -499,6 +499,7 @@ class SyntheticAffinities(object):
         self._target_sequence = target_sequence
         self._label = experiment_label
         self._affinities = {}
+        self._perfect = None
 
     def __len__(self):
         return len(self._affinities)
@@ -525,8 +526,7 @@ class SyntheticAffinities(object):
             if result is not None:
                 daba, daba_uncertainty, count = result
                 normalized_daba = ufloat(daba, daba_uncertainty) / neg_ufloat
-                # we define the dABA of the negative control ABA to be the highest possible, so we take min(1.0, daba)
-                sa.set(sequence, min(1.0, normalized_daba.n), normalized_daba.s, count)
+                sa.set(sequence, normalized_daba.n, normalized_daba.s, count)
         return sa
 
     def set(self, sequence, affinity, uncertainty, count):
@@ -557,14 +557,23 @@ class SyntheticAffinities(object):
     @property
     def perfect(self):
         # The KD of the protein for a DNA sequence that is completely homologous to the guide RNA
-        return self._affinities.get(self._target_sequence.sequence)
+        if self._perfect is None:
+            print(self.get(self._target_sequence.sequence))
+            perfect_kds = []
+            for sequence, (kd, uncertainty, count) in self:
+                if self._target_sequence.sequence in sequence:
+                    perfect_kds.append(ufloat(kd, uncertainty))
+            mean_perfect_kd = np.median(perfect_kds)
+            self._perfect = mean_perfect_kd.n, mean_perfect_kd.s, 0
+            print(self._perfect)
+        return self._perfect
 
 
 def converter(kd_to_delta_aba_converter, neg_daba_ufloat, kd, uncertainty):
     daba, daba_uncertainty = kd_to_delta_aba_converter(kd, uncertainty)
     normalized_daba = ufloat(daba, daba_uncertainty) / neg_daba_ufloat
     # we define the dABA of the negative control ABA to be the highest possible, so we take min(1.0, daba)
-    return min(1.0, normalized_daba.n), normalized_daba.s
+    return normalized_daba.n, normalized_daba.s
 
 
 def kd_to_delta_aba(perfect_ufloat, kd, uncertainty):

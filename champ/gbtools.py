@@ -184,8 +184,8 @@ def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentr
     print("calculate_genomic_kds")
     read_name_intensities = load_read_name_intensities(read_name_intensities_hdf5_filename)
     with pysam.Samfile(bamfile) as samfile:
-        contigs = ['NC_000019.10']
-        # contigs = list(reversed(sorted(samfile.references)))
+        contigs = list(reversed(sorted(samfile.references)))
+        # contigs = ['NC_000019.10']
 
     contig_position_kds = {contig: {} for contig in contigs}
     for contig in contigs:

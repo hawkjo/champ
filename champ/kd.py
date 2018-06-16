@@ -72,13 +72,13 @@ def fit_all_kds(group_intensities, all_concentrations, process_count=8, delta_y=
             yield result
 
 
-def fit_one_group_kd(intensities, all_concentrations, delta_y=None, bootstrap=True, filter_unusual_intensities=True):
+def fit_one_group_kd(intensities, all_concentrations, delta_y=None, bootstrap=True):
     minimum_required_observations = max(len(all_concentrations) - 3, 5)
     try:
         result = _thread_fit_kd((None, intensities),
                                 all_concentrations,
                                 minimum_required_observations,
-                                delta_y, bootstrap=bootstrap, filter_unusual_intensities=filter_unusual_intensities)
+                                delta_y, bootstrap=bootstrap)
     except Exception as e:
         print("exception in fit_one_group_kd", e)
         return None
@@ -100,7 +100,7 @@ def determine_kd_of_genomic_position(item, read_name_intensities, concentrations
     if not intensities:
         return position, None
     try:
-        result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y, bootstrap=False, filter_unusual_intensities=False)
+        result = fit_one_group_kd(intensities, concentrations, delta_y=delta_y, bootstrap=False)
     except Exception:
         return position, None
     return position, result
@@ -114,12 +114,10 @@ def filter_reads_with_insufficient_observations(intensities, minimum_required_ob
     return good_intensities
 
 
-def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_observations, delta_y, bootstrap=True, filter_unusual_intensities=True):
+def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_observations, delta_y, bootstrap=True):
     # group_intensities is a tuple of a unique label (typically a sequence of interest or location in the genome)
     # and intensities is a list of lists, with each member being the value of an intensity gradient
     group_unique_label, intensities = group_intensities
-    if filter_unusual_intensities:
-        intensities = filter_reads_with_unusual_intensities(intensities)
     intensities = filter_reads_with_insufficient_observations(intensities, minimum_required_observations)
     if len(intensities) < MINIMUM_REQUIRED_COUNTS:
         return None
