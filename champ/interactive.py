@@ -446,7 +446,7 @@ class Comparator(object):
         raise ValueError("Could not determine matrix type!")
 
 
-def load_config_value(item_name, override_value):
+def load_config_value(item_name, override_value=None, default=None):
     # let the user override this method with a manually-specified value
     if override_value:
         return override_value
@@ -455,16 +455,16 @@ def load_config_value(item_name, override_value):
             config = yaml.load(f)
             return config[item_name]
     except Exception as e:
-        print(e)
-        raise ValueError("We could not determine the {item_name} from champ.yml. "
-                         "Make sure you have a config file and that the value is set.".format(item_name=item_name))
+        if default is None:
+            print(e)
+            raise ValueError("We could not determine the {item_name} from champ.yml. "
+                             "Make sure you have a config file and that the value is set.".format(item_name=item_name))
+        else:
+            return default
 
 
-def determine_flow_cell_id(override_value):
+def determine_flow_cell_id():
     # let the user override this method with a manually-specified value
-    if override_value:
-        return override_value
-
     flow_cell_regex = re.compile(r'.*?(SA\d{5}).*?')
     filenames = glob.glob('*')
     candidates = set()
@@ -558,21 +558,18 @@ class SyntheticAffinities(object):
     def perfect(self):
         # The KD of the protein for a DNA sequence that is completely homologous to the guide RNA
         if self._perfect is None:
-            print(self.get(self._target_sequence.sequence))
             perfect_kds = []
             for sequence, (kd, uncertainty, count) in self:
                 if self._target_sequence.sequence in sequence:
                     perfect_kds.append(ufloat(kd, uncertainty))
             mean_perfect_kd = np.median(perfect_kds)
             self._perfect = mean_perfect_kd.n, mean_perfect_kd.s, 0
-            print(self._perfect)
         return self._perfect
 
 
 def converter(kd_to_delta_aba_converter, neg_daba_ufloat, kd, uncertainty):
     daba, daba_uncertainty = kd_to_delta_aba_converter(kd, uncertainty)
     normalized_daba = ufloat(daba, daba_uncertainty) / neg_daba_ufloat
-    # we define the dABA of the negative control ABA to be the highest possible, so we take min(1.0, daba)
     return normalized_daba.n, normalized_daba.s
 
 
