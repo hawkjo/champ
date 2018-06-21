@@ -53,7 +53,12 @@ print('Neg control target {}: {}'.format(neg_control_target_name, neg_control_ta
 print('Channels: {}'.format(all_channels))
 print('Protein channel: {}'.format(data_channel))
 print('Output file: {}'.format(read_name_kd_filename))
+print('LDA Kernal: {}'.format(nonneg_lda_weights_fpath))
+print('PAM side: {}'.format(pam_side))
+print('PAM size (bp): {}'.format(pam_size))
+print('Extended PAM size (bp): {}'.format(extended_pam_size))
 print('Git commit used for this analysis: {}'.format(git_commit))
+print('\n\nUsing %d processes for parallelized steps\n\n' % process_count)
 
 interesting_seqs = set()
 
@@ -232,7 +237,7 @@ for intensity_gradient in sequence_read_name_intensities[target]:
 median_saturated_intensity = np.median(saturated_intensities)
 print("Median saturated intensity: %d (N=%d)" % (median_saturated_intensity, len(saturated_intensities)))
 
-fig, ax = plt.subplots(figsize=(8,8))
+fig, ax = plt.subplots(figsize=(8, 8))
 ax.plot(all_concentrations, sequence_read_name_intensities[target][0], color=flabpal.blue, alpha=0.005, label='Perfect target intensities')
 for intensity_gradient in sequence_read_name_intensities[target][1:2000]:
     ax.plot(all_concentrations, intensity_gradient, color=flabpal.blue, alpha=0.005)
@@ -243,6 +248,8 @@ ax.set_xlabel("Concentration (nM)")
 legend = ax.legend()
 for handle in legend.legendHandles:
     handle.set_alpha(1.0)
+fig.savefig("perfect-target-intensities.pdf", bbox_inches='tight')
+plt.close()
 
 string_dt = h5py.special_dtype(vlen=str)
 kd_dt = np.dtype([('sequence', string_dt),
@@ -281,7 +288,11 @@ with h5py.File(read_name_kd_filename, 'r') as h5:
     count_ax.set_xlabel("Clusters per Sequence")
     count_ax.set_title("Representation of Synthetic Sequences")
 fig.tight_layout()
+fig.savefig("kd-overview.pdf", bbox_inches='tight')
+plt.close()
 
+print("Saved KD overview")
+print("Starting genomic analysis. This will take hours or days!")
 genome_main(bamfile_path, read_name_kd_filename, all_concentrations, median_saturated_intensity, process_count=process_count)
 
 with h5py.File(read_name_kd_filename, 'a') as h5:
