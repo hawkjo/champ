@@ -144,8 +144,8 @@ for d in results_dirs:
 int_scores = intensity.IntensityScores(h5_fpaths)
 int_scores.get_LDA_scores(results_dirs, nonneg_lda_weights_fpath)
 int_scores.normalize_scores()
-int_scores.plot_aligned_images('br', 'o*')
-int_scores.plot_normalization_constants()
+# int_scores.plot_aligned_images('br', 'o*')
+# int_scores.plot_normalization_constants()
 int_scores.print_reads_per_channel()
 
 # The number of observations we require to consider a cluster valid enough for fitting.
