@@ -26,6 +26,7 @@ if __name__ == '__main__':
         zip_safe=False,
         data_files=[('notebooks', ['notebooks/intensity-and-kd-fitting.ipynb',
                                    'notebooks/genome-analysis.ipynb',
+                                   'notebooks/intensity-kon-fitting.py',
                                    'notebooks/synthetic-library-analysis.ipynb']),
 
                     ],
