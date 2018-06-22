@@ -7,7 +7,7 @@ Usage:
   champ h5 IMAGE_DIRECTORY [--min-column=MINCOL] [--max-column=MAXCOL] [-v | -vv | -vvv]
   champ align IMAGE_DIRECTORY [--rotation-adjustment=ROTATION_ADJUSTMENT] [--min-hits=MIN_HITS] [--snr=SNR] [--process-limit=PROCESS_LIMIT] [--make-pdfs] [--fiducial-only] [-v | -vv | -vvv]
   champ info IMAGE_DIRECTORY
-  champ genome FASTQ_DIRECTORY [--output-filename]
+  champ genome FASTQ_DIRECTORY [--output-filename=OUTPUT_FILENAME]
   champ notebooks [-v | -vv | -vvv]
 
 Options:
