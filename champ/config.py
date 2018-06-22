@@ -129,6 +129,10 @@ class CommandLineArguments(object):
         return self._arguments['OUTPUT_DIRECTORY']
 
     @property
+    def output_filename(self):
+        return self._arguments['--output-filename'] or False
+
+    @property
     def perfect_target_name(self):
         return self._arguments['--perfect-target-name'] or False
 

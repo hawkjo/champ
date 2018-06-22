@@ -14,12 +14,15 @@ import h5py
 SUCCESS = 0
 
 
-def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/champ/human-genome', reference_genome_fastq_filename=None):
+def build_genomic_bamfile(fastq_directory, output_filename, bowtie_directory_and_prefix='.local/champ/human-genome', reference_genome_fastq_filename=None):
     """ Aligns all gzipped FASTQ files in a given directory to a reference genome,
     creating a Bamfile that can be read by pysam, among other tools. This must be performed before
     other CHAMP genomic analyses can be run. """
     if reference_genome_fastq_filename is None:
         reference_genome_fastq_filename = os.path.join(os.path.expanduser("~"), '.local', 'champ', 'human-genome.fna')
+
+    if not output_filename:
+        output_filename = 'genomic'
 
     samtools = distutils.spawn.find_executable("samtools")
     if samtools is None:
@@ -77,7 +80,7 @@ def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/c
                                     '-1', forward_paired_filenames,
                                     '-2', reverse_paired_filenames,
                                     '-U', unpaired_filenames,
-                                    '-S', os.path.join(fastq_directory, 'genomic.sam')])
+                                    '-S', os.path.join(fastq_directory, '{output_filename}.sam'.format(output_filename=output_filename))])
 
     if result != SUCCESS:
         fail("Could not build samfile.")
@@ -85,14 +88,14 @@ def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/c
     # Convert the Samfile to a Bamfile
     try:
         samtools_sort = subprocess.Popen([samtools, 'sort',
-                                          '-', os.path.join(fastq_directory, 'genomic')],
+                                          '-', os.path.join(fastq_directory, '{output_filename}'.format(output_filename=output_filename))],
                                          stdin=subprocess.PIPE)
         samtools_view = subprocess.Popen([samtools, 'view',
-                                          '-bS', os.path.join(fastq_directory, 'genomic.sam')],
+                                          '-bS', os.path.join(fastq_directory, '{output_filename}.sam'.format(output_filename=output_filename))],
                                          stdout=samtools_sort.stdin)
         samtools_sort.communicate()
         samtools_view.wait()
-        bamfile_path = os.path.join(fastq_directory, 'genomic.bam')
+        bamfile_path = os.path.join(fastq_directory, '{output_filename}.bam'.format(output_filename=output_filename))
         result = subprocess.check_call([samtools, 'index', bamfile_path])
         if result != SUCCESS:
             fail("Could not index bamfile.")
@@ -106,7 +109,11 @@ def build_genomic_bamfile(fastq_directory, bowtie_directory_and_prefix='.local/c
         fail("Problem with samtools.")
 
     # Delete the temporary files we created
-    for filename in itertools.chain(forward_paired, reverse_paired, unpaired, (os.path.join(fastq_directory, 'genomic.sam'),)):
+    for filename in itertools.chain(forward_paired,
+                                    reverse_paired,
+                                    unpaired,
+                                    (os.path.join(fastq_directory,
+                                                  '{output_filename}.sam'.format(output_filename=output_filename)),)):
         try:
             os.unlink(filename)
         except:
