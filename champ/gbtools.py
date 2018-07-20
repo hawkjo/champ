@@ -180,12 +180,8 @@ def iterate_pileups(bamfile, contig):
             yield contig, pileup_column.pos, frozenset(query_names)
 
 
-def calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, delta_y, process_count=16):
+def calculate_genomic_kds(bamfile, contigs, read_name_intensities_hdf5_filename, concentrations, delta_y, process_count=16):
     read_name_intensities = load_read_name_intensities(read_name_intensities_hdf5_filename)
-    with pysam.Samfile(bamfile) as samfile:
-        contigs = list(reversed(sorted(samfile.references)))
-        # contigs = ['NC_000019.10']
-
     contig_position_kds = {contig: {} for contig in contigs}
     for contig in contigs:
         if not contig.startswith('NC'):
@@ -277,7 +273,11 @@ def save_gene_affinities(gene_affinities, gene_count, hdf5_filename=None):
 
 
 def genome_main(bamfile, read_name_intensities_hdf5_filename, concentrations, median_saturated_intensity, process_count=16):
-    position_kds = calculate_genomic_kds(bamfile, read_name_intensities_hdf5_filename, concentrations, median_saturated_intensity, process_count=process_count)
+    with pysam.Samfile(bamfile) as samfile:
+        contigs = list(reversed(sorted(samfile.references)))
+        # contigs = ['NC_000019.10']
+
+    position_kds = calculate_genomic_kds(bamfile, contigs, read_name_intensities_hdf5_filename, concentrations, median_saturated_intensity, process_count=process_count)
     genes = load_gene_positions()
     gene_affinities = build_gene_affinities(genes, position_kds)
     gene_count = load_gene_count()
