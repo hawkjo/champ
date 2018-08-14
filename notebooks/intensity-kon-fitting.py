@@ -7,7 +7,6 @@ import h5py
 import numpy as np
 import progressbar
 import yaml
-from scipy import stats
 
 from champ import misc, intensity, initialize, seqtools, interactive, git_commit
 from champ.constants import MINIMUM_REQUIRED_COUNTS
@@ -144,8 +143,6 @@ for d in results_dirs:
 int_scores = intensity.IntensityScores(h5_fpaths)
 int_scores.get_LDA_scores(results_dirs, nonneg_lda_weights_fpath)
 int_scores.normalize_scores()
-# int_scores.plot_aligned_images('br', 'o*')
-# int_scores.plot_normalization_constants()
 int_scores.print_reads_per_channel()
 
 # The number of observations we require to consider a cluster valid enough for fitting.
@@ -226,22 +223,8 @@ for intensity_gradient in sequence_read_name_intensities[target]:
                 saturated_intensities.append(value)
         except IndexError:
             continue
-median_saturated_intensity = np.median(saturated_intensities)
+median_saturated_intensity = int(np.median(saturated_intensities))
 print("Median saturated intensity: %d (N=%d)" % (median_saturated_intensity, len(saturated_intensities)))
-
-# fig, ax = plt.subplots(figsize=(8, 8))
-# ax.plot(all_concentrations, sequence_read_name_intensities[target][0], color=flabpal.blue, alpha=0.005, label='Perfect target intensities')
-# for intensity_gradient in sequence_read_name_intensities[target][1:2000]:
-#     ax.plot(all_concentrations, intensity_gradient, color=flabpal.blue, alpha=0.005)
-# ax.axhline(median_saturated_intensity, linestyle='--', color=flabpal.red, label='Median saturated intensity')
-# ax.set_title("Perfect target intensities")
-# ax.set_ylabel("Intensity (AU)")
-# ax.set_xlabel("Concentration (nM)")
-# legend = ax.legend()
-# for handle in legend.legendHandles:
-#     handle.set_alpha(1.0)
-# fig.savefig("perfect-target-intensities.pdf", bbox_inches='tight')
-# plt.close()
 
 string_dt = h5py.special_dtype(vlen=str)
 kd_dt = np.dtype([('sequence', string_dt),
@@ -261,28 +244,6 @@ with h5py.File(read_name_kd_filename, 'a') as h5:
                 index += 1
 
 print("Determined KDs for %d of %d sequences" % (index, len(sequence_read_name_intensities)))
-
-# fig, (kd_ax, count_ax) = plt.subplots(1, 2, figsize=(16, 6))
-#
-# with h5py.File(read_name_kd_filename, 'r') as h5:
-#     histogram_kds = [i[1] for i in h5['synthetic-kds'][:]]
-#     kd_ax.hist(histogram_kds, bins=100)
-#     kd_ax.set_ylabel("Count")
-#     kd_ax.set_xlabel("$K_D$ (nM)")
-#     kd_ax.set_title("Histogram of Synthetic Target KDs")
-#
-# with h5py.File(read_name_kd_filename, 'r') as h5:
-#     histogram_counts = [i[5] for i in h5['synthetic-kds'][:]]
-#     count_median = np.median(histogram_counts)
-#     count_iqr = stats.iqr(histogram_counts)
-#     count_ax.hist(histogram_counts, bins=20, range=(0, int(count_median + count_iqr * 5)))
-#     count_ax.set_ylabel("Count")
-#     count_ax.set_xlabel("Clusters per Sequence")
-#     count_ax.set_title("Representation of Synthetic Sequences")
-# fig.tight_layout()
-# fig.savefig("kd-overview.pdf", bbox_inches='tight')
-# plt.close()
-
 print("Saved KD overview")
 print("Starting genomic analysis. This will take hours or days!")
 genome_main(bamfile_path, read_name_kd_filename, all_concentrations, median_saturated_intensity, process_count=process_count)
