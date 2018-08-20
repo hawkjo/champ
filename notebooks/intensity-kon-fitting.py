@@ -150,6 +150,7 @@ int_scores.print_reads_per_channel()
 # random imperfections in the motion of the stage, and some fields of view might simply not
 # align under each concentration.
 minimum_observations_per_cluster = len(h5_fpaths) - 3
+print("minimum_observations_per_cluster", minimum_observations_per_cluster)
 
 int_scores.build_good_read_names(minimum_observations_per_cluster)
 good_read_names = int_scores.good_read_names
@@ -189,6 +190,7 @@ with h5py.File(read_name_kd_filename, 'w') as h5:
 with h5py.File(read_name_kd_filename, 'a') as h5:
     h5.create_dataset('intensities', data=intensity_matrix)
 
+print("Created read names and intensities H5 files")
 # Find the KD of the perfect target so we can determine at what concentrations the clusters
 # should be saturated
 sequence_read_name_intensities = defaultdict(list)
@@ -197,6 +199,15 @@ for sequence, read_names in interesting_read_names.items():
         if read_name not in read_name_intensities:
             continue
         sequence_read_name_intensities[sequence].append(read_name_intensities[read_name])
+
+print("len(sequence_read_name_intensities[target])", len(sequence_read_name_intensities[target]))
+# Aligned reads in data channel: 6898034
+# Created read names and intensities H5 files
+# leastsq() got an unexpected keyword argument 'bounds'
+# Traceback (most recent call last):
+#   File "intensity-kon-fitting.py", line 203, in <module>
+#     perfect_kd, perfect_kd_uncertainty, perfect_yint, perfect_delta_y, perfect_counts = fit_one_group_kd(sequence_read_name_intensities[target], all_concentrations, delta_y=None)
+# TypeError: 'NoneType' object is not iterable
 
 all_concentrations = [misc.parse_concentration(h5_fpath) for h5_fpath in h5_fpaths]
 perfect_kd, perfect_kd_uncertainty, perfect_yint, perfect_delta_y, perfect_counts = fit_one_group_kd(sequence_read_name_intensities[target], all_concentrations, delta_y=None)

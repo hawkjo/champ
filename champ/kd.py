@@ -74,6 +74,7 @@ def fit_all_kds(group_intensities, all_concentrations, process_count=8, delta_y=
 
 def fit_one_group_kd(intensities, all_concentrations, delta_y=None, bootstrap=True):
     minimum_required_observations = max(len(all_concentrations) - 3, 5)
+    print("minimum_required_observations", minimum_required_observations)
     try:
         result = _thread_fit_kd((None, intensities),
                                 all_concentrations,
@@ -143,9 +144,10 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
 def fit_kd(all_concentrations, all_intensities, delta_y=None):
     """ all_intensities is a list of dicts, with read_name: intensity"""
     try:
+        print("fitkd", "len(all_concentrations)", len(all_concentrations), "len(all_intensities)", len(all_intensities))
         yint, fit_delta_y, kd = fit_hyperbola(all_concentrations, all_intensities, delta_y=delta_y)
     except (FloatingPointError, RuntimeError, Exception) as e:
-        print(e)
+        print("fit_kd error", e)
         return None, None, None
     else:
         return kd, yint, fit_delta_y
