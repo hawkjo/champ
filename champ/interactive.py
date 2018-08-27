@@ -501,6 +501,12 @@ class SyntheticAffinities(object):
         self._affinities = {}
         self._perfect = None
 
+    def __hash__(self):
+        return hash((self._target_sequence.sequence, self._label, len(self._affinities)))
+
+    def __eq__(self, other):
+        return self._target_sequence.sequence == other.sequence and self._label == other._label and len(self._affinities) == len(other._affinities)
+
     def __len__(self):
         return len(self._affinities)
 
