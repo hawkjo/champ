@@ -56,6 +56,10 @@ class TargetSequence(object):
         return self._pam_side
 
     @property
+    def pam_sequence(self):
+        return TargetSequence(self.pam, pam_side=self._pam_side)
+
+    @property
     def guide(self):
         return TargetSequence(self._guide_sequence, pam_side=self._pam_side)
 
