@@ -604,3 +604,26 @@ def load_synthetic_kds(filename, target_sequence, experiment_label):
         for sequence, kd, uncertainty, _, _, count in h5['synthetic-kds']:
             synthetic_kds.set(sequence, kd, uncertainty, count)
         return synthetic_kds
+
+
+def merge_synthetic_kds(target_sequence, label, *datasets):
+    first = datasets[0]
+    others = datasets[1:]
+    merged = SyntheticAffinities(target_sequence, label)
+    for sequence, (aba, uncertainty, count) in first:
+        skip = False
+        abas = [ufloat(aba, uncertainty)]
+        counts = [count]
+        for other in others:
+            result = other.get(sequence)
+            if not result:
+                skip = True
+                break
+            aba, uncertainty, count = result
+            abas.append(ufloat(aba, uncertainty))
+            counts.append(count)
+        if skip:
+            continue
+        mean = np.mean(abas)
+        merged.set(sequence, mean.n, mean.s, int(np.mean(counts)))
+    return merged
