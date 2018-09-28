@@ -150,7 +150,6 @@ def main(image_directory):
     # Assign each HDF5 file to a thread, which converts it to a "fits" file
     worker_pool = Pool(processes=thread_count)
     find_clusters_source_extractor(worker_pool, image_files)
-    find_clusters_otsu(worker_pool, image_files)
 
 
 def find_clusters_otsu(worker_pool, image_files):
