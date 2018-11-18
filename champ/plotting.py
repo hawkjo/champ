@@ -21,9 +21,9 @@ def plot_2d_mismatches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     # Add data to the main part of the figure
     ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, normalize=normalize, cmap=cmap, force_full_bounds=force_full_bounds, show_base_legend=show_base_legend, grid_line_spacing=dimension, cbar_limits=cbar_limits)
     # Add a color bar to the right side to quantify the colors in the main figure
-    add_colorbar(fig, gs[cbar_index], ms, fontsize)
+    cbar = add_colorbar(fig, gs[cbar_index], ms, fontsize)
     # color the labels
-    return fig
+    return fig, cbar
 
 
 def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, normalize=True, fontsize=18,
@@ -187,6 +187,7 @@ def add_colorbar(fig, colorbar_grid, ms, fontsize, label='Normalized $\Delta ABA
     cbar.set_label(label, fontsize=fontsize*2)
     if cbar_limits is not None:
         cbar.set_clim(vmin=cbar_limits[0], vmax=cbar_limits[1])
+    return cbar
 
 
 def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False, cmap='viridis', show_base_legend=False, grid_line_spacing=None, force_full_bounds=True, cbar_limits=None):
@@ -249,10 +250,10 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
 def add_color_axes(fig, left_color_grid, bottom_color_grid, base_sequence):
     left_color_codes_ax = fig.add_subplot(left_color_grid)
     build_base_colorcode_axis(left_color_codes_ax, base_sequence, vertical=True)
-    add_letters_to_colorcode_axis(left_color_codes_ax, True, base_sequence)
+    #add_letters_to_colorcode_axis(left_color_codes_ax, True, base_sequence)
     bottom_color_codes_ax = fig.add_subplot(bottom_color_grid)
     build_base_colorcode_axis(bottom_color_codes_ax, base_sequence)
-    add_letters_to_colorcode_axis(bottom_color_codes_ax, False, base_sequence)
+    #add_letters_to_colorcode_axis(bottom_color_codes_ax, False, base_sequence)
 
 
 def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels, positions_are_merged=False, fontsize=30):
