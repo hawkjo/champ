@@ -566,15 +566,9 @@ class SyntheticAffinities(object):
 
     @property
     def perfect(self):
-        # The KD of the protein for a DNA sequence that is completely homologous to the guide RNA
-        if self._perfect is None:
-            perfect_kds = []
-            for sequence, (kd, uncertainty, count) in self:
-                if self._target_sequence.sequence in sequence:
-                    perfect_kds.append(ufloat(kd, uncertainty))
-            mean_perfect_kd = np.median(perfect_kds)
-            self._perfect = mean_perfect_kd.n, mean_perfect_kd.s, 0
-        return self._perfect
+        # The KD of the protein for a DNA sequence that is completely homologous to the guide RNA, with the canonical
+        # PAM and immediately downstream of SP1
+        return self.get(self._target_sequence.sequence)
 
 
 def converter(kd_to_delta_aba_converter, neg_daba_ufloat, kd, uncertainty):
