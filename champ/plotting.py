@@ -250,10 +250,10 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
 def add_color_axes(fig, left_color_grid, bottom_color_grid, base_sequence):
     left_color_codes_ax = fig.add_subplot(left_color_grid)
     build_base_colorcode_axis(left_color_codes_ax, base_sequence, vertical=True)
-    #add_letters_to_colorcode_axis(left_color_codes_ax, True, base_sequence)
+    # add_letters_to_colorcode_axis(left_color_codes_ax, True, base_sequence)
     bottom_color_codes_ax = fig.add_subplot(bottom_color_grid)
     build_base_colorcode_axis(bottom_color_codes_ax, base_sequence)
-    #add_letters_to_colorcode_axis(bottom_color_codes_ax, False, base_sequence)
+    # add_letters_to_colorcode_axis(bottom_color_codes_ax, False, base_sequence)
 
 
 def add_sequence_labels(fig, left_grid, bottom_grid, dimension, sequence_labels, positions_are_merged=False, fontsize=30):
