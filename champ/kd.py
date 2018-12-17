@@ -190,8 +190,9 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_reads_f
                       ('kd', np.float),
                       ('kd_uncertainty', np.float),
                       ('count', np.int32)])
-
+    print("about to open")
     with h5py.File(h5_filename, 'a') as h5:
+
         read_name_intensities = load_read_name_intensities(h5_filename)
         interesting_read_names = load_sequence_read_names(interesting_reads_filename)
         sequence_read_name_intensities = defaultdict(list)
@@ -224,6 +225,8 @@ def filter_reads_with_unusual_intensities(intensities):
     :param intensities: a list of numpy arrays, potentially with np.nan values
 
     """
+    if len(intensities) == 0:
+        return []
     bad_clusters = set()
     assert len(set([len(intensity) for intensity in intensities])) == 1, "All reads should have the same number of " \
                                                                          "observations. Missing observations should be " \
