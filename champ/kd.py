@@ -256,3 +256,13 @@ def sample_lists_with_replacement(lists):
     # random.choice requires 1D arrays
     indexes = np.random.randint(len(lists), size=min(MAX_BOOTSTRAP_SAMPLE_SIZE, len(lists)))
     return [lists[index] for index in indexes]
+
+
+def copy_over_everything_but_kds(h5_filename, new_h5_filename):
+    with h5py.File(h5_filename, 'r') as h5:
+        intensities = h5['intensities'][:]
+        read_names = h5['read_names'][:]
+
+    with h5py.File(new_h5_filename, 'w') as h5:
+        h5['intensities'] = intensities
+        h5['read_names'] = read_names
