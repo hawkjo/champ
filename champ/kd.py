@@ -121,10 +121,11 @@ def determine_kd(fitting_concentrations, fitting_intensities):
         return kd
 
 
-def bootstrap_kd(all_concentrations, normalized_intensities, return_all_bootstrapped_kds=False):
+def bootstrap_kd(all_concentrations, normalized_intensities, return_all_bootstrapped_kds=False, rounds=None):
+    rounds = BOOTSTRAP_ROUNDS if rounds is None else rounds
     kds = []
     # in case some fits don't work, do some extra rounds until we have the number we want
-    for i in range(BOOTSTRAP_ROUNDS*10):
+    for i in range(rounds*10):
         sample_of_intensities = sample_lists_with_replacement(normalized_intensities)[:MAX_BOOTSTRAP_SAMPLE_SIZE]
         fitting_concentrations, fitting_intensities = assemble_flat_concentrations_and_intensities(all_concentrations, sample_of_intensities)
         try:
@@ -134,7 +135,7 @@ def bootstrap_kd(all_concentrations, normalized_intensities, return_all_bootstra
             continue
         else:
             kds.append(kd)
-            if len(kds) == BOOTSTRAP_ROUNDS:
+            if len(kds) == rounds:
                 if return_all_bootstrapped_kds:
                     return kds
                 return np.std(kds)
