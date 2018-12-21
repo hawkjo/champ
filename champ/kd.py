@@ -149,6 +149,7 @@ def find_boundary_parameters(concentrations, neg_control_intensities, matched_in
     def fit_kd_and_imax(x, Kd, Imax):
         return (Imax - imin) / (1.0 + (float(Kd) / x)) + imin
 
+
     matched_kd, imax = get_maximum_intensity(fit_kd_and_imax, concentrations, matched_intensities)
     all_neg_intensities = normalize_intensities(neg_control_intensities, imin, imax)
     neg_conc, neg_int = assemble_flat_concentrations_and_intensities(concentrations, all_neg_intensities)
