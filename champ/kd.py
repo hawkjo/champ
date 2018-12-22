@@ -149,7 +149,6 @@ def find_boundary_parameters(concentrations, neg_control_intensities, matched_in
     def fit_kd_and_imax(x, Kd, Imax):
         return (Imax - imin) / (1.0 + (float(Kd) / x)) + imin
 
-
     matched_kd, imax = get_maximum_intensity(fit_kd_and_imax, concentrations, matched_intensities)
     all_neg_intensities = normalize_intensities(neg_control_intensities, imin, imax)
     neg_conc, neg_int = assemble_flat_concentrations_and_intensities(concentrations, all_neg_intensities)
@@ -173,14 +172,10 @@ def _thread_fit_kd(sequence_intensities, all_concentrations, imin, imax):
     kd_uncertainty = bootstrap_kd(all_concentrations, normalized_intensities)
     if kd_uncertainty is None:
         return None
-    return sequence, kd, kd_uncertainty, len(intensities)
+    return sequence, kd, kd_uncertainty, len(normalized_intensities)
 
 
 def fit_all_kds(sequence_read_name_intensities, all_concentrations, imin, imax, process_count=8):
-    # sequence_read_name_intensities: List[Dict[str, List[List[float]]]
-    # sequence_read_name_intensities should be a list of dictionaries that map read names to intensities
-    # each dictionary should all be related to some group of reads that have the same sequence or overlap the same
-    # region of the genome
     for result in lomp.parallel_map(sequence_read_name_intensities.items(),
                                     _thread_fit_kd,
                                     args=(all_concentrations, imin, imax),
@@ -189,17 +184,15 @@ def fit_all_kds(sequence_read_name_intensities, all_concentrations, imin, imax, 
             yield result
 
 
-def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_reads_filename, matched_sequence, neg_control_sequence):
+def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_names, matched_sequence,
+                                neg_control_sequence, process_count):
     string_dt = h5py.special_dtype(vlen=str)
     kd_dt = np.dtype([('sequence', string_dt),
                       ('kd', np.float),
                       ('kd_uncertainty', np.float),
                       ('count', np.int32)])
-    print("about to open")
     with h5py.File(h5_filename, 'a') as h5:
-
         read_name_intensities = load_read_name_intensities(h5_filename)
-        interesting_read_names = load_sequence_read_names(interesting_reads_filename)
         sequence_read_name_intensities = defaultdict(list)
         for sequence, read_names in interesting_read_names.items():
             for read_name in read_names:
@@ -215,7 +208,11 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_reads_f
         index = 0
 
         with progressbar.ProgressBar(max_value=len(sequence_read_name_intensities)) as pbar:
-            for sequence, kd, kd_uncertainty, count in pbar(fit_all_kds(sequence_read_name_intensities, concentrations, imin, imax, process_count=8)):
+            for sequence, kd, kd_uncertainty, count in pbar(fit_all_kds(sequence_read_name_intensities,
+                                                                        concentrations,
+                                                                        imin,
+                                                                        imax,
+                                                                        process_count=process_count)):
                 if count >= MINIMUM_REQUIRED_COUNTS:
                     dataset.resize((index+1,))
                     dataset[index] = (sequence, kd, kd_uncertainty, count)
