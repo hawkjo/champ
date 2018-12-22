@@ -217,7 +217,7 @@ def determine_perfect_target_reads(targets, read_names_by_seq):
     for target_name, target_sequence in targets.items():
         perfect_read_names = []
         for seq, read_names in read_names_by_seq.items():
-            if target_sequence in seq:
+            if seq.startswith(target_sequence):
                 perfect_read_names += read_names
         yield target_name, perfect_read_names
 
