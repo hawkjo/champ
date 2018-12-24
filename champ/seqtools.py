@@ -209,7 +209,7 @@ def build_interesting_sequences(read_names_by_seq_filepath, interesting_sequence
             rough_sequence = words[0]
             read_names = set(words[1:])
             for interesting_sequence in interesting_sequences:
-                if interesting_sequence in rough_sequence:
+                if rough_sequence.startswith(interesting_sequence):
                     interesting_read_names[interesting_sequence].update(read_names)
     return interesting_read_names
 
