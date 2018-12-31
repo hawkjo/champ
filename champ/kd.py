@@ -2,9 +2,9 @@ from champ.constants import MINIMUM_REQUIRED_COUNTS
 from collections import defaultdict
 import numpy as np
 import h5py
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, minimize
+from scipy import stats
 from sklearn.neighbors import KernelDensity
-from scipy.optimize import minimize
 import progressbar
 import lomp
 
@@ -219,6 +219,67 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
                     index += 1
 
 
+def determine_max_kon(concentrations, intensity_gradient):
+    delta_intensities = intensity_gradient[1:] - intensity_gradient[:-1]
+    return delta_intensities / concentrations
+
+
+def fit_all_kons(sequence_read_name_intensities, concentrations):
+    # we ignore the first concentration no matter what since we only care about the difference after the 2nd titration
+    assert concentrations[1] != 0 and np.all(concentrations[1:])
+    concentrations = np.array(concentrations[1:])
+    for sequence, intensities in sequence_read_name_intensities.items():
+        filtered_intensities = filter_reads_with_unusual_intensities(intensities)
+        if len(filtered_intensities) < MINIMUM_REQUIRED_COUNTS:
+            yield None
+        all_sequence_kons = []
+        for intensity_gradient in filtered_intensities:
+            # raw_kons may have values of np.nan
+            raw_kons = determine_max_kon(concentrations, np.array(intensity_gradient))
+            all_sequence_kons.append(raw_kons)
+        all_sequence_kons = np.array(all_sequence_kons)
+        median_kons = np.nanmedian(all_sequence_kons, axis=0)
+        try:
+            peak_rate_index = np.nanargmax(median_kons)
+        except ValueError:
+            yield None
+        else:
+            # grab the data from the timepoint with the largest change (i.e. the best dynamic range)
+            peak_data = all_sequence_kons[:, peak_rate_index]
+            peak_data = peak_data[~np.isnan(peak_data)]
+            mean = np.mean(peak_data)
+            std = stats.sem(peak_data, nan_policy='omit')
+            yield sequence, mean, std, len(peak_data)
+
+
+def calculate_all_synthetic_kons(h5_filename, concentrations, interesting_read_names):
+    string_dt = h5py.special_dtype(vlen=str)
+    # TODO: While this is an experiment, we'll keep calling these kds, even though they're on rates, just so we can
+    #       plot them using existing code.
+
+    kd_dt = np.dtype([('sequence', string_dt),
+                      ('kd', np.float),
+                      ('kd_uncertainty', np.float),
+                      ('count', np.int32)])
+    with h5py.File(h5_filename, 'a') as h5:
+        read_name_intensities = load_read_name_intensities(h5_filename)
+        sequence_read_name_intensities = defaultdict(list)
+        for sequence, read_names in interesting_read_names.items():
+            for read_name in read_names:
+                if read_name not in read_name_intensities:
+                    continue
+                sequence_read_name_intensities[sequence].append(read_name_intensities[read_name])
+
+        dataset = h5.create_dataset('synthetic-kds', (1,), dtype=kd_dt, maxshape=(None,))
+        index = 0
+
+        for n, (sequence, kon, kon_uncertainty, count) in enumerate(fit_all_kons(sequence_read_name_intensities, concentrations)):
+            if count >= MINIMUM_REQUIRED_COUNTS:
+                dataset.resize((index + 1,))
+                dataset[index] = (sequence, kon, kon_uncertainty, count)
+                index += 1
+
+
 def filter_reads_with_unusual_intensities(intensities):
     """
     Filters out intensity gradients where any of the measurements were absurdly high or low. Each intensity gradient
@@ -271,3 +332,40 @@ def copy_over_everything_but_kds(h5_filename, new_h5_filename):
     with h5py.File(new_h5_filename, 'w') as h5:
         h5['intensities'] = intensities
         h5['read_names'] = read_names
+
+
+if __name__ == '__main__':
+    old_h5_filename = '/home/jim/phd/cpf1/cas12a-mechanisms-of-specificity/raw-data/20170507.h5'
+    new_h5_filename = '/home/jim/phd/cpf1/cas12a-mechanisms-of-specificity/raw-data/20170507.h5'
+    read_name_intensities = load_read_name_intensities(h5_filename)
+    calculate_all_synthetic_kons(h5_filename,
+                                 [1, 2, 4, 8, 16, 32, 64, 128, 256, 512],
+                                 )
+
+    from collections import defaultdict
+    import numpy as np
+    from scipy import stats
+
+
+
+
+    def calculate_all_synthetic_kons(h5_filename, concentrations, interesting_read_names):
+        read_name_intensities = load_read_name_intensities(h5_filename)
+        sequence_read_name_intensities = defaultdict(list)
+        for sequence, read_names in interesting_read_names.items():
+            for read_name in read_names:
+                if read_name not in read_name_intensities:
+                    continue
+                sequence_read_name_intensities[sequence].append(read_name_intensities[read_name])
+
+        for n, result in enumerate(fit_all_kons(sequence_read_name_intensities, concentrations)):
+            if result is None:
+                continue
+            sequence, kon, kon_uncertainty, count = result
+            print("%d\t%s\t%f\t%f\t%d" % (n, sequence, kon, kon_uncertainty, count))
+
+
+    sequence_read_names = load_sequence_read_names('raw-data/rnbs-SA17063.txt')
+
+    print("Loaded %d sequence read names" % len(sequence_read_names))
+    calculate_all_synthetic_kons('raw-data/20170507.h5', [1, 2, 4, 8, 16, 32, 64, 128, 256, 512], sequence_read_names)
