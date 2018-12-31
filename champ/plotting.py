@@ -36,8 +36,8 @@ def plot_position_diff(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     # Add data to the main part of the figure
     ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, normalize=normalize, cmap=cmap, force_full_bounds=normalize, cbar_limits=cbar_limits)
     # Add a color bar to the right side to quantify the colors in the main figure
-    add_colorbar(fig, gs[cbar_index], ms, fontsize, label=colorbar_label)
-    return fig
+    cbar = add_colorbar(fig, gs[cbar_index], ms, fontsize, label=colorbar_label)
+    return fig, cbar
 
 
 def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='RdYlBu', normalize=False, force_full_bounds=False, cbar_limits=None):
@@ -49,8 +49,8 @@ def plot_2d_deletions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_mat
     # Add data to the main part of the figure
     ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, grid_line_spacing=1, normalize=normalize, force_full_bounds=force_full_bounds, cbar_limits=cbar_limits)
     # Add a color bar to the right side to quantify the colors in the main figure
-    add_colorbar(fig, gs[cbar_index], ms, fontsize)
-    return fig
+    cbar = add_colorbar(fig, gs[cbar_index], ms, fontsize)
+    return fig, cbar
 
 
 def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='RdYlBu', normalize=False, force_full_bounds=False, cbar_limits=None):
@@ -64,8 +64,8 @@ def plot_complement_stretches(sequence, sequence_labels, lower_ABA_matrix, upper
     # Add data to the main part of the figure
     ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, grid_line_spacing=1, normalize=normalize, force_full_bounds=force_full_bounds, cbar_limits=cbar_limits)
     # Add a color bar to the right side to quantify the colors in the main figure
-    add_colorbar(fig, gs[cbar_index], ms, fontsize)
-    return fig
+    cbar = add_colorbar(fig, gs[cbar_index], ms, fontsize)
+    return fig, cbar
 
 
 def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_matrix=None, fontsize=18, cmap='RdYlBu', normalize=False, force_full_bounds=False, show_base_legend=True, cbar_limits=None):
@@ -81,8 +81,8 @@ def plot_2d_insertions(sequence, sequence_labels, lower_ABA_matrix, upper_ABA_ma
     # Add data to the main part of the figure
     ms = add_data(fig, gs[data_index], lower_ABA_matrix, upper_ABA_matrix, cmap=cmap, show_base_legend=show_base_legend, grid_line_spacing=dimension, normalize=normalize, force_full_bounds=force_full_bounds, cbar_limits=cbar_limits)
     # Add a color bar to the right side to quantify the colors in the main figure
-    add_colorbar(fig, gs[cbar_index], ms, fontsize)
-    return fig
+    cbar = add_colorbar(fig, gs[cbar_index], ms, fontsize)
+    return fig, cbar
 
 
 def build_base_colorcode_axis(ax, sequence, vertical=False):

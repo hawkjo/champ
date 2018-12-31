@@ -5,13 +5,10 @@ import sys
 
 import h5py
 import numpy as np
-import progressbar
 import yaml
 
-from champ import misc, intensity, initialize, seqtools, interactive, git_commit
-from champ.constants import MINIMUM_REQUIRED_COUNTS
-from champ.gbtools import genome_main
-from champ.kd import fit_all_kds, saturated_at_concentration, fit_one_group_kd
+from champ import misc, intensity, initialize, seqtools, interactive
+from champ.kd import calculate_all_synthetic_kds
 from champ.seqtools import build_interesting_sequences
 
 
@@ -27,7 +24,8 @@ pam_size = int(interactive.load_config_value('pam_size', default=4))
 extended_pam_size = int(interactive.load_config_value('extended_pam_size', default=6))
 pam_side = int(interactive.load_config_value('pam_side', default=5))
 
-read_name_dir = os.path.join('/shared', flow_cell_id, 'read_names')
+read_name_dir_default = os.path.join('/shared', flow_cell_id, 'read_names')
+read_name_dir = interactive.load_config_value('mapped_reads', default=read_name_dir_default)
 bamfile_path = os.path.join('/shared', flow_cell_id, 'all_fastqs', 'genomic.bam')
 read_name_kd_filename = os.path.join('results', 'cluster-data.h5')
 read_names_by_seq_fpath = os.path.join(read_name_dir, 'read_names_by_seq.txt')
@@ -48,7 +46,6 @@ print('LDA Kernal: {}'.format(nonneg_lda_weights_fpath))
 print('PAM side: {}'.format(pam_side))
 print('PAM size (bp): {}'.format(pam_size))
 print('Extended PAM size (bp): {}'.format(extended_pam_size))
-print('Git commit used for this analysis: {}'.format(git_commit))
 print('\n\nUsing %d processes for parallelized steps\n\n' % process_count)
 
 interesting_seqs = set()
@@ -130,7 +127,7 @@ print("Phix read names: %d" % len(phiX_read_names))
 h5_fpaths = glob.glob('*.h5')
 h5_fpaths.sort(key=misc.parse_concentration)
 for fpath in h5_fpaths:
-    print misc.parse_concentration(fpath), fpath
+    print(misc.parse_concentration(fpath), fpath)
 
 results_dirs = [
     os.path.join('results',
@@ -190,65 +187,11 @@ with h5py.File(read_name_kd_filename, 'w') as h5:
 with h5py.File(read_name_kd_filename, 'a') as h5:
     h5.create_dataset('intensities', data=intensity_matrix)
 
-# Find the KD of the perfect target so we can determine at what concentrations the clusters
-# should be saturated
-sequence_read_name_intensities = defaultdict(list)
-for sequence, read_names in interesting_read_names.items():
-    for read_name in read_names:
-        if read_name not in read_name_intensities:
-            continue
-        sequence_read_name_intensities[sequence].append(read_name_intensities[read_name])
-
 all_concentrations = [misc.parse_concentration(h5_fpath) for h5_fpath in h5_fpaths]
-perfect_kd, perfect_kd_uncertainty, perfect_yint, perfect_delta_y, perfect_counts = fit_one_group_kd(sequence_read_name_intensities[target], all_concentrations, delta_y=None)
-print("Perfect target KD is %.1f +/- %.3f nM" % (perfect_kd, perfect_kd_uncertainty))
 
-neg_kd, neg_kd_uncertainty, neg_yint, neg_delta_y, neg_counts = fit_one_group_kd(sequence_read_name_intensities[targets['D']], all_concentrations, delta_y=None)
-print("Neg target KD is %.1f +/- %.3f nM" % (neg_kd, neg_kd_uncertainty))
-
-# Determine the median intensity of a saturated cluster
-saturated = saturated_at_concentration(perfect_kd)
-print("Should be saturated at %.1f nM" % saturated)
-saturated_indexes = [index for index, concentration in enumerate(all_concentrations) if concentration > saturated]
-if not saturated_indexes:
-    # this should never happen, but we'll try to take something reasonable
-    print("Warning: perfect target sequence probably did not saturate its target!")
-    saturated_indexes = [len(all_concentrations) - 1]
-
-saturated_intensities = []
-for intensity_gradient in sequence_read_name_intensities[target]:
-    for index in saturated_indexes:
-        try:
-            value = intensity_gradient[index]
-            if not np.isnan(value):
-                saturated_intensities.append(value)
-        except IndexError:
-            continue
-median_saturated_intensity = int(np.median(saturated_intensities))
-print("Median saturated intensity: %d (N=%d)" % (median_saturated_intensity, len(saturated_intensities)))
-
-string_dt = h5py.special_dtype(vlen=str)
-kd_dt = np.dtype([('sequence', string_dt),
-                  ('kd', np.float),
-                  ('kd_uncertainty', np.float),
-                  ('y_intercept', np.float),
-                  ('delta_y', np.float),
-                  ('count', np.int32)])
-with h5py.File(read_name_kd_filename, 'a') as h5:
-    dataset = h5.create_dataset('synthetic-kds', (1,), dtype=kd_dt, maxshape=(None,))
-    index = 0
-    with progressbar.ProgressBar(max_value=len(sequence_read_name_intensities)) as pbar:
-        for sequence, kd, kd_uncertainty, yint, delta_y, count in pbar(fit_all_kds(sequence_read_name_intensities, all_concentrations, process_count=process_count, delta_y=median_saturated_intensity)):
-            if count >= MINIMUM_REQUIRED_COUNTS:
-                dataset.resize((index+1,))
-                dataset[index] = (sequence, kd, kd_uncertainty, yint, delta_y, count)
-                index += 1
-
-print("Determined KDs for %d of %d sequences" % (index, len(sequence_read_name_intensities)))
-print("Saved KD overview")
-print("Starting genomic analysis. This will take hours or days!")
-genome_main(bamfile_path, read_name_kd_filename, all_concentrations, median_saturated_intensity, process_count=process_count)
-
-with h5py.File(read_name_kd_filename, 'a') as h5:
-    group = h5.create_group("git-commit")
-    group.create_group(git_commit)
+calculate_all_synthetic_kds(read_name_kd_filename,
+                            all_concentrations,
+                            interesting_read_names,
+                            target,
+                            neg_control_target,
+                            process_count)
