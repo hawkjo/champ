@@ -630,7 +630,7 @@ class SyntheticOnRates(object):
 
     def normalized(self, background_binding_sequence):
         negative_control_kon, negative_control_uncertainty, _ = self.get(background_binding_sequence)
-        matched_kon, matched_uncertainty, _ = self.get(self._target_sequence)
+        matched_kon, matched_uncertainty, _ = self.matched
         nc = ufloat(negative_control_kon, negative_control_uncertainty)
         matched = ufloat(matched_kon, matched_uncertainty) - nc
         if matched.n == 0:
@@ -656,7 +656,7 @@ class SyntheticOnRates(object):
         return self._target_sequence
 
     @property
-    def perfect(self):
-        # The KD of the protein for a DNA sequence that is completely homologous to the guide RNA, with the canonical
-        # PAM and immediately downstream of SP1
+    def matched(self):
+        # The on rate of the protein for a DNA sequence that is completely homologous to the guide RNA, with the
+        # canonical PAM and immediately downstream of SP1
         return self.get(self._target_sequence.sequence)
