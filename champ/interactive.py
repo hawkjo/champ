@@ -598,3 +598,65 @@ def load_synthetic_kds(filename, target_sequence, experiment_label):
         for sequence, kd, uncertainty, count in h5['synthetic-kds']:
             synthetic_kds.set(sequence, kd, uncertainty, count)
         return synthetic_kds
+
+
+def load_on_rates(filename, target_sequence, experiment_label):
+    with h5py.File(filename, 'r') as h5:
+        synthetic_on_rates = SyntheticOnRates(target_sequence, experiment_label)
+        for sequence, on_rate, uncertainty, count in h5['synthetic-on-rates']:
+            synthetic_on_rates.set(sequence, on_rate, uncertainty, count)
+        return synthetic_on_rates
+
+
+class SyntheticOnRates(object):
+    def __init__(self, target_sequence, experiment_label):
+        self._target_sequence = target_sequence
+        self._label = experiment_label
+        self._on_rates = {}
+        self._perfect = None
+
+    def __hash__(self):
+        return hash((self._target_sequence.sequence, self._label, len(self._on_rates)))
+
+    def __eq__(self, other):
+        return self._target_sequence.sequence == other.sequence and self._label == other._label and len(self._on_rates) == len(other._on_rates)
+
+    def __len__(self):
+        return len(self._on_rates)
+
+    def __iter__(self):
+        for seq, data in self._on_rates.items():
+            yield seq, data
+
+    def normalized(self, background_binding_sequence):
+        negative_control_kon, negative_control_uncertainty, _ = self.get(background_binding_sequence)
+        matched_kon, matched_uncertainty, _ = self.matched
+        nc = ufloat(negative_control_kon, negative_control_uncertainty)
+        matched = ufloat(matched_kon, matched_uncertainty) - nc
+        if matched.n == 0:
+            raise ValueError("On rate of matched target must be greater than zero to normalize on rates.")
+        norm_on_rates = SyntheticOnRates(self._target_sequence, self._label)
+        for sequence, (on_rate, uncertainty, count) in self:
+            normalized_kon = (ufloat(on_rate, uncertainty) - nc) / matched
+            norm_on_rates.set(sequence, normalized_kon.n, normalized_kon.s, count)
+        return norm_on_rates
+
+    def set(self, sequence, on_rate, uncertainty, count):
+        self._on_rates[sequence] = on_rate, uncertainty, count
+
+    def get(self, sequence):
+        return self._on_rates.get(sequence)
+
+    @property
+    def label(self):
+        return self._label
+
+    @property
+    def target(self):
+        return self._target_sequence
+
+    @property
+    def matched(self):
+        # The on rate of the protein for a DNA sequence that is completely homologous to the guide RNA, with the
+        # canonical PAM and immediately downstream of SP1
+        return self.get(self._target_sequence.sequence)
