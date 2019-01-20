@@ -1,6 +1,5 @@
 from champ.readmap import FastqFiles
 from champ.error import fail
-from champ import gbtools
 import distutils
 import subprocess
 import os
@@ -12,6 +11,8 @@ import numpy as np
 import h5py
 
 SUCCESS = 0
+QUALITY_THRESHOLD = 20
+MAXIMUM_REALISTIC_DNA_LENGTH = 1000
 
 
 def build_genomic_bamfile(fastq_directory, output_filename, bowtie_directory_and_prefix='.local/champ/human-genome', reference_genome_fastq_filename=None):
@@ -122,6 +123,41 @@ def build_genomic_bamfile(fastq_directory, output_filename, bowtie_directory_and
     print("Done aligning FASTQ reads to reference genome!")
 
 
+def get_quality_alignment_start_and_end(alignment):
+    if alignment.is_qcfail or alignment.mapq < 20:
+        return None
+    if alignment.is_proper_pair:
+        # This read name appears twice in our data - once in the forward and once in the reverse direction
+        if alignment.is_reverse:
+            # For paired end reads, the forward and reverse reads are symmetric, so to avoid double counting the
+            # bases between the two reads, we only count the bases once (with the forward read)
+            return None
+        if alignment.template_length <= alignment.reference_length or alignment.reference_length == 0:
+            # the combined length of the first and second read is no greater than just one read - either the reads
+            # perfectly overlapped or something weird is happening. We discard this read to be safe.
+            return None
+        start = alignment.reference_start
+        end = start + alignment.template_length
+    # elif alignment.reference_length == alignment.query_length and alignment.reference_length > 0:
+    elif alignment.reference_length > 0:
+        # This is an unpaired read, which is rare but not unheard of. We require that the read align perfectly to the
+        # reference sequence, so we aren't dealing with indels. This might be a bit conservative - we'll come back to
+        # this decision if the read counts are terrible
+        start = alignment.reference_start
+        end = start + alignment.reference_length
+        assert start < end
+    elif alignment.reference_length == 0:
+        return None
+    elif alignment.reference_length < 0:
+        return None
+    else:
+        # The read is unpaired and the alignment was sketchy, so we can't trust this read
+        return None
+    if abs(end - start) > MAXIMUM_REALISTIC_DNA_LENGTH:
+        return None
+    return start, end
+
+
 def get_quality_paired_end_read_sequences(bamfile, fasta_filename=None):
     """
     Associate genomic sequences with read names when those reads are paired and they pass all quality checks.
@@ -140,7 +176,7 @@ def get_quality_paired_end_read_sequences(bamfile, fasta_filename=None):
                 for contig in pbar(contigs):
                     read_name_positions[contig] = {}
                     for alignment in samfile.fetch(contig):
-                        start_end = gbtools.get_quality_alignment_start_and_end(alignment)
+                        start_end = get_quality_alignment_start_and_end(alignment)
                         if start_end is None:
                             continue
                         start, end = start_end
