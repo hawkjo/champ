@@ -201,15 +201,12 @@ def find_first_saturated_titration(matched_delta_intensities, background_delta_i
 
 
 def find_boundary_parameters(concentrations, neg_control_intensities, matched_intensities):
-    print("fbp")
     imin = get_minimum_intensity(neg_control_intensities)
     matched_delta_intensities = get_clean_titration_delta_intensities(matched_intensities)
     background_delta_intensities = get_clean_titration_delta_intensities(neg_control_intensities)
     saturated_index = find_first_saturated_titration(matched_delta_intensities, background_delta_intensities)
     imax = np.nanmedian(np.array(matched_intensities)[:, saturated_index])
     print("Saturation of matched target occurred at %s" % concentrations[saturated_index])
-    print("Imin = %s" % imin)
-    print("Imax = %s" % imax)
     return imin, imax
 
 
@@ -250,21 +247,16 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
                       ('kd_uncertainty', np.float),
                       ('count', np.int32)])
     with h5py.File(h5_filename, 'a') as h5:
-        print("opened h5")
         read_name_intensities = load_read_name_intensities(h5_filename)
-        print("loaded rni")
         sequence_read_name_intensities = defaultdict(list)
         for sequence, read_names in interesting_read_names.items():
             for read_name in read_names:
                 if read_name not in read_name_intensities:
                     continue
                 sequence_read_name_intensities[sequence].append(read_name_intensities[read_name])
-        print("loaded sequence_read_name_intensities")
         matched_intensities = filter_reads_with_unusual_intensities(sequence_read_name_intensities[matched_sequence])
         neg_control_intensities = filter_reads_with_unusual_intensities(sequence_read_name_intensities[neg_control_sequence])
-        print("loaded filtered intensities")
         imin, imax = find_boundary_parameters(concentrations, neg_control_intensities, matched_intensities)
-        print("should've seen imin imax, which were", imin, imax)
         dataset = h5.create_dataset('synthetic-kds', (1,), dtype=kd_dt, maxshape=(None,))
         index = 0
 
