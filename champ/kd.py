@@ -250,7 +250,9 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
                       ('kd_uncertainty', np.float),
                       ('count', np.int32)])
     with h5py.File(h5_filename, 'a') as h5:
+        print("opened h5")
         read_name_intensities = load_read_name_intensities(h5_filename)
+        print("loaded rni")
         sequence_read_name_intensities = defaultdict(list)
         for sequence, read_names in interesting_read_names.items():
             for read_name in read_names:
@@ -260,7 +262,7 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
         print("loaded sequence_read_name_intensities")
         matched_intensities = filter_reads_with_unusual_intensities(sequence_read_name_intensities[matched_sequence])
         neg_control_intensities = filter_reads_with_unusual_intensities(sequence_read_name_intensities[neg_control_sequence])
-        print("loaded intensities")
+        print("loaded filtered intensities")
         imin, imax = find_boundary_parameters(concentrations, neg_control_intensities, matched_intensities)
         print("should've seen imin imax, which were", imin, imax)
         dataset = h5.create_dataset('synthetic-kds', (1,), dtype=kd_dt, maxshape=(None,))
