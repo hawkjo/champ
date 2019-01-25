@@ -2,9 +2,9 @@ from champ.constants import MINIMUM_REQUIRED_COUNTS
 from collections import defaultdict
 import numpy as np
 import h5py
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, minimize
+from scipy import stats
 from sklearn.neighbors import KernelDensity
-from scipy.optimize import minimize
 import progressbar
 import lomp
 
@@ -12,6 +12,7 @@ import lomp
 BOOTSTRAP_ROUNDS = 100
 MAX_BOOTSTRAP_SAMPLE_SIZE = 2000
 TUKEY_CONSTANT = 1.5
+SIGNIFICANCE_LEVEL = 0.05
 
 
 def fit_kd(x, Kd):
@@ -96,7 +97,9 @@ def assemble_flat_concentrations_and_intensities(all_concentrations, cluster_int
 
 def normalize_intensities(intensities, imin, imax):
     d = imax - imin
-    return [(np.array(intensity) - imin) / d for intensity in intensities]
+    # uncomment to allow intensities to exceed the saturated intensity
+    # return [(np.array(intensity) - imin) / d for intensity in intensities]
+    return [(np.clip(intensity, 0, imax) - imin) / d for intensity in intensities]
 
 
 def get_minimum_intensity(neg_control_intensities):
@@ -105,6 +108,7 @@ def get_minimum_intensity(neg_control_intensities):
 
 
 def get_maximum_intensity(fit_func, concentrations, matched_intensities):
+
     all_concentrations, all_intensities = assemble_flat_concentrations_and_intensities(concentrations, matched_intensities)
     popt, _ = curve_fit(fit_func, all_concentrations, all_intensities)
     kd, imax = popt
@@ -143,17 +147,69 @@ def bootstrap_kd(all_concentrations, normalized_intensities, return_all_bootstra
     return None
 
 
+def calculate_delta_intensities(intensity_gradient):
+    return intensity_gradient[1:] - intensity_gradient[:-1]
+
+
+def convert_2d_list_to_column_list(values):
+    """
+    Takes a list of lists, all of equal length, and splits the data by each column.
+
+    """
+    return np.array([column for column in np.array(values).T])
+
+
+def get_clean_titration_delta_intensities(intensities):
+    filtered_intensities = filter_reads_with_unusual_intensities(intensities)
+    delta_intensities = []
+    for intensity_gradient in filtered_intensities:
+        delta_intensity = calculate_delta_intensities(intensity_gradient)
+        delta_intensities.append(delta_intensity)
+    titration_delta_intensities = convert_2d_list_to_column_list(delta_intensities)
+    return clean_delta_intensities(titration_delta_intensities)
+
+
+def clean_delta_intensities(titration_delta_intensities):
+    """ Removes np.nan from all titration data and converts the outer container into a list.
+    After this, it is unlikely that the rows will have the same length so we get no advantage from having
+    this be a numpy array. """
+    return [row[~np.isnan(row)] for row in titration_delta_intensities]
+
+
+def find_significant_titrations(sequence_delta_intensities, background_delta_intensities):
+    significant_titrations = []
+    for seq, bg in zip(sequence_delta_intensities, background_delta_intensities):
+        # null hypothesis: sequence delta intensities are not greater than background delta intensities
+        # alternative hypothesis: sequence delta intensities are greater than background delta intensities
+        _, p_value = stats.mannwhitneyu(seq, bg, alternative='greater')
+        significant_titrations.append(p_value < SIGNIFICANCE_LEVEL)
+    return significant_titrations
+
+
+def find_first_saturated_titration(matched_delta_intensities, background_delta_intensities):
+    """ Determines the index of the first titration where the target sites of the matched clusters are saturated. """
+
+    if len(matched_delta_intensities) == 0:
+        # Your experiment doesn't have any data. Do it again.
+        return None
+    significant_titrations = find_significant_titrations(matched_delta_intensities, background_delta_intensities)
+    first_significant_titration = significant_titrations.index(True)
+    first_insignificant_titration = significant_titrations[first_significant_titration:].index(False) if False in significant_titrations else len(significant_titrations)
+    # we add 1 since we're looking at delta intensities here, so the 0th index is actually
+    # the 2nd titration that was performed
+    return first_insignificant_titration + first_significant_titration + 1
+
+
 def find_boundary_parameters(concentrations, neg_control_intensities, matched_intensities):
     imin = get_minimum_intensity(neg_control_intensities)
-
-    def fit_kd_and_imax(x, Kd, Imax):
-        return (Imax - imin) / (1.0 + (float(Kd) / x)) + imin
-
-    matched_kd, imax = get_maximum_intensity(fit_kd_and_imax, concentrations, matched_intensities)
-    all_neg_intensities = normalize_intensities(neg_control_intensities, imin, imax)
-    neg_conc, neg_int = assemble_flat_concentrations_and_intensities(concentrations, all_neg_intensities)
-    (neg_kd,), pcov = curve_fit(fit_kd, neg_conc, neg_int)
-    return matched_kd, neg_kd, imin, imax
+    matched_delta_intensities = get_clean_titration_delta_intensities(matched_intensities)
+    background_delta_intensities = get_clean_titration_delta_intensities(neg_control_intensities)
+    saturated_index = find_first_saturated_titration(matched_delta_intensities, background_delta_intensities)
+    imax = np.nanmedian(np.array(matched_intensities)[:, saturated_index])
+    print("Saturation of matched target occurred at %s" % concentrations[saturated_index])
+    print("Imin = %s" % imin)
+    print("Imax = %s" % imax)
+    return imin, imax
 
 
 def _thread_fit_kd(sequence_intensities, all_concentrations, imin, imax):
@@ -202,7 +258,7 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
 
         matched_intensities = filter_reads_with_unusual_intensities(sequence_read_name_intensities[matched_sequence])
         neg_control_intensities = filter_reads_with_unusual_intensities(sequence_read_name_intensities[neg_control_sequence])
-        matched_kd, neg_kd, imin, imax = find_boundary_parameters(concentrations, neg_control_intensities, matched_intensities)
+        imin, imax = find_boundary_parameters(concentrations, neg_control_intensities, matched_intensities)
 
         dataset = h5.create_dataset('synthetic-kds', (1,), dtype=kd_dt, maxshape=(None,))
         index = 0

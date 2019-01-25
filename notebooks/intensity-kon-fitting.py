@@ -9,6 +9,7 @@ import yaml
 
 from champ import misc, intensity, initialize, seqtools, interactive
 from champ.seqtools import build_interesting_sequences
+from champ.kd import calculate_all_synthetic_kds
 
 
 process_count = int(sys.argv[1]) if len(sys.argv) > 1 else 8
@@ -124,6 +125,9 @@ phiX_read_names = set(line.strip() for line in open(phiX_read_name_fpath))
 print("Phix read names: %d" % len(phiX_read_names))
 
 h5_fpaths = glob.glob('*.h5')
+if not h5_fpaths:
+    print("There are no h5 files! You need to generate them with the command 'champ h5'")
+    exit()
 h5_fpaths.sort(key=misc.parse_concentration)
 for fpath in h5_fpaths:
     print(misc.parse_concentration(fpath), fpath)
@@ -142,12 +146,12 @@ int_scores.normalize_scores()
 int_scores.print_reads_per_channel()
 
 
-# It used to be important for fitting to have multiple observations of each cluster. However, with the new on rate
-# determination scheme, we only need two consecutive observations at the right point to get meaningful data. We
-# definitely can't use clusters with 0 or 1 observations, so we just throw those out to save time. If the observations
-# we do have aren't at the right titration, we'll throw the cluster out later, so we don't need to worry about making
-# sure the cluster is actually usable at this point.
-minimum_observations_per_cluster = 2
+# The number of observations we require to consider a cluster valid enough for fitting.
+# Clusters at the edge of a field of view might not be visible in every concentration due to
+# random imperfections in the motion of the stage, and some fields of view might simply not
+# align under each concentration.
+minimum_observations_per_cluster = len(h5_fpaths) - 3
+print("minimum_observations_per_cluster", minimum_observations_per_cluster)
 
 int_scores.build_good_read_names(minimum_observations_per_cluster)
 good_read_names = int_scores.good_read_names
@@ -187,4 +191,12 @@ with h5py.File(read_name_kd_filename, 'w') as h5:
 with h5py.File(read_name_kd_filename, 'a') as h5:
     h5.create_dataset('intensities', data=intensity_matrix)
 
+
 all_concentrations = [misc.parse_concentration(h5_fpath) for h5_fpath in h5_fpaths]
+
+calculate_all_synthetic_kds(read_name_kd_filename,
+                            all_concentrations,
+                            interesting_read_names,
+                            target,
+                            neg_control_target,
+process_count)
