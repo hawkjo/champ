@@ -124,7 +124,7 @@ if os.path.exists(read_name_kd_filename):
     new_kd_filename = read_name_kd_filename.replace(".h5", "") + "-kds.h5"
     print("Saving KDs to %s" % new_kd_filename)
     copy_over_everything_but_kds(read_name_kd_filename, new_kd_filename)
-    calculate_all_synthetic_kds(read_name_kd_filename,
+    calculate_all_synthetic_kds(new_kd_filename,
                                 all_concentrations,
                                 interesting_read_names,
                                 target,
