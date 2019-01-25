@@ -9,7 +9,7 @@ import yaml
 
 from champ import misc, intensity, initialize, seqtools, interactive
 from champ.seqtools import build_interesting_sequences
-from champ.kd import calculate_all_synthetic_kds
+from champ.kd import calculate_all_synthetic_kds, copy_over_everything_but_kds
 
 
 process_count = int(sys.argv[1]) if len(sys.argv) > 1 else 8
@@ -47,6 +47,15 @@ print('PAM side: {}'.format(pam_side))
 print('PAM size (bp): {}'.format(pam_size))
 print('Extended PAM size (bp): {}'.format(extended_pam_size))
 print('\n\nUsing %d processes for parallelized steps\n\n' % process_count)
+print('\n\n\n\n\n---------- NEW VERSION -----------\n\n\n\n\n')
+
+h5_fpaths = glob.glob('*.h5')
+if not h5_fpaths:
+    print("There are no h5 files! You need to generate them with the command 'champ h5'")
+    exit()
+h5_fpaths.sort(key=misc.parse_concentration)
+for fpath in h5_fpaths:
+    print(misc.parse_concentration(fpath), fpath)
 
 interesting_seqs = set()
 
@@ -107,6 +116,22 @@ else:
 
 print("Found read names for %d sequences of interest." % len(interesting_read_names))
 
+
+if os.path.exists(read_name_kd_filename):
+    print("Read names and intensites have already been calculated. Skipping intensity determination.")
+    print("If you want to redo this analysis, delete the file: %s" % read_name_kd_filename)
+    all_concentrations = [misc.parse_concentration(h5_fpath) for h5_fpath in h5_fpaths]
+    new_kd_filename = read_name_kd_filename.replace(".h5", "") + "-kds.h5"
+    print("Saving KDs to %s" % new_kd_filename)
+    copy_over_everything_but_kds(read_name_kd_filename, new_kd_filename)
+    calculate_all_synthetic_kds(read_name_kd_filename,
+                                all_concentrations,
+                                interesting_read_names,
+                                target,
+                                neg_control_target,
+                                process_count)
+    exit()
+
 all_read_name_fpath = os.path.join(read_name_dir, 'all_read_names.txt')
 target_read_name_fpath = os.path.join(read_name_dir, 'target_{}_read_names.txt'.format(target_name.lower()))
 perfect_target_read_name_fpath = os.path.join(read_name_dir, 'perfect_target_{}_read_names.txt'.format(target_name.lower()))
@@ -123,14 +148,6 @@ neg_control_target_read_names = set(line.strip() for line in open(neg_control_ta
 print("Negative control read names: %d" % len(neg_control_target_read_names))
 phiX_read_names = set(line.strip() for line in open(phiX_read_name_fpath))
 print("Phix read names: %d" % len(phiX_read_names))
-
-h5_fpaths = glob.glob('*.h5')
-if not h5_fpaths:
-    print("There are no h5 files! You need to generate them with the command 'champ h5'")
-    exit()
-h5_fpaths.sort(key=misc.parse_concentration)
-for fpath in h5_fpaths:
-    print(misc.parse_concentration(fpath), fpath)
 
 results_dirs = [
     os.path.join('results',
