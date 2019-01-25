@@ -201,6 +201,7 @@ def find_first_saturated_titration(matched_delta_intensities, background_delta_i
 
 
 def find_boundary_parameters(concentrations, neg_control_intensities, matched_intensities):
+    print("fbp")
     imin = get_minimum_intensity(neg_control_intensities)
     matched_delta_intensities = get_clean_titration_delta_intensities(matched_intensities)
     background_delta_intensities = get_clean_titration_delta_intensities(neg_control_intensities)
@@ -242,6 +243,7 @@ def fit_all_kds(sequence_read_name_intensities, all_concentrations, imin, imax, 
 
 def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_names, matched_sequence,
                                 neg_control_sequence, process_count):
+    print("calculate all synthetic kds")
     string_dt = h5py.special_dtype(vlen=str)
     kd_dt = np.dtype([('sequence', string_dt),
                       ('kd', np.float),
@@ -255,11 +257,12 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
                 if read_name not in read_name_intensities:
                     continue
                 sequence_read_name_intensities[sequence].append(read_name_intensities[read_name])
-
+        print("loaded sequence_read_name_intensities")
         matched_intensities = filter_reads_with_unusual_intensities(sequence_read_name_intensities[matched_sequence])
         neg_control_intensities = filter_reads_with_unusual_intensities(sequence_read_name_intensities[neg_control_sequence])
+        print("loaded intensities")
         imin, imax = find_boundary_parameters(concentrations, neg_control_intensities, matched_intensities)
-
+        print("should've seen imin imax, which were", imin, imax)
         dataset = h5.create_dataset('synthetic-kds', (1,), dtype=kd_dt, maxshape=(None,))
         index = 0
 
