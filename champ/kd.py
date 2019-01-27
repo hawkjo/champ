@@ -210,20 +210,25 @@ def find_boundary_parameters(concentrations, neg_control_intensities, matched_in
     return imin, imax
 
 
-def _thread_fit_kd(sequence_intensities, all_concentrations, imin, imax):
+def get_quality_normalized_intensities(intensities, concentrations, imin, imax):
+    normalized_intensities = [normalize_intensities(ints, imin, imax) for ints in intensities]
+    normalized_intensities = filter_reads_with_insufficient_observations(normalized_intensities, len(concentrations) - 3)
+    return filter_reads_with_unusual_intensities(normalized_intensities)
+
+
+def fit_one_kd(normalized_intensities, concentrations):
+    fitting_concentrations, fitting_intensities = assemble_flat_concentrations_and_intensities(concentrations,
+                                                                                               normalized_intensities)
+    return determine_kd(fitting_concentrations, fitting_intensities)
+
+
+def _thread_fit_kd(sequence_intensities, concentrations, imin, imax):
     # group_intensities is a tuple of a unique label (typically a sequence of interest or location in the genome)
     # and intensities is a list of lists, with each member being the value of an intensity gradient
     sequence, intensities = sequence_intensities
-    normalized_intensities = [normalize_intensities(ints, imin, imax) for ints in intensities]
-    normalized_intensities = filter_reads_with_insufficient_observations(normalized_intensities, len(all_concentrations) - 3)
-    normalized_intensities = filter_reads_with_unusual_intensities(normalized_intensities)
-    if len(normalized_intensities) < MINIMUM_REQUIRED_COUNTS:
-        return None
-    fitting_concentrations, fitting_intensities = assemble_flat_concentrations_and_intensities(all_concentrations, normalized_intensities)
-    kd = determine_kd(fitting_concentrations, fitting_intensities)
-    if kd is None:
-        return None
-    kd_uncertainty = bootstrap_kd(all_concentrations, normalized_intensities)
+    normalized_intensities = get_quality_normalized_intensities(intensities, concentrations, imin, imax)
+    kd = fit_one_kd(normalized_intensities, concentrations)
+    kd_uncertainty = bootstrap_kd(concentrations, normalized_intensities)
     if kd_uncertainty is None:
         return None
     return sequence, kd, kd_uncertainty, len(normalized_intensities)
