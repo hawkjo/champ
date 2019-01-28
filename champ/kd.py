@@ -108,7 +108,6 @@ def get_minimum_intensity(neg_control_intensities):
 
 
 def get_maximum_intensity(fit_func, concentrations, matched_intensities):
-
     all_concentrations, all_intensities = assemble_flat_concentrations_and_intensities(concentrations, matched_intensities)
     popt, _ = curve_fit(fit_func, all_concentrations, all_intensities)
     kd, imax = popt
@@ -205,12 +204,15 @@ def find_first_saturated_titration(matched_delta_intensities, background_delta_i
 
 def find_boundary_parameters(concentrations, neg_control_intensities, matched_intensities):
     imin = get_minimum_intensity(neg_control_intensities)
-    matched_delta_intensities = get_clean_titration_delta_intensities(matched_intensities)
-    background_delta_intensities = get_clean_titration_delta_intensities(neg_control_intensities)
-    saturated_index = find_first_saturated_titration(matched_delta_intensities, background_delta_intensities)
-    imax = np.nanmedian(np.array(matched_intensities)[:, saturated_index])
-    print("Saturation of matched target occurred at %s" % concentrations[saturated_index])
-    return imin, imax
+
+    def fit_kd_and_imax(x, Kd, Imax):
+        return (Imax - imin) / (1.0 + (float(Kd) / x)) + imin
+
+    matched_kd, imax = get_maximum_intensity(fit_kd_and_imax, concentrations, matched_intensities)
+    all_neg_intensities = normalize_intensities(neg_control_intensities, imin, imax)
+    neg_conc, neg_int = assemble_flat_concentrations_and_intensities(concentrations, all_neg_intensities)
+    (neg_kd,), pcov = curve_fit(fit_kd, neg_conc, neg_int)
+    return matched_kd, neg_kd, imin, imax
 
 
 def get_quality_normalized_intensities(intensities, concentrations, imin, imax):
@@ -266,7 +268,7 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
                 sequence_read_name_intensities[sequence].append(read_name_intensities[read_name])
         matched_intensities = filter_reads_with_unusual_intensities(sequence_read_name_intensities[matched_sequence])
         neg_control_intensities = filter_reads_with_unusual_intensities(sequence_read_name_intensities[neg_control_sequence])
-        imin, imax = find_boundary_parameters(concentrations, neg_control_intensities, matched_intensities)
+        matched_kd, neg_kd, imin, imax = find_boundary_parameters(concentrations, neg_control_intensities, matched_intensities)
         dataset = h5.create_dataset('synthetic-kds', (1,), dtype=kd_dt, maxshape=(None,))
         index = 0
 
