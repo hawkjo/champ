@@ -127,7 +127,6 @@ def determine_kd(fitting_concentrations, fitting_intensities):
 
 def bootstrap_kd(concentrations, normalized_intensities, return_all_bootstrapped_kds=False, rounds=None, cluster_count=None):
     if len(normalized_intensities) == 0:
-        print("Empty list in bootstrap_kd")
         return None
     rounds = BOOTSTRAP_ROUNDS if rounds is None else rounds
     cluster_count = MAX_BOOTSTRAP_SAMPLE_SIZE if cluster_count is None else cluster_count
@@ -232,6 +231,8 @@ def _thread_fit_kd(sequence_intensities, concentrations, imin, imax):
     sequence, intensities = sequence_intensities
     normalized_intensities = get_quality_normalized_intensities(intensities, concentrations, imin, imax)
     kd = fit_one_kd(normalized_intensities, concentrations)
+    if kd is None:
+        return None
     kd_uncertainty = bootstrap_kd(concentrations, normalized_intensities)
     if kd_uncertainty is None:
         return None
