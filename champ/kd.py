@@ -97,9 +97,8 @@ def assemble_flat_concentrations_and_intensities(all_concentrations, cluster_int
 
 def normalize_intensities(intensities, imin, imax):
     d = imax - imin
-    # uncomment to allow intensities to exceed the saturated intensity
-    # return [(np.array(intensity) - imin) / d for intensity in intensities]
-    return [(np.clip(intensity, 0, imax) - imin) / d for intensity in intensities]
+    return [(np.array(intensity) - imin) / d for intensity in intensities]
+    # return [(np.clip(intensity, 0, imax) - imin) / d for intensity in intensities]
 
 
 def get_minimum_intensity(neg_control_intensities):
