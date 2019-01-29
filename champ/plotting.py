@@ -236,10 +236,11 @@ def add_data(fig, data_grid, lower_ABA_matrix, upper_ABA_matrix, normalize=False
     data_ax.set_xticks([])
     xlim = data_ax.get_xlim()
     ylim = data_ax.get_ylim()
+
     if grid_line_spacing is not None and upper_ABA_matrix is None:
         for i in np.arange(-.5, lower_ABA_matrix.shape[0]-grid_line_spacing, grid_line_spacing):
-            data_ax.plot((xlim[0], i+grid_line_spacing), [i, i], 'w', alpha=1, linewidth=1)
-            data_ax.plot([i+grid_line_spacing, i+grid_line_spacing], (ylim[0], i), 'w', alpha=1, linewidth=1)
+            data_ax.plot((xlim[0], i), [i, i], 'w', alpha=1, linewidth=1)
+            data_ax.plot([i, i], (ylim[0], i), 'w', alpha=1, linewidth=1)
     elif grid_line_spacing is not None:
         for i in np.arange(-.5, lower_ABA_matrix.shape[0] - grid_line_spacing, grid_line_spacing):
             data_ax.plot([i, i], [ylim[0], ylim[1]], 'w', alpha=1, linewidth=1)
