@@ -71,6 +71,43 @@ def get_mismatch_seqs(seq, num_mm):
     return outset
 
 
+def get_single_mismatch_and_insertion_seqs(seq):
+    """ Returns all sequences with a single mismatch and a single insertion. """
+    seqs = set()
+    for mm_seq in get_mismatch_seqs(seq, 1):
+        for mm_ins_sequence in get_insertion_seqs(mm_seq, 1):
+            seqs.add(mm_ins_sequence)
+        for mm_ins_sequence in get_contiguous_insertion_seqs(mm_seq, 1):
+            seqs.add(mm_ins_sequence)
+    return seqs
+
+
+def get_single_mismatch_and_deletion_seqs(seq):
+    """ Returns all sequences with a single mismatch and a deletion. Does not
+    produce sequences where the mismatched base is also deleted. """
+    seqs = set()
+    single_deletion_seqs = get_deletion_seqs(seq, 1)
+    for mm_seq in get_mismatch_seqs(seq, 1):
+        for mm_del_sequence in get_deletion_seqs(mm_seq, 1):
+            seqs.add(mm_del_sequence)
+    return seqs - single_deletion_seqs
+
+
+def get_indel_seqs(seq):
+    """ Returns sequences with both an insertion and deletion. Guaranteed to not return a sequence
+    where the insertion is deleted, resulting in no change. Also will not return any sequences that are
+    equivalent to a single mismatch. """
+    seqs = set()
+    single_mm_seqs = get_mismatch_seqs(seq, 1)
+    for ins_seq in get_insertion_seqs(seq, 1):
+        for indel_seq in get_deletion_seqs(ins_seq, 1):
+            seqs.add(indel_seq)
+    for ins_seq in get_contiguous_insertion_seqs(seq, 1):
+        for indel_seq in get_deletion_seqs(ins_seq, 1):
+            seqs.add(indel_seq)
+    return seqs - set(seq) - single_mm_seqs
+
+
 complements = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
 
 
