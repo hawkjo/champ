@@ -125,6 +125,8 @@ else:
     interesting_read_names = build_interesting_sequences(read_names_by_seq_fpath, interesting_seqs)
     with open(interesting_read_names_filename, 'w') as f:
         for sequence, read_names in interesting_read_names.items():
+            if sequence in combos:
+                combo_count += 1
             f.write("%s\t%s\n" % (sequence, "\t".join(read_names)))
 
 print("Found %d combo sequences" % combo_count)
