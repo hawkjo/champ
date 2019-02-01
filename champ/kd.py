@@ -12,7 +12,6 @@ import random
 BOOTSTRAP_ROUNDS = 100
 MAX_BOOTSTRAP_SAMPLE_SIZE = 2000
 TUKEY_CONSTANT = 1.5
-SIGNIFICANCE_LEVEL = 0.05
 
 
 def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_names, matched_sequence,
