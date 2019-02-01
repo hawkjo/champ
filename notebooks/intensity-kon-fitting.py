@@ -9,8 +9,7 @@ import yaml
 
 from champ import misc, intensity, initialize, seqtools, interactive
 from champ.seqtools import build_interesting_sequences
-from champ.kd import calculate_all_synthetic_kds, copy_over_everything_but_kds
-
+from champ.kd import calculate_all_synthetic_kds
 
 process_count = int(sys.argv[1]) if len(sys.argv) > 1 else 8
 flow_cell_id = interactive.determine_flow_cell_id()
@@ -24,8 +23,7 @@ pam_size = int(interactive.load_config_value('pam_size', default=4))
 extended_pam_size = int(interactive.load_config_value('extended_pam_size', default=6))
 pam_side = int(interactive.load_config_value('pam_side', default=5))
 
-read_name_dir_default = os.path.join('/shared', flow_cell_id, 'read_names')
-read_name_dir = interactive.load_config_value('mapped_reads', default=read_name_dir_default)
+read_name_dir = os.path.join('/shared', flow_cell_id, 'read_names')
 bamfile_path = os.path.join('/shared', flow_cell_id, 'all_fastqs', 'genomic.bam')
 read_name_kd_filename = os.path.join('results', 'cluster-data.h5')
 read_names_by_seq_fpath = os.path.join(read_name_dir, 'read_names_by_seq.txt')
@@ -46,16 +44,8 @@ print('LDA Kernal: {}'.format(nonneg_lda_weights_fpath))
 print('PAM side: {}'.format(pam_side))
 print('PAM size (bp): {}'.format(pam_size))
 print('Extended PAM size (bp): {}'.format(extended_pam_size))
+print('Git commit used for this analysis: {}'.format(git_commit))
 print('\n\nUsing %d processes for parallelized steps\n\n' % process_count)
-print('\n\n\n\n\n---------- NEW VERSION -----------\n\n\n\n\n')
-
-h5_fpaths = glob.glob('*.h5')
-if not h5_fpaths:
-    print("There are no h5 files! You need to generate them with the command 'champ h5'")
-    exit()
-h5_fpaths.sort(key=misc.parse_concentration)
-for fpath in h5_fpaths:
-    print(misc.parse_concentration(fpath), fpath)
 
 interesting_seqs = set()
 
@@ -125,22 +115,6 @@ else:
 
 print("Found read names for %d sequences of interest." % len(interesting_read_names))
 
-
-if os.path.exists(read_name_kd_filename):
-    print("Read names and intensites have already been calculated. Skipping intensity determination.")
-    print("If you want to redo this analysis, delete the file: %s" % read_name_kd_filename)
-    all_concentrations = [misc.parse_concentration(h5_fpath) for h5_fpath in h5_fpaths]
-    new_kd_filename = read_name_kd_filename.replace(".h5", "") + "-kds.h5"
-    print("Saving KDs to %s" % new_kd_filename)
-    copy_over_everything_but_kds(read_name_kd_filename, new_kd_filename)
-    calculate_all_synthetic_kds(new_kd_filename,
-                                all_concentrations,
-                                interesting_read_names,
-                                target,
-                                neg_control_target,
-                                process_count)
-    exit()
-
 all_read_name_fpath = os.path.join(read_name_dir, 'all_read_names.txt')
 target_read_name_fpath = os.path.join(read_name_dir, 'target_{}_read_names.txt'.format(target_name.lower()))
 perfect_target_read_name_fpath = os.path.join(read_name_dir, 'perfect_target_{}_read_names.txt'.format(target_name.lower()))
@@ -158,6 +132,11 @@ print("Negative control read names: %d" % len(neg_control_target_read_names))
 phiX_read_names = set(line.strip() for line in open(phiX_read_name_fpath))
 print("Phix read names: %d" % len(phiX_read_names))
 
+h5_fpaths = glob.glob('*.h5')
+h5_fpaths.sort(key=misc.parse_concentration)
+for fpath in h5_fpaths:
+    print misc.parse_concentration(fpath), fpath
+
 results_dirs = [
     os.path.join('results',
                  os.path.splitext(os.path.basename(h5_fpath))[0])
@@ -170,7 +149,6 @@ int_scores = intensity.IntensityScores(h5_fpaths)
 int_scores.get_LDA_scores(results_dirs, nonneg_lda_weights_fpath)
 int_scores.normalize_scores()
 int_scores.print_reads_per_channel()
-
 
 # The number of observations we require to consider a cluster valid enough for fitting.
 # Clusters at the edge of a field of view might not be visible in every concentration due to
@@ -217,12 +195,6 @@ with h5py.File(read_name_kd_filename, 'w') as h5:
 with h5py.File(read_name_kd_filename, 'a') as h5:
     h5.create_dataset('intensities', data=intensity_matrix)
 
-
-all_concentrations = [misc.parse_concentration(h5_fpath) for h5_fpath in h5_fpaths]
-
-calculate_all_synthetic_kds(read_name_kd_filename,
-                            all_concentrations,
-                            interesting_read_names,
-                            target,
-                            neg_control_target,
-                            process_count)
+concentrations = [misc.parse_concentration(h5_fpath) for h5_fpath in h5_fpaths]
+calculate_all_synthetic_kds(read_name_kd_filename, concentrations, interesting_read_names,
+                            target, neg_control_target, 32)
