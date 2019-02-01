@@ -73,6 +73,14 @@ for i in range(1, 3):
 mismatches = set()
 for i in range(1, 3):
     mismatches.update(seqtools.get_mismatch_seqs(target, i))
+
+combos = set()
+for func in (seqtools.get_single_mismatch_and_insertion_seqs,
+             seqtools.get_single_mismatch_and_deletion_seqs,
+             seqtools.get_indel_seqs):
+    combos.update(func(target))
+print("Found %d combination sequences (those with mm + ins, mm + del, or del + ins)" % len(combos))
+
 pam_end = '5p' if pam_side == 5 else '3p'
 extended_pam = seqtools.get_randomized_pam_seqs(target, pam_size, extended_pam_size, end=pam_end)
 other_targets = set()
@@ -84,6 +92,7 @@ interesting_seqs.update(stretch)
 interesting_seqs.update(insertions)
 interesting_seqs.update(deletions)
 interesting_seqs.update(mismatches)
+interesting_seqs.update(combos)
 interesting_seqs.update(extended_pam)
 
 try:
