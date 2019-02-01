@@ -9,7 +9,8 @@ import yaml
 
 from champ import misc, intensity, initialize, seqtools, interactive
 from champ.seqtools import build_interesting_sequences
-from champ.kd import calculate_all_synthetic_kds
+from champ.kd import calculate_all_synthetic_kds, copy_over_everything_but_kds
+
 
 process_count = int(sys.argv[1]) if len(sys.argv) > 1 else 8
 flow_cell_id = interactive.determine_flow_cell_id()
@@ -23,8 +24,8 @@ pam_size = int(interactive.load_config_value('pam_size', default=4))
 extended_pam_size = int(interactive.load_config_value('extended_pam_size', default=6))
 pam_side = int(interactive.load_config_value('pam_side', default=5))
 
-read_name_dir = os.path.join('/shared', flow_cell_id, 'read_names')
-bamfile_path = os.path.join('/shared', flow_cell_id, 'all_fastqs', 'genomic.bam')
+read_name_dir_default = os.path.join('/shared', flow_cell_id, 'read_names')
+read_name_dir = interactive.load_config_value('mapped_reads', default=read_name_dir_default)
 read_name_kd_filename = os.path.join('results', 'cluster-data.h5')
 read_names_by_seq_fpath = os.path.join(read_name_dir, 'read_names_by_seq.txt')
 
@@ -44,8 +45,17 @@ print('LDA Kernal: {}'.format(nonneg_lda_weights_fpath))
 print('PAM side: {}'.format(pam_side))
 print('PAM size (bp): {}'.format(pam_size))
 print('Extended PAM size (bp): {}'.format(extended_pam_size))
-print('Git commit used for this analysis: {}'.format(git_commit))
-print('\n\nUsing %d processes for parallelized steps\n\n' % process_count)
+print('\nUsing %d processes for parallelized steps\n' % process_count)
+print('\n\n*** NEW VERSION ***\n\n')
+
+h5_fpaths = glob.glob('*.h5')
+if not h5_fpaths:
+    print("There are no h5 files! You need to generate them with the command 'champ h5'")
+    exit()
+h5_fpaths.sort(key=misc.parse_concentration)
+for fpath in h5_fpaths:
+    print(misc.parse_concentration(fpath), fpath)
+concentrations = [misc.parse_concentration(h5_fpath) for h5_fpath in h5_fpaths]
 
 interesting_seqs = set()
 
@@ -119,6 +129,21 @@ else:
 
 print("Found %d combo sequences" % combo_count)
 print("Found read names for %d sequences of interest." % len(interesting_read_names))
+
+if os.path.exists(read_name_kd_filename):
+    print("Read names and intensites have already been calculated. Skipping intensity determination.")
+    print("If you want to redo this analysis, delete the file: %s" % read_name_kd_filename)
+    new_kd_filename = read_name_kd_filename.replace(".h5", "") + "-kds.h5"
+    print("Saving KDs to %s" % new_kd_filename)
+    copy_over_everything_but_kds(read_name_kd_filename, new_kd_filename)
+    calculate_all_synthetic_kds(new_kd_filename,
+                                concentrations,
+                                interesting_read_names,
+                                target,
+                                neg_control_target,
+                                process_count)
+    exit()
+
 
 all_read_name_fpath = os.path.join(read_name_dir, 'all_read_names.txt')
 target_read_name_fpath = os.path.join(read_name_dir, 'target_{}_read_names.txt'.format(target_name.lower()))
@@ -200,6 +225,5 @@ with h5py.File(read_name_kd_filename, 'w') as h5:
 with h5py.File(read_name_kd_filename, 'a') as h5:
     h5.create_dataset('intensities', data=intensity_matrix)
 
-concentrations = [misc.parse_concentration(h5_fpath) for h5_fpath in h5_fpaths]
 calculate_all_synthetic_kds(read_name_kd_filename, concentrations, interesting_read_names,
-                            target, neg_control_target, 32)
+                            target, neg_control_target, process_count)
