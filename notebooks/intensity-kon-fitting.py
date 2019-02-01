@@ -98,6 +98,8 @@ print("Interesting sequences: %d" % len(interesting_seqs))
 
 interesting_read_names_filename = os.path.join(read_name_dir, 'interesting_{target_name}_reads_by_seq.txt'.format(
     target_name=target_name.lower()))
+
+combo_count = 0
 if os.path.exists(interesting_read_names_filename):
     # No need to recalculate, we can just load this from disk
     interesting_read_names = {}
@@ -105,6 +107,8 @@ if os.path.exists(interesting_read_names_filename):
         for line in f:
             line = line.split("\t")
             sequence = line[0]
+            if sequence in combos:
+                combo_count += 1
             read_names = line[1:]
             interesting_read_names[sequence] = read_names
 else:
@@ -113,6 +117,7 @@ else:
         for sequence, read_names in interesting_read_names.items():
             f.write("%s\t%s\n" % (sequence, "\t".join(read_names)))
 
+print("Found %d combo sequences" % combo_count)
 print("Found read names for %d sequences of interest." % len(interesting_read_names))
 
 all_read_name_fpath = os.path.join(read_name_dir, 'all_read_names.txt')
