@@ -65,7 +65,7 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
         with progressbar.ProgressBar(max_value=len(sequence_read_name_intensities)) as pbar:
             for sequence, kd, kd_uncertainty, yint, delta_y, count in pbar(
                     fit_all_kds(sequence_read_name_intensities, concentrations, process_count=process_count,
-                                delta_y=median_saturated_intensity)):
+                                delta_y=None)):
                 if count >= MINIMUM_REQUIRED_COUNTS:
                     dataset.resize((index + 1,))
                     dataset[index] = (sequence, kd, kd_uncertainty, count)
