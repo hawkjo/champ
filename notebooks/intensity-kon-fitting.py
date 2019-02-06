@@ -46,7 +46,7 @@ print('PAM side: {}'.format(pam_side))
 print('PAM size (bp): {}'.format(pam_size))
 print('Extended PAM size (bp): {}'.format(extended_pam_size))
 print('\nUsing %d processes for parallelized steps\n' % process_count)
-print('\n\n*** NEW VERSION ***\n\n')
+print('\n\n*** NEW DELTA Y VERSION ***\n\n')
 
 h5_fpaths = glob.glob('*.h5')
 if not h5_fpaths:
