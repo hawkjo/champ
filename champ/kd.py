@@ -3,6 +3,7 @@ from collections import defaultdict
 import numpy as np
 import h5py
 from scipy.optimize import curve_fit, minimize
+from scipy import stats
 from sklearn.neighbors import KernelDensity
 import progressbar
 import lomp
@@ -14,6 +15,19 @@ MAX_BOOTSTRAP_SAMPLE_SIZE = 2000
 TUKEY_CONSTANT = 1.5
 
 
+def get_clean_titration_intensities(intensities):
+    intensities = filter_reads_with_unusual_intensities(intensities)
+    return convert_2d_list_to_column_list(intensities)
+
+
+def convert_2d_list_to_column_list(values):
+    """
+    Takes a list of lists, all of equal length, and splits the data by each column.
+
+    """
+    return np.array([column for column in np.array(values).T])
+
+
 def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_names, matched_sequence,
                                 neg_control_sequence, process_count):
     read_name_intensities = load_read_name_intensities(h5_filename)
@@ -23,13 +37,30 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
             if read_name not in read_name_intensities:
                 continue
             sequence_read_name_intensities[sequence].append(read_name_intensities[read_name])
-    perfect_kd, perfect_kd_uncertainty, perfect_yint, perfect_delta_y, perfect_counts = fit_one_group_kd(
-        sequence_read_name_intensities[matched_sequence], concentrations, delta_y=None)
-    print("Perfect target KD is %.1f +/- %.3f nM" % (perfect_kd, perfect_kd_uncertainty))
 
-    neg_kd, neg_kd_uncertainty, neg_yint, neg_delta_y, neg_counts = fit_one_group_kd(
-        sequence_read_name_intensities[neg_control_sequence], concentrations, delta_y=perfect_delta_y)
-    print("Neg target KD is %.1f +/- %.3f nM" % (neg_kd, neg_kd_uncertainty))
+    neg_control_intensities = sequence_read_name_intensities[neg_control_sequence]
+    neg_control_intensities = get_clean_titration_intensities(neg_control_intensities)
+
+    xs = []
+    ys = []
+    for n, intensities in zip(range(len(concentrations)), neg_control_intensities):
+        for intensity in intensities:
+            xs.append(n)
+            ys.append(intensity)
+
+    slope, intercept, r_value, p_value, std_err = stats.linregress(xs, ys)
+    adjustments = [intercept + slope * n for n in range(len(concentrations))]
+
+    adjusted_read_name_intensities = defaultdict(list)
+    for sequence, intensity_gradients in sequence_read_name_intensities.items():
+        for intensity_gradient in intensity_gradients:
+            new_gradient = [intensity - adjustment
+                            for intensity, adjustment in zip(intensity_gradient, adjustments)]
+            adjusted_read_name_intensities[sequence].append(new_gradient)
+
+    perfect_kd, perfect_kd_uncertainty, perfect_yint, perfect_delta_y, perfect_counts = fit_one_group_kd(
+        adjusted_read_name_intensities[matched_sequence], concentrations, delta_y=None)
+    print("Perfect target KD is %.1f +/- %.3f nM" % (perfect_kd, perfect_kd_uncertainty))
 
     # Determine the median intensity of a saturated cluster
     saturated = saturated_at_concentration(perfect_kd)
@@ -42,7 +73,7 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
         saturated_indexes = [len(concentrations) - 1]
 
     saturated_intensities = []
-    for intensity_gradient in sequence_read_name_intensities[matched_sequence]:
+    for intensity_gradient in adjusted_read_name_intensities[matched_sequence]:
         for index in saturated_indexes:
             try:
                 value = intensity_gradient[index]
@@ -62,9 +93,9 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
     with h5py.File(h5_filename, 'a') as h5:
         dataset = h5.create_dataset('synthetic-kds', (1,), dtype=kd_dt, maxshape=(None,))
         index = 0
-        with progressbar.ProgressBar(max_value=len(sequence_read_name_intensities)) as pbar:
+        with progressbar.ProgressBar(max_value=len(adjusted_read_name_intensities)) as pbar:
             for sequence, kd, kd_uncertainty, yint, delta_y, count in pbar(
-                    fit_all_kds(sequence_read_name_intensities, concentrations, process_count=process_count,
+                    fit_all_kds(adjusted_read_name_intensities, concentrations, process_count=process_count,
                                 delta_y=median_saturated_intensity)):
                 if count >= MINIMUM_REQUIRED_COUNTS:
                     dataset.resize((index + 1,))
