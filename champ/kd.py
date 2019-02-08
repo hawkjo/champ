@@ -45,6 +45,8 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
     ys = []
     for n, intensities in zip(range(len(concentrations)), neg_control_intensities):
         for intensity in intensities:
+            if np.isnan(intensity):
+               continue
             xs.append(n)
             ys.append(intensity)
 
