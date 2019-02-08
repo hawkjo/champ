@@ -57,7 +57,7 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
     adjusted_read_name_intensities = defaultdict(list)
     for sequence, intensity_gradients in sequence_read_name_intensities.items():
         for intensity_gradient in intensity_gradients:
-            new_gradient = [max(0.0, intensity - adjustment)
+            new_gradient = [intensity - adjustment
                             for intensity, adjustment in zip(intensity_gradient, adjustments)]
             adjusted_read_name_intensities[sequence].append(new_gradient)
 
