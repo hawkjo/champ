@@ -7,6 +7,7 @@ from sklearn.neighbors import KernelDensity
 import progressbar
 import lomp
 import random
+from uncertainties import ufloat
 
 
 BOOTSTRAP_ROUNDS = 100
@@ -24,34 +25,19 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
                 continue
             sequence_read_name_intensities[sequence].append(read_name_intensities[read_name])
     perfect_kd, perfect_kd_uncertainty, perfect_yint, perfect_delta_y, perfect_counts = fit_one_group_kd(
-        sequence_read_name_intensities[matched_sequence], concentrations, delta_y=None)
+        sequence_read_name_intensities[matched_sequence], concentrations)
     print("Perfect target KD is %.1f +/- %.3f nM" % (perfect_kd, perfect_kd_uncertainty))
 
+    perfect_amplitude = perfect_delta_y - perfect_yint
+
     neg_kd, neg_kd_uncertainty, neg_yint, neg_delta_y, neg_counts = fit_one_group_kd(
-        sequence_read_name_intensities[neg_control_sequence], concentrations, delta_y=perfect_delta_y)
-    print("Neg target KD is %.1f +/- %.3f nM" % (neg_kd, neg_kd_uncertainty))
+        sequence_read_name_intensities[neg_control_sequence], concentrations)
 
-    # Determine the median intensity of a saturated cluster
-    saturated = saturated_at_concentration(perfect_kd)
-    print("Should be saturated at %.1f nM" % saturated)
-    saturated_indexes = [index for index, concentration in enumerate(concentrations) if
-                         concentration > saturated]
-    if not saturated_indexes:
-        # this should never happen, but we'll try to take something reasonable
-        print("Warning: perfect target sequence probably did not saturate its target!")
-        saturated_indexes = [len(concentrations) - 1]
+    amplitude = neg_delta_y - neg_yint
+    amplitude_ratio = perfect_amplitude * amplitude
+    adjusted_neg_kd = ufloat(neg_kd, neg_kd_uncertainty) * amplitude_ratio
 
-    saturated_intensities = []
-    for intensity_gradient in sequence_read_name_intensities[matched_sequence]:
-        for index in saturated_indexes:
-            try:
-                value = intensity_gradient[index]
-                if not np.isnan(value):
-                    saturated_intensities.append(value)
-            except IndexError:
-                continue
-    median_saturated_intensity = int(np.median(saturated_intensities))
-    print("Median saturated intensity: %d (N=%d)" % (median_saturated_intensity, len(saturated_intensities)))
+    print("Neg target KD is %.1f +/- %.3f nM" % (adjusted_neg_kd.n, adjusted_neg_kd.s))
 
     string_dt = h5py.special_dtype(vlen=str)
     kd_dt = np.dtype([('sequence', string_dt),
@@ -64,11 +50,14 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
         index = 0
         with progressbar.ProgressBar(max_value=len(sequence_read_name_intensities)) as pbar:
             for sequence, kd, kd_uncertainty, yint, delta_y, count in pbar(
-                    fit_all_kds(sequence_read_name_intensities, concentrations, process_count=process_count,
-                                delta_y=median_saturated_intensity)):
+                    fit_all_kds(sequence_read_name_intensities, concentrations,
+                                process_count=process_count)):
                 if count >= MINIMUM_REQUIRED_COUNTS:
+                    amplitude = delta_y - yint
+                    amplitude_ratio = perfect_amplitude * amplitude
+                    adjusted_kd = ufloat(kd, kd_uncertainty) * amplitude_ratio
                     dataset.resize((index + 1,))
-                    dataset[index] = (sequence, kd, kd_uncertainty, count)
+                    dataset[index] = (sequence, adjusted_kd.n, adjusted_kd.s, count)
                     index += 1
     print("Fit %d sequences" % index)
 
@@ -153,14 +142,14 @@ def normalize_intensities(intensities, imin, imax):
     return [(np.array(intensity) - imin) / d for intensity in intensities]
 
 
-def determine_kd(fitting_concentrations, fitting_intensities):
+def determine_binding_parameters(fitting_concentrations, fitting_intensities):
     try:
         popt, pcov = curve_fit(fit_kd, fitting_concentrations, fitting_intensities)
-        kd = popt[0]
+        kd, yint, fit_delta_y = popt
     except (FloatingPointError, RuntimeError, Exception) as e:
         return None
     else:
-        return kd
+        return kd, yint, fit_delta_y
 
 
 def bootstrap_kd(concentrations, normalized_intensities, return_all_bootstrapped_kds=False, rounds=None, cluster_count=None):
@@ -215,7 +204,7 @@ def fit_kd(all_concentrations, all_intensities, delta_y=None):
 def fit_one_kd(normalized_intensities, concentrations):
     fitting_concentrations, fitting_intensities = assemble_flat_concentrations_and_intensities(concentrations,
                                                                                                normalized_intensities)
-    return determine_kd(fitting_concentrations, fitting_intensities)
+    return determine_binding_parameters(fitting_concentrations, fitting_intensities)
 
 
 def bootstrap_kd_uncertainty(all_concentrations, all_intensities, delta_y=None):
@@ -243,7 +232,7 @@ def bootstrap_kd_uncertainty(all_concentrations, all_intensities, delta_y=None):
     return np.std(kds)
 
 
-def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_observations, delta_y, bootstrap=True):
+def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_observations, bootstrap=True):
     # group_intensities is a tuple of a unique label (typically a sequence of interest or location in the genome)
     # and intensities is a list of lists, with each member being the value of an intensity gradient
     group_unique_label, intensities = group_intensities
@@ -259,9 +248,9 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
             fitting_intensities.append(intensity)
             fitting_concentrations.append(concentration)
 
-    kd, yint, fit_delta_y = fit_kd(fitting_concentrations, fitting_intensities, delta_y=delta_y)
+    kd, yint, fit_delta_y = fit_kd(fitting_concentrations, fitting_intensities, delta_y=None)
     if bootstrap:
-        kd_uncertainty = bootstrap_kd_uncertainty(all_concentrations, intensities, delta_y=delta_y)
+        kd_uncertainty = bootstrap_kd_uncertainty(all_concentrations, intensities, delta_y=None)
     else:
         kd_uncertainty = 0.0
     if kd is None or kd_uncertainty is None:
@@ -269,13 +258,13 @@ def _thread_fit_kd(group_intensities, all_concentrations, minimum_required_obser
     return group_unique_label, kd, kd_uncertainty, yint, fit_delta_y, len(intensities)
 
 
-def fit_one_group_kd(intensities, all_concentrations, delta_y=None, bootstrap=True):
+def fit_one_group_kd(intensities, all_concentrations, bootstrap=True):
     minimum_required_observations = max(len(all_concentrations) - 3, 5)
     try:
         result = _thread_fit_kd((None, intensities),
                                 all_concentrations,
                                 minimum_required_observations,
-                                delta_y, bootstrap=bootstrap)
+                                bootstrap=bootstrap)
     except Exception as e:
         return None
     else:
@@ -285,7 +274,7 @@ def fit_one_group_kd(intensities, all_concentrations, delta_y=None, bootstrap=Tr
         return kd, kd_uncertainty, yint, fit_delta_y, count
 
 
-def fit_all_kds(group_intensities, all_concentrations, process_count=8, delta_y=None):
+def fit_all_kds(group_intensities, all_concentrations, process_count=8):
     # sequence_read_name_intensities: List[Dict[str, List[List[float]]]
     # sequence_read_name_intensities should be a list of dictionaries that map read names to intensities
     # each dictionary should all be related to some group of reads that have the same sequence or overlap the same
@@ -293,7 +282,7 @@ def fit_all_kds(group_intensities, all_concentrations, process_count=8, delta_y=
     minimum_required_observations = max(len(all_concentrations) - 3, 5)
     for result in lomp.parallel_map(group_intensities.items(),
                                     _thread_fit_kd,
-                                    args=(all_concentrations, minimum_required_observations, delta_y),
+                                    args=(all_concentrations, minimum_required_observations),
                                     process_count=process_count):
         if result is not None:
             yield result
