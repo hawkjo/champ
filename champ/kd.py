@@ -28,12 +28,12 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
         sequence_read_name_intensities[matched_sequence], concentrations)
     print("Perfect target KD is %.1f +/- %.3f nM" % (perfect_kd, perfect_kd_uncertainty))
 
-    perfect_amplitude = perfect_delta_y - perfect_yint
+    perfect_amplitude = perfect_delta_y
 
     neg_kd, neg_kd_uncertainty, neg_yint, neg_delta_y, neg_counts = fit_one_group_kd(
         sequence_read_name_intensities[neg_control_sequence], concentrations)
 
-    amplitude = neg_delta_y - neg_yint
+    amplitude = neg_delta_y
     amplitude_ratio = perfect_amplitude * amplitude
     adjusted_neg_kd = ufloat(neg_kd, neg_kd_uncertainty) * amplitude_ratio
 
