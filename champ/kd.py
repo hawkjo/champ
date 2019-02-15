@@ -34,7 +34,7 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
         sequence_read_name_intensities[neg_control_sequence], concentrations)
 
     amplitude = neg_delta_y
-    amplitude_ratio = perfect_amplitude * amplitude
+    amplitude_ratio = perfect_amplitude / amplitude
     adjusted_neg_kd = ufloat(neg_kd, neg_kd_uncertainty) * amplitude_ratio
 
     print("Neg target KD is %.1f +/- %.3f nM" % (adjusted_neg_kd.n, adjusted_neg_kd.s))
@@ -53,8 +53,8 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
                     fit_all_kds(sequence_read_name_intensities, concentrations,
                                 process_count=process_count)):
                 if count >= MINIMUM_REQUIRED_COUNTS:
-                    amplitude = delta_y - yint
-                    amplitude_ratio = perfect_amplitude * amplitude
+                    amplitude = delta_y
+                    amplitude_ratio = perfect_amplitude / amplitude
                     adjusted_kd = ufloat(kd, kd_uncertainty) * amplitude_ratio
                     dataset.resize((index + 1,))
                     dataset[index] = (sequence, adjusted_kd.n, adjusted_kd.s, count)
