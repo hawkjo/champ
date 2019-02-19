@@ -73,15 +73,15 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
     print("Fit %d sequences" % index)
 
 
-def delta_aba(kd, perfect_kd):
-    ratio = kd / perfect_kd
-    return np.log(ratio)
-
-
-def convert_kd_to_normalized_delta_aba(kd, perfect_kd, neg_kd):
-    neg_aba = delta_aba(neg_kd, perfect_kd)
-    daba = delta_aba(kd, perfect_kd)
-    return daba / neg_aba
+# def delta_aba(kd, perfect_kd):
+#     ratio = kd / perfect_kd
+#     return np.log(ratio)
+#
+#
+# def convert_kd_to_normalized_delta_aba(kd, perfect_kd, neg_kd):
+#     neg_aba = delta_aba(neg_kd, perfect_kd)
+#     daba = delta_aba(kd, perfect_kd)
+#     return daba / neg_aba
 
 
 def load_sequence_read_names(filename):
@@ -299,8 +299,33 @@ def fit_all_kds(group_intensities, all_concentrations, process_count=8, delta_y=
             yield result
 
 
-def hyperbola(concentrations, yint, delta_y, kd):
-    return ((delta_y - yint) / (1.0 + (kd / concentrations))) + yint
+def hyperbola(concentrations, delta_y, kd, c):
+    return delta_y * (concentrations / (concentrations + kd)) + c
+
+
+def make_hyperbola_with_background_function(concentrations, delta_y_nc, kd_nc, c):
+    """ Just a helper function to insert some constant values into a fitting function (essentially just partial
+    evaluation that gets around a limitation of scipy's minimization function). """
+    # concentrations are the flattened concentrations from a sequence of interest
+    # it needs to align with the concentrations given to the fitting function
+    # to be clear:
+    #   first, you fit the negative control using the hyperbola function above, and get those parameters.
+    #   second, you pick a different sequence and get its flattened concentrations and intensities
+    #   third, you call this function with those concentrations and the parameters from the first step
+    #   fourth, you call fit_hyperbola_with_background
+    def hyperbola_with_background_function(fractional_contribution, delta_y, kd):
+        return fractional_contribution * (delta_y * concentrations / (concentrations + kd)) \
+          + (1.0 - fractional_contribution) * (float(delta_y_nc) * concentrations / (concentrations + float(kd_nc))) + float(c)
+    return hyperbola_with_background_function
+
+
+def fit_hyperbola_with_background(partial_function, concentrations, intensities):
+    (fractional_contribution, delta_y, kd), covariance = curve_fit(partial_function,
+                                                                   concentrations,
+                                                                   intensities,
+                                                                   bounds=((0.0, 0.0, 10 ** -280),
+                                                                           (1.0, np.inf, np.inf)))
+    return fractional_contribution, delta_y, kd, covariance
 
 
 def fixed_delta_y_hyperbola(delta_y):
