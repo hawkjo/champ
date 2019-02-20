@@ -330,8 +330,8 @@ def fit_hyperbola_with_background(partial_function, concentrations, intensities)
     (delta_y, kd), covariance = curve_fit(partial_function,
                                           concentrations,
                                           intensities,
-                                          bounds=((0.0, 0.0,    10 ** -280),
-                                                  (1.0, np.inf, np.inf)))
+                                          bounds=((0.0,    10 ** -280),
+                                                  (np.inf, np.inf)))
     return delta_y, kd, covariance
 
 
