@@ -292,7 +292,10 @@ def _thread_fit_kd_with_background(group_intensities, all_concentrations, minimu
             fitting_concentrations.append(concentration)
 
     partial_fit_function = make_hyperbola_with_background_function(delta_y_nc, kd_nc, c_nc)
-    fractional_contribution, delta_y, kd, covariance = fit_hyperbola_with_background(partial_fit_function, fitting_concentrations, fitting_intensities)
+    try:
+        fractional_contribution, delta_y, kd, covariance = fit_hyperbola_with_background(partial_fit_function, fitting_concentrations, fitting_intensities)
+    except RuntimeError:
+        return None
     # TODO: Use covariance matrix to see how well constrained things are
     if bootstrap:
         kd_uncertainty = None
