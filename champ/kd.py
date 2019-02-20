@@ -32,7 +32,6 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
                       ('kd', np.float),
                       ('kd_uncertainty', np.float),
                       ('delta_y', np.float),
-                      ('fractional_contribution', np.float),
                       ('count', np.int32)])
 
     with h5py.File(h5_filename, 'a') as h5:
@@ -42,11 +41,11 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
             #   second, you pick a different sequence and get its flattened concentrations and intensities
             #   third, you call this function with those concentrations and the parameters from the first step
             #   fourth, you call fit_hyperbola_with_background
-            for sequence, kd, kd_uncertainty, delta_y, fractional_contribution, count in pbar(
+            for sequence, kd, kd_uncertainty, delta_y, count in pbar(
                     fit_all_kds(sequence_read_name_intensities, concentrations, neg_delta_y, neg_kd, neg_yint, process_count=process_count)):
                 if count >= MINIMUM_REQUIRED_COUNTS:
                     dataset.resize((index + 1,))
-                    dataset[index] = (sequence, kd, kd_uncertainty, delta_y, fractional_contribution, count)
+                    dataset[index] = (sequence, kd, kd_uncertainty, delta_y, count)
                     index += 1
     print("Fit %d sequences" % index)
 
@@ -293,7 +292,7 @@ def _thread_fit_kd_with_background(group_intensities, all_concentrations, minimu
 
     partial_fit_function = make_hyperbola_with_background_function(delta_y_nc, kd_nc, c_nc)
     try:
-        fractional_contribution, delta_y, kd, covariance = fit_hyperbola_with_background(partial_fit_function, fitting_concentrations, fitting_intensities)
+        delta_y, kd, covariance = fit_hyperbola_with_background(partial_fit_function, fitting_concentrations, fitting_intensities)
     except RuntimeError:
         return None
     # TODO: Use covariance matrix to see how well constrained things are
@@ -304,7 +303,7 @@ def _thread_fit_kd_with_background(group_intensities, all_concentrations, minimu
         kd_uncertainty = 0.0
     if kd is None or kd_uncertainty is None:
         return None
-    return group_unique_label, kd, kd_uncertainty, delta_y, fractional_contribution, len(intensities)
+    return group_unique_label, kd, kd_uncertainty, delta_y, len(intensities)
 
 
 def hyperbola(concentrations, delta_y, kd, c):
@@ -321,19 +320,19 @@ def make_hyperbola_with_background_function(delta_y_nc, kd_nc, c):
     #   second, you pick a different sequence and get its flattened concentrations and intensities
     #   third, you call this function with those concentrations and the parameters from the first step
     #   fourth, you call fit_hyperbola_with_background
-    def hyperbola_with_background_function(concentrations, fractional_contribution, delta_y, kd):
-        return fractional_contribution * (delta_y * concentrations / (concentrations + kd)) \
-          + (1.0 - fractional_contribution) * (float(delta_y_nc) * concentrations / (concentrations + float(kd_nc))) + float(c)
+    def hyperbola_with_background_function(concentrations, delta_y, kd):
+        return (delta_y * concentrations / (concentrations + kd)) \
+               + (float(delta_y_nc) * concentrations / (concentrations + float(kd_nc))) + float(c)
     return hyperbola_with_background_function
 
 
 def fit_hyperbola_with_background(partial_function, concentrations, intensities):
-    (fractional_contribution, delta_y, kd), covariance = curve_fit(partial_function,
-                                                                   concentrations,
-                                                                   intensities,
-                                                                   bounds=((0.0, 0.0,    10 ** -280),
-                                                                           (1.0, np.inf, np.inf)))
-    return fractional_contribution, delta_y, kd, covariance
+    (delta_y, kd), covariance = curve_fit(partial_function,
+                                          concentrations,
+                                          intensities,
+                                          bounds=((0.0, 0.0,    10 ** -280),
+                                                  (1.0, np.inf, np.inf)))
+    return delta_y, kd, covariance
 
 
 def fixed_delta_y_hyperbola(delta_y):

@@ -595,7 +595,7 @@ def kd_to_normalized_delta_aba_converter(perfect_kd, perfect_uncertainty, neg_kd
 def load_synthetic_kds(filename, target_sequence, experiment_label):
     with h5py.File(filename, 'r') as h5:
         synthetic_kds = SyntheticAffinities(target_sequence, experiment_label)
-        for sequence, kd, uncertainty, delta_y, fractional_contribution, count in h5['synthetic-kds']:
+        for sequence, kd, uncertainty, delta_y, count in h5['synthetic-kds']:
             synthetic_kds.set(sequence, kd, uncertainty, count)
         return synthetic_kds
 
