@@ -308,7 +308,7 @@ def hyperbola(concentrations, delta_y, kd, c):
     return delta_y * (concentrations / (concentrations + kd)) + c
 
 
-def make_hyperbola_with_background_function(concentrations, delta_y_nc, kd_nc, c):
+def make_hyperbola_with_background_function(delta_y_nc, kd_nc, c):
     """ Just a helper function to insert some constant values into a fitting function (essentially just partial
     evaluation that gets around a limitation of scipy's minimization function). """
     # concentrations are the flattened concentrations from a sequence of interest
@@ -318,7 +318,7 @@ def make_hyperbola_with_background_function(concentrations, delta_y_nc, kd_nc, c
     #   second, you pick a different sequence and get its flattened concentrations and intensities
     #   third, you call this function with those concentrations and the parameters from the first step
     #   fourth, you call fit_hyperbola_with_background
-    def hyperbola_with_background_function(fractional_contribution, delta_y, kd):
+    def hyperbola_with_background_function(concentrations, fractional_contribution, delta_y, kd):
         return fractional_contribution * (delta_y * concentrations / (concentrations + kd)) \
           + (1.0 - fractional_contribution) * (float(delta_y_nc) * concentrations / (concentrations + float(kd_nc))) + float(c)
     return hyperbola_with_background_function
