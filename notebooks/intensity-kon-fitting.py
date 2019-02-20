@@ -141,7 +141,6 @@ if os.path.exists(read_name_kd_filename):
     calculate_all_synthetic_kds(new_kd_filename,
                                 concentrations,
                                 interesting_read_names,
-                                target,
                                 neg_control_target,
                                 process_count)
     exit()
@@ -227,5 +226,4 @@ with h5py.File(read_name_kd_filename, 'w') as h5:
 with h5py.File(read_name_kd_filename, 'a') as h5:
     h5.create_dataset('intensities', data=intensity_matrix)
 
-calculate_all_synthetic_kds(read_name_kd_filename, concentrations, interesting_read_names,
-                            target, neg_control_target, process_count)
+calculate_all_synthetic_kds(read_name_kd_filename, concentrations, interesting_read_names, neg_control_target, process_count)
