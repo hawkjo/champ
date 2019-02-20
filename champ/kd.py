@@ -31,6 +31,8 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
     kd_dt = np.dtype([('sequence', string_dt),
                       ('kd', np.float),
                       ('kd_uncertainty', np.float),
+                      ('delta_y', np.float),
+                      ('fractional_contribution', np.float),
                       ('count', np.int32)])
 
     with h5py.File(h5_filename, 'a') as h5:
@@ -40,11 +42,11 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
             #   second, you pick a different sequence and get its flattened concentrations and intensities
             #   third, you call this function with those concentrations and the parameters from the first step
             #   fourth, you call fit_hyperbola_with_background
-            for sequence, kd, kd_uncertainty, yint, delta_y, count in pbar(
+            for sequence, kd, kd_uncertainty, delta_y, fractional_contribution, count in pbar(
                     fit_all_kds(sequence_read_name_intensities, concentrations, neg_delta_y, neg_kd, neg_yint, process_count=process_count)):
                 if count >= MINIMUM_REQUIRED_COUNTS:
                     dataset.resize((index + 1,))
-                    dataset[index] = (sequence, kd, kd_uncertainty, count)
+                    dataset[index] = (sequence, kd, kd_uncertainty, delta_y, fractional_contribution, count)
                     index += 1
     print("Fit %d sequences" % index)
 
