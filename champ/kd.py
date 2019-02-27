@@ -293,7 +293,7 @@ def fit_all_kds(group_intensities, concentrations, delta_y_nc, kd_nc, c_nc, proc
             yield result
 
 
-def _thread_fit_kd_with_background(group_intensities, all_concentrations, minimum_required_observations, delta_y_nc, kd_nc, c_nc, p0=None, bootstrap=False)
+def _thread_fit_kd_with_background(group_intensities, all_concentrations, minimum_required_observations, delta_y_nc, kd_nc, c_nc, p0=None, bootstrap=False):
     group_unique_label, intensities = group_intensities
     intensities = filter_reads_with_insufficient_observations(intensities, minimum_required_observations)
     if len(intensities) < MINIMUM_REQUIRED_COUNTS:
