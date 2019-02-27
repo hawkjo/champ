@@ -284,7 +284,7 @@ def fit_all_kds(group_intensities, concentrations, delta_y_nc, kd_nc, c_nc, proc
             good_kds.append(kd)
 
     # now refit everything with a better guess
-    p0 = (np.nanmean(good_fractions), np.nanmean(good_delta_ys), np.nanmean(good_kds))
+    p0 = (np.nanmedian(good_fractions), np.nanmedian(good_delta_ys), np.nanmedian(good_kds))
     for result in lomp.parallel_map(group_intensities.items(),
                                     _thread_fit_kd_with_background,
                                     args=(concentrations, minimum_required_observations, delta_y_nc, kd_nc, c_nc, p0),
