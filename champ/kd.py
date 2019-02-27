@@ -348,7 +348,7 @@ def fit_hyperbola_with_background(partial_function, concentrations, intensities,
     (fractional_contribution, delta_y, kd), covariance = curve_fit(partial_function,
                                                                    concentrations,
                                                                    intensities,
-                                                                   method='Powell',
+                                                                   method='dogbox',
                                                                    bounds=((0.0, 0.0, 1e-280),
                                                                            (1.0, np.inf, 1200.0)),
  								   p0=p0)
