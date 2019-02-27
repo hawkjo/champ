@@ -26,7 +26,7 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
     #   first, you fit the negative control using the hyperbola function, and get those parameters.
     neg_kd, neg_kd_uncertainty, neg_yint, neg_delta_y, neg_counts = fit_one_group_kd(sequence_read_name_intensities[neg_control_sequence], concentrations)
     print("Neg target KD is %.1f +/- %.3f nM" % (neg_kd, neg_kd_uncertainty))
-
+    print("Neg target YINT: %f, DELTAY: %f" % (neg_yint, neg_delta_y))
     string_dt = h5py.special_dtype(vlen=str)
     kd_dt = np.dtype([('sequence', string_dt),
                       ('kd', np.float),
@@ -211,7 +211,7 @@ def bootstrap_kd_uncertainty(all_concentrations, all_intensities):
                     intensities.append(intensity)
                     concentrations.append(concentration)
         try:
-            _, _, kd = fit_hyperbola(concentrations, intensities)
+            _, kd, _ = fit_hyperbola(concentrations, intensities)
         except (FloatingPointError, RuntimeError, Exception) as e:
             continue
         else:
@@ -332,7 +332,8 @@ def fit_hyperbola_with_background(partial_function, concentrations, intensities)
                                                                    concentrations,
                                                                    intensities,
                                                                    bounds=((0.0, 0.0,    10 ** -280),
-                                                                           (1.0, np.inf, np.inf)))
+                                                                           (1.0, np.inf, np.inf)),
+ 								   p0=(0.5, 1000000.0, 50.0))
     return fractional_contribution, delta_y, kd, covariance
 
 
