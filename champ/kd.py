@@ -269,15 +269,31 @@ def fit_all_kds(group_intensities, concentrations, delta_y_nc, kd_nc, c_nc, proc
     # each dictionary should all be related to some group of reads that have the same sequence or overlap the same
     # region of the genome
     minimum_required_observations = max(len(concentrations) - 3, 5)
+    good_fractions = []
+    good_delta_ys = []
+    good_kds = []
+
     for result in lomp.parallel_map(group_intensities.items(),
                                     _thread_fit_kd_with_background,
                                     args=(concentrations, minimum_required_observations, delta_y_nc, kd_nc, c_nc),
                                     process_count=process_count):
         if result is not None:
+            group_unique_label, kd, kd_uncertainty, delta_y, fractional_contribution, count = result
+            good_fractions.append(fractional_contribution)
+            good_delta_ys.append(delta_y)
+            good_kds.append(kd)
+
+    # now refit everything with a better guess
+    p0 = (np.nanmean(good_fractions), np.nanmean(good_delta_ys), np.nanmean(good_kds))
+    for result in lomp.parallel_map(group_intensities.items(),
+                                    _thread_fit_kd_with_background,
+                                    args=(concentrations, minimum_required_observations, delta_y_nc, kd_nc, c_nc, p0),
+                                    process_count=process_count):
+        if result is not None:
             yield result
 
 
-def _thread_fit_kd_with_background(group_intensities, all_concentrations, minimum_required_observations, delta_y_nc, kd_nc, c_nc, bootstrap=False):
+def _thread_fit_kd_with_background(group_intensities, all_concentrations, minimum_required_observations, delta_y_nc, kd_nc, c_nc, bootstrap=False, p0=None):
     group_unique_label, intensities = group_intensities
     intensities = filter_reads_with_insufficient_observations(intensities, minimum_required_observations)
     if len(intensities) < MINIMUM_REQUIRED_COUNTS:
@@ -293,7 +309,7 @@ def _thread_fit_kd_with_background(group_intensities, all_concentrations, minimu
 
     partial_fit_function = make_hyperbola_with_background_function(delta_y_nc, kd_nc, c_nc)
     try:
-        fractional_contribution, delta_y, kd, covariance = fit_hyperbola_with_background(partial_fit_function, fitting_concentrations, fitting_intensities)
+        fractional_contribution, delta_y, kd, covariance = fit_hyperbola_with_background(partial_fit_function, fitting_concentrations, fitting_intensities, p0)
     except RuntimeError:
         return None
     # TODO: Use covariance matrix to see how well constrained things are
@@ -327,7 +343,8 @@ def make_hyperbola_with_background_function(delta_y_nc, kd_nc, c):
     return hyperbola_with_background_function
 
 
-def fit_hyperbola_with_background(partial_function, concentrations, intensities):
+def fit_hyperbola_with_background(partial_function, concentrations, intensities, p0=None):
+    p0 = p0 if p0 is not None else (0.5, 1000000.0, 50.0)
     (fractional_contribution, delta_y, kd), covariance = curve_fit(partial_function,
                                                                    concentrations,
                                                                    intensities,
