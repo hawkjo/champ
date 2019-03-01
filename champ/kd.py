@@ -25,9 +25,11 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
 
     #   first, you fit the negative control using the hyperbola function, and get those parameters.
     neg_kd, neg_kd_uncertainty, neg_yint, neg_delta_y, neg_counts = fit_one_group_kd(sequence_read_name_intensities[neg_control_sequence], concentrations)
-    print("Neg target KD is %.1f +/- %.3f nM" % (neg_kd, neg_kd_uncertainty))
-    print("Neg target YINT: %f, DELTAY: %f" % (neg_yint, neg_delta_y))
+    
     string_dt = h5py.special_dtype(vlen=str)
+    neg_dt = np.dtype([('kd', np.float),
+                       ('delta_y', np.float),
+                       ('yint', np.float)])
     kd_dt = np.dtype([('sequence', string_dt),
                       ('kd', np.float),
                       ('kd_uncertainty', np.float),
@@ -36,6 +38,8 @@ def calculate_all_synthetic_kds(h5_filename, concentrations, interesting_read_na
                       ('count', np.int32)])
 
     with h5py.File(h5_filename, 'a') as h5:
+        neg_dataset = h5.create_dataset('negative-control', (1,), dtype=neg_dt)
+        neg_dataset[0] = (neg_kd, neg_delta_y, neg_yint)
         dataset = h5.create_dataset('synthetic-kds', (1,), dtype=kd_dt, maxshape=(None,))
         index = 0
         with progressbar.ProgressBar(max_value=len(sequence_read_name_intensities)) as pbar:
