@@ -27,7 +27,8 @@ virtualenv env
 Now install Python packages and CHAMP:
 
 ```
-pip install numpy==1.11.1 && pip install scipy==0.18.0 && pip install -r requirements.txt && python setup.py install
+pip install --upgrade pip==19.0 && pip install --upgrade setuptools==44.1.1
+pip install -r requirements.txt && python setup.py install
 
 ```
 
