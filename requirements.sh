@@ -18,3 +18,4 @@ pip install tifffile==0.9.2;
 pip install tornado==4.5.1;
 pip install pyrsistent==0.16.1;
 pip install notebook==5.7.10;
+pip install ipykernel==4.7.0;
