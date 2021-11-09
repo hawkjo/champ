@@ -147,7 +147,7 @@ class FastqReadClassifier(object):
         with open('/dev/null', 'w+') as devnull:
             shell_options = dict(shell=True, stderr=devnull, stdout=devnull)
             subprocess.call(' '.join(command), **shell_options)
-            sam_command = 'samtools view -bS chimp.sam | samtools sort - final'
+            sam_command = 'samtools view -bS chimp.sam | samtools sort > final.bam'
             subprocess.call(sam_command, **shell_options)
             subprocess.call('samtools index final.bam', **shell_options)
             for r in pysam.Samfile('final.bam'):
